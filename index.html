@@ -14,9 +14,6 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- DataTables CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
-    
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -759,7 +756,7 @@
                     <div class="progress">
                         <div class="progress-bar bg-success" role="progressbar" style="width: 0%" id="progressBar"></div>
                     </div>
-                </div>
+                    </div>
                 
                 <div id="fieldsContainer">
                     <!-- Fields will be dynamically added here -->
@@ -873,6 +870,7 @@
     
     <script>
         // Global variables
+        let supabaseClient;
         let currentEmployee = null;
         let fieldStatuses = {};
         let editedFields = {};
@@ -884,6 +882,10 @@
         // Admin credentials (normally these would be stored securely on a server)
         const ADMIN_USERNAME = '7354900500';
         const ADMIN_PASSWORD = '9329807288';
+        
+        // Supabase configuration
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
         // Generate year options for year picker (1950 to current year)
         function generateYearOptions() {
@@ -926,40 +928,62 @@
             { id: "Type of Appointment", label: "Type of Appointment", type: "select", options: ["Regular", "Temporary"] },
             { id: "Appointment Order Date", label: "Appointment Order Date", type: "date" },
             { id: "Roles", label: "Roles (In CR reporting System)", type: "text" },
-            { id: "Allotment Year", label: "Allotment Year (Year of Promotion)", type: "year", options: generateYearOptions() }
+            { id: "Allotment Year", label: "Allotment Year (Year of Promotion)", type: "select", options: generateYearOptions() }
         ];
         
-        // Initialize Supabase client
-        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-        let supabaseClient;
-        
-        // Document ready
+        // DOMContentLoaded - Initialize everything here
         document.addEventListener('DOMContentLoaded', function() {
-            console.log("Document loaded");
+            console.log("DOM is fully loaded");
             
+            // Initialize Supabase
             try {
-                // Initialize Supabase
                 supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                 console.log("Supabase client initialized");
                 
                 // Test connection
                 testConnection();
                 
-                // Initialize event listeners
+                // Initialize UI and event listeners
+                initUI();
                 initEventListeners();
-                
-                // Initialize OTP inputs
-                initOtpInputs();
             } catch (error) {
-                console.error("Error initializing:", error);
+                console.error("Initialization error:", error);
                 showMessage('searchError', 'Error initializing application. Please try again later.', true);
             }
         });
         
+        // UI initialization
+        function initUI() {
+            // Hide all cards except login options
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => card.classList.add('d-none'));
+            document.getElementById('loginOptionsCard').classList.remove('d-none');
+            
+            // Clear any existing alerts
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => alert.classList.add('d-none'));
+        }
+        
+        // Test connection to Supabase
+        async function testConnection() {
+            try {
+                console.log("Testing connection to Supabase...");
+                const { data, error } = await supabaseClient.from('employees').select('count');
+                if (error) {
+                    console.error("Connection test failed:", error);
+                    showMessage('searchError', 'Database connection error. Please try again later.', true);
+                } else {
+                    console.log("Connection test successful:", data);
+                }
+            } catch (error) {
+                console.error("Error in connection test:", error);
+                showMessage('searchError', 'Error connecting to database. Please try again later.', true);
+            }
+        }
+        
         // Initialize event listeners
         function initEventListeners() {
-            // Login options
+            // Show login options
             document.getElementById('employeeLoginOption').addEventListener('click', showEmployeeLogin);
             document.getElementById('adminLoginOption').addEventListener('click', showAdminLogin);
             document.getElementById('backToLoginOptions').addEventListener('click', showLoginOptions);
@@ -1025,28 +1049,9 @@
             });
         }
         
-        // Test connection to Supabase
-        async function testConnection() {
-            try {
-                console.log("Testing connection to Supabase...");
-                
-                // Simple query to test connection
-                const { data, error } = await supabaseClient
-                    .from('employees')
-                    .select('count');
-                
-                if (error) {
-                    console.error("Connection test failed:", error);
-                } else {
-                    console.log("Connection successful!");
-                }
-            } catch (error) {
-                console.error("Error in connection test:", error);
-            }
-        }
-        
         // Show employee login (search card)
         function showEmployeeLogin() {
+            console.log("Showing employee login");
             document.getElementById('loginOptionsCard').classList.add('d-none');
             document.getElementById('searchCard').classList.remove('d-none');
             document.getElementById('stepIndicator').classList.remove('d-none');
@@ -1054,14 +1059,21 @@
         
         // Show admin login card
         function showAdminLogin() {
+            console.log("Showing admin login");
             document.getElementById('loginOptionsCard').classList.add('d-none');
             document.getElementById('adminLoginCard').classList.remove('d-none');
         }
         
         // Show login options card
         function showLoginOptions() {
+            console.log("Showing login options card");
             document.getElementById('searchCard').classList.add('d-none');
             document.getElementById('adminLoginCard').classList.add('d-none');
+            document.getElementById('otpCard').classList.add('d-none');
+            document.getElementById('verificationCard').classList.add('d-none');
+            document.getElementById('reviewCard').classList.add('d-none');
+            document.getElementById('successCard').classList.add('d-none');
+            document.getElementById('adminDashboardCard').classList.add('d-none');
             document.getElementById('loginOptionsCard').classList.remove('d-none');
             document.getElementById('stepIndicator').classList.add('d-none');
             
@@ -1071,8 +1083,8 @@
             document.getElementById('adminPassword').value = '';
             
             // Hide error messages
-            document.getElementById('searchError').classList.add('d-none');
-            document.getElementById('adminLoginError').classList.add('d-none');
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => alert.classList.add('d-none'));
         }
         
         // Handle admin login
@@ -1103,10 +1115,20 @@
             // Clear admin login form
             document.getElementById('adminUsername').value = '';
             document.getElementById('adminPassword').value = '';
+            
+            // Clear any selected admin tab
+            const tabs = document.querySelectorAll('.nav-link');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            document.getElementById('employees-tab').classList.add('active');
+            
+            // Show the login options
+            showLoginOptions();
         }
         
         // Load employee data for admin dashboard
         async function loadEmployeeData() {
+            console.log("Loading employee data");
+            
             // Show loading spinner
             document.getElementById('employeesTableSpinner').style.display = 'block';
             
@@ -1304,31 +1326,21 @@
             try {
                 // Initialize jsPDF
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+                const doc = new jsPDF('landscape');
                 
                 // Add title
                 doc.setFontSize(18);
                 doc.setTextColor(128, 0, 0);
-                doc.text('Employee Data Report', 105, 15, { align: 'center' });
+                doc.text('Employee Data Report', 150, 15, { align: 'center' });
                 
                 // Add subtitle
                 doc.setFontSize(14);
                 doc.setTextColor(0, 0, 0);
-                doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
-                
-                // Add employee name and ID
-                doc.setFontSize(12);
-                doc.text('Employee: ' + (employee['Employee Name'] || ''), 14, 40);
-                doc.text('Mobile: ' + (employee['Mobile Number'] || ''), 14, 48);
-                doc.text('Report Date: ' + new Date().toLocaleDateString(), 14, 56);
-                
-                // Add horizontal line
-                doc.setDrawColor(128, 0, 0);
-                doc.setLineWidth(0.5);
-                doc.line(14, 60, 196, 60);
+                doc.text('Directorate of Agriculture Chhattisgarh', 150, 25, { align: 'center' });
+                doc.text('Generated on: ' + new Date().toLocaleDateString(), 150, 35, { align: 'center' });
                 
                 // Prepare data for table
-                const personalData = [
+                const tableData = [
                     ['Mobile Number', employee['Mobile Number'] || ''],
                     ['Employee Name', employee['Employee Name'] || ''],
                     ['Email ID', employee['Nic E-mail ID'] || ''],
@@ -1337,10 +1349,7 @@
                     ['Date of Birth', employee['Date of Birth'] || ''],
                     ['Nationality', employee['Nationality'] || ''],
                     ['Religion', employee['Religion'] || ''],
-                    ['Category', employee['Category'] || '']
-                ];
-                
-                const professionalData = [
+                    ['Category', employee['Category'] || ''],
                     ['Designation', employee['Designation'] || ''],
                     ['Service', employee['Service'] || ''],
                     ['Organization', employee['Orgnazation'] || ''],
@@ -1352,14 +1361,11 @@
                     ['Allotment Year', employee['Allotment Year'] || '']
                 ];
                 
-                // Add personal information table
-                doc.setFontSize(14);
-                doc.text('Personal Information', 14, 70);
-                
+                // Add table
                 doc.autoTable({
-                    startY: 75,
+                    startY: 45,
                     head: [['Field', 'Value']],
-                    body: personalData,
+                    body: tableData,
                     theme: 'striped',
                     headStyles: {
                         fillColor: [128, 0, 0],
@@ -1367,52 +1373,8 @@
                         fontStyle: 'bold'
                     },
                     styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add professional information table
-                const professionalStartY = doc.previousAutoTable.finalY + 10;
-                doc.text('Professional Information', 14, professionalStartY);
-                
-                doc.autoTable({
-                    startY: professionalStartY + 5,
-                    head: [['Field', 'Value']],
-                    body: professionalData,
-                    theme: 'striped',
-                    headStyles: {
-                        fillColor: [128, 0, 0],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add system information
-                const systemStartY = doc.previousAutoTable.finalY + 10;
-                doc.text('System Information', 14, systemStartY);
-                
-                const systemData = [
-                    ['Last Updated', employee['Modified Date'] ? new Date(employee['Modified Date']).toLocaleString() : 'Never'],
-                    ['Created Date', employee['Created Date'] ? new Date(employee['Created Date']).toLocaleString() : ''],
-                    ['Modified By', employee['Modified By'] || ''],
-                    ['Created By', employee['Created By'] || '']
-                ];
-                
-                doc.autoTable({
-                    startY: systemStartY + 5,
-                    head: [['Field', 'Value']],
-                    body: systemData,
-                    theme: 'striped',
-                    headStyles: {
-                        fillColor: [128, 0, 0],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
+                        cellPadding: 3,
+                        fontSize: 8
                     }
                 });
                 
@@ -1422,17 +1384,14 @@
                     doc.setPage(i);
                     doc.setFontSize(10);
                     doc.setTextColor(100);
-                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 150, 200, { align: 'center' });
                 }
                 
                 // Save the PDF
-                const fileName = 'Employee_' + (employee['Employee Name'] || '').replace(/\s+/g, '_') + '.pdf';
-                doc.save(fileName);
-                
-                console.log("PDF generated successfully:", fileName);
+                doc.save(`Employee_${(employee['Employee Name'] || '').replace(/\s+/g, '_')}.pdf`);
             } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert('Error generating PDF: ' + error.message);
+                console.error("Error exporting to PDF:", error);
+                alert('Error exporting to PDF: ' + error.message);
             }
         }
         
@@ -1493,21 +1452,20 @@
                         borderWidth: 1
                     }]
                 },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const label = context.label || '';
-                                        const value = context.raw || 0;
-                                        const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-                                        const percentage = Math.round((value / total) * 100);
-                                        return `${label}: ${value} (\${percentage}%)`;
-                                    }
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.raw || 0;
+                                    const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: ${value} (${percentage}%)`;
                                 }
                             }
                         }
@@ -2344,26 +2302,31 @@
             document.getElementById('submitSpinner').style.display = 'block';
             document.getElementById('submitButton').disabled = true;
             
+// Prepare data for submission
+            const updatedEmployee = Object.assign({}, currentEmployee);
+            
+            // Apply edits
+            for (const fieldId in editedFields) {
+                updatedEmployee[fieldId] = editedFields[fieldId];
+            }
+            
+            // Add verification timestamp
+            updatedEmployee['Last Updated'] = new Date().toISOString();
+            updatedEmployee['Modified By'] = 'Self Update';
+            
             try {
-                // Only update fields that were actually edited
-                if (Object.keys(editedFields).length > 0) {
-                    console.log("Submitting edited fields:", editedFields);
-                    
-                    // Add Modified Date and Modified By
-                    editedFields['Modified Date'] = new Date().toISOString();
-                    editedFields['Modified By'] = 'Self Update';
-                    
-// Update the employee record in Supabase with only edited fields
-const { data, error } = await supabaseClient
-    .from('employees')
-    .update(editedFields)
-    .eq('Mobile Number', currentEmployee['Mobile Number']);
-    
-                    console.log("Update response:", { data, error });
-                    
-                    if (error) throw error;
-                } else {
-                    console.log("No fields were edited, skipping update");
+                console.log("Submitting updated data:", updatedEmployee);
+                
+                // Update the employee record in Supabase
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .update(updatedEmployee)
+                    .eq('Mobile Number', currentEmployee['Mobile Number']);
+                
+                console.log("Supabase update response:", { data, error });
+                
+                if (error) {
+                    throw error;
                 }
                 
                 // Hide spinner
@@ -2383,7 +2346,7 @@ const { data, error } = await supabaseClient
                     console.error("Error removing draft from localStorage:", e);
                 }
                 
-                console.log("Form submission completed successfully");
+                console.log("Form submitted successfully");
                 
             } catch (error) {
                 console.error("Error submitting form:", error);
@@ -2396,153 +2359,146 @@ const { data, error } = await supabaseClient
                 alert('Error submitting form: ' + error.message);
             }
         }
-        
+
         // Generate PDF
         function generatePDF() {
-            console.log("Generating PDF");
-            
-            try {
-                // Check if jsPDF is loaded
-                if (typeof window.jspdf === 'undefined') {
-                    console.error("jsPDF library not loaded");
-                    alert("PDF generation library not loaded. Please try again later.");
-                    return;
-                }
-                
-                // Initialize jsPDF
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
-                
-                // Add title
-                doc.setFontSize(18);
-                doc.setTextColor(128, 0, 0);
-                doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
-                
-                // Add subtitle
-                doc.setFontSize(14);
-                doc.setTextColor(0, 0, 0);
-                doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
-                doc.text('Generated on: ' + new Date().toLocaleDateString(), 105, 35, { align: 'center' });
-                
-                // Add employee name and ID
-                doc.setFontSize(12);
-                doc.text('Employee: ' + (currentEmployee['Employee Name'] || ''), 14, 40);
-                doc.text('Mobile: ' + (currentEmployee['Mobile Number'] || ''), 14, 48);
-                doc.text('Report Date: ' + new Date().toLocaleDateString(), 14, 56);
-                
-                // Add horizontal line
-                doc.setDrawColor(128, 0, 0);
-                doc.setLineWidth(0.5);
-                doc.line(14, 60, 196, 60);
-                
-                // Prepare data for table
-                const personalData = [
-                    ['Mobile Number', employee['Mobile Number'] || ''],
-                    ['Employee Name', employee['Employee Name'] || ''],
-                    ['Email ID', employee['Nic E-mail ID'] || ''],
-                    ['Gender', employee['Gender'] || ''],
-                    ['Father\'s Name', employee["Father's Name"] || ''],
-                    ['Date of Birth', employee['Date of Birth'] || ''],
-                    ['Nationality', employee['Nationality'] || ''],
-                    ['Religion', employee['Religion'] || ''],
-                    ['Category', employee['Category'] || '']
-                ];
-                
-                const professionalData = [
-                    ['Designation', employee['Designation'] || ''],
-                    ['Service', employee['Service'] || ''],
-                    ['Organization', employee['Orgnazation'] || ''],
-                    ['Date of Joining', employee['Organization from Date'] || ''],
-                    ['Designation on Joining', employee['Designation on Joining Date'] || ''],
-                    ['Type of Appointment', employee['Type of Appointment'] || ''],
-                    ['Appointment Order Date', employee['Appointment Order Date'] || ''],
-                    ['Roles', employee['Roles'] || ''],
-                    ['Allotment Year', employee['Allotment Year'] || '']
-                ];
-                
-                // Add system information
-                const systemData = [
-                    ['Last Updated', employee['Modified Date'] ? new Date(employee['Modified Date']).toLocaleString() : 'Never'],
-                    ['Created Date', employee['Created Date'] ? new Date(employee['Created Date']).toLocaleString() : ''],
-                    ['Modified By', employee['Modified By'] || ''],
-                    ['Created By', employee['Created By'] || '']
-                ];
-                
-                // Add personal information table
-                doc.setFontSize(14);
-                doc.text('Personal Information', 14, 70);
-                
-                doc.autoTable({
-                    startY: 75,
-                    head: [['Field', 'Value']],
-                    body: personalData,
-                    theme: 'striped',
-                    headStyles: {
-                        fillColor: [128, 0, 0],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add professional information table
-                const professionalStartY = doc.previousAutoTable.finalY + 10;
-                doc.text('Professional Information', 14, professionalStartY);
-                
-                doc.autoTable({
-                    startY: professionalStartY + 5,
-                    head: [['Field', 'Value']],
-                    body: professionalData,
-                    theme: 'striped',
-                    headStyles: {
-                        fillColor: [128, 0, 0],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add system information table
-                const systemStartY = doc.previousAutoTable.finalY + 10;
-                doc.text('System Information', 14, systemStartY);
-                
-                doc.autoTable({
-                    startY: systemStartY + 5,
-                    head: [['Field', 'Value']],
-                    body: systemData,
-                    theme: 'striped',
-                    headStyles: {
-                        fillColor: [128, 0, 0],
-                        textColor: [255, 255, 255],
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add footer
-                const pageCount = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(10);
-                    doc.setTextColor(100);
-                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
-                }
-                
-                // Save the PDF
-                const fileName = 'Employee_' + (employee['Employee Name'] || '').replace(/\s+/g, '_') + '.pdf';
-                doc.save(fileName);
-                
-                console.log("PDF generated successfully:", fileName);
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert('Error generating PDF: ' + error.message);
+            // Check if jsPDF is loaded
+            if (typeof window.jspdf === 'undefined') {
+                console.error("jsPDF library not loaded");
+                alert("PDF generation library not loaded. Please try again later.");
+                return;
             }
+        
+            // Initialize jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Add title
+            doc.setFontSize(18);
+            doc.setTextColor(128, 0, 0);
+            doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+
+            // Add subtitle
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+            doc.text('Generated on: ' + new Date().toLocaleDateString(), 105, 35, { align: 'center' });
+
+            // Add employee name and ID
+            doc.setFontSize(12);
+            doc.text('Employee: ' + (currentEmployee['Employee Name'] || ''), 14, 40);
+            doc.text('Mobile: ' + (currentEmployee['Mobile Number'] || ''), 14, 48);
+            doc.text('Report Date: ' + new Date().toLocaleDateString(), 14, 56);
+
+            // Add horizontal line
+            doc.setDrawColor(128, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.line(14, 60, 196, 60);
+
+            // Prepare data for table
+            const personalData = [
+                ['Mobile Number', currentEmployee['Mobile Number'] || ''],
+                ['Employee Name', currentEmployee['Employee Name'] || ''],
+                ['Email ID', currentEmployee['Nic E-mail ID'] || ''],
+                ['Gender', currentEmployee['Gender'] || ''],
+                ['Father\'s Name', currentEmployee["Father's Name"] || ''],
+                ['Date of Birth', currentEmployee['Date of Birth'] || ''],
+                ['Nationality', currentEmployee['Nationality'] || ''],
+                ['Religion', currentEmployee['Religion'] || ''],
+                ['Category', currentEmployee['Category'] || '']
+            ];
+
+            const professionalData = [
+                ['Designation', currentEmployee['Designation'] || ''],
+                ['Service', currentEmployee['Service'] || ''],
+                ['Organization', currentEmployee['Orgnazation'] || ''],
+                ['Date of Joining', currentEmployee['Organization from Date'] || ''],
+                ['Designation on Joining', currentEmployee['Designation on Joining Date'] || ''],
+                ['Type of Appointment', currentEmployee['Type of Appointment'] || ''],
+                ['Appointment Order Date', currentEmployee['Appointment Order Date'] || ''],
+                ['Roles', currentEmployee['Roles'] || ''],
+                ['Allotment Year', currentEmployee['Allotment Year'] || '']
+            ];
+
+            // Add system information
+            const systemData = [
+                ['Last Updated', currentEmployee['Last Updated'] ? new Date(currentEmployee['Last Updated']).toLocaleString() : 'Never'],
+                ['Created Date', currentEmployee['Created Date'] ? new Date(currentEmployee['Created Date']).toLocaleString() : ''],
+                ['Modified By', currentEmployee['Modified By'] || ''],
+                ['Created By', currentEmployee['Created By'] || '']
+            ];
+
+            // Add personal information table
+            doc.setFontSize(14);
+            doc.text('Personal Information', 14, 70);
+
+            doc.autoTable({
+                startY: 75,
+                head: [['Field', 'Value']],
+                body: personalData,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: [128, 0, 0],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                styles: {
+                    cellPadding: 3
+                }
+            });
+
+            // Add professional information table
+            const professionalStartY = doc.previousAutoTable.finalY + 10;
+            doc.text('Professional Information', 14, professionalStartY);
+
+            doc.autoTable({
+                startY: professionalStartY + 5,
+                head: [['Field', 'Value']],
+                body: professionalData,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: [128, 0, 0],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                styles: {
+                    cellPadding: 3
+                }
+            });
+
+            // Add system information table
+            const systemStartY = doc.previousAutoTable.finalY + 10;
+            doc.text('System Information', 14, systemStartY);
+
+            doc.autoTable({
+                startY: systemStartY + 5,
+                head: [['Field', 'Value']],
+                body: systemData,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: [128, 0, 0],
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold'
+                },
+                styles: {
+                    cellPadding: 3
+                }
+            });
+
+            // Add footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(10);
+                doc.setTextColor(100);
+                doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+            }
+
+            // Save the PDF
+            const fileName = 'Employee_' + (currentEmployee['Employee Name'] || '').replace(/\s+/g, '_') + '.pdf';
+            doc.save(fileName);
+
+            console.log("PDF generated successfully:", fileName);
         }
 
         // Go back to search
@@ -2551,12 +2507,12 @@ const { data, error } = await supabaseClient
             
             document.getElementById('verificationCard').classList.add('d-none');
             document.getElementById('searchCard').classList.remove('d-none');
-            
+
             // Reset state
             currentEmployee = null;
             fieldStatuses = {};
             editedFields = {};
-            
+
             // Update step indicator
             updateStepIndicator(1);
         }
@@ -2567,7 +2523,7 @@ const { data, error } = await supabaseClient
             
             document.getElementById('reviewCard').classList.add('d-none');
             document.getElementById('verificationCard').classList.remove('d-none');
-            
+
             // Update step indicator
             updateStepIndicator(2);
         }
@@ -2578,15 +2534,15 @@ const { data, error } = await supabaseClient
             
             document.getElementById('successCard').classList.add('d-none');
             document.getElementById('searchCard').classList.remove('d-none');
-            
+
             // Clear search field
             document.getElementById('mobileNumber').value = '';
-            
+
             // Reset state
             currentEmployee = null;
             fieldStatuses = {};
             editedFields = {};
-            
+
             // Update step indicator
             updateStepIndicator(1);
         }
@@ -2638,3 +2594,12 @@ const { data, error } = await supabaseClient
     </script>
 </body>
 </html>
+
+            
+            
+        
+
+
+
+                
+    
