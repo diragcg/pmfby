@@ -1,1 +1,565 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Data Form</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Poppins Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary-color: #800000; /* Maroon red */
+            --secondary-color: #333333; /* Dark gray/black */
+            --light-color: #f8f8f8;
+            --card-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f5f5f5;
+            color: var(--secondary-color);
+            padding-top: 20px;
+            padding-bottom: 50px;
+        }
+        
+        .container {
+            max-width: 900px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: var(--primary-color);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: var(--secondary-color);
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+            padding: 15px 20px;
+            border-bottom: none;
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: var(--secondary-color);
+            margin-bottom: 8px;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            font-family: 'Poppins', sans-serif;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(128, 0, 0, 0.25);
+        }
+        
+        .btn {
+            font-weight: 600;
+            padding: 12px 25px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            border: none;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Poppins', sans-serif;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 8px rgba(128, 0, 0, 0.3);
+            transform: translateY(0);
+        }
+        
+        .btn-primary:hover {
+            background-color: #600000;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(128, 0, 0, 0.4);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(128, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background-color: #444;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #333;
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .form-section {
+            margin-bottom: 20px;
+        }
+        
+        .form-section-title {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+        
+        .verification-container {
+            background-color: #f8f8f8;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .verification-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner-border {
+            color: var(--primary-color);
+        }
+        
+        .alert {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .required-field::after {
+            content: " *";
+            color: var(--primary-color);
+        }
+        
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            color: #777;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>EMPLOYEE DATA FORM</h1>
+            <p>Please verify or update your information</p>
+        </div>
+        
+        <!-- Login Card -->
+        <div class="card" id="loginCard">
+            <div class="card-header">
+                <i class="fas fa-user-circle me-2"></i> Employee Verification
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger d-none" id="loginError"></div>
+                
+                <div class="mb-3">
+                    <label for="mobileNumber" class="form-label required-field">Mobile Number</label>
+                    <input type="text" class="form-control" id="mobileNumber" placeholder="Enter your registered mobile number">
+                    <div class="form-text">Please enter the mobile number registered in our database.</div>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" id="loginButton">
+                        <i class="fas fa-sign-in-alt me-2"></i> ACCESS MY DATA
+                    </button>
+                </div>
+                
+                <div class="loading-spinner" id="loginSpinner">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2">Verifying your information...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Employee Data Card (Initially Hidden) -->
+        <div class="card d-none" id="employeeCard">
+            <div class="card-header">
+                <i class="fas fa-id-card me-2"></i> Employee Information
+            </div>
+            <div class="card-body">
+                <div class="alert alert-success d-none" id="successMessage"></div>
+                <div class="alert alert-danger d-none" id="errorMessage"></div>
+                
+                <div class="verification-container">
+                    <div class="verification-title">Is your information correct?</div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="verifyOption" id="verifyYes" value="yes" checked>
+                        <label class="form-check-label" for="verifyYes">
+                            Yes, all information is correct
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="verifyOption" id="verifyNo" value="no">
+                        <label class="form-check-label" for="verifyNo">
+                            No, I need to update my information
+                        </label>
+                    </div>
+                </div>
+                
+                <form id="employeeForm">
+                    <input type="hidden" id="rowIndex">
+                    
+                    <!-- Personal Information -->
+                    <div class="form-section">
+                        <h4 class="form-section-title">Personal Information</h4>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="emp_mobileNumber" class="form-label">Mobile Number</label>
+                                <input type="text" class="form-control" id="emp_mobileNumber" readonly>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="employeeName" class="form-label">Employee Name</label>
+                                <input type="text" class="form-control readonly-field" id="employeeName" disabled>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="email" class="form-label">Email ID</label>
+                                <input type="email" class="form-control readonly-field" id="email" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="gender" class="form-label">Gender</label>
+                                <select class="form-select readonly-field" id="gender" disabled>
+                                    <option value="">Select Gender</option>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="fatherName" class="form-label">Father's Name</label>
+                                <input type="text" class="form-control readonly-field" id="fatherName" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dob" class="form-label">Date of Birth</label>
+                                <input type="date" class="form-control readonly-field" id="dob" disabled>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="nationality" class="form-label">Nationality</label>
+                                <input type="text" class="form-control readonly-field" id="nationality" disabled>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="religion" class="form-label">Religion</label>
+                                <input type="text" class="form-control readonly-field" id="religion" disabled>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="category" class="form-label">Category</label>
+                                <input type="text" class="form-control readonly-field" id="category" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Professional Information -->
+                    <div class="form-section">
+                        <h4 class="form-section-title">Professional Information</h4>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="designation" class="form-label">Designation</label>
+                                <input type="text" class="form-control readonly-field" id="designation" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="service" class="form-label">Service</label>
+                                <input type="text" class="form-control readonly-field" id="service" disabled>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="organization" class="form-label">Organization</label>
+                                <input type="text" class="form-control readonly-field" id="organization" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="orgFromDate" class="form-label">Organization from Date</label>
+                                <input type="date" class="form-control readonly-field" id="orgFromDate" disabled>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="appointmentType" class="form-label">Type of Appointment</label>
+                                <input type="text" class="form-control readonly-field" id="appointmentType" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="appointmentOrderDate" class="form-label">Appointment Order Date</label>
+                                <input type="date" class="form-control readonly-field" id="appointmentOrderDate" disabled>
+                            </div>
+                        </div>
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label for="roles" class="form-label">Roles</label>
+                                <input type="text" class="form-control readonly-field" id="roles" disabled>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="allotmentYear" class="form-label">Allotment Year</label>
+                                <input type="text" class="form-control readonly-field" id="allotmentYear" disabled>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="loading-spinner" id="updateSpinner">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="mt-2">Updating your information...</div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <button type="button" class="btn btn-secondary" id="backButton">
+                            <i class="fas fa-arrow-left me-2"></i> GO BACK
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitButton">
+                            <i class="fas fa-check-circle me-2"></i> VERIFY INFORMATION
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 Employee Data Management System. All rights reserved.</p>
+        </div>
+    </div>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Your custom JavaScript will go here -->
+    <script>
+        // This is a placeholder for your actual JavaScript code
+        // You'll need to replace this with code that connects to your SQLite database API
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elements
+            const loginCard = document.getElementById('loginCard');
+            const employeeCard = document.getElementById('employeeCard');
+            const loginButton = document.getElementById('loginButton');
+            const backButton = document.getElementById('backButton');
+            const submitButton = document.getElementById('submitButton');
+            const loginSpinner = document.getElementById('loginSpinner');
+            const updateSpinner = document.getElementById('updateSpinner');
+            const loginError = document.getElementById('loginError');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+            const employeeForm = document.getElementById('employeeForm');
+            
+            // Radio buttons for verification options
+            const verifyYes = document.getElementById('verifyYes');
+            const verifyNo = document.getElementById('verifyNo');
+            
+            // Form fields
+            const readonlyFields = document.querySelectorAll('.readonly-field');
+            
+            // Login button click handler
+            loginButton.addEventListener('click', function() {
+                const mobileNumber = document.getElementById('mobileNumber').value.trim();
+                
+                if (!mobileNumber) {
+                    showMessage(loginError, 'Please enter your mobile number', 'danger');
+                    return;
+                }
+                
+                // Show spinner and disable button
+                loginSpinner.style.display = 'block';
+                loginButton.disabled = true;
+                
+                // Simulate API call (replace with your actual API call)
+                setTimeout(function() {
+                    // Hide spinner
+                    loginSpinner.style.display = 'none';
+                    loginButton.disabled = false;
+                    
+                    // For demo purposes, we'll just show the employee card
+                    // In a real app, you would check if the employee exists in your database
+                    loginCard.classList.add('d-none');
+                    employeeCard.classList.remove('d-none');
+                    
+                    // Populate form with dummy data (replace with actual data)
+                    populateEmployeeData({
+                        'Mobile Number': mobileNumber,
+                        'Employee Name': 'John Doe',
+                        'Nic E-mail ID': 'john.doe@example.com',
+                        'Gender': 'Male',
+                        'Father\'s Name': 'Richard Doe',
+                        'Date of Birth': '1985-06-15',
+                        'Nationality': 'Indian',
+                        'Religion': 'Hindu',
+                        'Category': 'General',
+                        'Designation': 'Software Engineer',
+                        'Service': 'IT Department',
+                        'Organization': 'ABC Corp',
+                        'Organization from Date': '2020-01-15',
+                        'Type of Appointment': 'Permanent',
+                        'Appointment Order Date': '2020-01-10',
+                        'Roles': 'Development',
+                        'Allotment Year': '2020'
+                    });
+                }, 1500);
+            });
+            
+            // Back button click handler
+            backButton.addEventListener('click', function() {
+                employeeCard.classList.add('d-none');
+                loginCard.classList.remove('d-none');
+                document.getElementById('mobileNumber').value = '';
+                loginError.classList.add('d-none');
+            });
+            
+            // Verify radio buttons change handler
+            [verifyYes, verifyNo].forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    const isReadOnly = verifyYes.checked;
+                    
+                    readonlyFields.forEach(function(field) {
+                        field.disabled = isReadOnly;
+                        
+                        if (isReadOnly) {
+                            field.classList.add('bg-light');
+                            submitButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> VERIFY INFORMATION';
+                        } else {
+                            field.classList.remove('bg-light');
+                            submitButton.innerHTML = '<i class="fas fa-save me-2"></i> UPDATE INFORMATION';
+                        }
+                    });
+                });
+            });
+            
+            // Form submission handler
+            employeeForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const isVerify = verifyYes.checked;
+                
+                if (isVerify) {
+                    // Just verify without changes
+                    showMessage(successMessage, 'Your information has been verified successfully!', 'success');
+                    return;
+                }
+                
+                // Show spinner and disable button
+                updateSpinner.style.display = 'block';
+                submitButton.disabled = true;
+                
+                // Simulate API call to update data (replace with your actual API call)
+                setTimeout(function() {
+                    // Hide spinner
+                    updateSpinner.style.display = 'none';
+                    submitButton.disabled = false;
+                    
+                    // Show success message
+                    showMessage(successMessage, 'Your information has been updated successfully!', 'success');
+                    
+                    // Reset to verify mode
+                    verifyYes.checked = true;
+                    verifyNo.checked = false;
+                    verifyYes.dispatchEvent(new Event('change'));
+                }, 1500);
+            });
+            
+            // Helper function to populate employee data
+            function populateEmployeeData(data) {
+                document.getElementById('emp_mobileNumber').value = data['Mobile Number'] || '';
+                document.getElementById('employeeName').value = data['Employee Name'] || '';
+                document.getElementById('email').value = data['Nic E-mail ID'] || '';
+                document.getElementById('gender').value = data['Gender'] || '';
+                document.getElementById('fatherName').value = data['Father\'s Name'] || '';
+                document.getElementById('dob').value = data['Date of Birth'] || '';
+                document.getElementById('nationality').value = data['Nationality'] || '';
+                document.getElementById('religion').value = data['Religion'] || '';
+                document.getElementById('category').value = data['Category'] || '';
+                document.getElementById('designation').value = data['Designation'] || '';
+                document.getElementById('service').value = data['Service'] || '';
+                document.getElementById('organization').value = data['Organization'] || '';
+                document.getElementById('orgFromDate').value = data['Organization from Date'] || '';
+                document.getElementById('appointmentType').value = data['Type of Appointment'] || '';
+                document.getElementById('appointmentOrderDate').value = data['Appointment Order Date'] || '';
+                document.getElementById('roles').value = data['Roles'] || '';
+                document.getElementById('allotmentYear').value = data['Allotment Year'] || '';
+            }
+            
+            // Helper function to show messages
+            function showMessage(element, message, type) {
+                element.textContent = message;
+                element.classList.remove('d-none');
+                
+                if (type === 'success') {
+                    element.classList.remove('alert-danger');
+                    element.classList.add('alert-success');
+                } else if (type === 'danger') {
+                    element.classList.remove('alert-success');
+                    element.classList.add('alert-danger');
+                }
+                
+                // Hide message after 5 seconds
+                setTimeout(function() {
+                    element.classList.add('d-none');
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>
