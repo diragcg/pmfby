@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Data Verification</title>
+    <title>Employee Data Updation System - DirAgCg</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -323,6 +323,11 @@
             background-color: #28a745;
         }
         
+        .logo {
+            max-width: 100px;
+            margin-bottom: 15px;
+        }
+        
         @media (max-width: 768px) {
             .step-title {
                 font-size: 0.7rem;
@@ -334,12 +339,12 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>EMPLOYEE DATA VERIFICATION</h1>
-            <p>Please verify and update your information</p>
+            <h1>EMPLOYEE DATA UPDATION SYSTEM</h1>
+            <p>Directorate of Agriculture Chhattisgarh</p>
         </div>
         
         <!-- Step Indicator -->
-        <div class="step-indicator d-none" id="stepIndicator">
+        <div class="step-indicator" id="stepIndicator">
             <div class="step active" id="step1">
                 <div class="step-line"></div>
                 <div class="step-number">1</div>
@@ -498,7 +503,7 @@
         </div>
         
         <div class="footer">
-            <p>&copy; 2025 Employee Data Management System. All rights reserved.</p>
+            <p>&copy; 2025 Directorate of Agriculture Chhattisgarh. All rights reserved.</p>
         </div>
     </div>
     
@@ -508,7 +513,7 @@
     <script>
         // Initialize Supabase client
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'YOUR_ANON_KEY'; // Replace with your actual anon key
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjE2NDgxNTEsImV4cCI6MjAzNzIyNDE1MX0.WdSJCzSgWKnKTXBLgEr8j6uG0pMoQgkF7tBjJJTw8Uw'; // Replace with your actual anon key
         const supabase = supabase.createClient(supabaseUrl, supabaseKey);
         
         // Global variables
@@ -516,7 +521,7 @@
         let fieldStatuses = {};
         let editedFields = {};
         
-        // Field definitions - customize based on your table structure
+        // Field definitions - matching your table structure exactly
         const fieldDefinitions = [
             { id: "Mobile Number", label: "Mobile Number", type: "text", required: true, readonly: true },
             { id: "Employee Name", label: "Employee Name", type: "text", required: true },
@@ -551,9 +556,23 @@
             document.getElementById('downloadPdfButton').addEventListener('click', generatePDF);
             document.getElementById('startOverButton').addEventListener('click', startOver);
             
-            // Show step indicator
-            document.getElementById('stepIndicator').classList.remove('d-none');
+            // Test Supabase connection
+            testSupabaseConnection();
         });
+        
+        // Test Supabase connection
+        async function testSupabaseConnection() {
+            try {
+                const { data, error } = await supabase.from('employees').select('count');
+                if (error) {
+                    console.error('Supabase connection error:', error);
+                } else {
+                    console.log('Supabase connection successful');
+                }
+            } catch (err) {
+                console.error('Error testing Supabase connection:', err);
+            }
+        }
         
         // Search for employee by mobile number
         async function searchEmployee() {
@@ -569,22 +588,29 @@
             document.getElementById('searchButton').disabled = true;
             
             try {
+                console.log('Searching for mobile number:', mobileNumber);
+                
                 // Query Supabase for employee with this mobile number
                 const { data, error } = await supabase
                     .from('employees')
                     .select('*')
-                    .eq('Mobile Number', mobileNumber)
-                    .single();
+                    .eq('Mobile Number', mobileNumber);
                     
+                console.log('Supabase response:', { data, error });
+                
                 // Hide spinner
                 document.getElementById('searchSpinner').style.display = 'none';
                 document.getElementById('searchButton').disabled = false;
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
                 
-                if (data) {
-                    // Employee found
-                    currentEmployee = data;
+                if (data && data.length > 0) {
+                    // Employee found - use the first match
+                    currentEmployee = data[0];
+                    console.log('Employee data found:', currentEmployee);
                     
                     // Initialize field statuses
                     fieldDefinitions.forEach(field => {
@@ -611,6 +637,7 @@
                 
                 // Show error message
                 showMessage('searchError', `Error: ${error.message}`, true);
+                console.error('Search error:', error);
             }
         }
         
@@ -624,7 +651,7 @@
                 
                 const fieldRow = document.createElement('div');
                 fieldRow.className = 'field-row';
-                fieldRow.id = `row-${field.id}`;
+                fieldRow.id = `row-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
                 
                 const fieldContent = `
                     <div class="row">
@@ -632,7 +659,7 @@
                             <div class="field-label">\${field.label}</div>
                         </div>
                         <div class="col-md-4">
-                            <div class="field-value" id="value-${field.id}">${value}</div>
+                            <div class="field-value" id="value-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">${value}</div>
                         </div>
                         <div class="col-md-4">
                             <div class="verification-buttons">
@@ -642,9 +669,9 @@
                                 <button class="btn btn-sm btn-outline-danger verify-no" data-field="\${field.id}">
                                     <i class="fas fa-times"></i> No
                                 </button>
-                                <span class="ms-2 badge ${getBadgeClass('pending')}" id="status-${field.id}">Pending</span>
+                                <span class="ms-2 badge ${getBadgeClass('pending')}" id="status-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">Pending</span>
                             </div>
-                            <div class="edit-field" id="edit-\${field.id}">
+                            <div class="edit-field" id="edit-\${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">
                                 \${generateInputField(field, value)}
                                 <div class="mt-2">
                                     <button class="btn btn-sm btn-primary save-edit" data-field="\${field.id}">
@@ -683,14 +710,14 @@
                 ).join('');
                 
                 return `
-                    <select class="form-select" id="input-\${field.id}">
+                    <select class="form-select" id="input-\${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">
                         <option value="">Select \${field.label}</option>
                         \${options}
                     </select>
                 `;
             } else {
                 return `
-                    <input type="${field.type}" class="form-control" id="input-${field.id}" 
+                    <input type="${field.type}" class="form-control" id="input-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}" 
                            value="${value}" ${field.readonly ? 'readonly' : ''}>
                 `;
             }
@@ -704,7 +731,7 @@
                 updateFieldStatus(fieldId, 'verified');
             } else {
                 // Field needs editing
-                document.getElementById(`edit-${fieldId}`).style.display = 'block';
+                document.getElementById(`edit-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).style.display = 'block';
             }
             
             updateProgress();
@@ -713,14 +740,14 @@
         
         // Save edited field
         function saveEdit(fieldId) {
-            const inputElement = document.getElementById(`input-${fieldId}`);
+            const inputElement = document.getElementById(`input-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`);
             const newValue = inputElement.value;
             
             // Update the displayed value
-            document.getElementById(`value-${fieldId}`).textContent = newValue;
+            document.getElementById(`value-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).textContent = newValue;
             
             // Hide the edit form
-            document.getElementById(`edit-${fieldId}`).style.display = 'none';
+            document.getElementById(`edit-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).style.display = 'none';
             
             // Mark as edited
             fieldStatuses[fieldId] = 'edited';
@@ -735,14 +762,14 @@
         
         // Cancel edit
         function cancelEdit(fieldId) {
-            document.getElementById(`edit-${fieldId}`).style.display = 'none';
+            document.getElementById(`edit-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).style.display = 'none';
         }
         
         // Update field status badge
         function updateFieldStatus(fieldId, status) {
-            const statusElement = document.getElementById(`status-${fieldId}`);
+            const statusElement = document.getElementById(`status-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`);
             statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            statusElement.className = `ms-2 badge ${getBadgeClass(status)}`;
+            statusElement.className = `ms-2 badge \${getBadgeClass(status)}`;
         }
         
         // Get badge class based on status
@@ -761,98 +788,107 @@
                 status === 'verified' || status === 'edited'
             ).length;
             
-            const percentage = Math.round((verifiedFields / totalFields) * 100);
+const percentage = Math.round((verifiedFields / totalFields) * 100);
             
-            document.getElementById('progressBar').style.width = `${percentage}%`;
-            document.getElementById('progressText').textContent = `${percentage}%`;
-        }
-        
-        // Check if all fields have been verified
-        function checkAllFieldsVerified() {
-            const allVerified = Object.values(fieldStatuses).every(status => 
-                status === 'verified' || status === 'edited'
-            );
-            
-            document.getElementById('continueButton').disabled = !allVerified;
-        }
-        
-        // Save draft of current progress
-        function saveDraft() {
-            // Show spinner
-            document.getElementById('verifySpinner').style.display = 'block';
-            
-            // In a real app, you would save the current state to the server
-            // For this demo, we'll just simulate a delay
-            setTimeout(() => {
-                document.getElementById('verifySpinner').style.display = 'none';
-                alert('Your progress has been saved as a draft.');
-            }, 1000);
-        }
-        
-        // Show review screen
-        function showReview() {
-            // Generate review content
-            generateReviewContent();
-            
-            // Show review card
-            document.getElementById('verificationCard').classList.add('d-none');
-            document.getElementById('reviewCard').classList.remove('d-none');
-            
-            // Update step indicator
-            updateStepIndicator(3);
-        }
-        
-        // Generate review content
-        function generateReviewContent() {
-            const container = document.getElementById('reviewContainer');
-            container.innerHTML = '';
-            
-            // Create sections
-            const personalSection = document.createElement('div');
-            personalSection.className = 'mb-4';
-            personalSection.innerHTML = '<h5 class="form-section-title">Personal Information</h5>';
-            
-            const professionalSection = document.createElement('div');
-            professionalSection.className = 'mb-4';
-            professionalSection.innerHTML = '<h5 class="form-section-title">Professional Information</h5>';
-            
-            // Add fields to appropriate sections
-            fieldDefinitions.forEach(field => {
-                let value = currentEmployee[field.id] || '';
-                
-                // If this field was edited, use the edited value
-                if (editedFields[field.id] !== undefined) {
-                    value = editedFields[field.id];
-                }
-                
-const status = fieldStatuses[field.id];
-const statusBadge = `<span class="badge ${getBadgeClass(status)}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
-
-const fieldRow = `
-    <div class="row mb-2">
-        <div class="col-md-4">
-            <strong>${field.label}:</strong>
-        </div>
-        <div class="col-md-6">
-            ${value}
-        </div>
-        <div class="col-md-2 text-end">
-            ${statusBadge}
-        </div>
-    </div>
-`;
-
-// Add to appropriate section based on field type
-if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-    personalSection.innerHTML += fieldRow;
-} else {
-    professionalSection.innerHTML += fieldRow;
+document.getElementById('progressBar').style.width = `${percentage}%`;
+document.getElementById('progressText').textContent = `${percentage}%`;
 }
-});
 
-// Add sections to container
-container.appendChild(personalSection);
-container.appendChild(professionalSection);
+// Check if all fields have been verified
+function checkAllFieldsVerified() {
+    const allVerified = Object.values(fieldStatuses).every(status => 
+        status === 'verified' || status === 'edited'
+    );
+    
+    document.getElementById('continueButton').disabled = !allVerified;
+}
+
+// Save draft of current progress
+function saveDraft() {
+    // Show spinner
+    document.getElementById('verifySpinner').style.display = 'block';
+    
+    // Store the current state in localStorage
+    const draftData = {
+        employee: currentEmployee,
+        statuses: fieldStatuses,
+        edits: editedFields,
+        timestamp: new Date().toISOString()
+    };
+    
+    localStorage.setItem('employeeDraft_' + currentEmployee['Mobile Number'], JSON.stringify(draftData));
+    
+    // Hide spinner after a short delay
+    setTimeout(() => {
+        document.getElementById('verifySpinner').style.display = 'none';
+        alert('Your progress has been saved as a draft. You can continue later.');
+    }, 1000);
+}
+
+// Show review screen
+function showReview() {
+    // Generate review content
+    generateReviewContent();
+    
+    // Show review card
+    document.getElementById('verificationCard').classList.add('d-none');
+    document.getElementById('reviewCard').classList.remove('d-none');
+    
+    // Update step indicator
+    updateStepIndicator(3);
+}
+
+// Generate review content
+function generateReviewContent() {
+    const container = document.getElementById('reviewContainer');
+    container.innerHTML = '';
+    
+    // Create sections
+    const personalSection = document.createElement('div');
+    personalSection.className = 'mb-4';
+    personalSection.innerHTML = '<h5 class="form-section-title">Personal Information</h5>';
+    
+    const professionalSection = document.createElement('div');
+    professionalSection.className = 'mb-4';
+    professionalSection.innerHTML = '<h5 class="form-section-title">Professional Information</h5>';
+    
+    // Add fields to appropriate sections
+    fieldDefinitions.forEach(field => {
+        let value = currentEmployee[field.id] || '';
+        
+        // If this field was edited, use the edited value
+        if (editedFields[field.id] !== undefined) {
+            value = editedFields[field.id];
+        }
+        
+        const status = fieldStatuses[field.id];
+        const statusBadge = `<span class="badge ${getBadgeClass(status)}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+        
+        const fieldRow = `
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <strong>${field.label}:</strong>
+                </div>
+                <div class="col-md-6">
+                    ${value}
+                </div>
+                <div class="col-md-2 text-end">
+                    ${statusBadge}
+                </div>
+            </div>
+        `;
+        
+        // Add to appropriate section based on field type
+        if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+            personalSection.innerHTML += fieldRow;
+        } else {
+            professionalSection.innerHTML += fieldRow;
+        }
+    });
+    
+    // Add sections to container
+    container.appendChild(personalSection);
+    container.appendChild(professionalSection);
 }
 
 // Toggle submit button based on confirmation checkbox
@@ -896,6 +932,9 @@ async function submitForm() {
         // Update step indicator
         updateStepIndicator(4);
         
+        // Clear any saved draft
+        localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
+        
     } catch (error) {
         // Hide spinner
         document.getElementById('submitSpinner').style.display = 'none';
@@ -903,6 +942,7 @@ async function submitForm() {
         
         // Show error
         alert(`Error submitting form: ${error.message}`);
+        console.error('Submit error:', error);
     }
 }
 
@@ -917,17 +957,21 @@ function generatePDF() {
     doc.setTextColor(128, 0, 0);
     doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
     
-    // Add employee name and ID
+    // Add subtitle
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Employee: ${currentEmployee['Employee Name']}`, 14, 30);
-    doc.text(`Mobile: ${currentEmployee['Mobile Number']}`, 14, 38);
-    doc.text(`Verification Date: ${new Date().toLocaleDateString()}`, 14, 46);
+    doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+    
+    // Add employee name and ID
+    doc.setFontSize(12);
+    doc.text(`Employee: ${currentEmployee['Employee Name']}`, 14, 40);
+    doc.text(`Mobile: ${currentEmployee['Mobile Number']}`, 14, 48);
+    doc.text(`Verification Date: ${new Date().toLocaleDateString()}`, 14, 56);
     
     // Add horizontal line
     doc.setDrawColor(128, 0, 0);
     doc.setLineWidth(0.5);
-    doc.line(14, 50, 196, 50);
+    doc.line(14, 60, 196, 60);
     
     // Prepare data for table
     const personalData = [];
@@ -954,10 +998,10 @@ function generatePDF() {
     
     // Add personal information table
     doc.setFontSize(14);
-    doc.text('Personal Information', 14, 60);
+    doc.text('Personal Information', 14, 70);
     
     doc.autoTable({
-        startY: 65,
+        startY: 75,
         head: [['Field', 'Value', 'Status']],
         body: personalData,
         theme: 'striped',
@@ -996,7 +1040,7 @@ function generatePDF() {
         doc.setPage(i);
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`Employee Data Verification System - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+        doc.text(`Directorate of Agriculture Chhattisgarh - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
     }
     
     // Save the PDF
@@ -1068,6 +1112,53 @@ function showMessage(elementId, message, isError) {
     setTimeout(() => {
         element.classList.add('d-none');
     }, 5000);
+}
+
+// Check for saved draft on page load
+function checkForSavedDraft(mobileNumber) {
+    const draftKey = 'employeeDraft_' + mobileNumber;
+    const savedDraft = localStorage.getItem(draftKey);
+    
+    if (savedDraft) {
+        try {
+            const draftData = JSON.parse(savedDraft);
+            const timestamp = new Date(draftData.timestamp);
+            const now = new Date();
+            const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
+            
+            // If draft is less than 24 hours old, ask to restore
+            if (hoursDiff < 24) {
+                const confirm = window.confirm(`You have a saved draft from ${timestamp.toLocaleString()}. Would you like to restore it?`);
+                
+                if (confirm) {
+                    // Restore the saved state
+                    currentEmployee = draftData.employee;
+                    fieldStatuses = draftData.statuses;
+                    editedFields = draftData.edits;
+                    
+                    // Show verification card
+                    document.getElementById('searchCard').classList.add('d-none');
+                    document.getElementById('verificationCard').classList.remove('d-none');
+                    
+                    // Update step indicator
+                    updateStepIndicator(2);
+                    
+                    // Generate verification fields
+                    generateVerificationFields();
+                    
+                    // Update progress
+                    updateProgress();
+                    checkAllFieldsVerified();
+                    
+                    return true;
+                }
+            }
+        } catch (e) {
+            console.error('Error parsing saved draft:', e);
+        }
+    }
+    
+    return false;
 }
 </script>
 </body>
