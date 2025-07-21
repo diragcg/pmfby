@@ -18,9 +18,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
         :root {
             --primary-color: #800000; /* Maroon red */
@@ -510,12 +507,10 @@
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Supabase JS - Make sure to load this before our custom script -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
     <script>
-        // Initialize Supabase client
-        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo'; // Replace with your actual anon key
-        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-        
         // Global variables
         let currentEmployee = null;
         let fieldStatuses = {};
@@ -543,8 +538,28 @@
             { id: "Allotment Year", label: "Allotment Year", type: "text" }
         ];
         
+        // Initialize Supabase client
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        let supabaseClient;
+        
         // Document ready
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("Document loaded");
+            
+            // Initialize Supabase
+            try {
+                // The correct way to initialize Supabase from the CDN
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                console.log("Supabase client initialized");
+                
+                // Test connection
+                testConnection();
+            } catch (error) {
+                console.error("Error initializing Supabase:", error);
+                showMessage('searchError', 'Database connection error. Please try again later.', true);
+            }
+            
             // Initialize event listeners
             document.getElementById('searchButton').addEventListener('click', searchEmployee);
             document.getElementById('backButton').addEventListener('click', goBackToSearch);
@@ -555,28 +570,34 @@
             document.getElementById('submitButton').addEventListener('click', submitForm);
             document.getElementById('downloadPdfButton').addEventListener('click', generatePDF);
             document.getElementById('startOverButton').addEventListener('click', startOver);
-            
-            // Test Supabase connection
-            testSupabaseConnection();
         });
         
-        // Test Supabase connection
-        async function testSupabaseConnection() {
+        // Test connection to Supabase
+        async function testConnection() {
             try {
-                const { data, error } = await supabase.from('employees').select('count');
+                console.log("Testing connection to Supabase...");
+                
+                // Simple query to test connection
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .select('count');
+                
                 if (error) {
-                    console.error('Supabase connection error:', error);
+                    console.error("Connection test failed:", error);
                 } else {
-                    console.log('Supabase connection successful');
+                    console.log("Connection successful!");
                 }
-            } catch (err) {
-                console.error('Error testing Supabase connection:', err);
+            } catch (error) {
+                console.error("Error in connection test:", error);
             }
         }
         
         // Search for employee by mobile number
         async function searchEmployee() {
+            console.log("Search function called");
+            
             const mobileNumber = document.getElementById('mobileNumber').value.trim();
+            console.log("Mobile number entered:", mobileNumber);
             
             if (!mobileNumber) {
                 showMessage('searchError', 'Please enter your mobile number', true);
@@ -588,29 +609,32 @@
             document.getElementById('searchButton').disabled = true;
             
             try {
-                console.log('Searching for mobile number:', mobileNumber);
+                console.log("Querying Supabase for mobile number:", mobileNumber);
                 
                 // Query Supabase for employee with this mobile number
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('employees')
                     .select('*')
                     .eq('Mobile Number', mobileNumber);
-                    
-                console.log('Supabase response:', { data, error });
+                
+                console.log("Query complete. Data:", data);
+                console.log("Query error:", error);
                 
                 // Hide spinner
                 document.getElementById('searchSpinner').style.display = 'none';
                 document.getElementById('searchButton').disabled = false;
                 
                 if (error) {
-                    console.error('Supabase error:', error);
-                    throw error;
+                    console.error("Error from Supabase:", error);
+                    showMessage('searchError', `Database error: ${error.message}`, true);
+                    return;
                 }
                 
                 if (data && data.length > 0) {
-                    // Employee found - use the first match
+                    console.log("Employee found:", data[0]);
+                    
+                    // Store employee data
                     currentEmployee = data[0];
-                    console.log('Employee data found:', currentEmployee);
                     
                     // Initialize field statuses
                     fieldDefinitions.forEach(field => {
@@ -627,17 +651,18 @@
                     // Generate verification fields
                     generateVerificationFields();
                 } else {
-                    // No employee found
+                    console.log("No employee found with mobile number:", mobileNumber);
                     showMessage('searchError', 'No employee found with this mobile number', true);
                 }
             } catch (error) {
+                console.error("Exception in searchEmployee:", error);
+                
                 // Hide spinner
                 document.getElementById('searchSpinner').style.display = 'none';
                 document.getElementById('searchButton').disabled = false;
                 
                 // Show error message
                 showMessage('searchError', `Error: ${error.message}`, true);
-                console.error('Search error:', error);
             }
         }
         
@@ -648,10 +673,11 @@
             
             fieldDefinitions.forEach(field => {
                 const value = currentEmployee[field.id] || '';
+                const fieldId = field.id.replace(/[^a-zA-Z0-9]/g, '_');
                 
                 const fieldRow = document.createElement('div');
                 fieldRow.className = 'field-row';
-                fieldRow.id = `row-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}`;
+                fieldRow.id = `row-\${fieldId}`;
                 
                 const fieldContent = `
                     <div class="row">
@@ -659,7 +685,7 @@
                             <div class="field-label">\${field.label}</div>
                         </div>
                         <div class="col-md-4">
-                            <div class="field-value" id="value-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">${value}</div>
+                            <div class="field-value" id="value-${fieldId}">${value}</div>
                         </div>
                         <div class="col-md-4">
                             <div class="verification-buttons">
@@ -669,9 +695,9 @@
                                 <button class="btn btn-sm btn-outline-danger verify-no" data-field="\${field.id}">
                                     <i class="fas fa-times"></i> No
                                 </button>
-                                <span class="ms-2 badge ${getBadgeClass('pending')}" id="status-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">Pending</span>
+                                <span class="ms-2 badge ${getBadgeClass('pending')}" id="status-${fieldId}">Pending</span>
                             </div>
-                            <div class="edit-field" id="edit-\${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">
+                            <div class="edit-field" id="edit-\${fieldId}">
                                 \${generateInputField(field, value)}
                                 <div class="mt-2">
                                     <button class="btn btn-sm btn-primary save-edit" data-field="\${field.id}">
@@ -704,20 +730,22 @@
         
         // Generate input field based on field type
         function generateInputField(field, value) {
+            const fieldId = field.id.replace(/[^a-zA-Z0-9]/g, '_');
+            
             if (field.type === 'select' && field.options) {
                 let options = field.options.map(opt => 
                     `<option value="${opt}" ${value === opt ? 'selected' : ''}>\${opt}</option>`
                 ).join('');
                 
                 return `
-                    <select class="form-select" id="input-\${field.id.replace(/[^a-zA-Z0-9]/g, '_')}">
+                    <select class="form-select" id="input-\${fieldId}">
                         <option value="">Select \${field.label}</option>
                         \${options}
                     </select>
                 `;
             } else {
                 return `
-                    <input type="${field.type}" class="form-control" id="input-${field.id.replace(/[^a-zA-Z0-9]/g, '_')}" 
+                    <input type="${field.type}" class="form-control" id="input-${fieldId}" 
                            value="${value}" ${field.readonly ? 'readonly' : ''}>
                 `;
             }
@@ -725,13 +753,15 @@
         
         // Verify a field
         function verifyField(fieldId, isCorrect) {
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            
             if (isCorrect) {
                 // Field is correct
                 fieldStatuses[fieldId] = 'verified';
                 updateFieldStatus(fieldId, 'verified');
             } else {
                 // Field needs editing
-                document.getElementById(`edit-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).style.display = 'block';
+                document.getElementById(`edit-${safeFieldId}`).style.display = 'block';
             }
             
             updateProgress();
@@ -740,14 +770,15 @@
         
         // Save edited field
         function saveEdit(fieldId) {
-            const inputElement = document.getElementById(`input-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`);
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            const inputElement = document.getElementById(`input-${safeFieldId}`);
             const newValue = inputElement.value;
             
             // Update the displayed value
-            document.getElementById(`value-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).textContent = newValue;
+            document.getElementById(`value-${safeFieldId}`).textContent = newValue;
             
             // Hide the edit form
-            document.getElementById(`edit-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).style.display = 'none';
+            document.getElementById(`edit-${safeFieldId}`).style.display = 'none';
             
             // Mark as edited
             fieldStatuses[fieldId] = 'edited';
@@ -762,36 +793,38 @@
         
         // Cancel edit
         function cancelEdit(fieldId) {
-            document.getElementById(`edit-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`).style.display = 'none';
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            document.getElementById(`edit-${safeFieldId}`).style.display = 'none';
         }
         
         // Update field status badge
         function updateFieldStatus(fieldId, status) {
-            const statusElement = document.getElementById(`status-${fieldId.replace(/[^a-zA-Z0-9]/g, '_')}`);
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            const statusElement = document.getElementById(`status-${safeFieldId}`);
             statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
             statusElement.className = `ms-2 badge \${getBadgeClass(status)}`;
         }
         
-        // Get badge class based on status
-        function getBadgeClass(status) {
-            switch (status) {
-                case 'verified': return 'badge-verified';
-                case 'edited': return 'badge-edited';
-                default: return 'badge-pending';
-            }
-        }
-        
-        // Update progress bar
-        function updateProgress() {
-            const totalFields = Object.keys(fieldStatuses).length;
-            const verifiedFields = Object.values(fieldStatuses).filter(status => 
-                status === 'verified' || status === 'edited'
-            ).length;
-            
-const percentage = Math.round((verifiedFields / totalFields) * 100);
-            
-document.getElementById('progressBar').style.width = `${percentage}%`;
-document.getElementById('progressText').textContent = `${percentage}%`;
+// Get badge class based on status
+function getBadgeClass(status) {
+    switch (status) {
+        case 'verified': return 'badge-verified';
+        case 'edited': return 'badge-edited';
+        default: return 'badge-pending';
+    }
+}
+
+// Update progress bar
+function updateProgress() {
+    const totalFields = Object.keys(fieldStatuses).length;
+    const verifiedFields = Object.values(fieldStatuses).filter(status => 
+        status === 'verified' || status === 'edited'
+    ).length;
+    
+    const percentage = Math.round((verifiedFields / totalFields) * 100);
+    
+    document.getElementById('progressBar').style.width = `${percentage}%`;
+    document.getElementById('progressText').textContent = `${percentage}%`;
 }
 
 // Check if all fields have been verified
@@ -914,12 +947,16 @@ async function submitForm() {
     updatedEmployee['Verification Date'] = new Date().toISOString();
     
     try {
+        console.log("Submitting updated data:", updatedEmployee);
+        
         // Update the employee record in Supabase
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
             .from('employees')
             .update(updatedEmployee)
             .eq('Mobile Number', currentEmployee['Mobile Number']);
             
+        console.log("Update response:", { data, error });
+        
         if (error) throw error;
         
         // Hide spinner
@@ -936,18 +973,26 @@ async function submitForm() {
         localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
         
     } catch (error) {
+        console.error("Error submitting form:", error);
+        
         // Hide spinner
         document.getElementById('submitSpinner').style.display = 'none';
         document.getElementById('submitButton').disabled = false;
         
         // Show error
         alert(`Error submitting form: ${error.message}`);
-        console.error('Submit error:', error);
     }
 }
 
 // Generate PDF
 function generatePDF() {
+    // Check if jsPDF is loaded
+    if (typeof window.jspdf === 'undefined') {
+        console.error("jsPDF library not loaded");
+        alert("PDF generation library not loaded. Please try again later.");
+        return;
+    }
+    
     // Initialize jsPDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -1112,53 +1157,6 @@ function showMessage(elementId, message, isError) {
     setTimeout(() => {
         element.classList.add('d-none');
     }, 5000);
-}
-
-// Check for saved draft on page load
-function checkForSavedDraft(mobileNumber) {
-    const draftKey = 'employeeDraft_' + mobileNumber;
-    const savedDraft = localStorage.getItem(draftKey);
-    
-    if (savedDraft) {
-        try {
-            const draftData = JSON.parse(savedDraft);
-            const timestamp = new Date(draftData.timestamp);
-            const now = new Date();
-            const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
-            
-            // If draft is less than 24 hours old, ask to restore
-            if (hoursDiff < 24) {
-                const confirm = window.confirm(`You have a saved draft from ${timestamp.toLocaleString()}. Would you like to restore it?`);
-                
-                if (confirm) {
-                    // Restore the saved state
-                    currentEmployee = draftData.employee;
-                    fieldStatuses = draftData.statuses;
-                    editedFields = draftData.edits;
-                    
-                    // Show verification card
-                    document.getElementById('searchCard').classList.add('d-none');
-                    document.getElementById('verificationCard').classList.remove('d-none');
-                    
-                    // Update step indicator
-                    updateStepIndicator(2);
-                    
-                    // Generate verification fields
-                    generateVerificationFields();
-                    
-                    // Update progress
-                    updateProgress();
-                    checkAllFieldsVerified();
-                    
-                    return true;
-                }
-            }
-        } catch (e) {
-            console.error('Error parsing saved draft:', e);
-        }
-    }
-    
-    return false;
 }
 </script>
 </body>
