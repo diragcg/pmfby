@@ -14,6 +14,9 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+    
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
@@ -43,7 +46,7 @@
             margin-bottom: 30px;
         }
         
-        .header h3 {
+        .header h1 {
             color: var(--primary-color);
             font-weight: 700;
             margin-bottom: 10px;
@@ -333,9 +336,117 @@
             font-family: 'Poppins', sans-serif;
         }
         
+        .admin-panel {
+            margin-top: 20px;
+        }
+        
+        .admin-tabs {
+            margin-bottom: 20px;
+        }
+        
+        .admin-tab-content {
+            padding: 20px;
+            border: 1px solid #dee2e6;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+        }
+        
+        .nav-tabs .nav-link {
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .table-responsive {
+            margin-top: 20px;
+        }
+        
+        .dataTables_wrapper .dataTables_length, 
+        .dataTables_wrapper .dataTables_filter, 
+        .dataTables_wrapper .dataTables_info, 
+        .dataTables_wrapper .dataTables_processing, 
+        .dataTables_wrapper .dataTables_paginate {
+            color: var(--secondary-color);
+        }
+        
+        .disclaimer {
+            font-size: 0.9rem;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary-color);
+            margin-bottom: 20px;
+        }
+        
+        .otp-inputs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .otp-input {
+            width: 50px;
+            height: 50px;
+            text-align: center;
+            font-size: 1.5rem;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .otp-input:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(128, 0, 0, 0.25);
+        }
+        
+        .login-options {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .login-option {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .login-option:hover {
+            border-color: var(--primary-color);
+            background-color: #f8f9fa;
+        }
+        
+        .login-option.active {
+            border-color: var(--primary-color);
+            background-color: #f8f9fa;
+        }
+        
+        .login-option i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+        
         @media (max-width: 768px) {
             .step-title {
                 font-size: 0.7rem;
+            }
+            
+            .otp-inputs {
+                gap: 5px;
+            }
+            
+            .otp-input {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
             }
         }
     </style>
@@ -344,12 +455,200 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h3>EMPLOYEE DATA SELF VERIFICATION & UPDATION SYSTEM FOR SPARROW</h3>
+            <h1>EMPLOYEE DATA UPDATION SYSTEM</h1>
             <p>Directorate of Agriculture Chhattisgarh</p>
         </div>
         
+        <!-- Login Options Card -->
+        <div class="card" id="loginOptionsCard">
+            <div class="card-header">
+                <i class="fas fa-sign-in-alt me-2"></i> Login Options
+            </div>
+            <div class="card-body">
+                <div class="disclaimer mb-4">
+                    <strong>Disclaimer:</strong> This system is designed to collect and verify employee information. 
+                    All data provided will be used for official purposes only and will be kept confidential in accordance 
+                    with data protection policies. Please ensure that the information you provide is accurate and up-to-date.
+                </div>
+                
+                <div class="login-options">
+                    <div class="login-option" id="employeeLoginOption">
+                        <i class="fas fa-user"></i>
+                        <h5>Employee Login</h5>
+                        <p>Verify and update your information</p>
+                    </div>
+                    <div class="login-option" id="adminLoginOption">
+                        <i class="fas fa-user-shield"></i>
+                        <h5>Admin Login</h5>
+                        <p>Access dashboard and reports</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Admin Login Card -->
+        <div class="card d-none" id="adminLoginCard">
+            <div class="card-header">
+                <i class="fas fa-user-shield me-2"></i> Admin Login
+            </div>
+            <div class="card-body">
+                <div class="alert alert-danger d-none" id="adminLoginError"></div>
+                
+                <form id="adminLoginForm">
+                    <div class="mb-3">
+                        <label for="adminUsername" class="form-label">Username (Mobile Number)</label>
+                        <input type="text" class="form-control" id="adminUsername" placeholder="Enter admin username">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adminPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="adminPassword" placeholder="Enter admin password">
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-2"></i> LOGIN
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="backToLoginOptions">
+                            <i class="fas fa-arrow-left me-2"></i> BACK
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Admin Dashboard Card -->
+        <div class="card d-none" id="adminDashboardCard">
+            <div class="card-header">
+                <i class="fas fa-tachometer-alt me-2"></i> Admin Dashboard
+                <button class="btn btn-sm btn-outline-light float-end" id="adminLogoutBtn">
+                    <i class="fas fa-sign-out-alt me-2"></i> Logout
+                </button>
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs admin-tabs" id="adminTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="true">
+                            <i class="fas fa-users me-2"></i> Employees
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="reports-tab" data-bs-toggle="tab" data-bs-target="#reports" type="button" role="tab" aria-controls="reports" aria-selected="false">
+                            <i class="fas fa-chart-bar me-2"></i> Reports
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="export-tab" data-bs-toggle="tab" data-bs-target="#export" type="button" role="tab" aria-controls="export" aria-selected="false">
+                            <i class="fas fa-download me-2"></i> Export Data
+                        </button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content admin-tab-content" id="adminTabContent">
+                    <!-- Employees Tab -->
+                    <div class="tab-pane fade show active" id="employees" role="tabpanel" aria-labelledby="employees-tab">
+                        <h4>Employee Records</h4>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="employeesTable">
+                                <thead>
+                                    <tr>
+                                        <th>Mobile Number</th>
+                                        <th>Employee Name</th>
+                                        <th>Email</th>
+                                        <th>Designation</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="employeesTableBody">
+                                    <!-- Data will be loaded dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="loading-spinner" id="employeesTableSpinner">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="mt-2">Loading employee data...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reports Tab -->
+                    <div class="tab-pane fade" id="reports" role="tabpanel" aria-labelledby="reports-tab">
+                        <h4>Verification Status Report</h4>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Verification Status</h5>
+                                        <canvas id="verificationChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Designation Distribution</h5>
+                                        <canvas id="designationChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="loading-spinner" id="reportsSpinner">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="mt-2">Generating reports...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Export Tab -->
+                    <div class="tab-pane fade" id="export" role="tabpanel" aria-labelledby="export-tab">
+                        <h4>Export Employee Data</h4>
+                        <p>Download employee data in various formats.</p>
+                        
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file-excel text-success" style="font-size: 48px;"></i>
+                                        <h5 class="mt-3">Excel Format</h5>
+                                        <button class="btn btn-success mt-3" id="exportExcelBtn">
+                                            <i class="fas fa-download me-2"></i> Download Excel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file-csv text-primary" style="font-size: 48px;"></i>
+                                        <h5 class="mt-3">CSV Format</h5>
+                                        <button class="btn btn-primary mt-3" id="exportCsvBtn">
+                                            <i class="fas fa-download me-2"></i> Download CSV
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-file-pdf text-danger" style="font-size: 48px;"></i>
+                                        <h5 class="mt-3">PDF Format</h5>
+                                        <button class="btn btn-danger mt-3" id="exportPdfBtn">
+                                            <i class="fas fa-download me-2"></i> Download PDF
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- Step Indicator -->
-        <div class="step-indicator" id="stepIndicator">
+        <div class="step-indicator d-none" id="stepIndicator">
             <div class="step active" id="step1">
                 <div class="step-line"></div>
                 <div class="step-number">1</div>
@@ -373,7 +672,7 @@
         </div>
         
         <!-- Search Card -->
-        <div class="card" id="searchCard">
+        <div class="card d-none" id="searchCard">
             <div class="card-header">
                 <i class="fas fa-search me-2"></i> Search Your Record
             </div>
@@ -383,12 +682,15 @@
                 <div class="mb-3">
                     <label for="mobileNumber" class="form-label required-field">Mobile Number</label>
                     <input type="text" class="form-control" id="mobileNumber" placeholder="Enter your registered mobile number">
-                    <div class="form-text">Please enter the mobile number registered in E-office.</div>
+                    <div class="form-text">Please enter the mobile number registered in our database.</div>
                 </div>
                 
                 <div class="d-grid gap-2">
                     <button class="btn btn-primary" id="searchButton">
                         <i class="fas fa-search me-2"></i> FIND MY RECORD
+                    </button>
+                    <button class="btn btn-secondary" id="backToLoginOptionsFromSearch">
+                        <i class="fas fa-arrow-left me-2"></i> BACK
                     </button>
                 </div>
                 
@@ -397,6 +699,44 @@
                         <span class="visually-hidden">Loading...</span>
                     </div>
                     <div class="mt-2">Searching for your record...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- OTP Verification Card -->
+        <div class="card d-none" id="otpCard">
+            <div class="card-header">
+                <i class="fas fa-key me-2"></i> Verify Your Identity
+            </div>
+            <div class="card-body text-center">
+                <div class="alert alert-danger d-none" id="otpError"></div>
+                <div class="alert alert-success d-none" id="otpSuccess"></div>
+                
+                <p>A verification code has been sent to your mobile number ending with <span id="maskedMobile">****</span></p>
+                
+                <div class="otp-inputs">
+                    <input type="text" maxlength="1" class="form-control otp-input" id="otp1">
+                    <input type="text" maxlength="1" class="form-control otp-input" id="otp2">
+                    <input type="text" maxlength="1" class="form-control otp-input" id="otp3">
+                    <input type="text" maxlength="1" class="form-control otp-input" id="otp4">
+                </div>
+                
+                <p>Didn't receive the code? <a href="#" id="resendOtp">Resend OTP</a></p>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary" id="verifyOtpButton">
+                        <i class="fas fa-check-circle me-2"></i> VERIFY OTP
+                    </button>
+                    <button class="btn btn-secondary" id="backFromOtp">
+                        <i class="fas fa-arrow-left me-2"></i> BACK
+                    </button>
+                </div>
+                
+                <div class="loading-spinner" id="otpSpinner">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="mt-2">Verifying OTP...</div>
                 </div>
             </div>
         </div>
@@ -508,12 +848,25 @@
         </div>
         
         <div class="footer">
-            <p>&copy; 2025 सूचना प्रौद्योगिकी शाखा, संचालनालय कृषि छत्तीसगढ. रायपुर . सर्वाधिकार सुरक्षित.</p>
+            <p>&copy; 2025 Directorate of Agriculture Chhattisgarh. All rights reserved.</p>
         </div>
     </div>
     
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery (required for DataTables) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+    
+    <!-- Chart.js for admin dashboard -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <!-- Supabase JS - Make sure to load this before our custom script -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -523,6 +876,14 @@
         let currentEmployee = null;
         let fieldStatuses = {};
         let editedFields = {};
+        let allEmployees = [];
+        let employeesTable = null;
+        let verificationChart = null;
+        let designationChart = null;
+        
+        // Admin credentials (normally these would be stored securely on a server)
+        const ADMIN_USERNAME = '7354900500';
+        const ADMIN_PASSWORD = '9329807288';
         
         // Generate year options for year picker (1950 to current year)
         function generateYearOptions() {
@@ -587,6 +948,9 @@
                 
                 // Initialize event listeners
                 initEventListeners();
+                
+                // Initialize OTP inputs
+                initOtpInputs();
             } catch (error) {
                 console.error("Error initializing:", error);
                 showMessage('searchError', 'Error initializing application. Please try again later.', true);
@@ -595,6 +959,25 @@
         
         // Initialize event listeners
         function initEventListeners() {
+            // Login options
+            document.getElementById('employeeLoginOption').addEventListener('click', showEmployeeLogin);
+            document.getElementById('adminLoginOption').addEventListener('click', showAdminLogin);
+            document.getElementById('backToLoginOptions').addEventListener('click', showLoginOptions);
+            document.getElementById('backToLoginOptionsFromSearch').addEventListener('click', showLoginOptions);
+            
+            // Admin login
+            document.getElementById('adminLoginForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                handleAdminLogin();
+            });
+            document.getElementById('adminLogoutBtn').addEventListener('click', adminLogout);
+            
+            // Export buttons
+            document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+            document.getElementById('exportCsvBtn').addEventListener('click', exportToCsv);
+            document.getElementById('exportPdfBtn').addEventListener('click', exportToPdf);
+            
+            // Employee search and verification
             document.getElementById('searchButton').addEventListener('click', searchEmployee);
             document.getElementById('backButton').addEventListener('click', goBackToSearch);
             document.getElementById('saveDraftButton').addEventListener('click', saveDraft);
@@ -604,6 +987,42 @@
             document.getElementById('submitButton').addEventListener('click', submitForm);
             document.getElementById('downloadPdfButton').addEventListener('click', generatePDF);
             document.getElementById('startOverButton').addEventListener('click', startOver);
+            
+            // OTP verification
+            document.getElementById('verifyOtpButton').addEventListener('click', verifyOtp);
+            document.getElementById('backFromOtp').addEventListener('click', function() {
+                document.getElementById('otpCard').classList.add('d-none');
+                document.getElementById('searchCard').classList.remove('d-none');
+            });
+            document.getElementById('resendOtp').addEventListener('click', function(e) {
+                e.preventDefault();
+                sendOtp(currentEmployee['Mobile Number']);
+            });
+            
+            // Admin tabs
+            document.getElementById('employees-tab').addEventListener('click', loadEmployeeData);
+            document.getElementById('reports-tab').addEventListener('click', loadReportData);
+        }
+        
+        // Initialize OTP input fields
+        function initOtpInputs() {
+            const otpInputs = document.querySelectorAll('.otp-input');
+            
+            otpInputs.forEach(function(input, index) {
+                // Auto-focus next input on input
+                input.addEventListener('input', function() {
+                    if (this.value.length === this.maxLength && index < otpInputs.length - 1) {
+                        otpInputs[index + 1].focus();
+                    }
+                });
+                
+                // Handle backspace
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && !this.value && index > 0) {
+                        otpInputs[index - 1].focus();
+                    }
+                });
+            });
         }
         
         // Test connection to Supabase
@@ -623,6 +1042,655 @@
                 }
             } catch (error) {
                 console.error("Error in connection test:", error);
+            }
+        }
+        
+        // Show employee login (search card)
+        function showEmployeeLogin() {
+            document.getElementById('loginOptionsCard').classList.add('d-none');
+            document.getElementById('searchCard').classList.remove('d-none');
+            document.getElementById('stepIndicator').classList.remove('d-none');
+        }
+        
+        // Show admin login card
+        function showAdminLogin() {
+            document.getElementById('loginOptionsCard').classList.add('d-none');
+            document.getElementById('adminLoginCard').classList.remove('d-none');
+        }
+        
+        // Show login options card
+        function showLoginOptions() {
+            document.getElementById('searchCard').classList.add('d-none');
+            document.getElementById('adminLoginCard').classList.add('d-none');
+            document.getElementById('loginOptionsCard').classList.remove('d-none');
+            document.getElementById('stepIndicator').classList.add('d-none');
+            
+            // Clear inputs
+            document.getElementById('mobileNumber').value = '';
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
+            
+            // Hide error messages
+            document.getElementById('searchError').classList.add('d-none');
+            document.getElementById('adminLoginError').classList.add('d-none');
+        }
+        
+        // Handle admin login
+        function handleAdminLogin() {
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value.trim();
+            
+            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                // Show admin dashboard
+                document.getElementById('adminLoginCard').classList.add('d-none');
+                document.getElementById('adminDashboardCard').classList.remove('d-none');
+                
+                // Load employee data
+                loadEmployeeData();
+            } else {
+                // Show error message
+                const errorElement = document.getElementById('adminLoginError');
+                errorElement.textContent = 'Invalid username or password';
+                errorElement.classList.remove('d-none');
+            }
+        }
+        
+        // Admin logout
+        function adminLogout() {
+            document.getElementById('adminDashboardCard').classList.add('d-none');
+            document.getElementById('loginOptionsCard').classList.remove('d-none');
+            
+            // Clear admin login form
+            document.getElementById('adminUsername').value = '';
+            document.getElementById('adminPassword').value = '';
+        }
+        
+        // Load employee data for admin dashboard
+        async function loadEmployeeData() {
+            // Show loading spinner
+            document.getElementById('employeesTableSpinner').style.display = 'block';
+            
+            try {
+                // Fetch all employees
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .select('*');
+                
+                if (error) throw error;
+                
+                // Store employee data
+                allEmployees = data;
+                
+                // Populate table
+                populateEmployeesTable(data);
+                
+                // Hide loading spinner
+                document.getElementById('employeesTableSpinner').style.display = 'none';
+            } catch (error) {
+                console.error("Error loading employee data:", error);
+                document.getElementById('employeesTableSpinner').style.display = 'none';
+                alert('Error loading employee data: ' + error.message);
+            }
+        }
+        
+        // Populate employees table
+        function populateEmployeesTable(employees) {
+            const tableBody = document.getElementById('employeesTableBody');
+            tableBody.innerHTML = '';
+            
+            employees.forEach(function(employee) {
+                const row = document.createElement('tr');
+                
+                // Mobile Number
+                const mobileCell = document.createElement('td');
+                mobileCell.textContent = employee['Mobile Number'] || '';
+                row.appendChild(mobileCell);
+                
+                // Employee Name
+                const nameCell = document.createElement('td');
+                nameCell.textContent = employee['Employee Name'] || '';
+                row.appendChild(nameCell);
+                
+                // Email
+                const emailCell = document.createElement('td');
+                emailCell.textContent = employee['Nic E-mail ID'] || '';
+                row.appendChild(emailCell);
+                
+                // Designation
+                const designationCell = document.createElement('td');
+                designationCell.textContent = employee['Designation'] || '';
+                row.appendChild(designationCell);
+                
+                // Status
+                const statusCell = document.createElement('td');
+                const hasBeenUpdated = employee['Modified Date'] ? true : false;
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'badge ' + (hasBeenUpdated ? 'bg-success' : 'bg-secondary');
+                statusBadge.textContent = hasBeenUpdated ? 'Updated' : 'Pending';
+                statusCell.appendChild(statusBadge);
+                row.appendChild(statusCell);
+                
+                // Actions
+                const actionsCell = document.createElement('td');
+                
+                const viewBtn = document.createElement('button');
+                viewBtn.className = 'btn btn-sm btn-info me-2';
+                viewBtn.innerHTML = '<i class="fas fa-eye"></i>';
+                viewBtn.title = 'View Details';
+                viewBtn.onclick = function() {
+                    viewEmployeeDetails(employee);
+                };
+                actionsCell.appendChild(viewBtn);
+                
+                const exportBtn = document.createElement('button');
+                exportBtn.className = 'btn btn-sm btn-primary';
+                exportBtn.innerHTML = '<i class="fas fa-file-pdf"></i>';
+                exportBtn.title = 'Export PDF';
+                exportBtn.onclick = function() {
+                    exportEmployeePdf(employee);
+                };
+                actionsCell.appendChild(exportBtn);
+                
+                row.appendChild(actionsCell);
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Initialize DataTable if not already initialized
+            if (!employeesTable) {
+                employeesTable = $('#employeesTable').DataTable({
+                    responsive: true,
+                    pageLength: 10,
+                    language: {
+                        search: "Search employees:",
+                        lengthMenu: "Show _MENU_ entries per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ employees",
+                        infoEmpty: "Showing 0 to 0 of 0 employees",
+                        infoFiltered: "(filtered from _MAX_ total employees)"
+                    }
+                });
+            } else {
+                // Refresh the table
+                employeesTable.clear().rows.add($(tableBody).find('tr')).draw();
+            }
+        }
+        
+        // View employee details (for admin)
+        function viewEmployeeDetails(employee) {
+            // Create modal with employee details
+            const modalHtml = `
+                <div class="modal fade" id="employeeDetailsModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title">Employee Details</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <h5 class="form-section-title">Personal Information</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p><strong>Mobile Number:</strong> \${employee['Mobile Number'] || ''}</p>
+                                        <p><strong>Employee Name:</strong> \${employee['Employee Name'] || ''}</p>
+                                        <p><strong>Email ID:</strong> \${employee['Nic E-mail ID'] || ''}</p>
+                                        <p><strong>Gender:</strong> \${employee['Gender'] || ''}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Father's Name:</strong> \${employee["Father's Name"] || ''}</p>
+                                        <p><strong>Date of Birth:</strong> \${employee['Date of Birth'] || ''}</p>
+                                        <p><strong>Nationality:</strong> \${employee['Nationality'] || ''}</p>
+                                        <p><strong>Religion:</strong> \${employee['Religion'] || ''}</p>
+                                        <p><strong>Category:</strong> \${employee['Category'] || ''}</p>
+                                    </div>
+                                </div>
+                                
+                                <h5 class="form-section-title">Professional Information</h5>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <p><strong>Designation:</strong> \${employee['Designation'] || ''}</p>
+                                        <p><strong>Service:</strong> \${employee['Service'] || ''}</p>
+                                        <p><strong>Organization:</strong> \${employee['Orgnazation'] || ''}</p>
+                                        <p><strong>Date of Joining:</strong> \${employee['Organization from Date'] || ''}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Designation on Joining:</strong> \${employee['Designation on Joining Date'] || ''}</p>
+                                        <p><strong>Type of Appointment:</strong> \${employee['Type of Appointment'] || ''}</p>
+                                        <p><strong>Appointment Order Date:</strong> \${employee['Appointment Order Date'] || ''}</p>
+                                        <p><strong>Roles:</strong> \${employee['Roles'] || ''}</p>
+                                        <p><strong>Allotment Year:</strong> \${employee['Allotment Year'] || ''}</p>
+                                    </div>
+                                </div>
+                                
+                                <h5 class="form-section-title">System Information</h5>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Last Updated:</strong> \${employee['Modified Date'] ? new Date(employee['Modified Date']).toLocaleString() : 'Never'}</p>
+                                        <p><strong>Created Date:</strong> \${employee['Created Date'] ? new Date(employee['Created Date']).toLocaleString() : ''}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Modified By:</strong> \${employee['Modified By'] || ''}</p>
+                                        <p><strong>Created By:</strong> \${employee['Created By'] || ''}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" onclick="exportEmployeePdf(\${JSON.stringify(employee).replace(/"/g, '&quot;')})">
+                                    <i class="fas fa-file-pdf me-2"></i> Export as PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to body
+            const modalContainer = document.createElement('div');
+            modalContainer.innerHTML = modalHtml;
+            document.body.appendChild(modalContainer);
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('employeeDetailsModal'));
+            modal.show();
+            
+            // Remove modal from DOM when hidden
+            document.getElementById('employeeDetailsModal').addEventListener('hidden.bs.modal', function() {
+                document.body.removeChild(modalContainer);
+            });
+        }
+        
+        // Export employee data as PDF (for admin)
+        function exportEmployeePdf(employee) {
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(18);
+                doc.setTextColor(128, 0, 0);
+                doc.text('Employee Data Report', 105, 15, { align: 'center' });
+                
+                // Add subtitle
+                doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+                
+                // Add employee name and ID
+                doc.setFontSize(12);
+                doc.text('Employee: ' + (employee['Employee Name'] || ''), 14, 40);
+                doc.text('Mobile: ' + (employee['Mobile Number'] || ''), 14, 48);
+                doc.text('Report Date: ' + new Date().toLocaleDateString(), 14, 56);
+                
+                // Add horizontal line
+                doc.setDrawColor(128, 0, 0);
+                doc.setLineWidth(0.5);
+                doc.line(14, 60, 196, 60);
+                
+                // Prepare data for table
+                const personalData = [
+                    ['Mobile Number', employee['Mobile Number'] || ''],
+                    ['Employee Name', employee['Employee Name'] || ''],
+                    ['Email ID', employee['Nic E-mail ID'] || ''],
+                    ['Gender', employee['Gender'] || ''],
+                    ['Father\'s Name', employee["Father's Name"] || ''],
+                    ['Date of Birth', employee['Date of Birth'] || ''],
+                    ['Nationality', employee['Nationality'] || ''],
+                    ['Religion', employee['Religion'] || ''],
+                    ['Category', employee['Category'] || '']
+                ];
+                
+                const professionalData = [
+                    ['Designation', employee['Designation'] || ''],
+                    ['Service', employee['Service'] || ''],
+                    ['Organization', employee['Orgnazation'] || ''],
+                    ['Date of Joining', employee['Organization from Date'] || ''],
+                    ['Designation on Joining', employee['Designation on Joining Date'] || ''],
+                    ['Type of Appointment', employee['Type of Appointment'] || ''],
+                    ['Appointment Order Date', employee['Appointment Order Date'] || ''],
+                    ['Roles', employee['Roles'] || ''],
+                    ['Allotment Year', employee['Allotment Year'] || '']
+                ];
+                
+                // Add personal information table
+                doc.setFontSize(14);
+                doc.text('Personal Information', 14, 70);
+                
+                doc.autoTable({
+                    startY: 75,
+                    head: [['Field', 'Value']],
+                    body: personalData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [128, 0, 0],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        cellPadding: 3
+                    }
+                });
+                
+                // Add professional information table
+                const professionalStartY = doc.previousAutoTable.finalY + 10;
+                doc.text('Professional Information', 14, professionalStartY);
+                
+                doc.autoTable({
+                    startY: professionalStartY + 5,
+                    head: [['Field', 'Value']],
+                    body: professionalData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [128, 0, 0],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        cellPadding: 3
+                    }
+                });
+                
+                // Add system information
+                const systemStartY = doc.previousAutoTable.finalY + 10;
+                doc.text('System Information', 14, systemStartY);
+                
+                const systemData = [
+                    ['Last Updated', employee['Modified Date'] ? new Date(employee['Modified Date']).toLocaleString() : 'Never'],
+                    ['Created Date', employee['Created Date'] ? new Date(employee['Created Date']).toLocaleString() : ''],
+                    ['Modified By', employee['Modified By'] || ''],
+                    ['Created By', employee['Created By'] || '']
+                ];
+                
+                doc.autoTable({
+                    startY: systemStartY + 5,
+                    head: [['Field', 'Value']],
+                    body: systemData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [128, 0, 0],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        cellPadding: 3
+                    }
+                });
+                
+                // Add footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+                }
+                
+                // Save the PDF
+                const fileName = 'Employee_' + (employee['Employee Name'] || '').replace(/\s+/g, '_') + '.pdf';
+                doc.save(fileName);
+                
+                console.log("PDF generated successfully:", fileName);
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+        
+        // Load report data for admin dashboard
+        async function loadReportData() {
+            // Show loading spinner
+            document.getElementById('reportsSpinner').style.display = 'block';
+            
+            try {
+                // Fetch all employees if not already loaded
+                if (allEmployees.length === 0) {
+                    const { data, error } = await supabaseClient
+                        .from('employees')
+                        .select('*');
+                    
+                    if (error) throw error;
+                    allEmployees = data;
+                }
+                
+                // Generate reports
+                generateVerificationChart();
+                generateDesignationChart();
+                
+                // Hide loading spinner
+                document.getElementById('reportsSpinner').style.display = 'none';
+            } catch (error) {
+                console.error("Error loading report data:", error);
+                document.getElementById('reportsSpinner').style.display = 'none';
+                alert('Error loading report data: ' + error.message);
+            }
+        }
+        
+        // Generate verification status chart
+        function generateVerificationChart() {
+            // Count verification statuses
+            const verified = allEmployees.filter(emp => emp['Modified Date']).length;
+            const pending = allEmployees.length - verified;
+            
+            // Get the canvas element
+            const ctx = document.getElementById('verificationChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (verificationChart) {
+                verificationChart.destroy();
+            }
+            
+            // Create the chart
+            verificationChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Verified/Updated', 'Pending'],
+                    datasets: [{
+                        data: [verified, pending],
+                        backgroundColor: [
+                            '#28a745',
+                            '#6c757d'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.raw || 0;
+                                        const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${label}: ${value} (\${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Generate designation distribution chart
+        function generateDesignationChart() {
+            // Count designations
+            const designationCounts = {};
+            allEmployees.forEach(function(emp) {
+                const designation = emp['Designation'] || 'Unknown';
+                designationCounts[designation] = (designationCounts[designation] || 0) + 1;
+            });
+            
+            // Sort designations by count
+            const sortedDesignations = Object.keys(designationCounts).sort(function(a, b) {
+                return designationCounts[b] - designationCounts[a];
+            });
+            
+            // Take top 10 designations
+            const top10Designations = sortedDesignations.slice(0, 10);
+            const top10Counts = top10Designations.map(d => designationCounts[d]);
+            
+            // Get the canvas element
+            const ctx = document.getElementById('designationChart').getContext('2d');
+            
+            // Destroy existing chart if it exists
+            if (designationChart) {
+                designationChart.destroy();
+            }
+            
+            // Create the chart
+            designationChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: top10Designations,
+                    datasets: [{
+                        label: 'Number of Employees',
+                        data: top10Counts,
+                        backgroundColor: '#1a73e8',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Top 10 Designations'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 90,
+                                minRotation: 45
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Export all employee data to Excel
+        function exportToExcel() {
+            try {
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Create worksheet from employees data
+                const ws = XLSX.utils.json_to_sheet(allEmployees);
+                
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, "Employees");
+                
+                // Generate Excel file and trigger download
+                XLSX.writeFile(wb, "Employee_Data.xlsx");
+            } catch (error) {
+                console.error("Error exporting to Excel:", error);
+                alert('Error exporting to Excel: ' + error.message);
+            }
+        }
+        
+        // Export all employee data to CSV
+        function exportToCsv() {
+            try {
+                // Convert employees data to worksheet
+                const ws = XLSX.utils.json_to_sheet(allEmployees);
+                
+                // Generate CSV content
+                const csv = XLSX.utils.sheet_to_csv(ws);
+                
+                // Create download link
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                
+                // Create a link element and trigger download
+                const link = document.createElement("a");
+                link.setAttribute("href", url);
+                link.setAttribute("download", "Employee_Data.csv");
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                console.error("Error exporting to CSV:", error);
+                alert('Error exporting to CSV: ' + error.message);
+            }
+        }
+        
+        // Export all employee data to PDF
+        function exportToPdf() {
+            try {
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape');
+                
+                // Add title
+                doc.setFontSize(18);
+                doc.setTextColor(128, 0, 0);
+                doc.text('Employee Data Report', 150, 15, { align: 'center' });
+                
+                // Add subtitle
+                doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Directorate of Agriculture Chhattisgarh', 150, 25, { align: 'center' });
+                doc.text('Generated on: ' + new Date().toLocaleDateString(), 150, 35, { align: 'center' });
+                
+                // Prepare data for table
+                const tableData = allEmployees.map(function(emp) {
+                    return [
+                        emp['Mobile Number'] || '',
+                        emp['Employee Name'] || '',
+                        emp['Nic E-mail ID'] || '',
+                        emp['Designation'] || '',
+                        emp['Service'] || '',
+                        emp['Modified Date'] ? 'Updated' : 'Pending'
+                    ];
+                });
+                
+                // Add table
+                doc.autoTable({
+                    startY: 45,
+                    head: [['Mobile Number', 'Employee Name', 'Email', 'Designation', 'Service', 'Status']],
+                    body: tableData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [128, 0, 0],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        cellPadding: 3,
+                        fontSize: 8
+                    }
+                });
+                
+                // Add footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 150, 200, { align: 'center' });
+                }
+                
+                // Save the PDF
+                doc.save("Employee_Data_Report.pdf");
+            } catch (error) {
+                console.error("Error exporting to PDF:", error);
+                alert('Error exporting to PDF: ' + error.message);
             }
         }
         
@@ -670,20 +1738,17 @@
                     // Store employee data
                     currentEmployee = data[0];
                     
-                    // Initialize field statuses
-                    fieldDefinitions.forEach(function(field) {
-                        fieldStatuses[field.id] = 'pending';
-                    });
-                    
-                    // Show verification card
+                    // Show OTP verification
                     document.getElementById('searchCard').classList.add('d-none');
-                    document.getElementById('verificationCard').classList.remove('d-none');
+                    document.getElementById('otpCard').classList.remove('d-none');
                     
-                    // Update step indicator
-                    updateStepIndicator(2);
+                    // Display masked mobile number
+                    const mobileNumber = currentEmployee['Mobile Number'];
+                    const maskedNumber = mobileNumber.substring(0, 2) + '****' + mobileNumber.substring(mobileNumber.length - 4);
+                    document.getElementById('maskedMobile').textContent = maskedNumber;
                     
-                    // Generate verification fields
-                    generateVerificationFields();
+                    // Generate and send OTP
+                    sendOtp(mobileNumber);
                 } else {
                     console.log("No employee found with mobile number:", mobileNumber);
                     showMessage('searchError', 'No employee found with this mobile number', true);
@@ -698,6 +1763,86 @@
                 // Show error message
                 showMessage('searchError', 'Error: ' + error.message, true);
             }
+        }
+        
+        // Send OTP to mobile number
+        function sendOtp(mobileNumber) {
+            // In a real application, you would send an OTP via SMS
+            // For this demo, we'll simulate it with a random 4-digit number
+            const otp = Math.floor(1000 + Math.random() * 9000).toString();
+            
+            // Store OTP in localStorage (in a real app, this would be stored server-side)
+            localStorage.setItem('otp_' + mobileNumber, otp);
+            
+            // Set expiry time (5 minutes)
+            const expiryTime = Date.now() + 5 * 60 * 1000;
+            localStorage.setItem('otp_expiry_' + mobileNumber, expiryTime.toString());
+            
+            // For demo purposes, show the OTP in console (remove in production)
+            console.log("OTP for " + mobileNumber + ": " + otp);
+            
+            // Show success message
+            showMessage('otpSuccess', 'OTP sent successfully!', false);
+            
+            // Clear OTP inputs
+            document.querySelectorAll('.otp-input').forEach(input => {
+                input.value = '';
+            });
+            document.getElementById('otp1').focus();
+        }
+        
+        // Verify OTP
+        function verifyOtp() {
+            const mobileNumber = currentEmployee['Mobile Number'];
+            
+            // Get stored OTP
+            const storedOtp = localStorage.getItem('otp_' + mobileNumber);
+            const expiryTime = parseInt(localStorage.getItem('otp_expiry_' + mobileNumber) || '0');
+            
+            // Check if OTP has expired
+            if (Date.now() > expiryTime) {
+                showMessage('otpError', 'OTP has expired. Please request a new one.', true);
+                return;
+            }
+            
+            // Get entered OTP
+            const otp1 = document.getElementById('otp1').value;
+            const otp2 = document.getElementById('otp2').value;
+            const otp3 = document.getElementById('otp3').value;
+            const otp4 = document.getElementById('otp4').value;
+            const enteredOtp = otp1 + otp2 + otp3 + otp4;
+            
+            // Show spinner
+            document.getElementById('otpSpinner').style.display = 'block';
+            document.getElementById('verifyOtpButton').disabled = true;
+            
+            // Simulate verification delay
+            setTimeout(() => {
+                // Hide spinner
+                document.getElementById('otpSpinner').style.display = 'none';
+                document.getElementById('verifyOtpButton').disabled = false;
+                
+                // Check OTP
+                if (enteredOtp === storedOtp) {
+                    // OTP verified, proceed to verification screen
+                    document.getElementById('otpCard').classList.add('d-none');
+                    document.getElementById('verificationCard').classList.remove('d-none');
+                    
+                    // Initialize field statuses
+                    fieldDefinitions.forEach(function(field) {
+                        fieldStatuses[field.id] = 'pending';
+                    });
+                    
+                    // Update step indicator
+                    updateStepIndicator(2);
+                    
+                    // Generate verification fields
+                    generateVerificationFields();
+                } else {
+                    // Invalid OTP
+                    showMessage('otpError', 'Invalid OTP. Please try again.', true);
+                }
+            }, 1500);
         }
         
         // Generate verification fields
@@ -1191,63 +2336,67 @@
             console.log("Submit button toggled:", !isChecked ? "disabled" : "enabled");
         }
         
-       // Submit the form
-async function submitForm() {
-    console.log("Submitting form");
-    
-    // Show spinner
-    document.getElementById('submitSpinner').style.display = 'block';
-    document.getElementById('submitButton').disabled = true;
-    
-    try {
-        // Only update fields that were actually edited
-        if (Object.keys(editedFields).length > 0) {
-            console.log("Submitting edited fields:", editedFields);
+        // Submit the form
+        async function submitForm() {
+            console.log("Submitting form");
             
-            // Update the employee record in Supabase with only edited fields
-            const { data, error } = await supabaseClient
-                .from('employees')
-                .update(editedFields)
-                .eq('Mobile Number', currentEmployee['Mobile Number']);
+            // Show spinner
+            document.getElementById('submitSpinner').style.display = 'block';
+            document.getElementById('submitButton').disabled = true;
+            
+            try {
+                // Only update fields that were actually edited
+                if (Object.keys(editedFields).length > 0) {
+                    console.log("Submitting edited fields:", editedFields);
+                    
+                    // Add Modified Date and Modified By
+                    editedFields['Modified Date'] = new Date().toISOString();
+                    editedFields['Modified By'] = 'Self Update';
+                    
+// Update the employee record in Supabase with only edited fields
+const { data, error } = await supabaseClient
+    .from('employees')
+    .update(editedFields)
+    .eq('Mobile Number', currentEmployee['Mobile Number']);
+    
+                    console.log("Update response:", { data, error });
+                    
+                    if (error) throw error;
+                } else {
+                    console.log("No fields were edited, skipping update");
+                }
                 
-            console.log("Update response:", { data, error });
-            
-            if (error) throw error;
-        } else {
-            console.log("No fields were edited, skipping update");
+                // Hide spinner
+                document.getElementById('submitSpinner').style.display = 'none';
+                
+                // Show success card
+                document.getElementById('reviewCard').classList.add('d-none');
+                document.getElementById('successCard').classList.remove('d-none');
+                
+                // Update step indicator
+                updateStepIndicator(4);
+                
+                // Clear any saved draft
+                try {
+                    localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
+                } catch (e) {
+                    console.error("Error removing draft from localStorage:", e);
+                }
+                
+                console.log("Form submission completed successfully");
+                
+            } catch (error) {
+                console.error("Error submitting form:", error);
+                
+                // Hide spinner
+                document.getElementById('submitSpinner').style.display = 'none';
+                document.getElementById('submitButton').disabled = false;
+                
+                // Show error
+                alert('Error submitting form: ' + error.message);
+            }
         }
         
-        // Hide spinner
-        document.getElementById('submitSpinner').style.display = 'none';
-        
-        // Show success card
-        document.getElementById('reviewCard').classList.add('d-none');
-        document.getElementById('successCard').classList.remove('d-none');
-        
-        // Update step indicator
-        updateStepIndicator(4);
-        
-        // Clear any saved draft
-        try {
-            localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
-        } catch (e) {
-            console.error("Error removing draft from localStorage:", e);
-        }
-        
-        console.log("Form submission completed successfully");
-        
-    } catch (error) {
-        console.error("Error submitting form:", error);
-        
-        // Hide spinner
-        document.getElementById('submitSpinner').style.display = 'none';
-        document.getElementById('submitButton').disabled = false;
-        
-        // Show error
-        alert('Error submitting form: ' + error.message);
-    }
-}
- 
         // Generate PDF
         function generatePDF() {
             console.log("Generating PDF");
@@ -1273,12 +2422,13 @@ async function submitForm() {
                 doc.setFontSize(14);
                 doc.setTextColor(0, 0, 0);
                 doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+                doc.text('Generated on: ' + new Date().toLocaleDateString(), 105, 35, { align: 'center' });
                 
                 // Add employee name and ID
                 doc.setFontSize(12);
-                doc.text('Employee: ' + currentEmployee['Employee Name'], 14, 40);
-                doc.text('Mobile: ' + currentEmployee['Mobile Number'], 14, 48);
-                doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
+                doc.text('Employee: ' + (currentEmployee['Employee Name'] || ''), 14, 40);
+                doc.text('Mobile: ' + (currentEmployee['Mobile Number'] || ''), 14, 48);
+                doc.text('Report Date: ' + new Date().toLocaleDateString(), 14, 56);
                 
                 // Add horizontal line
                 doc.setDrawColor(128, 0, 0);
@@ -1286,27 +2436,37 @@ async function submitForm() {
                 doc.line(14, 60, 196, 60);
                 
                 // Prepare data for table
-                const personalData = [];
-                const professionalData = [];
+                const personalData = [
+                    ['Mobile Number', employee['Mobile Number'] || ''],
+                    ['Employee Name', employee['Employee Name'] || ''],
+                    ['Email ID', employee['Nic E-mail ID'] || ''],
+                    ['Gender', employee['Gender'] || ''],
+                    ['Father\'s Name', employee["Father's Name"] || ''],
+                    ['Date of Birth', employee['Date of Birth'] || ''],
+                    ['Nationality', employee['Nationality'] || ''],
+                    ['Religion', employee['Religion'] || ''],
+                    ['Category', employee['Category'] || '']
+                ];
                 
-                fieldDefinitions.forEach(function(field) {
-                    let value = currentEmployee[field.id] || '';
-                    
-                    // If this field was edited, use the edited value
-                    if (editedFields[field.id] !== undefined) {
-                        value = editedFields[field.id];
-                    }
-                    
-                    const status = fieldStatuses[field.id];
-                    const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
-                    
-                    // Add to appropriate array based on field type
-                    if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-                        personalData.push(row);
-                    } else {
-                        professionalData.push(row);
-                    }
-                });
+                const professionalData = [
+                    ['Designation', employee['Designation'] || ''],
+                    ['Service', employee['Service'] || ''],
+                    ['Organization', employee['Orgnazation'] || ''],
+                    ['Date of Joining', employee['Organization from Date'] || ''],
+                    ['Designation on Joining', employee['Designation on Joining Date'] || ''],
+                    ['Type of Appointment', employee['Type of Appointment'] || ''],
+                    ['Appointment Order Date', employee['Appointment Order Date'] || ''],
+                    ['Roles', employee['Roles'] || ''],
+                    ['Allotment Year', employee['Allotment Year'] || '']
+                ];
+                
+                // Add system information
+                const systemData = [
+                    ['Last Updated', employee['Modified Date'] ? new Date(employee['Modified Date']).toLocaleString() : 'Never'],
+                    ['Created Date', employee['Created Date'] ? new Date(employee['Created Date']).toLocaleString() : ''],
+                    ['Modified By', employee['Modified By'] || ''],
+                    ['Created By', employee['Created By'] || '']
+                ];
                 
                 // Add personal information table
                 doc.setFontSize(14);
@@ -1314,7 +2474,7 @@ async function submitForm() {
                 
                 doc.autoTable({
                     startY: 75,
-                    head: [['Field', 'Value', 'Status']],
+                    head: [['Field', 'Value']],
                     body: personalData,
                     theme: 'striped',
                     headStyles: {
@@ -1333,8 +2493,27 @@ async function submitForm() {
                 
                 doc.autoTable({
                     startY: professionalStartY + 5,
-                    head: [['Field', 'Value', 'Status']],
+                    head: [['Field', 'Value']],
                     body: professionalData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [128, 0, 0],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        cellPadding: 3
+                    }
+                });
+                
+                // Add system information table
+                const systemStartY = doc.previousAutoTable.finalY + 10;
+                doc.text('System Information', 14, systemStartY);
+                
+                doc.autoTable({
+                    startY: systemStartY + 5,
+                    head: [['Field', 'Value']],
+                    body: systemData,
                     theme: 'striped',
                     headStyles: {
                         fillColor: [128, 0, 0],
@@ -1356,7 +2535,7 @@ async function submitForm() {
                 }
                 
                 // Save the PDF
-                const fileName = 'Employee_Verification_' + currentEmployee['Employee Name'].replace(/\s+/g, '_') + '.pdf';
+                const fileName = 'Employee_' + (employee['Employee Name'] || '').replace(/\s+/g, '_') + '.pdf';
                 doc.save(fileName);
                 
                 console.log("PDF generated successfully:", fileName);
@@ -1365,7 +2544,7 @@ async function submitForm() {
                 alert('Error generating PDF: ' + error.message);
             }
         }
-        
+
         // Go back to search
         function goBackToSearch() {
             console.log("Going back to search");
@@ -1381,7 +2560,7 @@ async function submitForm() {
             // Update step indicator
             updateStepIndicator(1);
         }
-        
+
         // Go back to verify
         function goBackToVerify() {
             console.log("Going back to verify");
@@ -1392,7 +2571,7 @@ async function submitForm() {
             // Update step indicator
             updateStepIndicator(2);
         }
-        
+
         // Start over from the beginning
         function startOver() {
             console.log("Starting over");
@@ -1411,7 +2590,7 @@ async function submitForm() {
             // Update step indicator
             updateStepIndicator(1);
         }
-        
+
         // Update step indicator
         function updateStepIndicator(currentStep) {
             console.log("Updating step indicator to step:", currentStep);
@@ -1430,7 +2609,7 @@ async function submitForm() {
                 }
             }
         }
-        
+
         // Show message
         function showMessage(elementId, message, isError) {
             console.log("Showing message:", message, "isError:", isError);
@@ -1438,6 +2617,14 @@ async function submitForm() {
             const element = document.getElementById(elementId);
             if (element) {
                 element.textContent = message;
+                element.className = 'message';
+                if (isError) {
+                    element.classList.add('alert-danger');
+                    element.classList.remove('alert-success');
+                } else {
+                    element.classList.add('alert-success');
+                    element.classList.remove('alert-danger');
+                }
                 element.classList.remove('d-none');
                 
                 // Hide message after 5 seconds
@@ -1448,60 +2635,6 @@ async function submitForm() {
                 console.error("Message element not found:", elementId);
             }
         }
-        
-        // Check for saved draft on page load
-        function checkForSavedDraft(mobileNumber) {
-            console.log("Checking for saved draft for:", mobileNumber);
-            
-            try {
-                const draftKey = 'employeeDraft_' + mobileNumber;
-                const savedDraft = localStorage.getItem(draftKey);
-                
-                if (savedDraft) {
-                    const draftData = JSON.parse(savedDraft);
-                    const timestamp = new Date(draftData.timestamp);
-                    const now = new Date();
-                    const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
-                    
-                    console.log("Found saved draft from:", timestamp);
-                    
-                    // If draft is less than 24 hours old, ask to restore
-                    if (hoursDiff < 24) {
-                        const confirm = window.confirm('You have a saved draft from ' + timestamp.toLocaleString() + '. Would you like to restore it?');
-                        
-                        if (confirm) {
-                            console.log("Restoring saved draft");
-                            
-                            // Restore the saved state
-                            currentEmployee = draftData.employee;
-                            fieldStatuses = draftData.statuses;
-                            editedFields = draftData.edits;
-                            
-                            // Show verification card
-                            document.getElementById('searchCard').classList.add('d-none');
-                            document.getElementById('verificationCard').classList.remove('d-none');
-                            
-                            // Update step indicator
-                            updateStepIndicator(2);
-                            
-                            // Generate verification fields
-                            generateVerificationFields();
-                            
-                            // Update progress
-                            updateProgress();
-                            checkAllFieldsVerified();
-                            
-                            return true;
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error("Error checking for saved draft:", error);
-            }
-            
-            return false;
-        }
     </script>
 </body>
 </html>
-
