@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Data Form</title>
+    <title>Employee Data Verification</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -13,6 +13,13 @@
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
         :root {
@@ -31,7 +38,7 @@
         }
         
         .container {
-            max-width: 900px;
+            max-width: 1000px;
         }
         
         .header {
@@ -135,6 +142,27 @@
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
         }
         
+        .btn-success {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #218838;
+            transform: translateY(-3px);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            background-color: transparent;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
         .form-section {
             margin-bottom: 20px;
         }
@@ -145,20 +173,6 @@
             margin-bottom: 20px;
             color: var(--secondary-color);
             font-weight: 600;
-        }
-        
-        .verification-container {
-            background-color: #f8f8f8;
-            border-left: 4px solid var(--primary-color);
-            padding: 15px;
-            margin-bottom: 25px;
-            border-radius: 0 8px 8px 0;
-        }
-        
-        .verification-title {
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: var(--primary-color);
         }
         
         .loading-spinner {
@@ -187,23 +201,174 @@
             color: #777;
             font-size: 0.9rem;
         }
+        
+        .field-row {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+        }
+        
+        .field-row:last-child {
+            border-bottom: none;
+        }
+        
+        .field-label {
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+        
+        .field-value {
+            color: #555;
+        }
+        
+        .verification-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .edit-field {
+            display: none;
+            margin-top: 10px;
+        }
+        
+        .badge {
+            font-weight: 500;
+            padding: 6px 10px;
+        }
+        
+        .badge-verified {
+            background-color: #28a745;
+        }
+        
+        .badge-edited {
+            background-color: #fd7e14;
+        }
+        
+        .badge-pending {
+            background-color: #6c757d;
+        }
+        
+        .progress-section {
+            margin: 20px 0;
+        }
+        
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            text-align: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #ddd;
+            color: #555;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: 600;
+        }
+        
+        .step.active .step-number {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .step-title {
+            font-size: 0.9rem;
+            color: #777;
+        }
+        
+        .step.active .step-title {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .step.completed .step-title {
+            color: #28a745;
+        }
+        
+        .step-line {
+            position: absolute;
+            top: 15px;
+            height: 2px;
+            background-color: #ddd;
+            width: 100%;
+            left: -50%;
+            z-index: -1;
+        }
+        
+        .step:first-child .step-line {
+            display: none;
+        }
+        
+        .step.completed .step-line {
+            background-color: #28a745;
+        }
+        
+        @media (max-width: 768px) {
+            .step-title {
+                font-size: 0.7rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>EMPLOYEE DATA FORM</h1>
-            <p>Please verify or update your information</p>
+            <h1>EMPLOYEE DATA VERIFICATION</h1>
+            <p>Please verify and update your information</p>
         </div>
         
-        <!-- Login Card -->
-        <div class="card" id="loginCard">
+        <!-- Step Indicator -->
+        <div class="step-indicator d-none" id="stepIndicator">
+            <div class="step active" id="step1">
+                <div class="step-line"></div>
+                <div class="step-number">1</div>
+                <div class="step-title">Search</div>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-line"></div>
+                <div class="step-number">2</div>
+                <div class="step-title">Verify</div>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-line"></div>
+                <div class="step-number">3</div>
+                <div class="step-title">Review</div>
+            </div>
+            <div class="step" id="step4">
+                <div class="step-line"></div>
+                <div class="step-number">4</div>
+                <div class="step-title">Submit</div>
+            </div>
+        </div>
+        
+        <!-- Search Card -->
+        <div class="card" id="searchCard">
             <div class="card-header">
-                <i class="fas fa-user-circle me-2"></i> Employee Verification
+                <i class="fas fa-search me-2"></i> Search Your Record
             </div>
             <div class="card-body">
-                <div class="alert alert-danger d-none" id="loginError"></div>
+                <div class="alert alert-danger d-none" id="searchError"></div>
                 
                 <div class="mb-3">
                     <label for="mobileNumber" class="form-label required-field">Mobile Number</label>
@@ -212,171 +377,123 @@
                 </div>
                 
                 <div class="d-grid gap-2">
-                    <button class="btn btn-primary" id="loginButton">
-                        <i class="fas fa-sign-in-alt me-2"></i> ACCESS MY DATA
+                    <button class="btn btn-primary" id="searchButton">
+                        <i class="fas fa-search me-2"></i> FIND MY RECORD
                     </button>
                 </div>
                 
-                <div class="loading-spinner" id="loginSpinner">
+                <div class="loading-spinner" id="searchSpinner">
                     <div class="spinner-border" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
-                    <div class="mt-2">Verifying your information...</div>
+                    <div class="mt-2">Searching for your record...</div>
                 </div>
             </div>
         </div>
         
-        <!-- Employee Data Card (Initially Hidden) -->
-        <div class="card d-none" id="employeeCard">
+        <!-- Verification Card -->
+        <div class="card d-none" id="verificationCard">
             <div class="card-header">
-                <i class="fas fa-id-card me-2"></i> Employee Information
+                <i class="fas fa-user-check me-2"></i> Verify Your Information
             </div>
             <div class="card-body">
-                <div class="alert alert-success d-none" id="successMessage"></div>
-                <div class="alert alert-danger d-none" id="errorMessage"></div>
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i> Please verify each field below. Click "Yes" if the information is correct, or "No" to edit.
+                </div>
                 
-                <div class="verification-container">
-                    <div class="verification-title">Is your information correct?</div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="verifyOption" id="verifyYes" value="yes" checked>
-                        <label class="form-check-label" for="verifyYes">
-                            Yes, all information is correct
-                        </label>
+                <div class="progress-section">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>Verification Progress</span>
+                        <span id="progressText">0%</span>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="verifyOption" id="verifyNo" value="no">
-                        <label class="form-check-label" for="verifyNo">
-                            No, I need to update my information
-                        </label>
+                    <div class="progress">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 0%" id="progressBar"></div>
                     </div>
                 </div>
                 
-                <form id="employeeForm">
-                    <input type="hidden" id="rowIndex">
-                    
-                    <!-- Personal Information -->
-                    <div class="form-section">
-                        <h4 class="form-section-title">Personal Information</h4>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="emp_mobileNumber" class="form-label">Mobile Number</label>
-                                <input type="text" class="form-control" id="emp_mobileNumber" readonly>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="employeeName" class="form-label">Employee Name</label>
-                                <input type="text" class="form-control readonly-field" id="employeeName" disabled>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="email" class="form-label">Email ID</label>
-                                <input type="email" class="form-control readonly-field" id="email" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="gender" class="form-label">Gender</label>
-                                <select class="form-select readonly-field" id="gender" disabled>
-                                    <option value="">Select Gender</option>
-                                    <option value="Male">Male</option>
-                                    <option value="Female">Female</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="fatherName" class="form-label">Father's Name</label>
-                                <input type="text" class="form-control readonly-field" id="fatherName" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="dob" class="form-label">Date of Birth</label>
-                                <input type="date" class="form-control readonly-field" id="dob" disabled>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label for="nationality" class="form-label">Nationality</label>
-                                <input type="text" class="form-control readonly-field" id="nationality" disabled>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="religion" class="form-label">Religion</label>
-                                <input type="text" class="form-control readonly-field" id="religion" disabled>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="category" class="form-label">Category</label>
-                                <input type="text" class="form-control readonly-field" id="category" disabled>
-                            </div>
-                        </div>
+                <div id="fieldsContainer">
+                    <!-- Fields will be dynamically added here -->
+                </div>
+                
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-secondary" id="backButton">
+                        <i class="fas fa-arrow-left me-2"></i> GO BACK
+                    </button>
+                    <button type="button" class="btn btn-primary" id="saveDraftButton">
+                        <i class="fas fa-save me-2"></i> SAVE DRAFT
+                    </button>
+                    <button type="button" class="btn btn-success" id="continueButton" disabled>
+                        <i class="fas fa-check me-2"></i> CONTINUE
+                    </button>
+                </div>
+                
+                <div class="loading-spinner" id="verifySpinner">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-                    
-                    <!-- Professional Information -->
-                    <div class="form-section">
-                        <h4 class="form-section-title">Professional Information</h4>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="designation" class="form-label">Designation</label>
-                                <input type="text" class="form-control readonly-field" id="designation" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="service" class="form-label">Service</label>
-                                <input type="text" class="form-control readonly-field" id="service" disabled>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="organization" class="form-label">Organization</label>
-                                <input type="text" class="form-control readonly-field" id="organization" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="orgFromDate" class="form-label">Organization from Date</label>
-                                <input type="date" class="form-control readonly-field" id="orgFromDate" disabled>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="appointmentType" class="form-label">Type of Appointment</label>
-                                <input type="text" class="form-control readonly-field" id="appointmentType" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="appointmentOrderDate" class="form-label">Appointment Order Date</label>
-                                <input type="date" class="form-control readonly-field" id="appointmentOrderDate" disabled>
-                            </div>
-                        </div>
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="roles" class="form-label">Roles</label>
-                                <input type="text" class="form-control readonly-field" id="roles" disabled>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="allotmentYear" class="form-label">Allotment Year</label>
-                                <input type="text" class="form-control readonly-field" id="allotmentYear" disabled>
-                            </div>
-                        </div>
+                    <div class="mt-2">Processing...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Review Card -->
+        <div class="card d-none" id="reviewCard">
+            <div class="card-header">
+                <i class="fas fa-clipboard-check me-2"></i> Review Your Information
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i> Please review all your information below before final submission.
+                </div>
+                
+                <div id="reviewContainer">
+                    <!-- Review information will be added here -->
+                </div>
+                
+                <div class="form-check mb-4 mt-3">
+                    <input class="form-check-input" type="checkbox" id="confirmCheck">
+                    <label class="form-check-label" for="confirmCheck">
+                        I confirm that all the information provided is accurate and complete.
+                    </label>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary" id="backToVerifyButton">
+                        <i class="fas fa-arrow-left me-2"></i> BACK TO VERIFY
+                    </button>
+                    <button type="button" class="btn btn-success" id="submitButton" disabled>
+                        <i class="fas fa-paper-plane me-2"></i> SUBMIT
+                    </button>
+                </div>
+                
+                <div class="loading-spinner" id="submitSpinner">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-                    
-                    <div class="loading-spinner" id="updateSpinner">
-                        <div class="spinner-border" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <div class="mt-2">Updating your information...</div>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between mt-4">
-                        <button type="button" class="btn btn-secondary" id="backButton">
-                            <i class="fas fa-arrow-left me-2"></i> GO BACK
-                        </button>
-                        <button type="submit" class="btn btn-primary" id="submitButton">
-                            <i class="fas fa-check-circle me-2"></i> VERIFY INFORMATION
-                        </button>
-                    </div>
-                </form>
+                    <div class="mt-2">Submitting your information...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Success Card -->
+        <div class="card d-none" id="successCard">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-check-circle me-2"></i> Submission Successful
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <i class="fas fa-check-circle text-success" style="font-size: 64px;"></i>
+                </div>
+                <h3 class="mb-3">Thank You!</h3>
+                <p>Your information has been successfully verified and submitted.</p>
+                <div class="mt-4">
+                    <button class="btn btn-primary me-2" id="downloadPdfButton">
+                        <i class="fas fa-file-pdf me-2"></i> DOWNLOAD PDF
+                    </button>
+                    <button class="btn btn-secondary" id="startOverButton">
+                        <i class="fas fa-redo me-2"></i> START OVER
+                    </button>
+                </div>
             </div>
         </div>
         
@@ -388,178 +505,571 @@
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Your custom JavaScript will go here -->
     <script>
-        // This is a placeholder for your actual JavaScript code
-        // You'll need to replace this with code that connects to your SQLite database API
+        // Initialize Supabase client
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'YOUR_ANON_KEY'; // Replace with your actual anon key
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
         
+        // Global variables
+        let currentEmployee = null;
+        let fieldStatuses = {};
+        let editedFields = {};
+        
+        // Field definitions - customize based on your table structure
+        const fieldDefinitions = [
+            { id: "Mobile Number", label: "Mobile Number", type: "text", required: true, readonly: true },
+            { id: "Employee Name", label: "Employee Name", type: "text", required: true },
+            { id: "Nic E-mail ID", label: "Email ID", type: "email" },
+            { id: "Gender", label: "Gender", type: "select", options: ["Male", "Female", "Other"] },
+            { id: "Father's Name", label: "Father's Name", type: "text" },
+            { id: "Date of Birth", label: "Date of Birth", type: "text" },
+            { id: "Nationality", label: "Nationality", type: "text" },
+            { id: "Religion", label: "Religion", type: "text" },
+            { id: "Category", label: "Category", type: "text" },
+            { id: "Designation", label: "Designation", type: "text" },
+            { id: "Service", label: "Service", type: "text" },
+            { id: "Orgnazation", label: "Organization", type: "text" },
+            { id: "Organization from Date", label: "Organization from Date", type: "text" },
+            { id: "Designation on Joining Date", label: "Designation on Joining Date", type: "text" },
+            { id: "Type of Appointment", label: "Type of Appointment", type: "text" },
+            { id: "Appointment Order Date", label: "Appointment Order Date", type: "text" },
+            { id: "Roles", label: "Roles", type: "text" },
+            { id: "Allotment Year", label: "Allotment Year", type: "text" }
+        ];
+        
+        // Document ready
         document.addEventListener('DOMContentLoaded', function() {
-            // Elements
-            const loginCard = document.getElementById('loginCard');
-            const employeeCard = document.getElementById('employeeCard');
-            const loginButton = document.getElementById('loginButton');
-            const backButton = document.getElementById('backButton');
-            const submitButton = document.getElementById('submitButton');
-            const loginSpinner = document.getElementById('loginSpinner');
-            const updateSpinner = document.getElementById('updateSpinner');
-            const loginError = document.getElementById('loginError');
-            const successMessage = document.getElementById('successMessage');
-            const errorMessage = document.getElementById('errorMessage');
-            const employeeForm = document.getElementById('employeeForm');
+            // Initialize event listeners
+            document.getElementById('searchButton').addEventListener('click', searchEmployee);
+            document.getElementById('backButton').addEventListener('click', goBackToSearch);
+            document.getElementById('saveDraftButton').addEventListener('click', saveDraft);
+            document.getElementById('continueButton').addEventListener('click', showReview);
+            document.getElementById('backToVerifyButton').addEventListener('click', goBackToVerify);
+            document.getElementById('confirmCheck').addEventListener('change', toggleSubmitButton);
+            document.getElementById('submitButton').addEventListener('click', submitForm);
+            document.getElementById('downloadPdfButton').addEventListener('click', generatePDF);
+            document.getElementById('startOverButton').addEventListener('click', startOver);
             
-            // Radio buttons for verification options
-            const verifyYes = document.getElementById('verifyYes');
-            const verifyNo = document.getElementById('verifyNo');
-            
-            // Form fields
-            const readonlyFields = document.querySelectorAll('.readonly-field');
-            
-            // Login button click handler
-            loginButton.addEventListener('click', function() {
-                const mobileNumber = document.getElementById('mobileNumber').value.trim();
-                
-                if (!mobileNumber) {
-                    showMessage(loginError, 'Please enter your mobile number', 'danger');
-                    return;
-                }
-                
-                // Show spinner and disable button
-                loginSpinner.style.display = 'block';
-                loginButton.disabled = true;
-                
-                // Simulate API call (replace with your actual API call)
-                setTimeout(function() {
-                    // Hide spinner
-                    loginSpinner.style.display = 'none';
-                    loginButton.disabled = false;
-                    
-                    // For demo purposes, we'll just show the employee card
-                    // In a real app, you would check if the employee exists in your database
-                    loginCard.classList.add('d-none');
-                    employeeCard.classList.remove('d-none');
-                    
-                    // Populate form with dummy data (replace with actual data)
-                    populateEmployeeData({
-                        'Mobile Number': mobileNumber,
-                        'Employee Name': 'John Doe',
-                        'Nic E-mail ID': 'john.doe@example.com',
-                        'Gender': 'Male',
-                        'Father\'s Name': 'Richard Doe',
-                        'Date of Birth': '1985-06-15',
-                        'Nationality': 'Indian',
-                        'Religion': 'Hindu',
-                        'Category': 'General',
-                        'Designation': 'Software Engineer',
-                        'Service': 'IT Department',
-                        'Organization': 'ABC Corp',
-                        'Organization from Date': '2020-01-15',
-                        'Type of Appointment': 'Permanent',
-                        'Appointment Order Date': '2020-01-10',
-                        'Roles': 'Development',
-                        'Allotment Year': '2020'
-                    });
-                }, 1500);
-            });
-            
-            // Back button click handler
-            backButton.addEventListener('click', function() {
-                employeeCard.classList.add('d-none');
-                loginCard.classList.remove('d-none');
-                document.getElementById('mobileNumber').value = '';
-                loginError.classList.add('d-none');
-            });
-            
-            // Verify radio buttons change handler
-            [verifyYes, verifyNo].forEach(function(radio) {
-                radio.addEventListener('change', function() {
-                    const isReadOnly = verifyYes.checked;
-                    
-                    readonlyFields.forEach(function(field) {
-                        field.disabled = isReadOnly;
-                        
-                        if (isReadOnly) {
-                            field.classList.add('bg-light');
-                            submitButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> VERIFY INFORMATION';
-                        } else {
-                            field.classList.remove('bg-light');
-                            submitButton.innerHTML = '<i class="fas fa-save me-2"></i> UPDATE INFORMATION';
-                        }
-                    });
-                });
-            });
-            
-            // Form submission handler
-            employeeForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const isVerify = verifyYes.checked;
-                
-                if (isVerify) {
-                    // Just verify without changes
-                    showMessage(successMessage, 'Your information has been verified successfully!', 'success');
-                    return;
-                }
-                
-                // Show spinner and disable button
-                updateSpinner.style.display = 'block';
-                submitButton.disabled = true;
-                
-                // Simulate API call to update data (replace with your actual API call)
-                setTimeout(function() {
-                    // Hide spinner
-                    updateSpinner.style.display = 'none';
-                    submitButton.disabled = false;
-                    
-                    // Show success message
-                    showMessage(successMessage, 'Your information has been updated successfully!', 'success');
-                    
-                    // Reset to verify mode
-                    verifyYes.checked = true;
-                    verifyNo.checked = false;
-                    verifyYes.dispatchEvent(new Event('change'));
-                }, 1500);
-            });
-            
-            // Helper function to populate employee data
-            function populateEmployeeData(data) {
-                document.getElementById('emp_mobileNumber').value = data['Mobile Number'] || '';
-                document.getElementById('employeeName').value = data['Employee Name'] || '';
-                document.getElementById('email').value = data['Nic E-mail ID'] || '';
-                document.getElementById('gender').value = data['Gender'] || '';
-                document.getElementById('fatherName').value = data['Father\'s Name'] || '';
-                document.getElementById('dob').value = data['Date of Birth'] || '';
-                document.getElementById('nationality').value = data['Nationality'] || '';
-                document.getElementById('religion').value = data['Religion'] || '';
-                document.getElementById('category').value = data['Category'] || '';
-                document.getElementById('designation').value = data['Designation'] || '';
-                document.getElementById('service').value = data['Service'] || '';
-                document.getElementById('organization').value = data['Organization'] || '';
-                document.getElementById('orgFromDate').value = data['Organization from Date'] || '';
-                document.getElementById('appointmentType').value = data['Type of Appointment'] || '';
-                document.getElementById('appointmentOrderDate').value = data['Appointment Order Date'] || '';
-                document.getElementById('roles').value = data['Roles'] || '';
-                document.getElementById('allotmentYear').value = data['Allotment Year'] || '';
-            }
-            
-            // Helper function to show messages
-            function showMessage(element, message, type) {
-                element.textContent = message;
-                element.classList.remove('d-none');
-                
-                if (type === 'success') {
-                    element.classList.remove('alert-danger');
-                    element.classList.add('alert-success');
-                } else if (type === 'danger') {
-                    element.classList.remove('alert-success');
-                    element.classList.add('alert-danger');
-                }
-                
-                // Hide message after 5 seconds
-                setTimeout(function() {
-                    element.classList.add('d-none');
-                }, 5000);
-            }
+            // Show step indicator
+            document.getElementById('stepIndicator').classList.remove('d-none');
         });
-    </script>
+        
+        // Search for employee by mobile number
+        async function searchEmployee() {
+            const mobileNumber = document.getElementById('mobileNumber').value.trim();
+            
+            if (!mobileNumber) {
+                showMessage('searchError', 'Please enter your mobile number', true);
+                return;
+            }
+            
+            // Show spinner
+            document.getElementById('searchSpinner').style.display = 'block';
+            document.getElementById('searchButton').disabled = true;
+            
+            try {
+                // Query Supabase for employee with this mobile number
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('*')
+                    .eq('Mobile Number', mobileNumber)
+                    .single();
+                    
+                // Hide spinner
+                document.getElementById('searchSpinner').style.display = 'none';
+                document.getElementById('searchButton').disabled = false;
+                
+                if (error) throw error;
+                
+                if (data) {
+                    // Employee found
+                    currentEmployee = data;
+                    
+                    // Initialize field statuses
+                    fieldDefinitions.forEach(field => {
+                        fieldStatuses[field.id] = 'pending';
+                    });
+                    
+                    // Show verification card
+                    document.getElementById('searchCard').classList.add('d-none');
+                    document.getElementById('verificationCard').classList.remove('d-none');
+                    
+                    // Update step indicator
+                    updateStepIndicator(2);
+                    
+                    // Generate verification fields
+                    generateVerificationFields();
+                } else {
+                    // No employee found
+                    showMessage('searchError', 'No employee found with this mobile number', true);
+                }
+            } catch (error) {
+                // Hide spinner
+                document.getElementById('searchSpinner').style.display = 'none';
+                document.getElementById('searchButton').disabled = false;
+                
+                // Show error message
+                showMessage('searchError', `Error: ${error.message}`, true);
+            }
+        }
+        
+        // Generate verification fields
+        function generateVerificationFields() {
+            const container = document.getElementById('fieldsContainer');
+            container.innerHTML = '';
+            
+            fieldDefinitions.forEach(field => {
+                const value = currentEmployee[field.id] || '';
+                
+                const fieldRow = document.createElement('div');
+                fieldRow.className = 'field-row';
+                fieldRow.id = `row-${field.id}`;
+                
+                const fieldContent = `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="field-label">\${field.label}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="field-value" id="value-${field.id}">${value}</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="verification-buttons">
+                                <button class="btn btn-sm btn-outline-success verify-yes" data-field="\${field.id}">
+                                    <i class="fas fa-check"></i> Yes
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger verify-no" data-field="\${field.id}">
+                                    <i class="fas fa-times"></i> No
+                                </button>
+                                <span class="ms-2 badge ${getBadgeClass('pending')}" id="status-${field.id}">Pending</span>
+                            </div>
+                            <div class="edit-field" id="edit-\${field.id}">
+                                \${generateInputField(field, value)}
+                                <div class="mt-2">
+                                    <button class="btn btn-sm btn-primary save-edit" data-field="\${field.id}">
+                                        Save
+                                    </button>
+                                    <button class="btn btn-sm btn-secondary cancel-edit" data-field="\${field.id}">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                fieldRow.innerHTML = fieldContent;
+                container.appendChild(fieldRow);
+                
+                // Add event listeners
+                const yesButton = fieldRow.querySelector(`.verify-yes[data-field="${field.id}"]`);
+                const noButton = fieldRow.querySelector(`.verify-no[data-field="${field.id}"]`);
+                const saveButton = fieldRow.querySelector(`.save-edit[data-field="${field.id}"]`);
+                const cancelButton = fieldRow.querySelector(`.cancel-edit[data-field="${field.id}"]`);
+                
+                yesButton.addEventListener('click', () => verifyField(field.id, true));
+                noButton.addEventListener('click', () => verifyField(field.id, false));
+                saveButton.addEventListener('click', () => saveEdit(field.id));
+                cancelButton.addEventListener('click', () => cancelEdit(field.id));
+            });
+        }
+        
+        // Generate input field based on field type
+        function generateInputField(field, value) {
+            if (field.type === 'select' && field.options) {
+                let options = field.options.map(opt => 
+                    `<option value="${opt}" ${value === opt ? 'selected' : ''}>\${opt}</option>`
+                ).join('');
+                
+                return `
+                    <select class="form-select" id="input-\${field.id}">
+                        <option value="">Select \${field.label}</option>
+                        \${options}
+                    </select>
+                `;
+            } else {
+                return `
+                    <input type="${field.type}" class="form-control" id="input-${field.id}" 
+                           value="${value}" ${field.readonly ? 'readonly' : ''}>
+                `;
+            }
+        }
+        
+        // Verify a field
+        function verifyField(fieldId, isCorrect) {
+            if (isCorrect) {
+                // Field is correct
+                fieldStatuses[fieldId] = 'verified';
+                updateFieldStatus(fieldId, 'verified');
+            } else {
+                // Field needs editing
+                document.getElementById(`edit-${fieldId}`).style.display = 'block';
+            }
+            
+            updateProgress();
+            checkAllFieldsVerified();
+        }
+        
+        // Save edited field
+        function saveEdit(fieldId) {
+            const inputElement = document.getElementById(`input-${fieldId}`);
+            const newValue = inputElement.value;
+            
+            // Update the displayed value
+            document.getElementById(`value-${fieldId}`).textContent = newValue;
+            
+            // Hide the edit form
+            document.getElementById(`edit-${fieldId}`).style.display = 'none';
+            
+            // Mark as edited
+            fieldStatuses[fieldId] = 'edited';
+            updateFieldStatus(fieldId, 'edited');
+            
+            // Store the edited value
+            editedFields[fieldId] = newValue;
+            
+            updateProgress();
+            checkAllFieldsVerified();
+        }
+        
+        // Cancel edit
+        function cancelEdit(fieldId) {
+            document.getElementById(`edit-${fieldId}`).style.display = 'none';
+        }
+        
+        // Update field status badge
+        function updateFieldStatus(fieldId, status) {
+            const statusElement = document.getElementById(`status-${fieldId}`);
+            statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+            statusElement.className = `ms-2 badge ${getBadgeClass(status)}`;
+        }
+        
+        // Get badge class based on status
+        function getBadgeClass(status) {
+            switch (status) {
+                case 'verified': return 'badge-verified';
+                case 'edited': return 'badge-edited';
+                default: return 'badge-pending';
+            }
+        }
+        
+        // Update progress bar
+        function updateProgress() {
+            const totalFields = Object.keys(fieldStatuses).length;
+            const verifiedFields = Object.values(fieldStatuses).filter(status => 
+                status === 'verified' || status === 'edited'
+            ).length;
+            
+            const percentage = Math.round((verifiedFields / totalFields) * 100);
+            
+            document.getElementById('progressBar').style.width = `${percentage}%`;
+            document.getElementById('progressText').textContent = `${percentage}%`;
+        }
+        
+        // Check if all fields have been verified
+        function checkAllFieldsVerified() {
+            const allVerified = Object.values(fieldStatuses).every(status => 
+                status === 'verified' || status === 'edited'
+            );
+            
+            document.getElementById('continueButton').disabled = !allVerified;
+        }
+        
+        // Save draft of current progress
+        function saveDraft() {
+            // Show spinner
+            document.getElementById('verifySpinner').style.display = 'block';
+            
+            // In a real app, you would save the current state to the server
+            // For this demo, we'll just simulate a delay
+            setTimeout(() => {
+                document.getElementById('verifySpinner').style.display = 'none';
+                alert('Your progress has been saved as a draft.');
+            }, 1000);
+        }
+        
+        // Show review screen
+        function showReview() {
+            // Generate review content
+            generateReviewContent();
+            
+            // Show review card
+            document.getElementById('verificationCard').classList.add('d-none');
+            document.getElementById('reviewCard').classList.remove('d-none');
+            
+            // Update step indicator
+            updateStepIndicator(3);
+        }
+        
+        // Generate review content
+        function generateReviewContent() {
+            const container = document.getElementById('reviewContainer');
+            container.innerHTML = '';
+            
+            // Create sections
+            const personalSection = document.createElement('div');
+            personalSection.className = 'mb-4';
+            personalSection.innerHTML = '<h5 class="form-section-title">Personal Information</h5>';
+            
+            const professionalSection = document.createElement('div');
+            professionalSection.className = 'mb-4';
+            professionalSection.innerHTML = '<h5 class="form-section-title">Professional Information</h5>';
+            
+            // Add fields to appropriate sections
+            fieldDefinitions.forEach(field => {
+                let value = currentEmployee[field.id] || '';
+                
+                // If this field was edited, use the edited value
+                if (editedFields[field.id] !== undefined) {
+                    value = editedFields[field.id];
+                }
+                
+const status = fieldStatuses[field.id];
+const statusBadge = `<span class="badge ${getBadgeClass(status)}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+
+const fieldRow = `
+    <div class="row mb-2">
+        <div class="col-md-4">
+            <strong>${field.label}:</strong>
+        </div>
+        <div class="col-md-6">
+            ${value}
+        </div>
+        <div class="col-md-2 text-end">
+            ${statusBadge}
+        </div>
+    </div>
+`;
+
+// Add to appropriate section based on field type
+if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+    personalSection.innerHTML += fieldRow;
+} else {
+    professionalSection.innerHTML += fieldRow;
+}
+});
+
+// Add sections to container
+container.appendChild(personalSection);
+container.appendChild(professionalSection);
+}
+
+// Toggle submit button based on confirmation checkbox
+function toggleSubmitButton() {
+    document.getElementById('submitButton').disabled = !document.getElementById('confirmCheck').checked;
+}
+
+// Submit the form
+async function submitForm() {
+    // Show spinner
+    document.getElementById('submitSpinner').style.display = 'block';
+    document.getElementById('submitButton').disabled = true;
+    
+    // Prepare data for submission
+    const updatedEmployee = { ...currentEmployee };
+    
+    // Apply edits
+    for (const fieldId in editedFields) {
+        updatedEmployee[fieldId] = editedFields[fieldId];
+    }
+    
+    // Add verification timestamp
+    updatedEmployee['Verification Date'] = new Date().toISOString();
+    
+    try {
+        // Update the employee record in Supabase
+        const { data, error } = await supabase
+            .from('employees')
+            .update(updatedEmployee)
+            .eq('Mobile Number', currentEmployee['Mobile Number']);
+            
+        if (error) throw error;
+        
+        // Hide spinner
+        document.getElementById('submitSpinner').style.display = 'none';
+        
+        // Show success card
+        document.getElementById('reviewCard').classList.add('d-none');
+        document.getElementById('successCard').classList.remove('d-none');
+        
+        // Update step indicator
+        updateStepIndicator(4);
+        
+    } catch (error) {
+        // Hide spinner
+        document.getElementById('submitSpinner').style.display = 'none';
+        document.getElementById('submitButton').disabled = false;
+        
+        // Show error
+        alert(`Error submitting form: ${error.message}`);
+    }
+}
+
+// Generate PDF
+function generatePDF() {
+    // Initialize jsPDF
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(18);
+    doc.setTextColor(128, 0, 0);
+    doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+    
+    // Add employee name and ID
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Employee: ${currentEmployee['Employee Name']}`, 14, 30);
+    doc.text(`Mobile: ${currentEmployee['Mobile Number']}`, 14, 38);
+    doc.text(`Verification Date: ${new Date().toLocaleDateString()}`, 14, 46);
+    
+    // Add horizontal line
+    doc.setDrawColor(128, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(14, 50, 196, 50);
+    
+    // Prepare data for table
+    const personalData = [];
+    const professionalData = [];
+    
+    fieldDefinitions.forEach(field => {
+        let value = currentEmployee[field.id] || '';
+        
+        // If this field was edited, use the edited value
+        if (editedFields[field.id] !== undefined) {
+            value = editedFields[field.id];
+        }
+        
+        const status = fieldStatuses[field.id];
+        const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
+        
+        // Add to appropriate array based on field type
+        if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+            personalData.push(row);
+        } else {
+            professionalData.push(row);
+        }
+    });
+    
+    // Add personal information table
+    doc.setFontSize(14);
+    doc.text('Personal Information', 14, 60);
+    
+    doc.autoTable({
+        startY: 65,
+        head: [['Field', 'Value', 'Status']],
+        body: personalData,
+        theme: 'striped',
+        headStyles: {
+            fillColor: [128, 0, 0],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+        },
+        styles: {
+            cellPadding: 3
+        }
+    });
+    
+    // Add professional information table
+    const professionalStartY = doc.previousAutoTable.finalY + 10;
+    doc.text('Professional Information', 14, professionalStartY);
+    
+    doc.autoTable({
+        startY: professionalStartY + 5,
+        head: [['Field', 'Value', 'Status']],
+        body: professionalData,
+        theme: 'striped',
+        headStyles: {
+            fillColor: [128, 0, 0],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold'
+        },
+        styles: {
+            cellPadding: 3
+        }
+    });
+    
+    // Add footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Employee Data Verification System - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+    }
+    
+    // Save the PDF
+    doc.save(`Employee_Verification_${currentEmployee['Employee Name'].replace(/\s+/g, '_')}.pdf`);
+}
+
+// Go back to search
+function goBackToSearch() {
+    document.getElementById('verificationCard').classList.add('d-none');
+    document.getElementById('searchCard').classList.remove('d-none');
+    
+    // Reset state
+    currentEmployee = null;
+    fieldStatuses = {};
+    editedFields = {};
+    
+    // Update step indicator
+    updateStepIndicator(1);
+}
+
+// Go back to verify
+function goBackToVerify() {
+    document.getElementById('reviewCard').classList.add('d-none');
+    document.getElementById('verificationCard').classList.remove('d-none');
+    
+    // Update step indicator
+    updateStepIndicator(2);
+}
+
+// Start over from the beginning
+function startOver() {
+    document.getElementById('successCard').classList.add('d-none');
+    document.getElementById('searchCard').classList.remove('d-none');
+    
+    // Clear search field
+    document.getElementById('mobileNumber').value = '';
+    
+    // Reset state
+    currentEmployee = null;
+    fieldStatuses = {};
+    editedFields = {};
+    
+    // Update step indicator
+    updateStepIndicator(1);
+}
+
+// Update step indicator
+function updateStepIndicator(currentStep) {
+    // Reset all steps
+    for (let i = 1; i <= 4; i++) {
+        const stepElement = document.getElementById(`step${i}`);
+        stepElement.className = 'step';
+        
+        if (i < currentStep) {
+            stepElement.classList.add('completed');
+        } else if (i === currentStep) {
+            stepElement.classList.add('active');
+        }
+    }
+}
+
+// Show message
+function showMessage(elementId, message, isError) {
+    const element = document.getElementById(elementId);
+    element.textContent = message;
+    element.classList.remove('d-none');
+    
+    // Hide message after 5 seconds
+    setTimeout(() => {
+        element.classList.add('d-none');
+    }, 5000);
+}
+</script>
 </body>
 </html>
+
