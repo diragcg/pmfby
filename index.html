@@ -547,20 +547,24 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log("Document loaded");
             
-            // Initialize Supabase
             try {
-                // The correct way to initialize Supabase from the CDN
+                // Initialize Supabase
                 supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                 console.log("Supabase client initialized");
                 
                 // Test connection
                 testConnection();
+                
+                // Initialize event listeners
+                initEventListeners();
             } catch (error) {
-                console.error("Error initializing Supabase:", error);
-                showMessage('searchError', 'Database connection error. Please try again later.', true);
+                console.error("Error initializing:", error);
+                showMessage('searchError', 'Error initializing application. Please try again later.', true);
             }
-            
-            // Initialize event listeners
+        });
+        
+        // Initialize event listeners
+        function initEventListeners() {
             document.getElementById('searchButton').addEventListener('click', searchEmployee);
             document.getElementById('backButton').addEventListener('click', goBackToSearch);
             document.getElementById('saveDraftButton').addEventListener('click', saveDraft);
@@ -570,7 +574,7 @@
             document.getElementById('submitButton').addEventListener('click', submitForm);
             document.getElementById('downloadPdfButton').addEventListener('click', generatePDF);
             document.getElementById('startOverButton').addEventListener('click', startOver);
-        });
+        }
         
         // Test connection to Supabase
         async function testConnection() {
@@ -626,7 +630,7 @@
                 
                 if (error) {
                     console.error("Error from Supabase:", error);
-                    showMessage('searchError', `Database error: ${error.message}`, true);
+                    showMessage('searchError', 'Database error: ' + error.message, true);
                     return;
                 }
                 
@@ -637,7 +641,7 @@
                     currentEmployee = data[0];
                     
                     // Initialize field statuses
-                    fieldDefinitions.forEach(field => {
+                    fieldDefinitions.forEach(function(field) {
                         fieldStatuses[field.id] = 'pending';
                     });
                     
@@ -662,149 +666,270 @@
                 document.getElementById('searchButton').disabled = false;
                 
                 // Show error message
-                showMessage('searchError', `Error: ${error.message}`, true);
+                showMessage('searchError', 'Error: ' + error.message, true);
             }
         }
         
         // Generate verification fields
         function generateVerificationFields() {
+            console.log("Generating verification fields");
             const container = document.getElementById('fieldsContainer');
             container.innerHTML = '';
             
-            fieldDefinitions.forEach(field => {
+            fieldDefinitions.forEach(function(field) {
+                console.log("Processing field:", field.id, field.label);
                 const value = currentEmployee[field.id] || '';
                 const fieldId = field.id.replace(/[^a-zA-Z0-9]/g, '_');
                 
                 const fieldRow = document.createElement('div');
                 fieldRow.className = 'field-row';
-                fieldRow.id = `row-\${fieldId}`;
+                fieldRow.id = 'row-' + fieldId;
                 
-                const fieldContent = `
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="field-label">\${field.label}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="field-value" id="value-${fieldId}">${value}</div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="verification-buttons">
-                                <button class="btn btn-sm btn-outline-success verify-yes" data-field="\${field.id}">
-                                    <i class="fas fa-check"></i> Yes
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger verify-no" data-field="\${field.id}">
-                                    <i class="fas fa-times"></i> No
-                                </button>
-                                <span class="ms-2 badge ${getBadgeClass('pending')}" id="status-${fieldId}">Pending</span>
-                            </div>
-                            <div class="edit-field" id="edit-\${fieldId}">
-                                \${generateInputField(field, value)}
-                                <div class="mt-2">
-                                    <button class="btn btn-sm btn-primary save-edit" data-field="\${field.id}">
-                                        Save
-                                    </button>
-                                    <button class="btn btn-sm btn-secondary cancel-edit" data-field="\${field.id}">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                // Create inner content
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row';
                 
-                fieldRow.innerHTML = fieldContent;
+                // Label column
+                const labelCol = document.createElement('div');
+                labelCol.className = 'col-md-4';
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'field-label';
+                labelDiv.textContent = field.label;
+                labelCol.appendChild(labelDiv);
+                
+                // Value column
+                const valueCol = document.createElement('div');
+                valueCol.className = 'col-md-4';
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'field-value';
+                valueDiv.id = 'value-' + fieldId;
+                valueDiv.textContent = value;
+                valueCol.appendChild(valueDiv);
+                
+                // Verification column
+                const verifyCol = document.createElement('div');
+                verifyCol.className = 'col-md-4';
+                
+                // Verification buttons
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'verification-buttons';
+                
+                // Yes button
+                const yesButton = document.createElement('button');
+                yesButton.className = 'btn btn-sm btn-outline-success verify-yes';
+                yesButton.setAttribute('data-field', field.id);
+                yesButton.innerHTML = '<i class="fas fa-check"></i> Yes';
+                yesButton.onclick = function() {
+                    console.log("Yes clicked for field:", field.id);
+                    verifyField(field.id, true);
+                };
+                
+                // No button
+                const noButton = document.createElement('button');
+                noButton.className = 'btn btn-sm btn-outline-danger verify-no';
+                noButton.setAttribute('data-field', field.id);
+                noButton.innerHTML = '<i class="fas fa-times"></i> No';
+                noButton.onclick = function() {
+                    console.log("No clicked for field:", field.id);
+                    verifyField(field.id, false);
+                };
+                
+                // Status badge
+                const statusSpan = document.createElement('span');
+                statusSpan.className = 'ms-2 badge badge-pending';
+                statusSpan.id = 'status-' + fieldId;
+                statusSpan.textContent = 'Pending';
+                
+                // Add buttons and badge to buttons div
+                buttonsDiv.appendChild(yesButton);
+                buttonsDiv.appendChild(noButton);
+                buttonsDiv.appendChild(statusSpan);
+                
+                // Edit field div
+                const editDiv = document.createElement('div');
+                editDiv.className = 'edit-field';
+                editDiv.id = 'edit-' + fieldId;
+                editDiv.style.display = 'none';
+                
+                // Create input field
+                if (field.type === 'select' && field.options) {
+                    // Create select element
+                    const select = document.createElement('select');
+                    select.className = 'form-select';
+                    select.id = 'input-' + fieldId;
+                    
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select ' + field.label;
+                    select.appendChild(defaultOption);
+                    
+                    // Add options
+                    field.options.forEach(function(opt) {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        if (value === opt) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                    
+                    editDiv.appendChild(select);
+                } else {
+                    // Create input element
+                    const input = document.createElement('input');
+                    input.type = field.type;
+                    input.className = 'form-control';
+                    input.id = 'input-' + fieldId;
+                    input.value = value;
+                    if (field.readonly) {
+                        input.readOnly = true;
+                    }
+                    
+                    editDiv.appendChild(input);
+                }
+                
+                // Add buttons container
+                const buttonContainer = document.createElement('div');
+                buttonContainer.className = 'mt-2';
+                
+                // Save button
+                const saveButton = document.createElement('button');
+                saveButton.className = 'btn btn-sm btn-primary save-edit';
+                saveButton.textContent = 'Save';
+                saveButton.onclick = function() {
+                    saveEdit(field.id);
+                };
+                
+                // Cancel button
+                const cancelButton = document.createElement('button');
+                cancelButton.className = 'btn btn-sm btn-secondary cancel-edit ms-2';
+                cancelButton.textContent = 'Cancel';
+                cancelButton.onclick = function() {
+                    cancelEdit(field.id);
+                };
+                
+                buttonContainer.appendChild(saveButton);
+                buttonContainer.appendChild(cancelButton);
+                editDiv.appendChild(buttonContainer);
+                
+                // Add all elements to verification column
+                verifyCol.appendChild(buttonsDiv);
+                verifyCol.appendChild(editDiv);
+                
+                // Add all columns to row
+                rowDiv.appendChild(labelCol);
+                rowDiv.appendChild(valueCol);
+                rowDiv.appendChild(verifyCol);
+                
+                // Add row to field row
+                fieldRow.appendChild(rowDiv);
+                
+                // Add field row to container
                 container.appendChild(fieldRow);
-                
-                // Add event listeners
-                const yesButton = fieldRow.querySelector(`.verify-yes[data-field="${field.id}"]`);
-                const noButton = fieldRow.querySelector(`.verify-no[data-field="${field.id}"]`);
-                const saveButton = fieldRow.querySelector(`.save-edit[data-field="${field.id}"]`);
-                const cancelButton = fieldRow.querySelector(`.cancel-edit[data-field="${field.id}"]`);
-                
-                yesButton.addEventListener('click', () => verifyField(field.id, true));
-                noButton.addEventListener('click', () => verifyField(field.id, false));
-                saveButton.addEventListener('click', () => saveEdit(field.id));
-                cancelButton.addEventListener('click', () => cancelEdit(field.id));
             });
+            
+            console.log("Verification fields generated");
         }
         
-        // Generate input field based on field type
-        function generateInputField(field, value) {
-            const fieldId = field.id.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            if (field.type === 'select' && field.options) {
-                let options = field.options.map(opt => 
-                    `<option value="${opt}" ${value === opt ? 'selected' : ''}>\${opt}</option>`
-                ).join('');
-                
-                return `
-                    <select class="form-select" id="input-\${fieldId}">
-                        <option value="">Select \${field.label}</option>
-                        \${options}
-                    </select>
-                `;
-            } else {
-                return `
-                    <input type="${field.type}" class="form-control" id="input-${fieldId}" 
-                           value="${value}" ${field.readonly ? 'readonly' : ''}>
-                `;
-            }
+// Verify a field
+function verifyField(fieldId, isCorrect) {
+    console.log("verifyField called for:", fieldId, "isCorrect:", isCorrect);
+    
+    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+    
+    if (isCorrect) {
+        // Field is correct
+        fieldStatuses[fieldId] = 'verified';
+        updateFieldStatus(fieldId, 'verified');
+        console.log("Field marked as verified:", fieldId);
+    } else {
+        // Field needs editing
+        const editElement = document.getElementById('edit-' + safeFieldId);
+        if (editElement) {
+            editElement.style.display = 'block';
+            console.log("Edit form displayed for field:", fieldId);
+        } else {
+            console.error("Could not find edit element for field:", fieldId);
         }
-        
-        // Verify a field
-        function verifyField(fieldId, isCorrect) {
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            if (isCorrect) {
-                // Field is correct
-                fieldStatuses[fieldId] = 'verified';
-                updateFieldStatus(fieldId, 'verified');
-            } else {
-                // Field needs editing
-                document.getElementById(`edit-${safeFieldId}`).style.display = 'block';
-            }
-            
-            updateProgress();
-            checkAllFieldsVerified();
-        }
-        
-        // Save edited field
-        function saveEdit(fieldId) {
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            const inputElement = document.getElementById(`input-${safeFieldId}`);
-            const newValue = inputElement.value;
-            
-            // Update the displayed value
-            document.getElementById(`value-${safeFieldId}`).textContent = newValue;
-            
-            // Hide the edit form
-            document.getElementById(`edit-${safeFieldId}`).style.display = 'none';
-            
-            // Mark as edited
-            fieldStatuses[fieldId] = 'edited';
-            updateFieldStatus(fieldId, 'edited');
-            
-            // Store the edited value
-            editedFields[fieldId] = newValue;
-            
-            updateProgress();
-            checkAllFieldsVerified();
-        }
-        
-        // Cancel edit
-        function cancelEdit(fieldId) {
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            document.getElementById(`edit-${safeFieldId}`).style.display = 'none';
-        }
-        
-        // Update field status badge
-        function updateFieldStatus(fieldId, status) {
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            const statusElement = document.getElementById(`status-${safeFieldId}`);
-            statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-            statusElement.className = `ms-2 badge \${getBadgeClass(status)}`;
-        }
-        
+    }
+    
+    updateProgress();
+    checkAllFieldsVerified();
+}
+
+// Save edited field
+function saveEdit(fieldId) {
+    console.log("saveEdit called for:", fieldId);
+    
+    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+    const inputElement = document.getElementById('input-' + safeFieldId);
+    
+    if (!inputElement) {
+        console.error("Could not find input element for field:", fieldId);
+        return;
+    }
+    
+    const newValue = inputElement.value;
+    console.log("New value:", newValue);
+    
+    // Update the displayed value
+    const valueElement = document.getElementById('value-' + safeFieldId);
+    if (valueElement) {
+        valueElement.textContent = newValue;
+    }
+    
+    // Hide the edit form
+    const editElement = document.getElementById('edit-' + safeFieldId);
+    if (editElement) {
+        editElement.style.display = 'none';
+    }
+    
+    // Mark as edited
+    fieldStatuses[fieldId] = 'edited';
+    updateFieldStatus(fieldId, 'edited');
+    
+    // Store the edited value
+    editedFields[fieldId] = newValue;
+    
+    console.log("Field edited successfully:", fieldId);
+    
+    updateProgress();
+    checkAllFieldsVerified();
+}
+
+// Cancel edit
+function cancelEdit(fieldId) {
+    console.log("cancelEdit called for:", fieldId);
+    
+    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+    const editElement = document.getElementById('edit-' + safeFieldId);
+    
+    if (editElement) {
+        editElement.style.display = 'none';
+        console.log("Edit form hidden for field:", fieldId);
+    } else {
+        console.error("Could not find edit element for field:", fieldId);
+    }
+}
+
+// Update field status badge
+function updateFieldStatus(fieldId, status) {
+    console.log("updateFieldStatus called for:", fieldId, "status:", status);
+    
+    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+    const statusElement = document.getElementById('status-' + safeFieldId);
+    
+    if (statusElement) {
+        statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        statusElement.className = 'ms-2 badge ' + getBadgeClass(status);
+        console.log("Status updated for field:", fieldId);
+    } else {
+        console.error("Could not find status element for field:", fieldId);
+    }
+}
+
 // Get badge class based on status
 function getBadgeClass(status) {
     switch (status) {
@@ -817,27 +942,43 @@ function getBadgeClass(status) {
 // Update progress bar
 function updateProgress() {
     const totalFields = Object.keys(fieldStatuses).length;
-    const verifiedFields = Object.values(fieldStatuses).filter(status => 
-        status === 'verified' || status === 'edited'
-    ).length;
+    const verifiedFields = Object.values(fieldStatuses).filter(function(status) {
+        return status === 'verified' || status === 'edited';
+    }).length;
     
     const percentage = Math.round((verifiedFields / totalFields) * 100);
     
-    document.getElementById('progressBar').style.width = `${percentage}%`;
-    document.getElementById('progressText').textContent = `${percentage}%`;
+    const progressBar = document.getElementById('progressBar');
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+    }
+    
+    const progressText = document.getElementById('progressText');
+    if (progressText) {
+        progressText.textContent = percentage + '%';
+    }
+    
+    console.log("Progress updated:", percentage + '%');
 }
 
 // Check if all fields have been verified
 function checkAllFieldsVerified() {
-    const allVerified = Object.values(fieldStatuses).every(status => 
-        status === 'verified' || status === 'edited'
-    );
+    const allVerified = Object.values(fieldStatuses).every(function(status) {
+        return status === 'verified' || status === 'edited';
+    });
     
-    document.getElementById('continueButton').disabled = !allVerified;
+    const continueButton = document.getElementById('continueButton');
+    if (continueButton) {
+        continueButton.disabled = !allVerified;
+    }
+    
+    console.log("All fields verified:", allVerified);
 }
 
 // Save draft of current progress
 function saveDraft() {
+    console.log("Saving draft");
+    
     // Show spinner
     document.getElementById('verifySpinner').style.display = 'block';
     
@@ -849,17 +990,26 @@ function saveDraft() {
         timestamp: new Date().toISOString()
     };
     
-    localStorage.setItem('employeeDraft_' + currentEmployee['Mobile Number'], JSON.stringify(draftData));
-    
-    // Hide spinner after a short delay
-    setTimeout(() => {
+    try {
+        localStorage.setItem('employeeDraft_' + currentEmployee['Mobile Number'], JSON.stringify(draftData));
+        console.log("Draft saved successfully");
+        
+        // Hide spinner after a short delay
+        setTimeout(function() {
+            document.getElementById('verifySpinner').style.display = 'none';
+            alert('Your progress has been saved as a draft. You can continue later.');
+        }, 1000);
+    } catch (error) {
+        console.error("Error saving draft:", error);
         document.getElementById('verifySpinner').style.display = 'none';
-        alert('Your progress has been saved as a draft. You can continue later.');
-    }, 1000);
+        alert('Error saving draft: ' + error.message);
+    }
 }
 
 // Show review screen
 function showReview() {
+    console.log("Showing review screen");
+    
     // Generate review content
     generateReviewContent();
     
@@ -873,20 +1023,30 @@ function showReview() {
 
 // Generate review content
 function generateReviewContent() {
+    console.log("Generating review content");
+    
     const container = document.getElementById('reviewContainer');
     container.innerHTML = '';
     
     // Create sections
     const personalSection = document.createElement('div');
     personalSection.className = 'mb-4';
-    personalSection.innerHTML = '<h5 class="form-section-title">Personal Information</h5>';
+    
+    const personalTitle = document.createElement('h5');
+    personalTitle.className = 'form-section-title';
+    personalTitle.textContent = 'Personal Information';
+    personalSection.appendChild(personalTitle);
     
     const professionalSection = document.createElement('div');
     professionalSection.className = 'mb-4';
-    professionalSection.innerHTML = '<h5 class="form-section-title">Professional Information</h5>';
+    
+    const professionalTitle = document.createElement('h5');
+    professionalTitle.className = 'form-section-title';
+    professionalTitle.textContent = 'Professional Information';
+    professionalSection.appendChild(professionalTitle);
     
     // Add fields to appropriate sections
-    fieldDefinitions.forEach(field => {
+    fieldDefinitions.forEach(function(field) {
         let value = currentEmployee[field.id] || '';
         
         // If this field was edited, use the edited value
@@ -895,48 +1055,70 @@ function generateReviewContent() {
         }
         
         const status = fieldStatuses[field.id];
-        const statusBadge = `<span class="badge ${getBadgeClass(status)}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
+        const statusText = status.charAt(0).toUpperCase() + status.slice(1);
         
-        const fieldRow = `
-            <div class="row mb-2">
-                <div class="col-md-4">
-                    <strong>${field.label}:</strong>
-                </div>
-                <div class="col-md-6">
-                    ${value}
-                </div>
-                <div class="col-md-2 text-end">
-                    ${statusBadge}
-                </div>
-            </div>
-        `;
+        // Create row div
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row mb-2';
+        
+        // Create label column
+        const labelCol = document.createElement('div');
+        labelCol.className = 'col-md-4';
+        const strongLabel = document.createElement('strong');
+        strongLabel.textContent = field.label + ':';
+        labelCol.appendChild(strongLabel);
+        
+        // Create value column
+        const valueCol = document.createElement('div');
+        valueCol.className = 'col-md-6';
+        valueCol.textContent = value;
+        
+        // Create status column
+        const statusCol = document.createElement('div');
+        statusCol.className = 'col-md-2 text-end';
+        
+        const statusBadge = document.createElement('span');
+        statusBadge.className = 'badge ' + getBadgeClass(status);
+        statusBadge.textContent = statusText;
+        statusCol.appendChild(statusBadge);
+        
+        // Add columns to row
+        rowDiv.appendChild(labelCol);
+        rowDiv.appendChild(valueCol);
+        rowDiv.appendChild(statusCol);
         
         // Add to appropriate section based on field type
         if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-            personalSection.innerHTML += fieldRow;
+            personalSection.appendChild(rowDiv);
         } else {
-            professionalSection.innerHTML += fieldRow;
+            professionalSection.appendChild(rowDiv);
         }
     });
     
     // Add sections to container
     container.appendChild(personalSection);
     container.appendChild(professionalSection);
+    
+    console.log("Review content generated");
 }
 
 // Toggle submit button based on confirmation checkbox
 function toggleSubmitButton() {
-    document.getElementById('submitButton').disabled = !document.getElementById('confirmCheck').checked;
+    const isChecked = document.getElementById('confirmCheck').checked;
+    document.getElementById('submitButton').disabled = !isChecked;
+    console.log("Submit button toggled:", !isChecked ? "disabled" : "enabled");
 }
 
 // Submit the form
 async function submitForm() {
+    console.log("Submitting form");
+    
     // Show spinner
     document.getElementById('submitSpinner').style.display = 'block';
     document.getElementById('submitButton').disabled = true;
     
     // Prepare data for submission
-    const updatedEmployee = { ...currentEmployee };
+    const updatedEmployee = Object.assign({}, currentEmployee);
     
     // Apply edits
     for (const fieldId in editedFields) {
@@ -970,7 +1152,13 @@ async function submitForm() {
         updateStepIndicator(4);
         
         // Clear any saved draft
-        localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
+        try {
+            localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
+        } catch (e) {
+            console.error("Error removing draft from localStorage:", e);
+        }
+        
+        console.log("Form submitted successfully");
         
     } catch (error) {
         console.error("Error submitting form:", error);
@@ -980,120 +1168,132 @@ async function submitForm() {
         document.getElementById('submitButton').disabled = false;
         
         // Show error
-        alert(`Error submitting form: ${error.message}`);
+        alert('Error submitting form: ' + error.message);
     }
 }
 
 // Generate PDF
 function generatePDF() {
-    // Check if jsPDF is loaded
-    if (typeof window.jspdf === 'undefined') {
-        console.error("jsPDF library not loaded");
-        alert("PDF generation library not loaded. Please try again later.");
-        return;
+    console.log("Generating PDF");
+    
+    try {
+        // Check if jsPDF is loaded
+        if (typeof window.jspdf === 'undefined') {
+            console.error("jsPDF library not loaded");
+            alert("PDF generation library not loaded. Please try again later.");
+            return;
+        }
+        
+        // Initialize jsPDF
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        // Add title
+        doc.setFontSize(18);
+        doc.setTextColor(128, 0, 0);
+        doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+        
+        // Add subtitle
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+        
+        // Add employee name and ID
+        doc.setFontSize(12);
+        doc.text('Employee: ' + currentEmployee['Employee Name'], 14, 40);
+        doc.text('Mobile: ' + currentEmployee['Mobile Number'], 14, 48);
+        doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
+        
+        // Add horizontal line
+        doc.setDrawColor(128, 0, 0);
+        doc.setLineWidth(0.5);
+        doc.line(14, 60, 196, 60);
+        
+        // Prepare data for table
+        const personalData = [];
+        const professionalData = [];
+        
+        fieldDefinitions.forEach(function(field) {
+            let value = currentEmployee[field.id] || '';
+            
+            // If this field was edited, use the edited value
+            if (editedFields[field.id] !== undefined) {
+                value = editedFields[field.id];
+            }
+            
+            const status = fieldStatuses[field.id];
+            const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
+            
+            // Add to appropriate array based on field type
+            if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+                personalData.push(row);
+            } else {
+                professionalData.push(row);
+            }
+        });
+        
+        // Add personal information table
+        doc.setFontSize(14);
+        doc.text('Personal Information', 14, 70);
+        
+        doc.autoTable({
+            startY: 75,
+            head: [['Field', 'Value', 'Status']],
+            body: personalData,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [128, 0, 0],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+            },
+            styles: {
+                cellPadding: 3
+            }
+        });
+        
+        // Add professional information table
+        const professionalStartY = doc.previousAutoTable.finalY + 10;
+        doc.text('Professional Information', 14, professionalStartY);
+        
+        doc.autoTable({
+            startY: professionalStartY + 5,
+            head: [['Field', 'Value', 'Status']],
+            body: professionalData,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [128, 0, 0],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold'
+            },
+            styles: {
+                cellPadding: 3
+            }
+        });
+        
+        // Add footer
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+        }
+        
+        // Save the PDF
+        const fileName = 'Employee_Verification_' + currentEmployee['Employee Name'].replace(/\s+/g, '_') + '.pdf';
+        doc.save(fileName);
+        
+        console.log("PDF generated successfully:", fileName);
+    } catch (error) {
+        console.error("Error generating PDF:", error);
+        alert('Error generating PDF: ' + error.message);
     }
-    
-    // Initialize jsPDF
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Add title
-    doc.setFontSize(18);
-    doc.setTextColor(128, 0, 0);
-    doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
-    
-    // Add subtitle
-    doc.setFontSize(14);
-    doc.setTextColor(0, 0, 0);
-    doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
-    
-    // Add employee name and ID
-    doc.setFontSize(12);
-    doc.text(`Employee: ${currentEmployee['Employee Name']}`, 14, 40);
-    doc.text(`Mobile: ${currentEmployee['Mobile Number']}`, 14, 48);
-    doc.text(`Verification Date: ${new Date().toLocaleDateString()}`, 14, 56);
-    
-    // Add horizontal line
-    doc.setDrawColor(128, 0, 0);
-    doc.setLineWidth(0.5);
-    doc.line(14, 60, 196, 60);
-    
-    // Prepare data for table
-    const personalData = [];
-    const professionalData = [];
-    
-    fieldDefinitions.forEach(field => {
-        let value = currentEmployee[field.id] || '';
-        
-        // If this field was edited, use the edited value
-        if (editedFields[field.id] !== undefined) {
-            value = editedFields[field.id];
-        }
-        
-        const status = fieldStatuses[field.id];
-        const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
-        
-        // Add to appropriate array based on field type
-        if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-            personalData.push(row);
-        } else {
-            professionalData.push(row);
-        }
-    });
-    
-    // Add personal information table
-    doc.setFontSize(14);
-    doc.text('Personal Information', 14, 70);
-    
-    doc.autoTable({
-        startY: 75,
-        head: [['Field', 'Value', 'Status']],
-        body: personalData,
-        theme: 'striped',
-        headStyles: {
-            fillColor: [128, 0, 0],
-            textColor: [255, 255, 255],
-            fontStyle: 'bold'
-        },
-        styles: {
-            cellPadding: 3
-        }
-    });
-    
-    // Add professional information table
-    const professionalStartY = doc.previousAutoTable.finalY + 10;
-    doc.text('Professional Information', 14, professionalStartY);
-    
-    doc.autoTable({
-        startY: professionalStartY + 5,
-        head: [['Field', 'Value', 'Status']],
-        body: professionalData,
-        theme: 'striped',
-        headStyles: {
-            fillColor: [128, 0, 0],
-            textColor: [255, 255, 255],
-            fontStyle: 'bold'
-        },
-        styles: {
-            cellPadding: 3
-        }
-    });
-    
-    // Add footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Directorate of Agriculture Chhattisgarh - Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-    }
-    
-    // Save the PDF
-    doc.save(`Employee_Verification_${currentEmployee['Employee Name'].replace(/\s+/g, '_')}.pdf`);
 }
 
 // Go back to search
 function goBackToSearch() {
+    console.log("Going back to search");
+    
     document.getElementById('verificationCard').classList.add('d-none');
     document.getElementById('searchCard').classList.remove('d-none');
     
@@ -1108,6 +1308,8 @@ function goBackToSearch() {
 
 // Go back to verify
 function goBackToVerify() {
+    console.log("Going back to verify");
+    
     document.getElementById('reviewCard').classList.add('d-none');
     document.getElementById('verificationCard').classList.remove('d-none');
     
@@ -1117,6 +1319,8 @@ function goBackToVerify() {
 
 // Start over from the beginning
 function startOver() {
+    console.log("Starting over");
+    
     document.getElementById('successCard').classList.add('d-none');
     document.getElementById('searchCard').classList.remove('d-none');
     
@@ -1134,31 +1338,93 @@ function startOver() {
 
 // Update step indicator
 function updateStepIndicator(currentStep) {
+    console.log("Updating step indicator to step:", currentStep);
+    
     // Reset all steps
     for (let i = 1; i <= 4; i++) {
-        const stepElement = document.getElementById(`step${i}`);
-        stepElement.className = 'step';
-        
-        if (i < currentStep) {
-            stepElement.classList.add('completed');
-        } else if (i === currentStep) {
-            stepElement.classList.add('active');
+        const stepElement = document.getElementById('step' + i);
+        if (stepElement) {
+            stepElement.className = 'step';
+            
+            if (i < currentStep) {
+                stepElement.classList.add('completed');
+            } else if (i === currentStep) {
+                stepElement.classList.add('active');
+            }
         }
     }
 }
 
 // Show message
 function showMessage(elementId, message, isError) {
-    const element = document.getElementById(elementId);
-    element.textContent = message;
-    element.classList.remove('d-none');
+    console.log("Showing message:", message, "isError:", isError);
     
-    // Hide message after 5 seconds
-    setTimeout(() => {
-        element.classList.add('d-none');
-    }, 5000);
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.textContent = message;
+        element.classList.remove('d-none');
+        
+        // Hide message after 5 seconds
+        setTimeout(function() {
+            element.classList.add('d-none');
+        }, 5000);
+    } else {
+        console.error("Message element not found:", elementId);
+    }
+}
+
+// Check for saved draft on page load
+function checkForSavedDraft(mobileNumber) {
+    console.log("Checking for saved draft for:", mobileNumber);
+    
+    try {
+        const draftKey = 'employeeDraft_' + mobileNumber;
+        const savedDraft = localStorage.getItem(draftKey);
+        
+        if (savedDraft) {
+            const draftData = JSON.parse(savedDraft);
+            const timestamp = new Date(draftData.timestamp);
+            const now = new Date();
+            const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
+            
+            console.log("Found saved draft from:", timestamp);
+            
+            // If draft is less than 24 hours old, ask to restore
+            if (hoursDiff < 24) {
+                const confirm = window.confirm('You have a saved draft from ' + timestamp.toLocaleString() + '. Would you like to restore it?');
+                
+                if (confirm) {
+                    console.log("Restoring saved draft");
+                    
+                    // Restore the saved state
+                    currentEmployee = draftData.employee;
+                    fieldStatuses = draftData.statuses;
+                    editedFields = draftData.edits;
+                    
+                    // Show verification card
+                    document.getElementById('searchCard').classList.add('d-none');
+                    document.getElementById('verificationCard').classList.remove('d-none');
+                    
+                    // Update step indicator
+                    updateStepIndicator(2);
+                    
+                    // Generate verification fields
+                    generateVerificationFields();
+                    
+                    // Update progress
+                    updateProgress();
+                    checkAllFieldsVerified();
+                    
+                    return true;
+                }
+            }
+        }
+    } catch (error) {
+        console.error("Error checking for saved draft:", error);
+    }
+    
+    return false;
 }
 </script>
 </body>
 </html>
-
