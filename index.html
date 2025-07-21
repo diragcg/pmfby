@@ -1191,7 +1191,7 @@
             console.log("Submit button toggled:", !isChecked ? "disabled" : "enabled");
         }
         
-        // Submit the form
+       // Submit the form
 async function submitForm() {
     console.log("Submitting form");
     
@@ -1199,44 +1199,23 @@ async function submitForm() {
     document.getElementById('submitSpinner').style.display = 'block';
     document.getElementById('submitButton').disabled = true;
     
-    // Prepare data for submission
-    const updatedEmployee = {};
-    
-    // Only include fields that exist in the original employee data
-    // This ensures we don't try to update columns that don't exist in the database
-    for (const fieldId in currentEmployee) {
-        // Skip internal fields like 'id' that might be added by Supabase
-        if (fieldId === 'id') continue;
-        
-        // Use edited value if it exists, otherwise use the original value
-        if (editedFields[fieldId] !== undefined) {
-            updatedEmployee[fieldId] = editedFields[fieldId];
-        } else {
-            updatedEmployee[fieldId] = currentEmployee[fieldId];
-        }
-    }
-    
-    // Add verification timestamp to a field that exists in your table
-    // You can use "Modified Date" or "Last Updated" if they exist
-    if (currentEmployee.hasOwnProperty("Last Updated")) {
-        updatedEmployee["Last Updated"] = new Date().toISOString();
-    }
-    if (currentEmployee.hasOwnProperty("Modified Date")) {
-        updatedEmployee["Modified Date"] = new Date().toISOString();
-    }
-    
     try {
-        console.log("Submitting updated data:", updatedEmployee);
-        
-        // Update the employee record in Supabase
-        const { data, error } = await supabaseClient
-            .from('employees')
-            .update(updatedEmployee)
-            .eq('Mobile Number', currentEmployee['Mobile Number']);
+        // Only update fields that were actually edited
+        if (Object.keys(editedFields).length > 0) {
+            console.log("Submitting edited fields:", editedFields);
             
-        console.log("Update response:", { data, error });
-        
-        if (error) throw error;
+            // Update the employee record in Supabase with only edited fields
+            const { data, error } = await supabaseClient
+                .from('employees')
+                .update(editedFields)
+                .eq('Mobile Number', currentEmployee['Mobile Number']);
+                
+            console.log("Update response:", { data, error });
+            
+            if (error) throw error;
+        } else {
+            console.log("No fields were edited, skipping update");
+        }
         
         // Hide spinner
         document.getElementById('submitSpinner').style.display = 'none';
@@ -1255,7 +1234,7 @@ async function submitForm() {
             console.error("Error removing draft from localStorage:", e);
         }
         
-        console.log("Form submitted successfully");
+        console.log("Form submission completed successfully");
         
     } catch (error) {
         console.error("Error submitting form:", error);
@@ -1268,8 +1247,7 @@ async function submitForm() {
         alert('Error submitting form: ' + error.message);
     }
 }
-
-        
+ 
         // Generate PDF
         function generatePDF() {
             console.log("Generating PDF");
