@@ -43,7 +43,7 @@
             margin-bottom: 30px;
         }
         
-        .header h1 {
+        .header h2 {
             color: var(--primary-color);
             font-weight: 700;
             margin-bottom: 10px;
@@ -325,6 +325,14 @@
             margin-bottom: 15px;
         }
         
+        .year-picker {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+        }
+        
         @media (max-width: 768px) {
             .step-title {
                 font-size: 0.7rem;
@@ -336,7 +344,7 @@
     <div class="container">
         <!-- Header -->
         <div class="header">
-            <h1>EMPLOYEE DATA UPDATION SYSTEM</h1>
+            <h2>EMPLOYEE DATA SELF VERIFICATION & UPDATION SYSTEM FOR SPARROW</h2>
             <p>Directorate of Agriculture Chhattisgarh</p>
         </div>
         
@@ -516,26 +524,48 @@
         let fieldStatuses = {};
         let editedFields = {};
         
-        // Field definitions - matching your table structure exactly
+        // Generate year options for year picker (1950 to current year)
+        function generateYearOptions() {
+            const currentYear = new Date().getFullYear();
+            let options = [];
+            for (let year = currentYear; year >= 1950; year--) {
+                options.push(year.toString());
+            }
+            return options;
+        }
+        
+        // Field definitions - matching your table structure exactly with dropdown options
         const fieldDefinitions = [
             { id: "Mobile Number", label: "Mobile Number", type: "text", required: true, readonly: true },
             { id: "Employee Name", label: "Employee Name", type: "text", required: true },
             { id: "Nic E-mail ID", label: "Email ID", type: "email" },
             { id: "Gender", label: "Gender", type: "select", options: ["Male", "Female", "Other"] },
             { id: "Father's Name", label: "Father's Name", type: "text" },
-            { id: "Date of Birth", label: "Date of Birth", type: "text" },
-            { id: "Nationality", label: "Nationality", type: "text" },
-            { id: "Religion", label: "Religion", type: "text" },
-            { id: "Category", label: "Category", type: "text" },
-            { id: "Designation", label: "Designation", type: "text" },
-            { id: "Service", label: "Service", type: "text" },
-            { id: "Orgnazation", label: "Organization", type: "text" },
-            { id: "Organization from Date", label: "Organization from Date", type: "text" },
-            { id: "Designation on Joining Date", label: "Designation on Joining Date", type: "text" },
-            { id: "Type of Appointment", label: "Type of Appointment", type: "text" },
-            { id: "Appointment Order Date", label: "Appointment Order Date", type: "text" },
-            { id: "Roles", label: "Roles", type: "text" },
-            { id: "Allotment Year", label: "Allotment Year", type: "text" }
+            { id: "Date of Birth", label: "Date of Birth", type: "date" },
+            { id: "Nationality", label: "Nationality", type: "select", options: ["Indian", "NRI"] },
+            { id: "Religion", label: "Religion", type: "select", options: ["Hindu", "Jain", "Buddhist", "Christian", "Islam", "Sikh", "Others"] },
+            { id: "Category", label: "Category", type: "select", options: ["Unreserved", "OBC", "SC", "ST"] },
+            { id: "Designation", label: "Designation", type: "select", options: [
+                "Ad Director (AE)", "Ad Director", "JDA", "JDA (AE)", "JDF", 
+                "DDA", "DDA (Statistics)", "DDA (AE)", "DDF", "ADA", 
+                "ADA(AE)", "ADA(Statistics)", "ASO", "SADO", "ADO", 
+                "RAEO", "Surveyor", "Supritendant", "Asst Supritendant", "STENO", 
+                "AG1", "AG2", "AG3", "COMP. OPER.", "Driver", "daftari", "Peon"
+            ]},
+            { id: "Service", label: "Service", type: "select", options: ["Permanent", "Not Permanent"] },
+            { id: "Orgnazation", label: "Organization", type: "select", options: ["Directorate of Agriculture", "Deputation"] },
+            { id: "Organization from Date", label: "Date of Joining", type: "date" },
+            { id: "Designation on Joining Date", label: "Designation on Joining", type: "select", options: [
+                "Ad Director (AE)", "Ad Director", "JDA", "JDA (AE)", "JDF", 
+                "DDA", "DDA (Statistics)", "DDA (AE)", "DDF", "ADA", 
+                "ADA(AE)", "ADA(Statistics)", "ASO", "SADO", "ADO", 
+                "RAEO", "Surveyor", "Supritendant", "Asst Supritendant", "STENO", 
+                "AG1", "AG2", "AG3", "COMP. OPER.", "Driver", "daftari", "Peon"
+            ]},
+            { id: "Type of Appointment", label: "Type of Appointment", type: "select", options: ["Regular", "Temporary"] },
+            { id: "Appointment Order Date", label: "Appointment Order Date", type: "date" },
+            { id: "Roles", label: "Roles (In CR reporting System)", type: "text" },
+            { id: "Allotment Year", label: "Allotment Year (Year of Promotion)", type: "year", options: generateYearOptions() }
         ];
         
         // Initialize Supabase client
@@ -751,7 +781,7 @@
                 editDiv.id = 'edit-' + fieldId;
                 editDiv.style.display = 'none';
                 
-                // Create input field
+                // Create input field based on field type
                 if (field.type === 'select' && field.options) {
                     // Create select element
                     const select = document.createElement('select');
@@ -776,8 +806,60 @@
                     });
                     
                     editDiv.appendChild(select);
+                } else if (field.type === 'date') {
+                    // Create date input element
+                    const input = document.createElement('input');
+                    input.type = 'date';
+                    input.className = 'form-control';
+                    input.id = 'input-' + fieldId;
+                    
+                    // Format date value if it exists
+                    if (value) {
+                        try {
+                            // Try to format the date
+                            const dateObj = new Date(value);
+                            if (!isNaN(dateObj.getTime())) {
+                                input.value = dateObj.toISOString().split('T')[0];
+                            } else {
+                                input.value = value;
+                            }
+                        } catch (e) {
+                            console.error("Error formatting date:", e);
+                            input.value = value;
+                        }
+                    }
+                    
+                    if (field.readonly) {
+                        input.readOnly = true;
+                    }
+                    
+                    editDiv.appendChild(input);
+                } else if (field.type === 'year') {
+                    // Create select element for year picker
+                    const select = document.createElement('select');
+                    select.className = 'form-select';
+                    select.id = 'input-' + fieldId;
+                    
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select Year';
+                    select.appendChild(defaultOption);
+                    
+                    // Add year options
+                    field.options.forEach(function(year) {
+                        const option = document.createElement('option');
+                        option.value = year;
+                        option.textContent = year;
+                        if (value === year) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                    
+                    editDiv.appendChild(select);
                 } else {
-                    // Create input element
+                    // Create standard input element
                     const input = document.createElement('input');
                     input.type = field.type;
                     input.className = 'form-control';
@@ -833,598 +915,599 @@
             console.log("Verification fields generated");
         }
         
-// Verify a field
-function verifyField(fieldId, isCorrect) {
-    console.log("verifyField called for:", fieldId, "isCorrect:", isCorrect);
-    
-    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-    
-    if (isCorrect) {
-        // Field is correct
-        fieldStatuses[fieldId] = 'verified';
-        updateFieldStatus(fieldId, 'verified');
-        console.log("Field marked as verified:", fieldId);
-    } else {
-        // Field needs editing
-        const editElement = document.getElementById('edit-' + safeFieldId);
-        if (editElement) {
-            editElement.style.display = 'block';
-            console.log("Edit form displayed for field:", fieldId);
-        } else {
-            console.error("Could not find edit element for field:", fieldId);
-        }
-    }
-    
-    updateProgress();
-    checkAllFieldsVerified();
-}
-
-// Save edited field
-function saveEdit(fieldId) {
-    console.log("saveEdit called for:", fieldId);
-    
-    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-    const inputElement = document.getElementById('input-' + safeFieldId);
-    
-    if (!inputElement) {
-        console.error("Could not find input element for field:", fieldId);
-        return;
-    }
-    
-    const newValue = inputElement.value;
-    console.log("New value:", newValue);
-    
-    // Update the displayed value
-    const valueElement = document.getElementById('value-' + safeFieldId);
-    if (valueElement) {
-        valueElement.textContent = newValue;
-    }
-    
-    // Hide the edit form
-    const editElement = document.getElementById('edit-' + safeFieldId);
-    if (editElement) {
-        editElement.style.display = 'none';
-    }
-    
-    // Mark as edited
-    fieldStatuses[fieldId] = 'edited';
-    updateFieldStatus(fieldId, 'edited');
-    
-    // Store the edited value
-    editedFields[fieldId] = newValue;
-    
-    console.log("Field edited successfully:", fieldId);
-    
-    updateProgress();
-    checkAllFieldsVerified();
-}
-
-// Cancel edit
-function cancelEdit(fieldId) {
-    console.log("cancelEdit called for:", fieldId);
-    
-    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-    const editElement = document.getElementById('edit-' + safeFieldId);
-    
-    if (editElement) {
-        editElement.style.display = 'none';
-        console.log("Edit form hidden for field:", fieldId);
-    } else {
-        console.error("Could not find edit element for field:", fieldId);
-    }
-}
-
-// Update field status badge
-function updateFieldStatus(fieldId, status) {
-    console.log("updateFieldStatus called for:", fieldId, "status:", status);
-    
-    const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-    const statusElement = document.getElementById('status-' + safeFieldId);
-    
-    if (statusElement) {
-        statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-        statusElement.className = 'ms-2 badge ' + getBadgeClass(status);
-        console.log("Status updated for field:", fieldId);
-    } else {
-        console.error("Could not find status element for field:", fieldId);
-    }
-}
-
-// Get badge class based on status
-function getBadgeClass(status) {
-    switch (status) {
-        case 'verified': return 'badge-verified';
-        case 'edited': return 'badge-edited';
-        default: return 'badge-pending';
-    }
-}
-
-// Update progress bar
-function updateProgress() {
-    const totalFields = Object.keys(fieldStatuses).length;
-    const verifiedFields = Object.values(fieldStatuses).filter(function(status) {
-        return status === 'verified' || status === 'edited';
-    }).length;
-    
-    const percentage = Math.round((verifiedFields / totalFields) * 100);
-    
-    const progressBar = document.getElementById('progressBar');
-    if (progressBar) {
-        progressBar.style.width = percentage + '%';
-    }
-    
-    const progressText = document.getElementById('progressText');
-    if (progressText) {
-        progressText.textContent = percentage + '%';
-    }
-    
-    console.log("Progress updated:", percentage + '%');
-}
-
-// Check if all fields have been verified
-function checkAllFieldsVerified() {
-    const allVerified = Object.values(fieldStatuses).every(function(status) {
-        return status === 'verified' || status === 'edited';
-    });
-    
-    const continueButton = document.getElementById('continueButton');
-    if (continueButton) {
-        continueButton.disabled = !allVerified;
-    }
-    
-    console.log("All fields verified:", allVerified);
-}
-
-// Save draft of current progress
-function saveDraft() {
-    console.log("Saving draft");
-    
-    // Show spinner
-    document.getElementById('verifySpinner').style.display = 'block';
-    
-    // Store the current state in localStorage
-    const draftData = {
-        employee: currentEmployee,
-        statuses: fieldStatuses,
-        edits: editedFields,
-        timestamp: new Date().toISOString()
-    };
-    
-    try {
-        localStorage.setItem('employeeDraft_' + currentEmployee['Mobile Number'], JSON.stringify(draftData));
-        console.log("Draft saved successfully");
-        
-        // Hide spinner after a short delay
-        setTimeout(function() {
-            document.getElementById('verifySpinner').style.display = 'none';
-            alert('Your progress has been saved as a draft. You can continue later.');
-        }, 1000);
-    } catch (error) {
-        console.error("Error saving draft:", error);
-        document.getElementById('verifySpinner').style.display = 'none';
-        alert('Error saving draft: ' + error.message);
-    }
-}
-
-// Show review screen
-function showReview() {
-    console.log("Showing review screen");
-    
-    // Generate review content
-    generateReviewContent();
-    
-    // Show review card
-    document.getElementById('verificationCard').classList.add('d-none');
-    document.getElementById('reviewCard').classList.remove('d-none');
-    
-    // Update step indicator
-    updateStepIndicator(3);
-}
-
-// Generate review content
-function generateReviewContent() {
-    console.log("Generating review content");
-    
-    const container = document.getElementById('reviewContainer');
-    container.innerHTML = '';
-    
-    // Create sections
-    const personalSection = document.createElement('div');
-    personalSection.className = 'mb-4';
-    
-    const personalTitle = document.createElement('h5');
-    personalTitle.className = 'form-section-title';
-    personalTitle.textContent = 'Personal Information';
-    personalSection.appendChild(personalTitle);
-    
-    const professionalSection = document.createElement('div');
-    professionalSection.className = 'mb-4';
-    
-    const professionalTitle = document.createElement('h5');
-    professionalTitle.className = 'form-section-title';
-    professionalTitle.textContent = 'Professional Information';
-    professionalSection.appendChild(professionalTitle);
-    
-    // Add fields to appropriate sections
-    fieldDefinitions.forEach(function(field) {
-        let value = currentEmployee[field.id] || '';
-        
-        // If this field was edited, use the edited value
-        if (editedFields[field.id] !== undefined) {
-            value = editedFields[field.id];
-        }
-        
-        const status = fieldStatuses[field.id];
-        const statusText = status.charAt(0).toUpperCase() + status.slice(1);
-        
-        // Create row div
-        const rowDiv = document.createElement('div');
-        rowDiv.className = 'row mb-2';
-        
-        // Create label column
-        const labelCol = document.createElement('div');
-        labelCol.className = 'col-md-4';
-        const strongLabel = document.createElement('strong');
-        strongLabel.textContent = field.label + ':';
-        labelCol.appendChild(strongLabel);
-        
-        // Create value column
-        const valueCol = document.createElement('div');
-        valueCol.className = 'col-md-6';
-        valueCol.textContent = value;
-        
-        // Create status column
-        const statusCol = document.createElement('div');
-        statusCol.className = 'col-md-2 text-end';
-        
-        const statusBadge = document.createElement('span');
-        statusBadge.className = 'badge ' + getBadgeClass(status);
-        statusBadge.textContent = statusText;
-        statusCol.appendChild(statusBadge);
-        
-        // Add columns to row
-        rowDiv.appendChild(labelCol);
-        rowDiv.appendChild(valueCol);
-        rowDiv.appendChild(statusCol);
-        
-        // Add to appropriate section based on field type
-        if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-            personalSection.appendChild(rowDiv);
-        } else {
-            professionalSection.appendChild(rowDiv);
-        }
-    });
-    
-    // Add sections to container
-    container.appendChild(personalSection);
-    container.appendChild(professionalSection);
-    
-    console.log("Review content generated");
-}
-
-// Toggle submit button based on confirmation checkbox
-function toggleSubmitButton() {
-    const isChecked = document.getElementById('confirmCheck').checked;
-    document.getElementById('submitButton').disabled = !isChecked;
-    console.log("Submit button toggled:", !isChecked ? "disabled" : "enabled");
-}
-
-// Submit the form
-async function submitForm() {
-    console.log("Submitting form");
-    
-    // Show spinner
-    document.getElementById('submitSpinner').style.display = 'block';
-    document.getElementById('submitButton').disabled = true;
-    
-    // Prepare data for submission
-    const updatedEmployee = Object.assign({}, currentEmployee);
-    
-    // Apply edits
-    for (const fieldId in editedFields) {
-        updatedEmployee[fieldId] = editedFields[fieldId];
-    }
-    
-    // Add verification timestamp
-    updatedEmployee['Verification Date'] = new Date().toISOString();
-    
-    try {
-        console.log("Submitting updated data:", updatedEmployee);
-        
-        // Update the employee record in Supabase
-        const { data, error } = await supabaseClient
-            .from('employees')
-            .update(updatedEmployee)
-            .eq('Mobile Number', currentEmployee['Mobile Number']);
+        // Verify a field
+        function verifyField(fieldId, isCorrect) {
+            console.log("verifyField called for:", fieldId, "isCorrect:", isCorrect);
             
-        console.log("Update response:", { data, error });
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            
+            if (isCorrect) {
+                // Field is correct
+                fieldStatuses[fieldId] = 'verified';
+                updateFieldStatus(fieldId, 'verified');
+                console.log("Field marked as verified:", fieldId);
+            } else {
+                // Field needs editing
+                const editElement = document.getElementById('edit-' + safeFieldId);
+                if (editElement) {
+                    editElement.style.display = 'block';
+                    console.log("Edit form displayed for field:", fieldId);
+                } else {
+                    console.error("Could not find edit element for field:", fieldId);
+                }
+            }
+            
+            updateProgress();
+            checkAllFieldsVerified();
+        }
         
-        if (error) throw error;
+        // Save edited field
+        function saveEdit(fieldId) {
+            console.log("saveEdit called for:", fieldId);
+            
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            const inputElement = document.getElementById('input-' + safeFieldId);
+            
+            if (!inputElement) {
+                console.error("Could not find input element for field:", fieldId);
+                return;
+            }
+            
+            const newValue = inputElement.value;
+            console.log("New value:", newValue);
+            
+            // Update the displayed value
+            const valueElement = document.getElementById('value-' + safeFieldId);
+            if (valueElement) {
+                valueElement.textContent = newValue;
+            }
+            
+            // Hide the edit form
+            const editElement = document.getElementById('edit-' + safeFieldId);
+            if (editElement) {
+                editElement.style.display = 'none';
+            }
+            
+            // Mark as edited
+            fieldStatuses[fieldId] = 'edited';
+            updateFieldStatus(fieldId, 'edited');
+            
+            // Store the edited value
+            editedFields[fieldId] = newValue;
+            
+            console.log("Field edited successfully:", fieldId);
+            
+            updateProgress();
+            checkAllFieldsVerified();
+        }
         
-        // Hide spinner
-        document.getElementById('submitSpinner').style.display = 'none';
+        // Cancel edit
+        function cancelEdit(fieldId) {
+            console.log("cancelEdit called for:", fieldId);
+            
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            const editElement = document.getElementById('edit-' + safeFieldId);
+            
+            if (editElement) {
+                editElement.style.display = 'none';
+                console.log("Edit form hidden for field:", fieldId);
+            } else {
+                console.error("Could not find edit element for field:", fieldId);
+            }
+        }
         
-        // Show success card
-        document.getElementById('reviewCard').classList.add('d-none');
-        document.getElementById('successCard').classList.remove('d-none');
+        // Update field status badge
+        function updateFieldStatus(fieldId, status) {
+            console.log("updateFieldStatus called for:", fieldId, "status:", status);
+            
+            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+            const statusElement = document.getElementById('status-' + safeFieldId);
+            
+            if (statusElement) {
+                statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                statusElement.className = 'ms-2 badge ' + getBadgeClass(status);
+                console.log("Status updated for field:", fieldId);
+            } else {
+                console.error("Could not find status element for field:", fieldId);
+            }
+        }
+        
+        // Get badge class based on status
+        function getBadgeClass(status) {
+            switch (status) {
+                case 'verified': return 'badge-verified';
+                case 'edited': return 'badge-edited';
+                default: return 'badge-pending';
+            }
+        }
+        
+        // Update progress bar
+        function updateProgress() {
+            const totalFields = Object.keys(fieldStatuses).length;
+            const verifiedFields = Object.values(fieldStatuses).filter(function(status) {
+                return status === 'verified' || status === 'edited';
+            }).length;
+            
+            const percentage = Math.round((verifiedFields / totalFields) * 100);
+            
+            const progressBar = document.getElementById('progressBar');
+            if (progressBar) {
+                progressBar.style.width = percentage + '%';
+            }
+            
+            const progressText = document.getElementById('progressText');
+            if (progressText) {
+                progressText.textContent = percentage + '%';
+            }
+            
+            console.log("Progress updated:", percentage + '%');
+        }
+        
+        // Check if all fields have been verified
+        function checkAllFieldsVerified() {
+            const allVerified = Object.values(fieldStatuses).every(function(status) {
+                return status === 'verified' || status === 'edited';
+            });
+            
+            const continueButton = document.getElementById('continueButton');
+            if (continueButton) {
+                continueButton.disabled = !allVerified;
+            }
+            
+            console.log("All fields verified:", allVerified);
+        }
+        
+        // Save draft of current progress
+        function saveDraft() {
+            console.log("Saving draft");
+            
+            // Show spinner
+            document.getElementById('verifySpinner').style.display = 'block';
+            
+            // Store the current state in localStorage
+            const draftData = {
+                employee: currentEmployee,
+                statuses: fieldStatuses,
+                edits: editedFields,
+                timestamp: new Date().toISOString()
+            };
+            
+            try {
+                localStorage.setItem('employeeDraft_' + currentEmployee['Mobile Number'], JSON.stringify(draftData));
+                console.log("Draft saved successfully");
+                
+                // Hide spinner after a short delay
+                setTimeout(function() {
+                    document.getElementById('verifySpinner').style.display = 'none';
+                    alert('Your progress has been saved as a draft. You can continue later.');
+                }, 1000);
+            } catch (error) {
+                console.error("Error saving draft:", error);
+                document.getElementById('verifySpinner').style.display = 'none';
+                alert('Error saving draft: ' + error.message);
+            }
+        }
+        
+        // Show review screen
+        function showReview() {
+            console.log("Showing review screen");
+            
+            // Generate review content
+            generateReviewContent();
+            
+            // Show review card
+            document.getElementById('verificationCard').classList.add('d-none');
+            document.getElementById('reviewCard').classList.remove('d-none');
+            
+            // Update step indicator
+            updateStepIndicator(3);
+        }
+        
+        // Generate review content
+        function generateReviewContent() {
+            console.log("Generating review content");
+            
+            const container = document.getElementById('reviewContainer');
+            container.innerHTML = '';
+            
+            // Create sections
+            const personalSection = document.createElement('div');
+            personalSection.className = 'mb-4';
+            
+            const personalTitle = document.createElement('h5');
+            personalTitle.className = 'form-section-title';
+            personalTitle.textContent = 'Personal Information';
+            personalSection.appendChild(personalTitle);
+            
+            const professionalSection = document.createElement('div');
+            professionalSection.className = 'mb-4';
+            
+            const professionalTitle = document.createElement('h5');
+            professionalTitle.className = 'form-section-title';
+            professionalTitle.textContent = 'Professional Information';
+            professionalSection.appendChild(professionalTitle);
+            
+            // Add fields to appropriate sections
+            fieldDefinitions.forEach(function(field) {
+                let value = currentEmployee[field.id] || '';
+                
+                // If this field was edited, use the edited value
+                if (editedFields[field.id] !== undefined) {
+                    value = editedFields[field.id];
+                }
+                
+                const status = fieldStatuses[field.id];
+                const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+                
+                // Create row div
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row mb-2';
+                
+                // Create label column
+                const labelCol = document.createElement('div');
+                labelCol.className = 'col-md-4';
+                const strongLabel = document.createElement('strong');
+                strongLabel.textContent = field.label + ':';
+                labelCol.appendChild(strongLabel);
+                
+                // Create value column
+                const valueCol = document.createElement('div');
+                valueCol.className = 'col-md-6';
+                valueCol.textContent = value;
+                
+                // Create status column
+                const statusCol = document.createElement('div');
+                statusCol.className = 'col-md-2 text-end';
+                
+                const statusBadge = document.createElement('span');
+                statusBadge.className = 'badge ' + getBadgeClass(status);
+                statusBadge.textContent = statusText;
+                statusCol.appendChild(statusBadge);
+                
+                // Add columns to row
+                rowDiv.appendChild(labelCol);
+                rowDiv.appendChild(valueCol);
+                rowDiv.appendChild(statusCol);
+                
+                // Add to appropriate section based on field type
+                if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+                    personalSection.appendChild(rowDiv);
+                } else {
+                    professionalSection.appendChild(rowDiv);
+                }
+            });
+            
+            // Add sections to container
+            container.appendChild(personalSection);
+            container.appendChild(professionalSection);
+            
+            console.log("Review content generated");
+        }
+        
+        // Toggle submit button based on confirmation checkbox
+        function toggleSubmitButton() {
+            const isChecked = document.getElementById('confirmCheck').checked;
+            document.getElementById('submitButton').disabled = !isChecked;
+            console.log("Submit button toggled:", !isChecked ? "disabled" : "enabled");
+        }
+        
+        // Submit the form
+        async function submitForm() {
+            console.log("Submitting form");
+            
+            // Show spinner
+            document.getElementById('submitSpinner').style.display = 'block';
+            document.getElementById('submitButton').disabled = true;
+            
+            // Prepare data for submission
+            const updatedEmployee = Object.assign({}, currentEmployee);
+            
+            // Apply edits
+            for (const fieldId in editedFields) {
+                updatedEmployee[fieldId] = editedFields[fieldId];
+            }
+            
+            // Add verification timestamp
+            updatedEmployee['Verification Date'] = new Date().toISOString();
+            
+            try {
+                console.log("Submitting updated data:", updatedEmployee);
+                
+                // Update the employee record in Supabase
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .update(updatedEmployee)
+                    .eq('Mobile Number', currentEmployee['Mobile Number']);
+                    
+                console.log("Update response:", { data, error });
+                
+                if (error) throw error;
+                
+                // Hide spinner
+                document.getElementById('submitSpinner').style.display = 'none';
+                
+                // Show success card
+                document.getElementById('reviewCard').classList.add('d-none');
+                document.getElementById('successCard').classList.remove('d-none');
+                
+                // Update step indicator
+                updateStepIndicator(4);
+                
+                // Clear any saved draft
+                try {
+                    localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
+                } catch (e) {
+                    console.error("Error removing draft from localStorage:", e);
+                }
+                
+                console.log("Form submitted successfully");
+                
+            } catch (error) {
+                console.error("Error submitting form:", error);
+                
+                // Hide spinner
+                document.getElementById('submitSpinner').style.display = 'none';
+                document.getElementById('submitButton').disabled = false;
+                
+                // Show error
+                alert('Error submitting form: ' + error.message);
+            }
+        }
+        
+        // Generate PDF
+        function generatePDF() {
+            console.log("Generating PDF");
+            
+            try {
+                // Check if jsPDF is loaded
+                if (typeof window.jspdf === 'undefined') {
+                    console.error("jsPDF library not loaded");
+                    alert("PDF generation library not loaded. Please try again later.");
+                    return;
+                }
+                
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Add title
+                doc.setFontSize(18);
+                doc.setTextColor(128, 0, 0);
+                doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+                
+                // Add subtitle
+                doc.setFontSize(14);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+                
+                // Add employee name and ID
+                doc.setFontSize(12);
+                doc.text('Employee: ' + currentEmployee['Employee Name'], 14, 40);
+                doc.text('Mobile: ' + currentEmployee['Mobile Number'], 14, 48);
+                doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
+                
+                // Add horizontal line
+                doc.setDrawColor(128, 0, 0);
+                doc.setLineWidth(0.5);
+                doc.line(14, 60, 196, 60);
+                
+                // Prepare data for table
+                const personalData = [];
+                const professionalData = [];
+                
+                fieldDefinitions.forEach(function(field) {
+                    let value = currentEmployee[field.id] || '';
+                    
+                    // If this field was edited, use the edited value
+                    if (editedFields[field.id] !== undefined) {
+                        value = editedFields[field.id];
+                    }
+                    
+                    const status = fieldStatuses[field.id];
+                    const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
+                    
+                    // Add to appropriate array based on field type
+                    if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+                        personalData.push(row);
+                    } else {
+                        professionalData.push(row);
+                    }
+                });
+                
+                // Add personal information table
+                doc.setFontSize(14);
+                doc.text('Personal Information', 14, 70);
+                
+                doc.autoTable({
+                    startY: 75,
+                    head: [['Field', 'Value', 'Status']],
+                    body: personalData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [128, 0, 0],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        cellPadding: 3
+                    }
+                });
+                
+                // Add professional information table
+                const professionalStartY = doc.previousAutoTable.finalY + 10;
+                doc.text('Professional Information', 14, professionalStartY);
+                
+                doc.autoTable({
+                    startY: professionalStartY + 5,
+                    head: [['Field', 'Value', 'Status']],
+                    body: professionalData,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [128, 0, 0],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        cellPadding: 3
+                    }
+                });
+                
+                // Add footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+                }
+                
+                // Save the PDF
+                const fileName = 'Employee_Verification_' + currentEmployee['Employee Name'].replace(/\s+/g, '_') + '.pdf';
+                doc.save(fileName);
+                
+                console.log("PDF generated successfully:", fileName);
+            } catch (error) {
+                console.error("Error generating PDF:", error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+        
+        // Go back to search
+        function goBackToSearch() {
+            console.log("Going back to search");
+            
+            document.getElementById('verificationCard').classList.add('d-none');
+            document.getElementById('searchCard').classList.remove('d-none');
+            
+            // Reset state
+            currentEmployee = null;
+            fieldStatuses = {};
+            editedFields = {};
+            
+            // Update step indicator
+            updateStepIndicator(1);
+        }
+        
+        // Go back to verify
+        function goBackToVerify() {
+            console.log("Going back to verify");
+            
+            document.getElementById('reviewCard').classList.add('d-none');
+            document.getElementById('verificationCard').classList.remove('d-none');
+            
+            // Update step indicator
+            updateStepIndicator(2);
+        }
+        
+        // Start over from the beginning
+        function startOver() {
+            console.log("Starting over");
+            
+            document.getElementById('successCard').classList.add('d-none');
+            document.getElementById('searchCard').classList.remove('d-none');
+            
+            // Clear search field
+            document.getElementById('mobileNumber').value = '';
+            
+            // Reset state
+            currentEmployee = null;
+            fieldStatuses = {};
+            editedFields = {};
+            
+            // Update step indicator
+            updateStepIndicator(1);
+        }
         
         // Update step indicator
-        updateStepIndicator(4);
-        
-        // Clear any saved draft
-        try {
-            localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
-        } catch (e) {
-            console.error("Error removing draft from localStorage:", e);
-        }
-        
-        console.log("Form submitted successfully");
-        
-    } catch (error) {
-        console.error("Error submitting form:", error);
-        
-        // Hide spinner
-        document.getElementById('submitSpinner').style.display = 'none';
-        document.getElementById('submitButton').disabled = false;
-        
-        // Show error
-        alert('Error submitting form: ' + error.message);
-    }
-}
-
-// Generate PDF
-function generatePDF() {
-    console.log("Generating PDF");
-    
-    try {
-        // Check if jsPDF is loaded
-        if (typeof window.jspdf === 'undefined') {
-            console.error("jsPDF library not loaded");
-            alert("PDF generation library not loaded. Please try again later.");
-            return;
-        }
-        
-        // Initialize jsPDF
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Add title
-        doc.setFontSize(18);
-        doc.setTextColor(128, 0, 0);
-        doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
-        
-        // Add subtitle
-        doc.setFontSize(14);
-        doc.setTextColor(0, 0, 0);
-        doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
-        
-        // Add employee name and ID
-        doc.setFontSize(12);
-        doc.text('Employee: ' + currentEmployee['Employee Name'], 14, 40);
-        doc.text('Mobile: ' + currentEmployee['Mobile Number'], 14, 48);
-        doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
-        
-        // Add horizontal line
-        doc.setDrawColor(128, 0, 0);
-        doc.setLineWidth(0.5);
-        doc.line(14, 60, 196, 60);
-        
-        // Prepare data for table
-        const personalData = [];
-        const professionalData = [];
-        
-        fieldDefinitions.forEach(function(field) {
-            let value = currentEmployee[field.id] || '';
+        function updateStepIndicator(currentStep) {
+            console.log("Updating step indicator to step:", currentStep);
             
-            // If this field was edited, use the edited value
-            if (editedFields[field.id] !== undefined) {
-                value = editedFields[field.id];
-            }
-            
-            const status = fieldStatuses[field.id];
-            const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
-            
-            // Add to appropriate array based on field type
-            if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-                personalData.push(row);
-            } else {
-                professionalData.push(row);
-            }
-        });
-        
-        // Add personal information table
-        doc.setFontSize(14);
-        doc.text('Personal Information', 14, 70);
-        
-        doc.autoTable({
-            startY: 75,
-            head: [['Field', 'Value', 'Status']],
-            body: personalData,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [128, 0, 0],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold'
-            },
-            styles: {
-                cellPadding: 3
-            }
-        });
-        
-        // Add professional information table
-        const professionalStartY = doc.previousAutoTable.finalY + 10;
-        doc.text('Professional Information', 14, professionalStartY);
-        
-        doc.autoTable({
-            startY: professionalStartY + 5,
-            head: [['Field', 'Value', 'Status']],
-            body: professionalData,
-            theme: 'striped',
-            headStyles: {
-                fillColor: [128, 0, 0],
-                textColor: [255, 255, 255],
-                fontStyle: 'bold'
-            },
-            styles: {
-                cellPadding: 3
-            }
-        });
-        
-        // Add footer
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
-        }
-        
-        // Save the PDF
-        const fileName = 'Employee_Verification_' + currentEmployee['Employee Name'].replace(/\s+/g, '_') + '.pdf';
-        doc.save(fileName);
-        
-        console.log("PDF generated successfully:", fileName);
-    } catch (error) {
-        console.error("Error generating PDF:", error);
-        alert('Error generating PDF: ' + error.message);
-    }
-}
-
-// Go back to search
-function goBackToSearch() {
-    console.log("Going back to search");
-    
-    document.getElementById('verificationCard').classList.add('d-none');
-    document.getElementById('searchCard').classList.remove('d-none');
-    
-    // Reset state
-    currentEmployee = null;
-    fieldStatuses = {};
-    editedFields = {};
-    
-    // Update step indicator
-    updateStepIndicator(1);
-}
-
-// Go back to verify
-function goBackToVerify() {
-    console.log("Going back to verify");
-    
-    document.getElementById('reviewCard').classList.add('d-none');
-    document.getElementById('verificationCard').classList.remove('d-none');
-    
-    // Update step indicator
-    updateStepIndicator(2);
-}
-
-// Start over from the beginning
-function startOver() {
-    console.log("Starting over");
-    
-    document.getElementById('successCard').classList.add('d-none');
-    document.getElementById('searchCard').classList.remove('d-none');
-    
-    // Clear search field
-    document.getElementById('mobileNumber').value = '';
-    
-    // Reset state
-    currentEmployee = null;
-    fieldStatuses = {};
-    editedFields = {};
-    
-    // Update step indicator
-    updateStepIndicator(1);
-}
-
-// Update step indicator
-function updateStepIndicator(currentStep) {
-    console.log("Updating step indicator to step:", currentStep);
-    
-    // Reset all steps
-    for (let i = 1; i <= 4; i++) {
-        const stepElement = document.getElementById('step' + i);
-        if (stepElement) {
-            stepElement.className = 'step';
-            
-            if (i < currentStep) {
-                stepElement.classList.add('completed');
-            } else if (i === currentStep) {
-                stepElement.classList.add('active');
-            }
-        }
-    }
-}
-
-// Show message
-function showMessage(elementId, message, isError) {
-    console.log("Showing message:", message, "isError:", isError);
-    
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.textContent = message;
-        element.classList.remove('d-none');
-        
-        // Hide message after 5 seconds
-        setTimeout(function() {
-            element.classList.add('d-none');
-        }, 5000);
-    } else {
-        console.error("Message element not found:", elementId);
-    }
-}
-
-// Check for saved draft on page load
-function checkForSavedDraft(mobileNumber) {
-    console.log("Checking for saved draft for:", mobileNumber);
-    
-    try {
-        const draftKey = 'employeeDraft_' + mobileNumber;
-        const savedDraft = localStorage.getItem(draftKey);
-        
-        if (savedDraft) {
-            const draftData = JSON.parse(savedDraft);
-            const timestamp = new Date(draftData.timestamp);
-            const now = new Date();
-            const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
-            
-            console.log("Found saved draft from:", timestamp);
-            
-            // If draft is less than 24 hours old, ask to restore
-            if (hoursDiff < 24) {
-                const confirm = window.confirm('You have a saved draft from ' + timestamp.toLocaleString() + '. Would you like to restore it?');
-                
-                if (confirm) {
-                    console.log("Restoring saved draft");
+            // Reset all steps
+            for (let i = 1; i <= 4; i++) {
+                const stepElement = document.getElementById('step' + i);
+                if (stepElement) {
+                    stepElement.className = 'step';
                     
-                    // Restore the saved state
-                    currentEmployee = draftData.employee;
-                    fieldStatuses = draftData.statuses;
-                    editedFields = draftData.edits;
-                    
-                    // Show verification card
-                    document.getElementById('searchCard').classList.add('d-none');
-                    document.getElementById('verificationCard').classList.remove('d-none');
-                    
-                    // Update step indicator
-                    updateStepIndicator(2);
-                    
-                    // Generate verification fields
-                    generateVerificationFields();
-                    
-                    // Update progress
-                    updateProgress();
-                    checkAllFieldsVerified();
-                    
-                    return true;
+                    if (i < currentStep) {
+                        stepElement.classList.add('completed');
+                    } else if (i === currentStep) {
+                        stepElement.classList.add('active');
+                    }
                 }
             }
         }
-    } catch (error) {
-        console.error("Error checking for saved draft:", error);
-    }
-    
-    return false;
-}
-</script>
+        
+        // Show message
+        function showMessage(elementId, message, isError) {
+            console.log("Showing message:", message, "isError:", isError);
+            
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = message;
+                element.classList.remove('d-none');
+                
+                // Hide message after 5 seconds
+                setTimeout(function() {
+                    element.classList.add('d-none');
+                }, 5000);
+            } else {
+                console.error("Message element not found:", elementId);
+            }
+        }
+        
+        // Check for saved draft on page load
+        function checkForSavedDraft(mobileNumber) {
+            console.log("Checking for saved draft for:", mobileNumber);
+            
+            try {
+                const draftKey = 'employeeDraft_' + mobileNumber;
+                const savedDraft = localStorage.getItem(draftKey);
+                
+                if (savedDraft) {
+                    const draftData = JSON.parse(savedDraft);
+                    const timestamp = new Date(draftData.timestamp);
+                    const now = new Date();
+                    const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
+                    
+                    console.log("Found saved draft from:", timestamp);
+                    
+                    // If draft is less than 24 hours old, ask to restore
+                    if (hoursDiff < 24) {
+                        const confirm = window.confirm('You have a saved draft from ' + timestamp.toLocaleString() + '. Would you like to restore it?');
+                        
+                        if (confirm) {
+                            console.log("Restoring saved draft");
+                            
+                            // Restore the saved state
+                            currentEmployee = draftData.employee;
+                            fieldStatuses = draftData.statuses;
+                            editedFields = draftData.edits;
+                            
+                            // Show verification card
+                            document.getElementById('searchCard').classList.add('d-none');
+                            document.getElementById('verificationCard').classList.remove('d-none');
+                            
+                            // Update step indicator
+                            updateStepIndicator(2);
+                            
+                            // Generate verification fields
+                            generateVerificationFields();
+                            
+                            // Update progress
+                            updateProgress();
+                            checkAllFieldsVerified();
+                            
+                            return true;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking for saved draft:", error);
+            }
+            
+            return false;
+        }
+    </script>
 </body>
 </html>
+
