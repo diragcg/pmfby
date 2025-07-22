@@ -1232,179 +1232,72 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         let supabaseClient;
         
-        // Document ready
+        // Document ready function - initialize everything when the page loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log("Document loaded");
             
             try {
-                // Initialize Supabase
+                // Initialize Supabase client
                 supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                 console.log("Supabase client initialized");
                 
-                // Test connection
+                // Add click event listeners directly to buttons
+                addAllEventListeners();
+                
+                // Test database connection
                 testConnection();
-                
-                // Initialize login event listeners
-                initLoginListeners();
-                
-                // Initialize admin dashboard listeners
-                initAdminDashboardListeners();
             } catch (error) {
-                console.error("Error initializing:", error);
-                showMessage('loginError', 'Error initializing application. Please try again later.', true);
+                console.error("Error initializing application:", error);
+                alert("Error initializing application. Please check the console for details.");
             }
         });
         
-        // Initialize login event listeners
-        function initLoginListeners() {
-            console.log("Initializing login listeners");
+        // Add all event listeners
+        function addAllEventListeners() {
+            // Login section
+            document.getElementById('employeeLoginOption').addEventListener('click', switchToEmployeeLogin);
+            document.getElementById('adminLoginOption').addEventListener('click', switchToAdminLogin);
+            document.getElementById('employeeLoginButton').addEventListener('click', loginEmployee);
+            document.getElementById('adminLoginButton').addEventListener('click', loginAdmin);
             
-            // Login option selection
-            document.getElementById('employeeLoginOption').addEventListener('click', function() {
-                console.log("Employee login option clicked");
-                switchToEmployeeLogin();
-            });
+            // Search and verification
+            document.getElementById('searchButton').addEventListener('click', searchEmployee);
+            document.getElementById('backButton').addEventListener('click', goBackToSearch);
+            document.getElementById('saveDraftButton').addEventListener('click', saveDraft);
+            document.getElementById('continueButton').addEventListener('click', showReview);
+            document.getElementById('backToVerifyButton').addEventListener('click', goBackToVerify);
+            document.getElementById('confirmCheck').addEventListener('change', toggleSubmitButton);
+            document.getElementById('submitButton').addEventListener('click', submitForm);
+            document.getElementById('downloadPdfButton').addEventListener('click', generatePDF);
+            document.getElementById('startOverButton').addEventListener('click', startOver);
             
-            document.getElementById('adminLoginOption').addEventListener('click', function() {
-                console.log("Admin login option clicked");
-                switchToAdminLogin();
-            });
+            // Admin dashboard
+            document.getElementById('adminLogoutButton').addEventListener('click', logoutAdmin);
+            document.getElementById('employeeSearch').addEventListener('input', filterEmployees);
+            document.getElementById('showFiltersBtn').addEventListener('click', toggleFilterSection);
+            document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
+            document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
+            document.getElementById('exportCsvBtn').addEventListener('click', exportToCSV);
+            document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+            document.getElementById('exportBulkPdfBtn').addEventListener('click', exportBulkPDF);
+            document.getElementById('selectAllEmployees').addEventListener('change', toggleSelectAllEmployees);
+            document.getElementById('headerCheckbox').addEventListener('change', toggleSelectAllEmployees);
+            document.getElementById('bulkVerifyBtn').addEventListener('click', bulkVerify);
+            document.getElementById('bulkApproveBtn').addEventListener('click', bulkApprove);
+            document.getElementById('bulkRejectBtn').addEventListener('click', bulkReject);
             
-            // Login buttons
-            document.getElementById('employeeLoginButton').addEventListener('click', function() {
-                console.log("Employee login button clicked");
-                loginEmployee();
-            });
+            // Modal buttons
+            document.getElementById('approveBtn').addEventListener('click', approveEmployee);
+            document.getElementById('rejectBtn').addEventListener('click', showCommentsModal);
+            document.getElementById('saveCommentBtn').addEventListener('click', saveComment);
             
-            document.getElementById('adminLoginButton').addEventListener('click', function() {
-                console.log("Admin login button clicked");
-                loginAdmin();
-            });
-            
-            // Employee workflow buttons
-            document.getElementById('searchButton').addEventListener('click', function() {
-                console.log("Search button clicked");
-                searchEmployee();
-            });
-            
-            document.getElementById('backButton').addEventListener('click', function() {
-                console.log("Back button clicked");
-                goBackToSearch();
-            });
-            
-            document.getElementById('saveDraftButton').addEventListener('click', function() {
-                console.log("Save draft button clicked");
-                saveDraft();
-            });
-            
-            document.getElementById('continueButton').addEventListener('click', function() {
-                console.log("Continue button clicked");
-                showReview();
-            });
-            
-            document.getElementById('backToVerifyButton').addEventListener('click', function() {
-                console.log("Back to verify button clicked");
-                goBackToVerify();
-            });
-            
-            document.getElementById('confirmCheck').addEventListener('change', function() {
-                console.log("Confirm checkbox changed");
-                toggleSubmitButton();
-            });
-            
-            document.getElementById('submitButton').addEventListener('click', function() {
-                console.log("Submit button clicked");
-                submitForm();
-            });
-            
-            document.getElementById('downloadPdfButton').addEventListener('click', function() {
-                console.log("Download PDF button clicked");
-                generatePDF();
-            });
-            
-            document.getElementById('startOverButton').addEventListener('click', function() {
-                console.log("Start over button clicked");
-                startOver();
-            });
+            console.log("All event listeners added successfully");
         }
         
-        // Initialize admin dashboard listeners
-        function initAdminDashboardListeners() {
-            // Admin logout
-            document.getElementById('adminLogoutButton').addEventListener('click', function() {
-                console.log("Admin logout button clicked");
-                logoutAdmin();
-            });
-            
-            // Employee search
-            document.getElementById('employeeSearch').addEventListener('input', function() {
-                console.log("Employee search input");
-                filterEmployees();
-            });
-            
-            // Show/hide filters
-            document.getElementById('showFiltersBtn').addEventListener('click', function() {
-                const filterSection = document.getElementById('filterSection');
-                filterSection.classList.toggle('d-none');
-            });
-            
-            // Apply filters
-            document.getElementById('applyFiltersBtn').addEventListener('click', function() {
-                applyFilters();
-            });
-            
-            // Reset filters
-            document.getElementById('resetFiltersBtn').addEventListener('click', function() {
-                resetFilters();
-            });
-            
-            // Export buttons
-            document.getElementById('exportCsvBtn').addEventListener('click', function() {
-                exportToCSV();
-            });
-            
-            document.getElementById('exportExcelBtn').addEventListener('click', function() {
-                exportToExcel();
-            });
-            
-            document.getElementById('exportBulkPdfBtn').addEventListener('click', function() {
-                exportBulkPDF();
-            });
-            
-            // Select all employees
-            document.getElementById('selectAllEmployees').addEventListener('change', function() {
-                toggleSelectAllEmployees();
-            });
-            
-            document.getElementById('headerCheckbox').addEventListener('change', function() {
-                toggleSelectAllEmployees();
-            });
-            
-            // Bulk action buttons
-            document.getElementById('bulkVerifyBtn').addEventListener('click', function() {
-                bulkVerify();
-            });
-            
-            document.getElementById('bulkApproveBtn').addEventListener('click', function() {
-                bulkApprove();
-            });
-            
-            document.getElementById('bulkRejectBtn').addEventListener('click', function() {
-                bulkReject();
-            });
-            
-            // Approval workflow buttons
-            document.getElementById('approveBtn').addEventListener('click', function() {
-                approveEmployee();
-            });
-            
-            document.getElementById('rejectBtn').addEventListener('click', function() {
-                showCommentsModal();
-            });
-            
-            document.getElementById('saveCommentBtn').addEventListener('click', function() {
-                saveComment();
-            });
+        // Toggle filter section visibility
+        function toggleFilterSection() {
+            const filterSection = document.getElementById('filterSection');
+            filterSection.classList.toggle('d-none');
         }
         
         // Switch to employee login form
@@ -1512,7 +1405,27 @@
             addAuditEntry('Admin logout', 'Admin logged out of the system');
         }
         
-        // Load admin dashboard data with improved functionality
+        // Test connection to Supabase
+        async function testConnection() {
+            try {
+                console.log("Testing connection to Supabase...");
+                
+                // Simple query to test connection
+                const { data, error } = await supabaseClient
+                    .from('employees')
+                    .select('count');
+                
+                if (error) {
+                    console.error("Connection test failed:", error);
+                } else {
+                    console.log("Connection successful!");
+                }
+            } catch (error) {
+                console.error("Error in connection test:", error);
+            }
+        }
+        
+        // Load admin dashboard data
         async function loadAdminDashboard() {
             console.log("Loading admin dashboard data");
             try {
@@ -2110,259 +2023,216 @@
                 commentsTitle.textContent = 'Comments';
                 commentsSection.appendChild(commentsTitle);
                 
-                employee.comments.forEach(comment => {
-                    const commentBox = document.createElement('div');
-                    commentBox.className = 'comment-box';
+                    employee.comments.forEach(comment => {
+                        const commentBox = document.createElement('div');
+                        commentBox.className = 'comment-box';
+                        
+                        const commentHeader = document.createElement('div');
+                        commentHeader.className = 'comment-header';
+                        commentHeader.textContent = `By ${comment.user} on ${new Date(comment.timestamp).toLocaleString()}`;
+                        
+                        const commentText = document.createElement('div');
+                        commentText.textContent = comment.text;
+                        
+                        commentBox.appendChild(commentHeader);
+                        commentBox.appendChild(commentText);
+                        commentsSection.appendChild(commentBox);
+                    });
                     
-                    const commentHeader = document.createElement('div');
-                    commentHeader.className = 'comment-header';
-                    commentHeader.textContent = `By ${comment.user} on ${new Date(comment.timestamp).toLocaleString()}`;
-                    
-                    const commentText = document.createElement('div');
-                    commentText.textContent = comment.text;
-                    
-                    commentBox.appendChild(commentHeader);
-                    commentBox.appendChild(commentText);
-                    commentsSection.appendChild(commentBox);
-                });
-                
-                modalContent.appendChild(commentsSection);
-            }
-            
-            // Show modal
-            const bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
-            
-            // Add audit entry
-            addAuditEntry('Viewed employee details', `Viewed details for employee: ${employee['Employee Name']} (${employee['Mobile Number']})`);
-        }
-        
-        // Show comments modal
-        function showCommentsModal() {
-            const employeeDetailsModal = document.getElementById('employeeDetailsModal');
-            const employeeId = employeeDetailsModal.dataset.employeeId;
-            
-            // Find the employee
-            const employee = allEmployees.find(emp => emp.id == employeeId);
-            
-            if (!employee) {
-                console.error("Employee not found for ID:", employeeId);
-                return;
-            }
-            
-            // Set modal title
-            const commentsModalLabel = document.getElementById('commentsModalLabel');
-            commentsModalLabel.textContent = `Add Comment for ${employee['Employee Name']}`;
-            
-            // Clear previous comments
-            document.getElementById('commentText').value = '';
-            
-            // Populate previous comments
-            const previousCommentsContainer = document.getElementById('previousComments');
-            previousCommentsContainer.innerHTML = '';
-            
-            if (employee.comments && employee.comments.length > 0) {
-                employee.comments.forEach(comment => {
-                    const commentBox = document.createElement('div');
-                    commentBox.className = 'comment-box';
-                    
-                    const commentHeader = document.createElement('div');
-                    commentHeader.className = 'comment-header';
-                    commentHeader.textContent = `By ${comment.user} on ${new Date(comment.timestamp).toLocaleString()}`;
-                    
-                    const commentText = document.createElement('div');
-                    commentText.textContent = comment.text;
-                    
-                    commentBox.appendChild(commentHeader);
-                    commentBox.appendChild(commentText);
-                    previousCommentsContainer.appendChild(commentBox);
-                });
-            } else {
-                previousCommentsContainer.innerHTML = '<div class="text-center p-2">No previous comments</div>';
-            }
-            
-            // Store the employee ID in the modal
-            const commentsModal = document.getElementById('commentsModal');
-            commentsModal.dataset.employeeId = employeeId;
-            
-            // Show the modal
-            const bsModal = new bootstrap.Modal(commentsModal);
-            bsModal.show();
-        }
-        
-        // Save comment and reject employee
-        function saveComment() {
-            const commentsModal = document.getElementById('commentsModal');
-            const employeeId = commentsModal.dataset.employeeId;
-            const commentText = document.getElementById('commentText').value.trim();
-            
-            if (!commentText) {
-                alert("Please enter a comment before saving.");
-                return;
-            }
-            
-            // Find the employee
-            const employeeIndex = allEmployees.findIndex(emp => emp.id == employeeId);
-            
-            if (employeeIndex === -1) {
-                console.error("Employee not found for ID:", employeeId);
-                return;
-            }
-            
-            // Create comment object
-            const comment = {
-                text: commentText,
-                user: 'Admin',
-                timestamp: new Date().toISOString()
-            };
-            
-            // Initialize comments array if it doesn't exist
-            if (!allEmployees[employeeIndex].comments) {
-                allEmployees[employeeIndex].comments = [];
-            }
-            
-            // Add the comment
-            allEmployees[employeeIndex].comments.push(comment);
-            
-            // Update approval status
-            allEmployees[employeeIndex].approval_status = 'rejected';
-            
-            // In a real app, you would save this to the database
-            updateEmployeeInDatabase(allEmployees[employeeIndex]);
-            
-            // Hide the comments modal
-            const bsModal = bootstrap.Modal.getInstance(commentsModal);
-            bsModal.hide();
-            
-            // Hide the employee details modal
-            const employeeDetailsModal = document.getElementById('employeeDetailsModal');
-            const empDetailsBsModal = bootstrap.Modal.getInstance(employeeDetailsModal);
-            empDetailsBsModal.hide();
-            
-            // Refresh the employee list
-            populateEnhancedEmployeeList(allEmployees);
-            
-            // Add audit entry
-            addAuditEntry('Rejected employee', `Rejected employee: ${allEmployees[employeeIndex]['Employee Name']} with comment: ${commentText}`);
-            
-            // Show success message
-            alert("Employee data rejected with comment.");
-        }
-        
-        // Approve employee
-        function approveEmployee() {
-            const modal = document.getElementById('employeeDetailsModal');
-            const employeeId = modal.dataset.employeeId;
-            
-            // Find the employee
-            const employeeIndex = allEmployees.findIndex(emp => emp.id == employeeId);
-            
-            if (employeeIndex === -1) {
-                console.error("Employee not found for ID:", employeeId);
-                return;
-            }
-            
-            // Update approval status
-            allEmployees[employeeIndex].approval_status = 'approved';
-            
-            // In a real app, you would save this to the database
-            updateEmployeeInDatabase(allEmployees[employeeIndex]);
-            
-            // Hide the modal
-            const bsModal = bootstrap.Modal.getInstance(modal);
-            bsModal.hide();
-            
-            // Refresh the employee list
-            populateEnhancedEmployeeList(allEmployees);
-            
-            // Add audit entry
-            addAuditEntry('Approved employee', `Approved employee: ${allEmployees[employeeIndex]['Employee Name']}`);
-            
-            // Show success message
-            alert("Employee data approved successfully.");
-        }
-        
-        // Update employee in database
-        async function updateEmployeeInDatabase(employee) {
-            try {
-                const { error } = await supabaseClient
-                    .from('employees')
-                    .update({
-                        approval_status: employee.approval_status,
-                        comments: employee.comments
-                    })
-                    .eq('id', employee.id);
-                
-                if (error) {
-                    console.error("Error updating employee in database:", error);
-                    throw error;
+                    modalContent.appendChild(commentsSection);
                 }
                 
-                console.log("Employee updated successfully in database");
-            } catch (error) {
-                console.error("Exception updating employee:", error);
-                throw error;
-            }
-        }
-        
-        // Bulk verify employees
-        function bulkVerify() {
-            if (selectedEmployees.size === 0) {
-                alert("Please select employees to verify.");
-                return;
-            }
-            
-            // In a real app, you would update the database
-            const count = selectedEmployees.size;
-            
-            // Add audit entry
-            addAuditEntry('Bulk verify', `Bulk verified ${count} employees`);
-            
-            // Show success message
-            alert(`${count} employees have been verified.`);
-            
-            // Clear selections
-            selectedEmployees.clear();
-            
-            // Update checkboxes
-            document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            document.getElementById('selectAllEmployees').checked = false;
-            document.getElementById('headerCheckbox').checked = false;
-            
-            // Update bulk action button states
-            updateBulkActionButtonStates();
-        }
-        
-        // Bulk approve employees
-        async function bulkApprove() {
-            if (selectedEmployees.size === 0) {
-                alert("Please select employees to approve.");
-                return;
-            }
-            
-            // Show confirmation dialog
-            if (!confirm(`Are you sure you want to approve ${selectedEmployees.size} employees?`)) {
-                return;
-            }
-            
-            try {
-                // For each selected employee, update their approval status
-                for (const employeeId of selectedEmployees) {
-                    const employeeIndex = allEmployees.findIndex(emp => emp.id == employeeId);
-                    
-                    if (employeeIndex !== -1) {
-                        allEmployees[employeeIndex].approval_status = 'approved';
-                        await updateEmployeeInDatabase(allEmployees[employeeIndex]);
-                    }
-                }
+                // Show modal
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
                 
                 // Add audit entry
-                addAuditEntry('Bulk approve', `Bulk approved ${selectedEmployees.size} employees`);
+                addAuditEntry('Viewed employee details', `Viewed details for employee: ${employee['Employee Name']} (${employee['Mobile Number']})`);
+            }
+            
+            // Show comments modal
+            function showCommentsModal() {
+                const employeeDetailsModal = document.getElementById('employeeDetailsModal');
+                const employeeId = employeeDetailsModal.dataset.employeeId;
+                
+                // Find the employee
+                const employee = allEmployees.find(emp => emp.id == employeeId);
+                
+                if (!employee) {
+                    console.error("Employee not found for ID:", employeeId);
+                    return;
+                }
+                
+                // Set modal title
+                const commentsModalLabel = document.getElementById('commentsModalLabel');
+                commentsModalLabel.textContent = `Add Comment for ${employee['Employee Name']}`;
+                
+                // Clear previous comments
+                document.getElementById('commentText').value = '';
+                
+                // Populate previous comments
+                const previousCommentsContainer = document.getElementById('previousComments');
+                previousCommentsContainer.innerHTML = '';
+                
+                if (employee.comments && employee.comments.length > 0) {
+                    employee.comments.forEach(comment => {
+                        const commentBox = document.createElement('div');
+                        commentBox.className = 'comment-box';
+                        
+                        const commentHeader = document.createElement('div');
+                        commentHeader.className = 'comment-header';
+                        commentHeader.textContent = `By ${comment.user} on ${new Date(comment.timestamp).toLocaleString()}`;
+                        
+                        const commentText = document.createElement('div');
+                        commentText.textContent = comment.text;
+                        
+                        commentBox.appendChild(commentHeader);
+                        commentBox.appendChild(commentText);
+                        previousCommentsContainer.appendChild(commentBox);
+                    });
+                } else {
+                    previousCommentsContainer.innerHTML = '<div class="text-center p-2">No previous comments</div>';
+                }
+                
+                // Store the employee ID in the modal
+                const commentsModal = document.getElementById('commentsModal');
+                commentsModal.dataset.employeeId = employeeId;
+                
+                // Show the modal
+                const bsModal = new bootstrap.Modal(commentsModal);
+                bsModal.show();
+            }
+            
+            // Save comment and reject employee
+            function saveComment() {
+                const commentsModal = document.getElementById('commentsModal');
+                const employeeId = commentsModal.dataset.employeeId;
+                const commentText = document.getElementById('commentText').value.trim();
+                
+                if (!commentText) {
+                    alert("Please enter a comment before saving.");
+                    return;
+                }
+                
+                // Find the employee
+                const employeeIndex = allEmployees.findIndex(emp => emp.id == employeeId);
+                
+                if (employeeIndex === -1) {
+                    console.error("Employee not found for ID:", employeeId);
+                    return;
+                }
+                
+                // Create comment object
+                const comment = {
+                    text: commentText,
+                    user: 'Admin',
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Initialize comments array if it doesn't exist
+                if (!allEmployees[employeeIndex].comments) {
+                    allEmployees[employeeIndex].comments = [];
+                }
+                
+                // Add the comment
+                allEmployees[employeeIndex].comments.push(comment);
+                
+                // Update approval status
+                allEmployees[employeeIndex].approval_status = 'rejected';
+                
+                // In a real app, you would save this to the database
+                updateEmployeeInDatabase(allEmployees[employeeIndex]);
+                
+                // Hide the comments modal
+                const bsModal = bootstrap.Modal.getInstance(commentsModal);
+                bsModal.hide();
+                
+                // Hide the employee details modal
+                const employeeDetailsModal = document.getElementById('employeeDetailsModal');
+                const empDetailsBsModal = bootstrap.Modal.getInstance(employeeDetailsModal);
+                empDetailsBsModal.hide();
+                
+                // Refresh the employee list
+                populateEnhancedEmployeeList(allEmployees);
+                
+                // Add audit entry
+                addAuditEntry('Rejected employee', `Rejected employee: ${allEmployees[employeeIndex]['Employee Name']} with comment: ${commentText}`);
                 
                 // Show success message
-                alert(`${selectedEmployees.size} employees have been approved.`);
+                alert("Employee data rejected with comment.");
+            }
+            
+            // Approve employee
+            function approveEmployee() {
+                const modal = document.getElementById('employeeDetailsModal');
+                const employeeId = modal.dataset.employeeId;
+                
+                // Find the employee
+                const employeeIndex = allEmployees.findIndex(emp => emp.id == employeeId);
+                
+                if (employeeIndex === -1) {
+                    console.error("Employee not found for ID:", employeeId);
+                    return;
+                }
+                
+                // Update approval status
+                allEmployees[employeeIndex].approval_status = 'approved';
+                
+                // In a real app, you would save this to the database
+                updateEmployeeInDatabase(allEmployees[employeeIndex]);
+                
+                // Hide the modal
+                const bsModal = bootstrap.Modal.getInstance(modal);
+                bsModal.hide();
+                
+                // Refresh the employee list
+                populateEnhancedEmployeeList(allEmployees);
+                
+                // Add audit entry
+                addAuditEntry('Approved employee', `Approved employee: ${allEmployees[employeeIndex]['Employee Name']}`);
+                
+                // Show success message
+                alert("Employee data approved successfully.");
+            }
+            
+            // Update employee in database
+            async function updateEmployeeInDatabase(employee) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('employees')
+                        .update({
+                            approval_status: employee.approval_status,
+                            comments: employee.comments
+                        })
+                        .eq('id', employee.id);
+                    
+                    if (error) {
+                        console.error("Error updating employee in database:", error);
+                        throw error;
+                    }
+                    
+                    console.log("Employee updated successfully in database");
+                } catch (error) {
+                    console.error("Exception updating employee:", error);
+                    throw error;
+                }
+            }
+            
+            // Bulk verify employees
+            function bulkVerify() {
+                if (selectedEmployees.size === 0) {
+                    alert("Please select employees to verify.");
+                    return;
+                }
+                
+                // In a real app, you would update the database
+                const count = selectedEmployees.size;
+                
+                // Add audit entry
+                addAuditEntry('Bulk verify', `Bulk verified ${count} employees`);
+                
+                // Show success message
+                alert(`${count} employees have been verified.`);
                 
                 // Clear selections
                 selectedEmployees.clear();
@@ -2376,1063 +2246,920 @@
                 
                 // Update bulk action button states
                 updateBulkActionButtonStates();
-                
-                // Refresh the employee list
-                populateEnhancedEmployeeList(allEmployees);
-            } catch (error) {
-                console.error("Error in bulk approve:", error);
-                alert("Error approving employees: " + error.message);
-            }
-        }
-        
-        // Bulk reject employees
-        function bulkReject() {
-            if (selectedEmployees.size === 0) {
-                alert("Please select employees to reject.");
-                return;
             }
             
-            // Prompt for rejection comment
-            const comment = prompt("Please enter a rejection comment:");
-            
-            if (comment === null) {
-                // User cancelled
-                return;
-            }
-            
-            if (comment.trim() === "") {
-                alert("A comment is required for rejection.");
-                return;
-            }
-            
-            // In a real app, you would update the database
-            const count = selectedEmployees.size;
-            
-            // Add audit entry
-            addAuditEntry('Bulk reject', `Bulk rejected ${count} employees with comment: ${comment}`);
-            
-            // Show success message
-            alert(`${count} employees have been rejected with comment: ${comment}`);
-            
-            // Clear selections
-            selectedEmployees.clear();
-            
-            // Update checkboxes
-            document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            document.getElementById('selectAllEmployees').checked = false;
-            document.getElementById('headerCheckbox').checked = false;
-            
-            // Update bulk action button states
-            updateBulkActionButtonStates();
-        }
-        
-        // Export to CSV
-        function exportToCSV() {
-            // Get all employees or filtered employees
-            const employeesToExport = getVisibleEmployees();
-            
-            if (employeesToExport.length === 0) {
-                alert("No employees to export.");
-                return;
-            }
-            
-            // Create CSV header
-            let csv = 'Mobile Number,Employee Name,Email ID,Gender,Date of Birth,Designation,Status,Last Updated\n';
-            
-            // Add employee data
-            employeesToExport.forEach(emp => {
-                const status = emp.last_updated ? 'Updated' : 'Pending';
-                const lastUpdated = emp.last_updated ? new Date(emp.last_updated).toLocaleString() : 'Never';
-                
-                // Escape fields that might contain commas
-                const escapedName = `"${(emp['Employee Name'] || '').replace(/"/g, '""')}"`;
-                const escapedEmail = `"${(emp['Nic E-mail ID'] || '').replace(/"/g, '""')}"`;
-                const escapedDesignation = `"${(emp['Designation'] || '').replace(/"/g, '""')}"`;
-                
-                csv += `${emp['Mobile Number'] || ''},${escapedName},${escapedEmail},${emp['Gender'] || ''},${emp['Date of Birth'] || ''},${escapedDesignation},${status},${lastUpdated}\n`;
-            });
-            
-            // Create and download the CSV file
-            downloadFile(csv, 'employees.csv', 'text/csv');
-            
-            // Add audit entry
-            addAuditEntry('Exported CSV', `Exported ${employeesToExport.length} employees to CSV`);
-        }
-        
-        // Export to Excel
-        function exportToExcel() {
-            // Get all employees or filtered employees
-            const employeesToExport = getVisibleEmployees();
-            
-            if (employeesToExport.length === 0) {
-                alert("No employees to export.");
-                return;
-            }
-            
-            // Create worksheet data
-            const wsData = [
-                ['Mobile Number', 'Employee Name', 'Email ID', 'Gender', 'Date of Birth', 'Designation', 'Status', 'Last Updated']
-            ];
-            
-            // Add employee data
-            employeesToExport.forEach(emp => {
-                const status = emp.last_updated ? 'Updated' : 'Pending';
-                const lastUpdated = emp.last_updated ? new Date(emp.last_updated).toLocaleString() : 'Never';
-                
-                wsData.push([
-                    emp['Mobile Number'] || '',
-                    emp['Employee Name'] || '',
-                    emp['Nic E-mail ID'] || '',
-                    emp['Gender'] || '',
-                    emp['Date of Birth'] || '',
-                    emp['Designation'] || '',
-                    status,
-                    lastUpdated
-                ]);
-            });
-            
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-            
-            // Add worksheet to workbook
-            XLSX.utils.book_append_sheet(wb, ws, 'Employees');
-            
-            // Generate Excel file and trigger download
-            XLSX.writeFile(wb, 'employees.xlsx');
-            
-            // Add audit entry
-            addAuditEntry('Exported Excel', `Exported ${employeesToExport.length} employees to Excel`);
-        }
-        
-        // Export bulk PDF
-        function exportBulkPDF() {
-            // Get all employees or filtered employees
-            const employeesToExport = getVisibleEmployees();
-            
-            if (employeesToExport.length === 0) {
-                alert("No employees to export.");
-                return;
-            }
-            
-            // Show confirmation dialog for large exports
-            if (employeesToExport.length > 10) {
-                if (!confirm(`You are about to generate PDFs for ${employeesToExport.length} employees. This may take some time. Continue?`)) {
+            // Bulk approve employees
+            async function bulkApprove() {
+                if (selectedEmployees.size === 0) {
+                    alert("Please select employees to approve.");
                     return;
+                }
+                
+                // Show confirmation dialog
+                if (!confirm(`Are you sure you want to approve ${selectedEmployees.size} employees?`)) {
+                    return;
+                }
+                
+                try {
+                    // For each selected employee, update their approval status
+                    for (const employeeId of selectedEmployees) {
+                        const employeeIndex = allEmployees.findIndex(emp => emp.id == employeeId);
+                        
+                        if (employeeIndex !== -1) {
+                            allEmployees[employeeIndex].approval_status = 'approved';
+                            await updateEmployeeInDatabase(allEmployees[employeeIndex]);
+                        }
+                    }
+                    
+                    // Add audit entry
+                    addAuditEntry('Bulk approve', `Bulk approved ${selectedEmployees.size} employees`);
+                    
+                    // Show success message
+                    alert(`${selectedEmployees.size} employees have been approved.`);
+                    
+                    // Clear selections
+                    selectedEmployees.clear();
+                    
+                    // Update checkboxes
+                    document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    document.getElementById('selectAllEmployees').checked = false;
+                    document.getElementById('headerCheckbox').checked = false;
+                    
+                    // Update bulk action button states
+                    updateBulkActionButtonStates();
+                    
+                    // Refresh the employee list
+                    populateEnhancedEmployeeList(allEmployees);
+                } catch (error) {
+                    console.error("Error in bulk approve:", error);
+                    alert("Error approving employees: " + error.message);
                 }
             }
             
-            // Create a zip file for multiple PDFs (in a real app)
-            // For this example, we'll just generate one combined PDF
+            // Bulk reject employees
+            function bulkReject() {
+                if (selectedEmployees.size === 0) {
+                    alert("Please select employees to reject.");
+                    return;
+                }
+                
+                // Prompt for rejection comment
+                const comment = prompt("Please enter a rejection comment:");
+                
+                if (comment === null) {
+                    // User cancelled
+                    return;
+                }
+                
+                if (comment.trim() === "") {
+                    alert("A comment is required for rejection.");
+                    return;
+                }
+                
+                // In a real app, you would update the database
+                const count = selectedEmployees.size;
+                
+                // Add audit entry
+                addAuditEntry('Bulk reject', `Bulk rejected ${count} employees with comment: ${comment}`);
+                
+                // Show success message
+                alert(`${count} employees have been rejected with comment: ${comment}`);
+                
+                // Clear selections
+                selectedEmployees.clear();
+                
+                // Update checkboxes
+                document.querySelectorAll('.employee-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                document.getElementById('selectAllEmployees').checked = false;
+                document.getElementById('headerCheckbox').checked = false;
+                
+                // Update bulk action button states
+                updateBulkActionButtonStates();
+            }
             
-            try {
-                // Initialize jsPDF
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+            // Export to CSV
+            function exportToCSV() {
+                // Get all employees or filtered employees
+                const employeesToExport = getVisibleEmployees();
                 
-                let currentPage = 1;
+                if (employeesToExport.length === 0) {
+                    alert("No employees to export.");
+                    return;
+                }
                 
-                // For each employee
-                employeesToExport.forEach((employee, index) => {
-                    // Add a new page for each employee except the first one
-                    if (index > 0) {
-                        doc.addPage();
-                        currentPage++;
+                // Create CSV header
+                let csv = 'Mobile Number,Employee Name,Email ID,Gender,Date of Birth,Designation,Status,Last Updated\n';
+                
+                // Add employee data
+                employeesToExport.forEach(emp => {
+                    const status = emp.last_updated ? 'Updated' : 'Pending';
+                    const lastUpdated = emp.last_updated ? new Date(emp.last_updated).toLocaleString() : 'Never';
+                    
+                    // Escape fields that might contain commas
+                    const escapedName = `"${(emp['Employee Name'] || '').replace(/"/g, '""')}"`;
+                    const escapedEmail = `"${(emp['Nic E-mail ID'] || '').replace(/"/g, '""')}"`;
+                    const escapedDesignation = `"${(emp['Designation'] || '').replace(/"/g, '""')}"`;
+                    
+                    csv += `${emp['Mobile Number'] || ''},${escapedName},${escapedEmail},${emp['Gender'] || ''},${emp['Date of Birth'] || ''},${escapedDesignation},${status},${lastUpdated}\n`;
+                });
+                
+                // Create and download the CSV file
+                downloadFile(csv, 'employees.csv', 'text/csv');
+                
+                // Add audit entry
+                addAuditEntry('Exported CSV', `Exported ${employeesToExport.length} employees to CSV`);
+            }
+            
+            // Export to Excel
+            function exportToExcel() {
+                // Get all employees or filtered employees
+                const employeesToExport = getVisibleEmployees();
+                
+                if (employeesToExport.length === 0) {
+                    alert("No employees to export.");
+                    return;
+                }
+                
+                // Create worksheet data
+                const wsData = [
+                    ['Mobile Number', 'Employee Name', 'Email ID', 'Gender', 'Date of Birth', 'Designation', 'Status', 'Last Updated']
+                ];
+                
+                // Add employee data
+                employeesToExport.forEach(emp => {
+                    const status = emp.last_updated ? 'Updated' : 'Pending';
+                    const lastUpdated = emp.last_updated ? new Date(emp.last_updated).toLocaleString() : 'Never';
+                    
+                    wsData.push([
+                        emp['Mobile Number'] || '',
+                        emp['Employee Name'] || '',
+                        emp['Nic E-mail ID'] || '',
+                        emp['Gender'] || '',
+                        emp['Date of Birth'] || '',
+                        emp['Designation'] || '',
+                        status,
+                        lastUpdated
+                    ]);
+                });
+                
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+                
+                // Generate Excel file and trigger download
+                XLSX.writeFile(wb, 'employees.xlsx');
+                
+                // Add audit entry
+                addAuditEntry('Exported Excel', `Exported ${employeesToExport.length} employees to Excel`);
+            }
+            
+            // Export bulk PDF
+            function exportBulkPDF() {
+                // Get all employees or filtered employees
+                const employeesToExport = getVisibleEmployees();
+                
+                if (employeesToExport.length === 0) {
+                    alert("No employees to export.");
+                    return;
+                }
+                
+                // Show confirmation dialog for large exports
+                if (employeesToExport.length > 10) {
+                    if (!confirm(`You are about to generate PDFs for ${employeesToExport.length} employees. This may take some time. Continue?`)) {
+                        return;
+                    }
+                }
+                
+                try {
+                    // Initialize jsPDF
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    let currentPage = 1;
+                    
+                    // For each employee
+                    employeesToExport.forEach((employee, index) => {
+                        // Add a new page for each employee except the first one
+                        if (index > 0) {
+                            doc.addPage();
+                            currentPage++;
+                        }
+                        
+                        // Add title
+                        doc.setFontSize(16);
+                        doc.setTextColor(0, 0, 0);
+                        doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+                        
+                        // Add employee name and ID
+                        doc.setFontSize(12);
+                        doc.text('Employee: ' + (employee['Employee Name'] || 'Unknown'), 14, 30);
+                        doc.text('Mobile: ' + (employee['Mobile Number'] || ''), 14, 38);
+                        doc.text('Designation: ' + (employee['Designation'] || ''), 14, 46);
+                        
+                        // Add status
+                        const status = employee.last_updated ? 'Updated' : 'Pending';
+                        doc.text('Status: ' + status, 14, 54);
+                        
+                        if (employee.last_updated) {
+                            doc.text('Last Updated: ' + new Date(employee.last_updated).toLocaleString(), 14, 62);
+                        }
+                        
+                        // Add horizontal line
+                        doc.setDrawColor(0, 0, 0);
+                        doc.setLineWidth(0.5);
+                        doc.line(14, 70, 196, 70);
+                        
+                        // Prepare data for table
+                        const tableData = [];
+                        
+                        // Add employee data to table
+                        fieldDefinitions.forEach(field => {
+                            const value = employee[field.id] || '';
+                            tableData.push([field.label, value]);
+                        });
+                        
+                        // Add table
+                        doc.autoTable({
+                            startY: 75,
+                            head: [['Field', 'Value']],
+                            body: tableData,
+                            theme: 'plain',
+                            headStyles: {
+                                fillColor: [200, 200, 200],
+                                textColor: [0, 0, 0],
+                                fontStyle: 'bold'
+                            },
+                            styles: {
+                                cellPadding: 3,
+                                fontSize: 10
+                            }
+                        });
+                        
+                        // Add page number at the bottom
+                        doc.setFontSize(10);
+                        doc.text(`Page ${currentPage}`, 105, 290, { align: 'center' });
+                    });
+                    
+                    // Save the PDF
+                    doc.save('employees_bulk_report.pdf');
+                    
+                    // Add audit entry
+                    addAuditEntry('Exported bulk PDF', `Generated PDF report for ${employeesToExport.length} employees`);
+                } catch (error) {
+                    console.error("Error generating bulk PDF:", error);
+                    alert("Error generating bulk PDF: " + error.message);
+                }
+            }
+            
+            // Get visible employees (those currently displayed in the table)
+            function getVisibleEmployees() {
+                const visibleRows = Array.from(document.querySelectorAll('#employeeList tr:not([style*="display: none"])'));
+                
+                // Get the IDs of visible employees
+                const visibleIds = visibleRows.map(row => row.dataset.id).filter(id => id);
+                
+                // Filter allEmployees to only include visible ones
+                return allEmployees.filter(emp => visibleIds.includes(emp.id.toString()));
+            }
+            
+            // Download file helper
+            function downloadFile(content, fileName, contentType) {
+                const a = document.createElement('a');
+                const file = new Blob([content], { type: contentType });
+                a.href = URL.createObjectURL(file);
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(a.href);
+            }
+            
+            // Generate employee PDF with password protection
+            function generateEmployeePDF(employee) {
+                try {
+                    // Check if jsPDF is loaded
+                    if (typeof window.jspdf === 'undefined') {
+                        console.error("jsPDF library not loaded");
+                        alert("PDF generation library not loaded. Please try again later.");
+                        return;
                     }
                     
+                    // Initialize jsPDF
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
                     // Add title
-                    doc.setFontSize(16);
-                    doc.setTextColor(0, 0, 0);
+                    doc.setFontSize(18);
+                    doc.setTextColor(0, 0, 0); // Black text for better printing
                     doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+                    
+                    // Add subtitle
+                    doc.setFontSize(14);
+                    doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
                     
                     // Add employee name and ID
                     doc.setFontSize(12);
-                    doc.text('Employee: ' + (employee['Employee Name'] || 'Unknown'), 14, 30);
-                    doc.text('Mobile: ' + (employee['Mobile Number'] || ''), 14, 38);
-                    doc.text('Designation: ' + (employee['Designation'] || ''), 14, 46);
-                    
-                    // Add status
-                    const status = employee.last_updated ? 'Updated' : 'Pending';
-                    doc.text('Status: ' + status, 14, 54);
-                    
-                    if (employee.last_updated) {
-                        doc.text('Last Updated: ' + new Date(employee.last_updated).toLocaleString(), 14, 62);
-                    }
+                    doc.text('Employee: ' + (employee['Employee Name'] || 'Unknown'), 14, 40);
+                    doc.text('Mobile: ' + (employee['Mobile Number'] || ''), 14, 48);
+                    doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
                     
                     // Add horizontal line
-                    doc.setDrawColor(0, 0, 0);
+                    doc.setDrawColor(0, 0, 0); // Black line for better printing
                     doc.setLineWidth(0.5);
-                    doc.line(14, 70, 196, 70);
+                    doc.line(14, 60, 196, 60);
                     
-                    // Prepare data for table
-                    const tableData = [];
+                    // Prepare data for table - plain black and white
+                    const personalData = [];
+                    const professionalData = [];
                     
-                    // Add employee data to table
-                    fieldDefinitions.forEach(field => {
+                    fieldDefinitions.forEach(function(field) {
                         const value = employee[field.id] || '';
-                        tableData.push([field.label, value]);
+                        const status = employee.last_updated ? 'Verified' : 'Pending';
+                        const row = [field.label, value, status];
+                        
+                        // Add to appropriate array based on field type
+                        if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+                            personalData.push(row);
+                        } else {
+                            professionalData.push(row);
+                        }
                     });
                     
-                    // Add table
+                    // Add personal information table
+                    doc.setFontSize(14);
+                    doc.text('Personal Information', 14, 70);
+                    
                     doc.autoTable({
                         startY: 75,
-                        head: [['Field', 'Value']],
-                        body: tableData,
-                        theme: 'plain',
+                        head: [['Field', 'Value', 'Status']],
+                        body: personalData,
+                        theme: 'plain', // Plain theme for black and white
                         headStyles: {
-                            fillColor: [200, 200, 200],
-                            textColor: [0, 0, 0],
+                            fillColor: [200, 200, 200], // Light gray for headers
+                            textColor: [0, 0, 0],       // Black text
                             fontStyle: 'bold'
                         },
                         styles: {
-                            cellPadding: 3,
-                            fontSize: 10
+                            cellPadding: 3
                         }
                     });
                     
-                    // Add page number at the bottom
-                    doc.setFontSize(10);
-                    doc.text(`Page ${currentPage}`, 105, 290, { align: 'center' });
-                });
-                
-                // Save the PDF with password protection
-                const pdfOutput = doc.output('arraybuffer');
-                
-                // In a real implementation, you would use a library that supports PDF encryption
-                // For this example, we'll just save the PDF without encryption
-                doc.save('employees_bulk_report.pdf');
-                
-                // Add audit entry
-                addAuditEntry('Exported bulk PDF', `Generated PDF report for ${employeesToExport.length} employees`);
-            } catch (error) {
-                console.error("Error generating bulk PDF:", error);
-                alert("Error generating bulk PDF: " + error.message);
+                    // Add professional information table
+                    const professionalStartY = doc.previousAutoTable.finalY + 10;
+                    doc.text('Professional Information', 14, professionalStartY);
+                    
+                    doc.autoTable({
+                        startY: professionalStartY + 5,
+                        head: [['Field', 'Value', 'Status']],
+                        body: professionalData,
+                        theme: 'plain', // Plain theme for black and white
+                        headStyles: {
+                            fillColor: [200, 200, 200], // Light gray for headers
+                            textColor: [0, 0, 0],       // Black text
+                            fontStyle: 'bold'
+                        },
+                        styles: {
+                            cellPadding: 3
+                        }
+                    });
+                    
+                    // Add footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(10);
+                        doc.setTextColor(0, 0, 0);
+                        doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+                    }
+                    
+                    // Get the mobile number to use as password
+                    const password = employee['Mobile Number'] || '';
+                    
+                    // In a real implementation, you would use a library that supports PDF encryption with passwords
+                    // For this example, we'll log the password and save the PDF without encryption
+                    console.log("PDF would be password protected with:", password);
+                    
+                    // Save the PDF
+                    const fileName = 'Employee_Verification_' + (employee['Employee Name'] || 'Unknown').replace(/\s+/g, '_') + '.pdf';
+                    doc.save(fileName);
+                    
+                    // Add audit entry
+                    addAuditEntry('Generated PDF', `Generated PDF for employee: ${employee['Employee Name']} (\${employee['Mobile Number']})`);
+                    
+                    console.log("PDF generated successfully:", fileName);
+                } catch (error) {
+                    console.error("Error generating PDF:", error);
+                    alert('Error generating PDF: ' + error.message);
+                }
             }
-        }
-        
-        // Get visible employees (those currently displayed in the table)
-        function getVisibleEmployees() {
-            const visibleRows = Array.from(document.querySelectorAll('#employeeList tr:not([style*="display: none"])'));
             
-            // Get the IDs of visible employees
-            const visibleIds = visibleRows.map(row => row.dataset.id).filter(id => id);
-            
-            // Filter allEmployees to only include visible ones
-            return allEmployees.filter(emp => visibleIds.includes(emp.id.toString()));
-        }
-        
-        // Download file helper
-        function downloadFile(content, fileName, contentType) {
-            const a = document.createElement('a');
-            const file = new Blob([content], { type: contentType });
-            a.href = URL.createObjectURL(file);
-            a.download = fileName;
-            a.click();
-            URL.revokeObjectURL(a.href);
-        }
-        
-        // Generate employee PDF with password protection
-        function generateEmployeePDF(employee) {
-            try {
-                // Check if jsPDF is loaded
-                if (typeof window.jspdf === 'undefined') {
-                    console.error("jsPDF library not loaded");
-                    alert("PDF generation library not loaded. Please try again later.");
+            // Search for employee by mobile number
+            async function searchEmployee() {
+                console.log("Search function called");
+                
+                const mobileNumber = document.getElementById('mobileNumber').value.trim();
+                console.log("Mobile number entered:", mobileNumber);
+                
+                if (!mobileNumber) {
+                    showMessage('searchError', 'Please enter your mobile number', true);
                     return;
                 }
                 
-                // Initialize jsPDF
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+                // Show spinner
+                document.getElementById('searchSpinner').style.display = 'block';
+                document.getElementById('searchButton').disabled = true;
                 
-                // Add title
-                doc.setFontSize(18);
-                doc.setTextColor(0, 0, 0); // Black text for better printing
-                doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
-                
-                // Add subtitle
-                doc.setFontSize(14);
-                doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
-                
-                // Add employee name and ID
-                doc.setFontSize(12);
-                doc.text('Employee: ' + (employee['Employee Name'] || 'Unknown'), 14, 40);
-                doc.text('Mobile: ' + (employee['Mobile Number'] || ''), 14, 48);
-                doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
-                
-                // Add horizontal line
-                doc.setDrawColor(0, 0, 0); // Black line for better printing
-                doc.setLineWidth(0.5);
-                doc.line(14, 60, 196, 60);
-                
-                // Prepare data for table - plain black and white
-                const personalData = [];
-                const professionalData = [];
+                try {
+                    console.log("Querying Supabase for mobile number:", mobileNumber);
+                    
+                    // Query Supabase for employee with this mobile number
+                    const { data, error } = await supabaseClient
+                        .from('employees')
+                        .select('*')
+                        .eq('Mobile Number', mobileNumber);
+                    
+                    console.log("Query complete. Data:", data);
+                    console.log("Query error:", error);
+                    
+                    // Hide spinner
+                    document.getElementById('searchSpinner').style.display = 'none';
+                    document.getElementById('searchButton').disabled = false;
+                    
+                    if (error) {
+                        console.error("Error from Supabase:", error);
+                        showMessage('searchError', 'Database error: ' + error.message, true);
+                        return;
+                    }
+                    
+                    if (data && data.length > 0) {
+                        console.log("Employee found:", data[0]);
+                        
+                        // Store employee data
+                        currentEmployee = data[0];
+                        
+                        // Initialize field statuses
+                        fieldDefinitions.forEach(function(field) {
+                            fieldStatuses[field.id] = 'pending';
+                        });
+                        
+                        // Show verification card
+                        document.getElementById('searchCard').classList.add('d-none');
+                        document.getElementById('verificationCard').classList.remove('d-none');
+                        
+                        // Update step indicator
+                        updateStepIndicator(2);
+                        
+                        // Generate verification fields
+                        generateVerificationFields();
+                    } else {
+                        console.log("No employee found with mobile number:", mobileNumber);
+                        showMessage('searchError', 'No employee found with this mobile number', true);
+                    }
+                } catch (error) {
+                    console.error("Exception in searchEmployee:", error);
+                    
+                    // Hide spinner
+                    document.getElementById('searchSpinner').style.display = 'none';
+                    document.getElementById('searchButton').disabled = false;
+                    
+                    // Show error message
+                    showMessage('searchError', 'Error: ' + error.message, true);
+                }
+            }
+            
+            // Generate verification fields
+            function generateVerificationFields() {
+                console.log("Generating verification fields");
+                const container = document.getElementById('fieldsContainer');
+                container.innerHTML = '';
                 
                 fieldDefinitions.forEach(function(field) {
-                    const value = employee[field.id] || '';
-                    const status = employee.last_updated ? 'Verified' : 'Pending';
-                    const row = [field.label, value, status];
+                    console.log("Processing field:", field.id, field.label);
+                    const value = currentEmployee[field.id] || '';
+                    const fieldId = field.id.replace(/[^a-zA-Z0-9]/g, '_');
                     
-                    // Add to appropriate array based on field type
-                    if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-                        personalData.push(row);
+                    const fieldRow = document.createElement('div');
+                    fieldRow.className = 'field-row';
+                    fieldRow.id = 'row-' + fieldId;
+                    
+                    // Create inner content
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'row';
+                    
+                    // Label column
+                    const labelCol = document.createElement('div');
+                    labelCol.className = 'col-md-4';
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = 'field-label';
+                    labelDiv.textContent = field.label;
+                    labelCol.appendChild(labelDiv);
+                    
+                    // Value column
+                    const valueCol = document.createElement('div');
+                    valueCol.className = 'col-md-4';
+                    const valueDiv = document.createElement('div');
+                    valueDiv.className = 'field-value';
+                    valueDiv.id = 'value-' + fieldId;
+                    valueDiv.textContent = value;
+                    valueCol.appendChild(valueDiv);
+                    
+                    // Verification column
+                    const verifyCol = document.createElement('div');
+                    verifyCol.className = 'col-md-4';
+                    
+                    // Verification buttons
+                    const buttonsDiv = document.createElement('div');
+                    buttonsDiv.className = 'verification-buttons';
+                    
+                    // Yes button
+                    const yesButton = document.createElement('button');
+                    yesButton.className = 'btn btn-sm btn-outline-success verify-yes';
+                    yesButton.setAttribute('data-field', field.id);
+                    yesButton.innerHTML = '<i class="fas fa-check"></i> Yes';
+                    yesButton.onclick = function() {
+                        console.log("Yes clicked for field:", field.id);
+                        verifyField(field.id, true);
+                    };
+                    
+                    // No button
+                    const noButton = document.createElement('button');
+                    noButton.className = 'btn btn-sm btn-outline-danger verify-no';
+                    noButton.setAttribute('data-field', field.id);
+                    noButton.innerHTML = '<i class="fas fa-times"></i> No';
+                    noButton.onclick = function() {
+                        console.log("No clicked for field:", field.id);
+                        verifyField(field.id, false);
+                    };
+                    
+                    // Status badge
+                    const statusSpan = document.createElement('span');
+                    statusSpan.className = 'ms-2 badge badge-pending';
+                    statusSpan.id = 'status-' + fieldId;
+                    statusSpan.textContent = 'Pending';
+                    
+                    // Add buttons and badge to buttons div
+                    buttonsDiv.appendChild(yesButton);
+                    buttonsDiv.appendChild(noButton);
+                    buttonsDiv.appendChild(statusSpan);
+                    
+                    // Edit field div
+                    const editDiv = document.createElement('div');
+                    editDiv.className = 'edit-field';
+                    editDiv.id = 'edit-' + fieldId;
+                    editDiv.style.display = 'none';
+                    
+                    // Create input field based on field type
+                    if (field.type === 'select' && field.options) {
+                        // Create select element
+                        const select = document.createElement('select');
+                        select.className = 'form-select';
+                        select.id = 'input-' + fieldId;
+                        
+                        // Add default option
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = 'Select ' + field.label;
+                        select.appendChild(defaultOption);
+                        
+                        // Add options
+                        field.options.forEach(function(opt) {
+                            const option = document.createElement('option');
+                            option.value = opt;
+                            option.textContent = opt;
+                            if (value === opt) {
+                                option.selected = true;
+                            }
+                            select.appendChild(option);
+                        });
+                        
+                        editDiv.appendChild(select);
+                    } else if (field.type === 'date') {
+                        // Create date input element
+                        const input = document.createElement('input');
+                        input.type = 'date';
+                        input.className = 'form-control';
+                        input.id = 'input-' + fieldId;
+                        
+                        // Format date value if it exists
+                        if (value) {
+                            try {
+                                // Try to format the date
+                                const dateObj = new Date(value);
+                                if (!isNaN(dateObj.getTime())) {
+                                    input.value = dateObj.toISOString().split('T')[0];
+                                } else {
+                                    input.value = value;
+                                }
+                            } catch (e) {
+                                console.error("Error formatting date:", e);
+                                input.value = value;
+                            }
+                        }
+                        
+                        if (field.readonly) {
+                            input.readOnly = true;
+                        }
+                        
+                        editDiv.appendChild(input);
+                    } else if (field.type === 'year') {
+                        // Create select element for year picker
+                        const select = document.createElement('select');
+                        select.className = 'form-select';
+                        select.id = 'input-' + fieldId;
+                        
+                        // Add default option
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = 'Select Year';
+                        select.appendChild(defaultOption);
+                        
+                        // Add year options
+                        field.options.forEach(function(year) {
+                            const option = document.createElement('option');
+                            option.value = year;
+                            option.textContent = year;
+                            if (value === year) {
+                                option.selected = true;
+                            }
+                            select.appendChild(option);
+                        });
+                        
+                        editDiv.appendChild(select);
                     } else {
-                        professionalData.push(row);
+                        // Create standard input element
+                        const input = document.createElement('input');
+                        input.type = field.type;
+                        input.className = 'form-control';
+                        input.id = 'input-' + fieldId;
+                        input.value = value;
+                        if (field.readonly) {
+                            input.readOnly = true;
+                        }
+                        
+                        editDiv.appendChild(input);
                     }
+                    
+                    // Add buttons container
+                    const buttonContainer = document.createElement('div');
+                    buttonContainer.className = 'mt-2';
+                    
+                    // Save button
+                    const saveButton = document.createElement('button');
+                    saveButton.className = 'btn btn-sm btn-primary save-edit';
+                    saveButton.textContent = 'Save';
+                    saveButton.onclick = function() {
+                        saveEdit(field.id);
+                    };
+                    
+                    // Cancel button
+                    const cancelButton = document.createElement('button');
+                    cancelButton.className = 'btn btn-sm btn-secondary cancel-edit ms-2';
+                    cancelButton.textContent = 'Cancel';
+                    cancelButton.onclick = function() {
+                        cancelEdit(field.id);
+                    };
+                    
+                    buttonContainer.appendChild(saveButton);
+                    buttonContainer.appendChild(cancelButton);
+                    editDiv.appendChild(buttonContainer);
+                    
+                    // Add all elements to verification column
+                    verifyCol.appendChild(buttonsDiv);
+                    verifyCol.appendChild(editDiv);
+                    
+                    // Add all columns to row
+                    rowDiv.appendChild(labelCol);
+                    rowDiv.appendChild(valueCol);
+                    rowDiv.appendChild(verifyCol);
+                    
+                    // Add row to field row
+                    fieldRow.appendChild(rowDiv);
+                    
+                    // Add field row to container
+                    container.appendChild(fieldRow);
                 });
                 
-                // Add personal information table
-                doc.setFontSize(14);
-                doc.text('Personal Information', 14, 70);
-                
-                doc.autoTable({
-                    startY: 75,
-                    head: [['Field', 'Value', 'Status']],
-                    body: personalData,
-                    theme: 'plain', // Plain theme for black and white
-                    headStyles: {
-                        fillColor: [200, 200, 200], // Light gray for headers
-                        textColor: [0, 0, 0],       // Black text
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add professional information table
-                const professionalStartY = doc.previousAutoTable.finalY + 10;
-                doc.text('Professional Information', 14, professionalStartY);
-                
-                doc.autoTable({
-                    startY: professionalStartY + 5,
-                    head: [['Field', 'Value', 'Status']],
-                    body: professionalData,
-                    theme: 'plain', // Plain theme for black and white
-                    headStyles: {
-                        fillColor: [200, 200, 200], // Light gray for headers
-                        textColor: [0, 0, 0],       // Black text
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add footer
-                const pageCount = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(10);
-                    doc.setTextColor(0, 0, 0);
-                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
-                }
-                
-                // Get the mobile number to use as password
-                const password = employee['Mobile Number'] || '';
-                
-                // In a real implementation, you would use a library that supports PDF encryption with passwords
-                // For this example, we'll log the password and save the PDF without encryption
-                console.log("PDF would be password protected with:", password);
-                
-                // Save the PDF
-                const fileName = 'Employee_Verification_' + (employee['Employee Name'] || 'Unknown').replace(/\s+/g, '_') + '.pdf';
-                doc.save(fileName);
-                
-                // Add audit entry
-                addAuditEntry('Generated PDF', `Generated PDF for employee: ${employee['Employee Name']} (${employee['Mobile Number']})`);
-                
-                console.log("PDF generated successfully:", fileName);
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert('Error generating PDF: ' + error.message);
+                console.log("Verification fields generated");
             }
-        }
-        
-        // Test connection to Supabase
-        async function testConnection() {
-            try {
-                console.log("Testing connection to Supabase...");
+            
+            // Verify a field
+            function verifyField(fieldId, isCorrect) {
+                console.log("verifyField called for:", fieldId, "isCorrect:", isCorrect);
                 
-                // Simple query to test connection
-                const { data, error } = await supabaseClient
-                    .from('employees')
-                    .select('count');
+                const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
                 
-                if (error) {
-                    console.error("Connection test failed:", error);
+                if (isCorrect) {
+                    // Field is correct
+                    fieldStatuses[fieldId] = 'verified';
+                    updateFieldStatus(fieldId, 'verified');
+                    console.log("Field marked as verified:", fieldId);
                 } else {
-                    console.log("Connection successful!");
+                    // Field needs editing
+                    const editElement = document.getElementById('edit-' + safeFieldId);
+                    if (editElement) {
+                        editElement.style.display = 'block';
+                        console.log("Edit form displayed for field:", fieldId);
+                    } else {
+                        console.error("Could not find edit element for field:", fieldId);
+                    }
                 }
-            } catch (error) {
-                console.error("Error in connection test:", error);
-            }
-        }
-        
-        // Search for employee by mobile number
-        async function searchEmployee() {
-            console.log("Search function called");
-            
-            const mobileNumber = document.getElementById('mobileNumber').value.trim();
-            console.log("Mobile number entered:", mobileNumber);
-            
-            if (!mobileNumber) {
-                showMessage('searchError', 'Please enter your mobile number', true);
-                return;
+                
+                updateProgress();
+                checkAllFieldsVerified();
             }
             
-            // Show spinner
-            document.getElementById('searchSpinner').style.display = 'block';
-            document.getElementById('searchButton').disabled = true;
-            
-            try {
-                console.log("Querying Supabase for mobile number:", mobileNumber);
+            // Save edited field
+            function saveEdit(fieldId) {
+                console.log("saveEdit called for:", fieldId);
                 
-                // Query Supabase for employee with this mobile number
-                const { data, error } = await supabaseClient
-                    .from('employees')
-                    .select('*')
-                    .eq('Mobile Number', mobileNumber);
+                const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+                const inputElement = document.getElementById('input-' + safeFieldId);
                 
-                console.log("Query complete. Data:", data);
-                console.log("Query error:", error);
-                
-                // Hide spinner
-                document.getElementById('searchSpinner').style.display = 'none';
-                document.getElementById('searchButton').disabled = false;
-                
-                if (error) {
-                    console.error("Error from Supabase:", error);
-                    showMessage('searchError', 'Database error: ' + error.message, true);
+                if (!inputElement) {
+                    console.error("Could not find input element for field:", fieldId);
                     return;
                 }
                 
-                if (data && data.length > 0) {
-                    console.log("Employee found:", data[0]);
-                    
-                    // Store employee data
-                    currentEmployee = data[0];
-                    
-                    // Initialize field statuses
-                    fieldDefinitions.forEach(function(field) {
-                        fieldStatuses[field.id] = 'pending';
-                    });
-                    
-                    // Show verification card
-                    document.getElementById('searchCard').classList.add('d-none');
-                    document.getElementById('verificationCard').classList.remove('d-none');
-                    
-                    // Update step indicator
-                    updateStepIndicator(2);
-                    
-                    // Generate verification fields
-                    generateVerificationFields();
-                } else {
-                    console.log("No employee found with mobile number:", mobileNumber);
-                    showMessage('searchError', 'No employee found with this mobile number', true);
-                }
-            } catch (error) {
-                console.error("Exception in searchEmployee:", error);
+                const newValue = inputElement.value;
+                console.log("New value:", newValue);
                 
-                // Hide spinner
-                document.getElementById('searchSpinner').style.display = 'none';
-                document.getElementById('searchButton').disabled = false;
-                
-                // Show error message
-                showMessage('searchError', 'Error: ' + error.message, true);
-            }
-        }
-        
-        // Generate verification fields
-        function generateVerificationFields() {
-            console.log("Generating verification fields");
-            const container = document.getElementById('fieldsContainer');
-            container.innerHTML = '';
-            
-            fieldDefinitions.forEach(function(field) {
-                console.log("Processing field:", field.id, field.label);
-                const value = currentEmployee[field.id] || '';
-                const fieldId = field.id.replace(/[^a-zA-Z0-9]/g, '_');
-                
-                const fieldRow = document.createElement('div');
-                fieldRow.className = 'field-row';
-                fieldRow.id = 'row-' + fieldId;
-                
-                // Create inner content
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'row';
-                
-                // Label column
-                const labelCol = document.createElement('div');
-                labelCol.className = 'col-md-4';
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'field-label';
-                labelDiv.textContent = field.label;
-                labelCol.appendChild(labelDiv);
-                
-                // Value column
-                const valueCol = document.createElement('div');
-                valueCol.className = 'col-md-4';
-                const valueDiv = document.createElement('div');
-                valueDiv.className = 'field-value';
-                valueDiv.id = 'value-' + fieldId;
-                valueDiv.textContent = value;
-                valueCol.appendChild(valueDiv);
-                
-                // Verification column
-                const verifyCol = document.createElement('div');
-                verifyCol.className = 'col-md-4';
-                
-                // Verification buttons
-                const buttonsDiv = document.createElement('div');
-                buttonsDiv.className = 'verification-buttons';
-                
-                // Yes button
-                const yesButton = document.createElement('button');
-                yesButton.className = 'btn btn-sm btn-outline-success verify-yes';
-                yesButton.setAttribute('data-field', field.id);
-                yesButton.innerHTML = '<i class="fas fa-check"></i> Yes';
-                yesButton.onclick = function() {
-                    console.log("Yes clicked for field:", field.id);
-                    verifyField(field.id, true);
-                };
-                
-                // No button
-                const noButton = document.createElement('button');
-                noButton.className = 'btn btn-sm btn-outline-danger verify-no';
-                noButton.setAttribute('data-field', field.id);
-                noButton.innerHTML = '<i class="fas fa-times"></i> No';
-                noButton.onclick = function() {
-                    console.log("No clicked for field:", field.id);
-                    verifyField(field.id, false);
-                };
-                
-                // Status badge
-                const statusSpan = document.createElement('span');
-                statusSpan.className = 'ms-2 badge badge-pending';
-                statusSpan.id = 'status-' + fieldId;
-                statusSpan.textContent = 'Pending';
-                
-                // Add buttons and badge to buttons div
-                buttonsDiv.appendChild(yesButton);
-                buttonsDiv.appendChild(noButton);
-                buttonsDiv.appendChild(statusSpan);
-                
-                // Edit field div
-                const editDiv = document.createElement('div');
-                editDiv.className = 'edit-field';
-                editDiv.id = 'edit-' + fieldId;
-                editDiv.style.display = 'none';
-                
-                // Create input field based on field type
-                if (field.type === 'select' && field.options) {
-                    // Create select element
-                    const select = document.createElement('select');
-                    select.className = 'form-select';
-                    select.id = 'input-' + fieldId;
-                    
-                    // Add default option
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = 'Select ' + field.label;
-                    select.appendChild(defaultOption);
-                    
-                    // Add options
-                    field.options.forEach(function(opt) {
-                        const option = document.createElement('option');
-                        option.value = opt;
-                        option.textContent = opt;
-                        if (value === opt) {
-                            option.selected = true;
-                        }
-                        select.appendChild(option);
-                    });
-                    
-                    editDiv.appendChild(select);
-                } else if (field.type === 'date') {
-                    // Create date input element
-                    const input = document.createElement('input');
-                    input.type = 'date';
-                    input.className = 'form-control';
-                    input.id = 'input-' + fieldId;
-                    
-                    // Format date value if it exists
-                    if (value) {
-                        try {
-                            // Try to format the date
-                            const dateObj = new Date(value);
-                            if (!isNaN(dateObj.getTime())) {
-                                input.value = dateObj.toISOString().split('T')[0];
-                            } else {
-                                input.value = value;
-                            }
-                        } catch (e) {
-                            console.error("Error formatting date:", e);
-                            input.value = value;
-                        }
-                    }
-                    
-                    if (field.readonly) {
-                        input.readOnly = true;
-                    }
-                    
-                    editDiv.appendChild(input);
-                } else if (field.type === 'year') {
-                    // Create select element for year picker
-                    const select = document.createElement('select');
-                    select.className = 'form-select';
-                    select.id = 'input-' + fieldId;
-                    
-                    // Add default option
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = 'Select Year';
-                    select.appendChild(defaultOption);
-                    
-                    // Add year options
-                    field.options.forEach(function(year) {
-                        const option = document.createElement('option');
-                        option.value = year;
-                        option.textContent = year;
-                        if (value === year) {
-                            option.selected = true;
-                        }
-                        select.appendChild(option);
-                    });
-                    
-                    editDiv.appendChild(select);
-                } else {
-                    // Create standard input element
-                    const input = document.createElement('input');
-                    input.type = field.type;
-                    input.className = 'form-control';
-                    input.id = 'input-' + fieldId;
-                    input.value = value;
-                    if (field.readonly) {
-                        input.readOnly = true;
-                    }
-                    
-                    editDiv.appendChild(input);
+                // Update the displayed value
+                const valueElement = document.getElementById('value-' + safeFieldId);
+                if (valueElement) {
+                    valueElement.textContent = newValue;
                 }
                 
-                // Add buttons container
-                const buttonContainer = document.createElement('div');
-                buttonContainer.className = 'mt-2';
-                
-                // Save button
-                const saveButton = document.createElement('button');
-                saveButton.className = 'btn btn-sm btn-primary save-edit';
-                saveButton.textContent = 'Save';
-                saveButton.onclick = function() {
-                    saveEdit(field.id);
-                };
-                
-                // Cancel button
-                const cancelButton = document.createElement('button');
-                cancelButton.className = 'btn btn-sm btn-secondary cancel-edit ms-2';
-                cancelButton.textContent = 'Cancel';
-                cancelButton.onclick = function() {
-                    cancelEdit(field.id);
-                };
-                
-                buttonContainer.appendChild(saveButton);
-                buttonContainer.appendChild(cancelButton);
-                editDiv.appendChild(buttonContainer);
-                
-                // Add all elements to verification column
-                verifyCol.appendChild(buttonsDiv);
-                verifyCol.appendChild(editDiv);
-                
-                // Add all columns to row
-                rowDiv.appendChild(labelCol);
-                rowDiv.appendChild(valueCol);
-                rowDiv.appendChild(verifyCol);
-                
-                // Add row to field row
-                fieldRow.appendChild(rowDiv);
-                
-                // Add field row to container
-                container.appendChild(fieldRow);
-            });
-            
-            console.log("Verification fields generated");
-        }
-        
-        // Verify a field
-        function verifyField(fieldId, isCorrect) {
-            console.log("verifyField called for:", fieldId, "isCorrect:", isCorrect);
-            
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            if (isCorrect) {
-                // Field is correct
-                fieldStatuses[fieldId] = 'verified';
-                updateFieldStatus(fieldId, 'verified');
-                console.log("Field marked as verified:", fieldId);
-            } else {
-                // Field needs editing
+                // Hide the edit form
                 const editElement = document.getElementById('edit-' + safeFieldId);
                 if (editElement) {
-                    editElement.style.display = 'block';
-                    console.log("Edit form displayed for field:", fieldId);
+                    editElement.style.display = 'none';
+                }
+                
+                // Mark as edited
+                fieldStatuses[fieldId] = 'edited';
+                updateFieldStatus(fieldId, 'edited');
+                
+                // Store the edited value
+                editedFields[fieldId] = newValue;
+                
+                console.log("Field edited successfully:", fieldId);
+                
+                updateProgress();
+                checkAllFieldsVerified();
+            }
+            
+            // Cancel edit
+            function cancelEdit(fieldId) {
+                console.log("cancelEdit called for:", fieldId);
+                
+                const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+                const editElement = document.getElementById('edit-' + safeFieldId);
+                
+                if (editElement) {
+                    editElement.style.display = 'none';
+                    console.log("Edit form hidden for field:", fieldId);
                 } else {
                     console.error("Could not find edit element for field:", fieldId);
                 }
             }
             
-            updateProgress();
-            checkAllFieldsVerified();
-        }
-        
-        // Save edited field
-        function saveEdit(fieldId) {
-            console.log("saveEdit called for:", fieldId);
-            
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            const inputElement = document.getElementById('input-' + safeFieldId);
-            
-            if (!inputElement) {
-                console.error("Could not find input element for field:", fieldId);
-                return;
-            }
-            
-            const newValue = inputElement.value;
-            console.log("New value:", newValue);
-            
-            // Update the displayed value
-            const valueElement = document.getElementById('value-' + safeFieldId);
-            if (valueElement) {
-                valueElement.textContent = newValue;
-            }
-            
-            // Hide the edit form
-            const editElement = document.getElementById('edit-' + safeFieldId);
-            if (editElement) {
-                editElement.style.display = 'none';
-            }
-            
-            // Mark as edited
-            fieldStatuses[fieldId] = 'edited';
-            updateFieldStatus(fieldId, 'edited');
-            
-            // Store the edited value
-            editedFields[fieldId] = newValue;
-            
-            console.log("Field edited successfully:", fieldId);
-            
-            updateProgress();
-            checkAllFieldsVerified();
-        }
-        
-        // Cancel edit
-        function cancelEdit(fieldId) {
-            console.log("cancelEdit called for:", fieldId);
-            
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            const editElement = document.getElementById('edit-' + safeFieldId);
-            
-            if (editElement) {
-                editElement.style.display = 'none';
-                console.log("Edit form hidden for field:", fieldId);
-            } else {
-                console.error("Could not find edit element for field:", fieldId);
-            }
-        }
-        
-        // Update field status badge
-        function updateFieldStatus(fieldId, status) {
-            console.log("updateFieldStatus called for:", fieldId, "status:", status);
-            
-            const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
-            const statusElement = document.getElementById('status-' + safeFieldId);
-            
-            if (statusElement) {
-                statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
-                statusElement.className = 'ms-2 badge ' + getBadgeClass(status);
-                console.log("Status updated for field:", fieldId);
-            } else {
-                console.error("Could not find status element for field:", fieldId);
-            }
-        }
-        
-        // Get badge class based on status
-        function getBadgeClass(status) {
-            switch (status) {
-                case 'verified': return 'badge-verified';
-                case 'edited': return 'badge-edited';
-                default: return 'badge-pending';
-            }
-        }
-        
-        // Update progress bar
-        function updateProgress() {
-            const totalFields = Object.keys(fieldStatuses).length;
-            const verifiedFields = Object.values(fieldStatuses).filter(function(status) {
-                return status === 'verified' || status === 'edited';
-            }).length;
-            
-            const percentage = Math.round((verifiedFields / totalFields) * 100);
-            
-            const progressBar = document.getElementById('progressBar');
-            if (progressBar) {
-                progressBar.style.width = percentage + '%';
-            }
-            
-            const progressText = document.getElementById('progressText');
-            if (progressText) {
-                progressText.textContent = percentage + '%';
-            }
-            
-            console.log("Progress updated:", percentage + '%');
-        }
-        
-        // Check if all fields have been verified
-        function checkAllFieldsVerified() {
-            const allVerified = Object.values(fieldStatuses).every(function(status) {
-                return status === 'verified' || status === 'edited';
-            });
-            
-            const continueButton = document.getElementById('continueButton');
-            if (continueButton) {
-                continueButton.disabled = !allVerified;
-            }
-            
-            console.log("All fields verified:", allVerified);
-        }
-        
-        // Save draft of current progress
-        function saveDraft() {
-            console.log("Saving draft");
-            
-            // Show spinner
-            document.getElementById('verifySpinner').style.display = 'block';
-            
-            // Store the current state in localStorage
-            const draftData = {
-                employee: currentEmployee,
-                statuses: fieldStatuses,
-                edits: editedFields,
-                timestamp: new Date().toISOString()
-            };
-            
-            try {
-                localStorage.setItem('employeeDraft_' + currentEmployee['Mobile Number'], JSON.stringify(draftData));
-                console.log("Draft saved successfully");
+            // Update field status badge
+            function updateFieldStatus(fieldId, status) {
+                console.log("updateFieldStatus called for:", fieldId, "status:", status);
                 
-                // Hide spinner after a short delay
-                setTimeout(function() {
-                    document.getElementById('verifySpinner').style.display = 'none';
-                    alert('Your progress has been saved as a draft. You can continue later.');
-                }, 1000);
-            } catch (error) {
-                console.error("Error saving draft:", error);
-                document.getElementById('verifySpinner').style.display = 'none';
-                alert('Error saving draft: ' + error.message);
-            }
-        }
-        
-        // Show review screen
-        function showReview() {
-            console.log("Showing review screen");
-            
-            // Generate review content
-            generateReviewContent();
-            
-            // Show review card
-            document.getElementById('verificationCard').classList.add('d-none');
-            document.getElementById('reviewCard').classList.remove('d-none');
-            
-            // Update step indicator
-            updateStepIndicator(3);
-        }
-        
-        // Generate review content
-        function generateReviewContent() {
-            console.log("Generating review content");
-            
-            const container = document.getElementById('reviewContainer');
-            container.innerHTML = '';
-            
-            // Create sections
-            const personalSection = document.createElement('div');
-            personalSection.className = 'mb-4';
-            
-            const personalTitle = document.createElement('h5');
-            personalTitle.className = 'form-section-title';
-            personalTitle.textContent = 'Personal Information';
-            personalSection.appendChild(personalTitle);
-            
-            const professionalSection = document.createElement('div');
-            professionalSection.className = 'mb-4';
-            
-            const professionalTitle = document.createElement('h5');
-            professionalTitle.className = 'form-section-title';
-            professionalTitle.textContent = 'Professional Information';
-            professionalSection.appendChild(professionalTitle);
-            
-            // Add fields to appropriate sections
-            fieldDefinitions.forEach(function(field) {
-                let value = currentEmployee[field.id] || '';
+                const safeFieldId = fieldId.replace(/[^a-zA-Z0-9]/g, '_');
+                const statusElement = document.getElementById('status-' + safeFieldId);
                 
-                // If this field was edited, use the edited value
-                if (editedFields[field.id] !== undefined) {
-                    value = editedFields[field.id];
-                }
-                
-                const status = fieldStatuses[field.id];
-                const statusText = status.charAt(0).toUpperCase() + status.slice(1);
-                
-                // Create row div
-                const rowDiv = document.createElement('div');
-                rowDiv.className = 'row mb-2';
-                
-                // Create label column
-                const labelCol = document.createElement('div');
-                labelCol.className = 'col-md-4';
-                const strongLabel = document.createElement('strong');
-                strongLabel.textContent = field.label + ':';
-                labelCol.appendChild(strongLabel);
-                
-                // Create value column
-                const valueCol = document.createElement('div');
-                valueCol.className = 'col-md-6';
-                valueCol.textContent = value;
-                
-                // Create status column
-                const statusCol = document.createElement('div');
-                statusCol.className = 'col-md-2 text-end';
-                
-                const statusBadge = document.createElement('span');
-                statusBadge.className = 'badge ' + getBadgeClass(status);
-                statusBadge.textContent = statusText;
-                statusCol.appendChild(statusBadge);
-                
-                // Add columns to row
-                rowDiv.appendChild(labelCol);
-                rowDiv.appendChild(valueCol);
-                rowDiv.appendChild(statusCol);
-                
-                // Add to appropriate section based on field type
-                if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-                    personalSection.appendChild(rowDiv);
+                if (statusElement) {
+                    statusElement.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                    statusElement.className = 'ms-2 badge ' + getBadgeClass(status);
+                    console.log("Status updated for field:", fieldId);
                 } else {
-                    professionalSection.appendChild(rowDiv);
+                    console.error("Could not find status element for field:", fieldId);
                 }
-            });
+            }
             
-            // Add sections to container
-            container.appendChild(personalSection);
-            container.appendChild(professionalSection);
+            // Get badge class based on status
+            function getBadgeClass(status) {
+                switch (status) {
+                    case 'verified': return 'badge-verified';
+                    case 'edited': return 'badge-edited';
+                    default: return 'badge-pending';
+                }
+            }
             
-            console.log("Review content generated");
-        }
-        
-        // Toggle submit button based on confirmation checkbox
-        function toggleSubmitButton() {
-            const isChecked = document.getElementById('confirmCheck').checked;
-            document.getElementById('submitButton').disabled = !isChecked;
-            console.log("Submit button toggled:", !isChecked ? "disabled" : "enabled");
-        }
-        
-        // Submit the form
-        async function submitForm() {
-            console.log("Submitting form");
-            
-            // Show spinner
-            document.getElementById('submitSpinner').style.display = 'block';
-            document.getElementById('submitButton').disabled = true;
-            
-            try {
-                // Create update object with edited fields
-                const updateData = { ...editedFields };
+            // Update progress bar
+            function updateProgress() {
+                const totalFields = Object.keys(fieldStatuses).length;
+                const verifiedFields = Object.values(fieldStatuses).filter(function(status) {
+                    return status === 'verified' || status === 'edited';
+                }).length;
                 
-                // Add last_updated field to track profile updates
-                updateData.last_updated = new Date().toISOString();
+                const percentage = Math.round((verifiedFields / totalFields) * 100);
                 
-                // Update the employee record in Supabase
-                const { data, error } = await supabaseClient
-                    .from('employees')
-                    .update(updateData)
-                    .eq('Mobile Number', currentEmployee['Mobile Number']);
+                const progressBar = document.getElementById('progressBar');
+                if (progressBar) {
+                    progressBar.style.width = percentage + '%';
+                }
+                
+                const progressText = document.getElementById('progressText');
+                if (progressText) {
+                    progressText.textContent = percentage + '%';
+                }
+                
+                console.log("Progress updated:", percentage + '%');
+            }
+            
+            // Check if all fields have been verified
+            function checkAllFieldsVerified() {
+                const allVerified = Object.values(fieldStatuses).every(function(status) {
+                    return status === 'verified' || status === 'edited';
+                });
+                
+                const continueButton = document.getElementById('continueButton');
+                if (continueButton) {
+                    continueButton.disabled = !allVerified;
+                }
+                
+                console.log("All fields verified:", allVerified);
+            }
+            
+            // Save draft of current progress
+            function saveDraft() {
+                console.log("Saving draft");
+                
+                // Show spinner
+                document.getElementById('verifySpinner').style.display = 'block';
+                
+                // Store the current state in localStorage
+                const draftData = {
+                    employee: currentEmployee,
+                    statuses: fieldStatuses,
+                    edits: editedFields,
+                    timestamp: new Date().toISOString()
+                };
+                
+                try {
+                    localStorage.setItem('employeeDraft_' + currentEmployee['Mobile Number'], JSON.stringify(draftData));
+                    console.log("Draft saved successfully");
                     
-                console.log("Update response:", { data, error });
+                    // Hide spinner after a short delay
+                    setTimeout(function() {
+                        document.getElementById('verifySpinner').style.display = 'none';
+                        alert('Your progress has been saved as a draft. You can continue later.');
+                    }, 1000);
+                } catch (error) {
+                    console.error("Error saving draft:", error);
+                    document.getElementById('verifySpinner').style.display = 'none';
+                    alert('Error saving draft: ' + error.message);
+                }
+            }
+            
+            // Show review screen
+            function showReview() {
+                console.log("Showing review screen");
                 
-                if (error) throw error;
+                // Generate review content
+                generateReviewContent();
                 
-                // Hide spinner
-                document.getElementById('submitSpinner').style.display = 'none';
-                
-                // Show success card
-                document.getElementById('reviewCard').classList.add('d-none');
-                document.getElementById('successCard').classList.remove('d-none');
+                // Show review card
+                document.getElementById('verificationCard').classList.add('d-none');
+                document.getElementById('reviewCard').classList.remove('d-none');
                 
                 // Update step indicator
-                updateStepIndicator(4);
-                
-                // Clear any saved draft
-                try {
-                    localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
-                } catch (e) {
-                    console.error("Error removing draft from localStorage:", e);
-                }
-                
-                console.log("Form submission completed successfully");
-                
-            } catch (error) {
-                console.error("Error submitting form:", error);
-                
-                // Hide spinner
-                document.getElementById('submitSpinner').style.display = 'none';
-                document.getElementById('submitButton').disabled = false;
-                
-                // Show error
-                alert('Error submitting form: ' + error.message);
+                updateStepIndicator(3);
             }
-        }
-        
-        // Generate PDF for employee
-        function generatePDF() {
-            console.log("Generating PDF");
             
-            try {
-                // Check if jsPDF is loaded
-                if (typeof window.jspdf === 'undefined') {
-                    console.error("jsPDF library not loaded");
-                    alert("PDF generation library not loaded. Please try again later.");
-                    return;
-                }
+            // Generate review content
+            function generateReviewContent() {
+                console.log("Generating review content");
                 
-                // Initialize jsPDF
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF();
+                const container = document.getElementById('reviewContainer');
+                container.innerHTML = '';
                 
-                // Add title
-                doc.setFontSize(16);
-                doc.setTextColor(0, 0, 0); // Black text for better printing
-                doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+                // Create sections
+                const personalSection = document.createElement('div');
+                personalSection.className = 'mb-4';
                 
-                // Add subtitle
-                doc.setFontSize(14);
-                doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+                const personalTitle = document.createElement('h5');
+                personalTitle.className = 'form-section-title';
+                personalTitle.textContent = 'Personal Information';
+                personalSection.appendChild(personalTitle);
                 
-                // Add employee name and ID
-                doc.setFontSize(12);
-                doc.text('Employee: ' + currentEmployee['Employee Name'], 14, 40);
-                doc.text('Mobile: ' + currentEmployee['Mobile Number'], 14, 48);
-                doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
+                const professionalSection = document.createElement('div');
+                professionalSection.className = 'mb-4';
                 
-                // Add horizontal line
-                doc.setDrawColor(0, 0, 0); // Black line for better printing
-                doc.setLineWidth(0.5);
-                doc.line(14, 60, 196, 60);
+                const professionalTitle = document.createElement('h5');
+                professionalTitle.className = 'form-section-title';
+                professionalTitle.textContent = 'Professional Information';
+                professionalSection.appendChild(professionalTitle);
                 
-                // Prepare data for table - plain black and white
-                const personalData = [];
-                const professionalData = [];
-                
+                // Add fields to appropriate sections
                 fieldDefinitions.forEach(function(field) {
                     let value = currentEmployee[field.id] || '';
                     
@@ -3442,235 +3169,386 @@
                     }
                     
                     const status = fieldStatuses[field.id];
-                    const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
+                    const statusText = status.charAt(0).toUpperCase() + status.slice(1);
                     
-                    // Add to appropriate array based on field type
+                    // Create row div
+                    const rowDiv = document.createElement('div');
+                    rowDiv.className = 'row mb-2';
+                    
+                    // Create label column
+                    const labelCol = document.createElement('div');
+                    labelCol.className = 'col-md-4';
+                    const strongLabel = document.createElement('strong');
+                    strongLabel.textContent = field.label + ':';
+                    labelCol.appendChild(strongLabel);
+                    
+                    // Create value column
+                    const valueCol = document.createElement('div');
+                    valueCol.className = 'col-md-6';
+                    valueCol.textContent = value;
+                    
+                    // Create status column
+                    const statusCol = document.createElement('div');
+                    statusCol.className = 'col-md-2 text-end';
+                    
+                    const statusBadge = document.createElement('span');
+                    statusBadge.className = 'badge ' + getBadgeClass(status);
+                    statusBadge.textContent = statusText;
+                    statusCol.appendChild(statusBadge);
+                    
+                    // Add columns to row
+                    rowDiv.appendChild(labelCol);
+                    rowDiv.appendChild(valueCol);
+                    rowDiv.appendChild(statusCol);
+                    
+                    // Add to appropriate section based on field type
                     if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
-                        personalData.push(row);
+                        personalSection.appendChild(rowDiv);
                     } else {
-                        professionalData.push(row);
+                        professionalSection.appendChild(rowDiv);
                     }
                 });
                 
-                // Add personal information table
-                doc.setFontSize(14);
-                doc.text('Personal Information', 14, 70);
+                // Add sections to container
+                container.appendChild(personalSection);
+                container.appendChild(professionalSection);
                 
-                doc.autoTable({
-                    startY: 75,
-                    head: [['Field', 'Value', 'Status']],
-                    body: personalData,
-                    theme: 'plain', // Plain theme for black and white
-                    headStyles: {
-                        fillColor: [200, 200, 200], // Light gray for headers
-                        textColor: [0, 0, 0],       // Black text
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add professional information table
-                const professionalStartY = doc.previousAutoTable.finalY + 10;
-                doc.text('Professional Information', 14, professionalStartY);
-                
-                doc.autoTable({
-                    startY: professionalStartY + 5,
-                    head: [['Field', 'Value', 'Status']],
-                    body: professionalData,
-                    theme: 'plain', // Plain theme for black and white
-                    headStyles: {
-                        fillColor: [200, 200, 200], // Light gray for headers
-                        textColor: [0, 0, 0],       // Black text
-                        fontStyle: 'bold'
-                    },
-                    styles: {
-                        cellPadding: 3
-                    }
-                });
-                
-                // Add footer
-                const pageCount = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    doc.setFontSize(10);
-                    doc.setTextColor(0, 0, 0);
-                    doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
-                }
-                
-                // Get the mobile number to use as password
-                const password = currentEmployee['Mobile Number'] || '';
-                
-                // In a real implementation, you would use a library that supports PDF encryption with passwords
-                // For this example, we'll log the password and save the PDF without encryption
-                console.log("PDF would be password protected with:", password);
-                
-                // Save the PDF
-                const fileName = 'Employee_Verification_' + currentEmployee['Employee Name'].replace(/\s+/g, '_') + '.pdf';
-                doc.save(fileName);
-                
-                console.log("PDF generated successfully:", fileName);
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert('Error generating PDF: ' + error.message);
+                console.log("Review content generated");
             }
-        }
-        
-        // Go back to search
-        function goBackToSearch() {
-            console.log("Going back to search");
             
-            document.getElementById('verificationCard').classList.add('d-none');
-            document.getElementById('searchCard').classList.remove('d-none');
+            // Toggle submit button based on confirmation checkbox
+            function toggleSubmitButton() {
+                const isChecked = document.getElementById('confirmCheck').checked;
+                document.getElementById('submitButton').disabled = !isChecked;
+                console.log("Submit button toggled:", !isChecked ? "disabled" : "enabled");
+            }
             
-            // Reset state
-            currentEmployee = null;
-            fieldStatuses = {};
-            editedFields = {};
+            // Submit the form
+            async function submitForm() {
+                console.log("Submitting form");
+                
+                // Show spinner
+                document.getElementById('submitSpinner').style.display = 'block';
+                document.getElementById('submitButton').disabled = true;
+                
+                try {
+                    // Create update object with edited fields
+                    const updateData = { ...editedFields };
+                    
+                    // Add last_updated field to track profile updates
+                    updateData.last_updated = new Date().toISOString();
+                    
+                    // Update the employee record in Supabase
+                    const { data, error } = await supabaseClient
+                        .from('employees')
+                        .update(updateData)
+                        .eq('Mobile Number', currentEmployee['Mobile Number']);
+                        
+                    console.log("Update response:", { data, error });
+                    
+                    if (error) throw error;
+                    
+                    // Hide spinner
+                    document.getElementById('submitSpinner').style.display = 'none';
+                    
+                    // Show success card
+                    document.getElementById('reviewCard').classList.add('d-none');
+                    document.getElementById('successCard').classList.remove('d-none');
+                    
+                    // Update step indicator
+                    updateStepIndicator(4);
+                    
+                    // Clear any saved draft
+                    try {
+                        localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
+                    } catch (e) {
+                        console.error("Error removing draft from localStorage:", e);
+                    }
+                    
+                    console.log("Form submission completed successfully");
+                    
+                } catch (error) {
+                    console.error("Error submitting form:", error);
+                    
+                    // Hide spinner
+                    document.getElementById('submitSpinner').style.display = 'none';
+                    document.getElementById('submitButton').disabled = false;
+                    
+                    // Show error
+                    alert('Error submitting form: ' + error.message);
+                }
+            }
+            
+            // Generate PDF for employee
+            function generatePDF() {
+                console.log("Generating PDF");
+                
+                try {
+                    // Check if jsPDF is loaded
+                    if (typeof window.jspdf === 'undefined') {
+                        console.error("jsPDF library not loaded");
+                        alert("PDF generation library not loaded. Please try again later.");
+                        return;
+                    }
+                    
+                    // Initialize jsPDF
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF();
+                    
+                    // Add title
+                    doc.setFontSize(18);
+                    doc.setTextColor(0, 0, 0); // Black text for better printing
+                    doc.text('Employee Data Verification Report', 105, 15, { align: 'center' });
+                    
+                    // Add subtitle
+                    doc.setFontSize(14);
+                    doc.text('Directorate of Agriculture Chhattisgarh', 105, 25, { align: 'center' });
+                    
+                    // Add employee name and ID
+                    doc.setFontSize(12);
+                    doc.text('Employee: ' + currentEmployee['Employee Name'], 14, 40);
+                    doc.text('Mobile: ' + currentEmployee['Mobile Number'], 14, 48);
+                    doc.text('Verification Date: ' + new Date().toLocaleDateString(), 14, 56);
+                    
+                    // Add horizontal line
+                    doc.setDrawColor(0, 0, 0); // Black line for better printing
+                    doc.setLineWidth(0.5);
+                    doc.line(14, 60, 196, 60);
+                    
+                    // Prepare data for table - plain black and white
+                    const personalData = [];
+                    const professionalData = [];
+                    
+                    fieldDefinitions.forEach(function(field) {
+                        let value = currentEmployee[field.id] || '';
+                        
+                        // If this field was edited, use the edited value
+                        if (editedFields[field.id] !== undefined) {
+                            value = editedFields[field.id];
+                        }
+                        
+                        const status = fieldStatuses[field.id];
+                        const row = [field.label, value, status.charAt(0).toUpperCase() + status.slice(1)];
+                        
+                        // Add to appropriate array based on field type
+                        if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+                            personalData.push(row);
+                        } else {
+                            professionalData.push(row);
+                        }
+                    });
+                    
+                    // Add personal information table
+                    doc.setFontSize(14);
+                    doc.text('Personal Information', 14, 70);
+                    
+                    doc.autoTable({
+                        startY: 75,
+                        head: [['Field', 'Value', 'Status']],
+                        body: personalData,
+                        theme: 'plain', // Plain theme for black and white
+                        headStyles: {
+                            fillColor: [200, 200, 200], // Light gray for headers
+                            textColor: [0, 0, 0],       // Black text
+                            fontStyle: 'bold'
+                        },
+                        styles: {
+                            cellPadding: 3
+                        }
+                    });
+                    
+                    // Add professional information table
+                    const professionalStartY = doc.previousAutoTable.finalY + 10;
+                    doc.text('Professional Information', 14, professionalStartY);
+                    
+                    doc.autoTable({
+                        startY: professionalStartY + 5,
+                        head: [['Field', 'Value', 'Status']],
+                        body: professionalData,
+                        theme: 'plain', // Plain theme for black and white
+                        headStyles: {
+                            fillColor: [200, 200, 200], // Light gray for headers
+                            textColor: [0, 0, 0],       // Black text
+                            fontStyle: 'bold'
+                        },
+                        styles: {
+                            cellPadding: 3
+                        }
+                    });
+                    
+                    // Add footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(10);
+                        doc.setTextColor(0, 0, 0);
+                        doc.text('Directorate of Agriculture Chhattisgarh - Page ' + i + ' of ' + pageCount, 105, 290, { align: 'center' });
+                    }
+                    
+                    // Get the mobile number to use as password
+                    const password = currentEmployee['Mobile Number'] || '';
+                    
+                    // In a real implementation, you would use a library that supports PDF encryption with passwords
+                    // For this example, we'll log the password and save the PDF without encryption
+                    console.log("PDF would be password protected with:", password);
+                    
+                    // Save the PDF
+                    const fileName = 'Employee_Verification_' + currentEmployee['Employee Name'].replace(/\s+/g, '_') + '.pdf';
+                    doc.save(fileName);
+                    
+                    console.log("PDF generated successfully:", fileName);
+                } catch (error) {
+                    console.error("Error generating PDF:", error);
+                    alert('Error generating PDF: ' + error.message);
+                }
+            }
+            
+            // Go back to search
+            function goBackToSearch() {
+                console.log("Going back to search");
+                
+                document.getElementById('verificationCard').classList.add('d-none');
+                document.getElementById('searchCard').classList.remove('d-none');
+                
+                // Reset state
+                currentEmployee = null;
+                fieldStatuses = {};
+                editedFields = {};
+                
+                // Update step indicator
+                updateStepIndicator(1);
+            }
+            
+            // Go back to verify
+            function goBackToVerify() {
+                console.log("Going back to verify");
+                
+                document.getElementById('reviewCard').classList.add('d-none');
+                document.getElementById('verificationCard').classList.remove('d-none');
+                
+                // Update step indicator
+                updateStepIndicator(2);
+            }
+            
+            // Start over from the beginning
+            function startOver() {
+                console.log("Starting over");
+                
+                document.getElementById('successCard').classList.add('d-none');
+                document.getElementById('loginCard').classList.remove('d-none');
+                
+                // Clear search field
+                document.getElementById('mobileNumber').value = '';
+                document.getElementById('employeeMobile').value = '';
+                
+                // Hide step indicator
+                document.getElementById('stepIndicator').classList.add('d-none');
+                
+                // Reset state
+                currentEmployee = null;
+                fieldStatuses = {};
+                editedFields = {};
+                
+                // Switch to employee login option
+                switchToEmployeeLogin();
+            }
             
             // Update step indicator
-            updateStepIndicator(1);
-        }
-        
-        // Go back to verify
-        function goBackToVerify() {
-            console.log("Going back to verify");
-            
-            document.getElementById('reviewCard').classList.add('d-none');
-            document.getElementById('verificationCard').classList.remove('d-none');
-            
-            // Update step indicator
-            updateStepIndicator(2);
-        }
-        
-        // Start over from the beginning
-        function startOver() {
-            console.log("Starting over");
-            
-            document.getElementById('successCard').classList.add('d-none');
-            document.getElementById('loginCard').classList.remove('d-none');
-            
-            // Clear search field
-            document.getElementById('mobileNumber').value = '';
-            document.getElementById('employeeMobile').value = '';
-            
-            // Hide step indicator
-            document.getElementById('stepIndicator').classList.add('d-none');
-            
-            // Reset state
-            currentEmployee = null;
-            fieldStatuses = {};
-            editedFields = {};
-            
-            // Switch to employee login option
-            switchToEmployeeLogin();
-        }
-        
-        // Update step indicator
-        function updateStepIndicator(currentStep) {
-            console.log("Updating step indicator to step:", currentStep);
-            
-            // Reset all steps
-            for (let i = 1; i <= 4; i++) {
-                const stepElement = document.getElementById('step' + i);
-                if (stepElement) {
-                    stepElement.className = 'step';
-                    
-                    if (i < currentStep) {
-                        stepElement.classList.add('completed');
-                    } else if (i === currentStep) {
-                        stepElement.classList.add('active');
-                    }
-                }
-            }
-        }
-        
-        // Show message
-        function showMessage(elementId, message, isError) {
-            console.log("Showing message:", message, "isError:", isError);
-            
-            const element = document.getElementById(elementId);
-            if (element) {
-                element.textContent = message;
-                element.classList.remove('d-none');
+            function updateStepIndicator(currentStep) {
+                console.log("Updating step indicator to step:", currentStep);
                 
-                // Hide message after 5 seconds
-                setTimeout(function() {
-                    element.classList.add('d-none');
-                }, 5000);
-            } else {
-                console.error("Message element not found:", elementId);
-            }
-        }
-        
-        // Check for saved draft on page load
-        function checkForSavedDraft(mobileNumber) {
-            console.log("Checking for saved draft for:", mobileNumber);
-            
-            try {
-                const draftKey = 'employeeDraft_' + mobileNumber;
-                const savedDraft = localStorage.getItem(draftKey);
-                
-                if (savedDraft) {
-                    const draftData = JSON.parse(savedDraft);
-                    const timestamp = new Date(draftData.timestamp);
-                    const now = new Date();
-                    const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
-                    
-                    console.log("Found saved draft from:", timestamp);
-                    
-                    // If draft is less than 24 hours old, ask to restore
-                    if (hoursDiff < 24) {
-                        const confirm = window.confirm('You have a saved draft from ' + timestamp.toLocaleString() + '. Would you like to restore it?');
+                // Reset all steps
+                for (let i = 1; i <= 4; i++) {
+                    const stepElement = document.getElementById('step' + i);
+                    if (stepElement) {
+                        stepElement.className = 'step';
                         
-                        if (confirm) {
-                            console.log("Restoring saved draft");
-                            
-                            // Restore the saved state
-                            currentEmployee = draftData.employee;
-                            fieldStatuses = draftData.statuses;
-                            editedFields = draftData.edits;
-                            
-                            // Show verification card
-                            document.getElementById('searchCard').classList.add('d-none');
-                            document.getElementById('verificationCard').classList.remove('d-none');
-                            
-                            // Update step indicator
-                            updateStepIndicator(2);
-                            
-                            // Generate verification fields
-                            generateVerificationFields();
-                            
-                            // Update progress
-                            updateProgress();
-                            checkAllFieldsVerified();
-                            
-                            return true;
-                        }
-                            // Generate verification fields
-                            generateVerificationFields();
-                            
-                            // Update progress
-                            updateProgress();
-                            checkAllFieldsVerified();
-                            
-                            return true;
+                        if (i < currentStep) {
+                            stepElement.classList.add('completed');
+                        } else if (i === currentStep) {
+                            stepElement.classList.add('active');
                         }
                     }
                 }
-            } catch (error) {
-                console.error("Error checking for saved draft:", error);
             }
             
-            return false;
-        }
-    </script>
-</body>
-</html>
-
+            // Show message
+            function showMessage(elementId, message, isError) {
+                console.log("Showing message:", message, "isError:", isError);
+                
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.textContent = message;
+                    element.classList.remove('d-none');
+                    
+                    // Hide message after 5 seconds
+                    setTimeout(function() {
+                        element.classList.add('d-none');
+                    }, 5000);
+                } else {
+                    console.error("Message element not found:", elementId);
+                }
+            }
             
-
-
+            // Check for saved draft on page load
+            function checkForSavedDraft(mobileNumber) {
+                console.log("Checking for saved draft for:", mobileNumber);
+                
+                try {
+                    const draftKey = 'employeeDraft_' + mobileNumber;
+                    const savedDraft = localStorage.getItem(draftKey);
+                    
+                    if (savedDraft) {
+                        const draftData = JSON.parse(savedDraft);
+                        const timestamp = new Date(draftData.timestamp);
+                        const now = new Date();
+                        const hoursDiff = Math.abs(now - timestamp) / 36e5; // Convert to hours
+                        
+                        console.log("Found saved draft from:", timestamp);
+                        
+                        // If draft is less than 24 hours old, ask to restore
+                        if (hoursDiff < 24) {
+                            const confirm = window.confirm('You have a saved draft from ' + timestamp.toLocaleString() + '. Would you like to restore it?');
+                            
+                            if (confirm) {
+                                console.log("Restoring saved draft");
+                                
+                                // Restore the saved state
+                                currentEmployee = draftData.employee;
+                                fieldStatuses = draftData.statuses;
+                                editedFields = draftData.edits;
+                                
+                                // Show verification card
+                                document.getElementById('searchCard').classList.add('d-none');
+                                document.getElementById('verificationCard').classList.remove('d-none');
+                                
+                                // Update step indicator
+                                updateStepIndicator(2);
+                                
+                                // Generate verification fields
+                                generateVerificationFields();
+                                
+                                // Update progress
+                                updateProgress();
+                                checkAllFieldsVerified();
+                                
+                                return true;
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error checking for saved draft:", error);
+                }
+                
+                return false;
+            }
+        </script>
+    </body>
+    </html>
 
                         
+
+                    
+                    
+
+
