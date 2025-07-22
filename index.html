@@ -1013,7 +1013,7 @@ function logoutAdmin() {
     switchToEmployeeLogin();
 }
 
-// Load admin dashboard data
+// Load admin dashboard data with improved functionality
 async function loadAdminDashboard() {
     console.log("Loading admin dashboard data");
     try {
@@ -1030,8 +1030,9 @@ async function loadAdminDashboard() {
         // Count total, updated, and pending profiles
         const totalCount = employees.length;
         
-        // Assuming a profile is updated if it has a "last_updated" field or similar
-        const updatedCount = employees.filter(emp => emp.last_updated).length;
+        // Check for last_updated field to determine status
+        const updatedEmployees = employees.filter(emp => emp.last_updated);
+        const updatedCount = updatedEmployees.length;
         const pendingCount = totalCount - updatedCount;
         
         // Update stats display
@@ -1039,8 +1040,26 @@ async function loadAdminDashboard() {
         document.getElementById('updatedProfiles').textContent = updatedCount;
         document.getElementById('pendingProfiles').textContent = pendingCount;
         
-        // Populate employee list
-        populateEmployeeList(employees);
+        // Calculate completion percentage
+        const completionPercentage = totalCount > 0 ? Math.round((updatedCount / totalCount) * 100) : 0;
+        
+        // Add completion percentage to dashboard
+        const statsContainer = document.querySelector('.row.mb-4');
+        const percentageCol = document.createElement('div');
+        percentageCol.className = 'col-12 mt-3';
+        percentageCol.innerHTML = `
+            <div class="progress" style="height: 25px;">
+                <div class="progress-bar bg-success" role="progressbar" 
+                     style="width: ${completionPercentage}%;" 
+                     aria-valuenow="${completionPercentage}" aria-valuemin="0" aria-valuemax="100">
+                    ${completionPercentage}% Complete
+                </div>
+            </div>
+        `;
+        statsContainer.appendChild(percentageCol);
+        
+        // Populate employee list with enhanced information
+        populateEnhancedEmployeeList(employees);
         console.log("Admin dashboard loaded successfully");
         
     } catch (error) {
@@ -1048,9 +1067,9 @@ async function loadAdminDashboard() {
     }
 }
 
-// Populate employee list in admin dashboard
-function populateEmployeeList(employees) {
-    console.log("Populating employee list with", employees.length, "employees");
+// Populate employee list with enhanced information
+function populateEnhancedEmployeeList(employees) {
+    console.log("Populating enhanced employee list with", employees.length, "employees");
     const container = document.getElementById('employeeList');
     container.innerHTML = '';
     
@@ -1059,144 +1078,266 @@ function populateEmployeeList(employees) {
         return;
     }
     
+    // Sort employees: updated first, then alphabetically
+    employees.sort((a, b) => {
+        // First sort by update status
+        const aUpdated = a.last_updated ? 1 : 0;
+        const bUpdated = b.last_updated ? 1 : 0;
+        
+        if (bUpdated !== aUpdated) {
+            return bUpdated - aUpdated; // Updated profiles first
+        }
+        
+        // Then sort alphabetically by name
+        return (a['Employee Name'] || '').localeCompare(b['Employee Name'] || '');
+    });
+    
+    // Create table for better data display
+    const table = document.createElement('table');
+    table.className = 'table table-hover';
+    
+    // Create table header
+    const thead = document.createElement('thead');
+    thead.innerHTML = `
+        <tr>
+            <th>Employee Name</th>
+            <th>Mobile Number</th>
+            <th>Designation</th>
+            <th>Status</th>
+            <th>Last Updated</th>
+        </tr>
+    `;
+    table.appendChild(thead);
+    
+    // Create table body
+    const tbody = document.createElement('tbody');
+    
     employees.forEach(function(employee) {
         const isUpdated = employee.last_updated ? true : false;
+        const lastUpdateDate = isUpdated ? new Date(employee.last_updated).toLocaleString() : 'Never';
         
-        const employeeItem = document.createElement('div');
-        employeeItem.className = 'employee-item';
-        employeeItem.dataset.name = employee['Employee Name'] || '';
-        employeeItem.dataset.mobile = employee['Mobile Number'] || '';
+        const row = document.createElement('tr');
+        row.dataset.name = employee['Employee Name'] || '';
+        row.dataset.mobile = employee['Mobile Number'] || '';
         
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'employee-name';
-        nameDiv.textContent = employee['Employee Name'] || 'Unknown';
+        row.innerHTML = `
+            <td>${employee['Employee Name'] || 'Unknown'}</td>
+            <td>${employee['Mobile Number'] || ''}</td>
+            <td>${employee['Designation'] || 'Not specified'}</td>
+            <td><span class="badge ${isUpdated ? 'bg-success' : 'bg-danger'}">${isUpdated ? 'Updated' : 'Pending'}</span></td>
+            <td>${lastUpdateDate}</td>
+        `;
         
-        const mobileDiv = document.createElement('div');
-        mobileDiv.className = 'employee-mobile';
-        mobileDiv.textContent = employee['Mobile Number'] || '';
+        // Add click event to show more details
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', function() {
+            showEmployeeDetails(employee);
+        });
         
-        const statusDiv = document.createElement('div');
-        statusDiv.className = isUpdated ? 'employee-status updated' : 'employee-status pending';
-        statusDiv.textContent = isUpdated ? 'Updated' : 'Pending';
-        
-        employeeItem.appendChild(nameDiv);
-        employeeItem.appendChild(mobileDiv);
-        employeeItem.appendChild(statusDiv);
-        
-        container.appendChild(employeeItem);
+        tbody.appendChild(row);
     });
+    
+    table.appendChild(tbody);
+    container.appendChild(table);
 }
 
-// Filter employees in admin dashboard
-function filterEmployees() {
-    const searchTerm = document.getElementById('employeeSearch').value.toLowerCase();
-    const employeeItems = document.querySelectorAll('#employeeList .employee-item');
-    
-    console.log("Filtering employees with search term:", searchTerm);
-    
-    employeeItems.forEach(function(item) {
-        const name = item.dataset.name.toLowerCase();
-        const mobile = item.dataset.mobile.toLowerCase();
+// Show employee details in a modal
+function showEmployeeDetails(employee) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('employeeDetailsModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'employeeDetailsModal';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-labelledby', 'employeeDetailsModalLabel');
+        modal.setAttribute('aria-hidden', 'true');
         
-        if (name.includes(searchTerm) || mobile.includes(searchTerm)) {
-            item.style.display = 'flex';
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="employeeDetailsModalLabel">Employee Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="employeeDetailsContent">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    // Populate modal with employee details
+    const modalContent = document.getElementById('employeeDetailsContent');
+    modalContent.innerHTML = '';
+    
+    // Create sections
+    const personalSection = document.createElement('div');
+    personalSection.className = 'mb-4';
+    
+    const personalTitle = document.createElement('h5');
+    personalTitle.className = 'form-section-title';
+    personalTitle.textContent = 'Personal Information';
+    personalSection.appendChild(personalTitle);
+    
+    const professionalSection = document.createElement('div');
+    professionalSection.className = 'mb-4';
+    
+    const professionalTitle = document.createElement('h5');
+    professionalTitle.className = 'form-section-title';
+    professionalTitle.textContent = 'Professional Information';
+    professionalSection.appendChild(professionalTitle);
+    
+    // Add fields to appropriate sections
+    fieldDefinitions.forEach(function(field) {
+        const value = employee[field.id] || '';
+        
+        // Create row div
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row mb-2';
+        
+        // Create label column
+        const labelCol = document.createElement('div');
+        labelCol.className = 'col-md-4';
+        const strongLabel = document.createElement('strong');
+        strongLabel.textContent = field.label + ':';
+        labelCol.appendChild(strongLabel);
+        
+        // Create value column
+        const valueCol = document.createElement('div');
+        valueCol.className = 'col-md-8';
+        valueCol.textContent = value;
+        
+        // Add columns to row
+        rowDiv.appendChild(labelCol);
+        rowDiv.appendChild(valueCol);
+        
+        // Add to appropriate section based on field type
+        if (['Mobile Number', 'Employee Name', 'Nic E-mail ID', 'Gender', 'Father\'s Name', 'Date of Birth', 'Nationality', 'Religion', 'Category'].includes(field.id)) {
+            personalSection.appendChild(rowDiv);
         } else {
-            item.style.display = 'none';
+            professionalSection.appendChild(rowDiv);
         }
     });
+    
+    // Add update status information
+    const updateSection = document.createElement('div');
+    updateSection.className = 'mb-4';
+    
+    const updateTitle = document.createElement('h5');
+    updateTitle.className = 'form-section-title';
+    updateTitle.textContent = 'Update Status';
+    updateSection.appendChild(updateTitle);
+    
+    const updateStatusRow = document.createElement('div');
+    updateStatusRow.className = 'row mb-2';
+    
+    const updateStatusLabel = document.createElement('div');
+    updateStatusLabel.className = 'col-md-4';
+    const updateStatusStrong = document.createElement('strong');
+    updateStatusStrong.textContent = 'Status:';
+    updateStatusLabel.appendChild(updateStatusStrong);
+    
+    const updateStatusValue = document.createElement('div');
+    updateStatusValue.className = 'col-md-8';
+    
+    const isUpdated = employee.last_updated ? true : false;
+    const badge = document.createElement('span');
+    badge.className = `badge ${isUpdated ? 'bg-success' : 'bg-danger'}`;
+    badge.textContent = isUpdated ? 'Updated' : 'Pending';
+    updateStatusValue.appendChild(badge);
+    
+    updateStatusRow.appendChild(updateStatusLabel);
+    updateStatusRow.appendChild(updateStatusValue);
+    updateSection.appendChild(updateStatusRow);
+    
+    if (isUpdated) {
+        const lastUpdateRow = document.createElement('div');
+        lastUpdateRow.className = 'row mb-2';
+        
+        const lastUpdateLabel = document.createElement('div');
+        lastUpdateLabel.className = 'col-md-4';
+        const lastUpdateStrong = document.createElement('strong');
+        lastUpdateStrong.textContent = 'Last Updated:';
+        lastUpdateLabel.appendChild(lastUpdateStrong);
+        
+        const lastUpdateValue = document.createElement('div');
+        lastUpdateValue.className = 'col-md-8';
+        lastUpdateValue.textContent = new Date(employee.last_updated).toLocaleString();
+        
+        lastUpdateRow.appendChild(lastUpdateLabel);
+        lastUpdateRow.appendChild(lastUpdateValue);
+        updateSection.appendChild(lastUpdateRow);
+    }
+    
+    // Add sections to modal
+    modalContent.appendChild(updateSection);
+    modalContent.appendChild(personalSection);
+    modalContent.appendChild(professionalSection);
+    
+    // Show modal
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
 }
 
-// Test connection to Supabase
-async function testConnection() {
-    try {
-        console.log("Testing connection to Supabase...");
-        
-        // Simple query to test connection
-        const { data, error } = await supabaseClient
-            .from('employees')
-            .select('count');
-        
-        if (error) {
-            console.error("Connection test failed:", error);
-        } else {
-            console.log("Connection successful!");
-        }
-    } catch (error) {
-        console.error("Error in connection test:", error);
-    }
-}
-
-// Search for employee by mobile number
-async function searchEmployee() {
-    console.log("Search function called");
-    
-    const mobileNumber = document.getElementById('mobileNumber').value.trim();
-    console.log("Mobile number entered:", mobileNumber);
-    
-    if (!mobileNumber) {
-        showMessage('searchError', 'Please enter your mobile number', true);
-        return;
-    }
+// Submit the form - Fixed version that handles the last_updated field properly
+async function submitForm() {
+    console.log("Submitting form");
     
     // Show spinner
-    document.getElementById('searchSpinner').style.display = 'block';
-    document.getElementById('searchButton').disabled = true;
+    document.getElementById('submitSpinner').style.display = 'block';
+    document.getElementById('submitButton').disabled = true;
     
     try {
-        console.log("Querying Supabase for mobile number:", mobileNumber);
+        // Create update object
+        const updateData = { ...editedFields };
         
-        // Query Supabase for employee with this mobile number
+        // Add last_updated field to track profile updates
+        updateData.last_updated = new Date().toISOString();
+        
+        // Update the employee record in Supabase
         const { data, error } = await supabaseClient
             .from('employees')
-            .select('*')
-            .eq('Mobile Number', mobileNumber);
+            .update(updateData)
+            .eq('Mobile Number', currentEmployee['Mobile Number']);
+            
+        console.log("Update response:", { data, error });
         
-        console.log("Query complete. Data:", data);
-        console.log("Query error:", error);
+        if (error) throw error;
         
         // Hide spinner
-        document.getElementById('searchSpinner').style.display = 'none';
-        document.getElementById('searchButton').disabled = false;
+        document.getElementById('submitSpinner').style.display = 'none';
         
-        if (error) {
-            console.error("Error from Supabase:", error);
-            showMessage('searchError', 'Database error: ' + error.message, true);
-            return;
+        // Show success card
+        document.getElementById('reviewCard').classList.add('d-none');
+        document.getElementById('successCard').classList.remove('d-none');
+        
+        // Update step indicator
+        updateStepIndicator(4);
+        
+        // Clear any saved draft
+        try {
+            localStorage.removeItem('employeeDraft_' + currentEmployee['Mobile Number']);
+        } catch (e) {
+            console.error("Error removing draft from localStorage:", e);
         }
         
-        if (data && data.length > 0) {
-            console.log("Employee found:", data[0]);
-            
-            // Store employee data
-            currentEmployee = data[0];
-            
-            // Initialize field statuses
-            fieldDefinitions.forEach(function(field) {
-                fieldStatuses[field.id] = 'pending';
-            });
-            
-            // Show verification card
-            document.getElementById('searchCard').classList.add('d-none');
-            document.getElementById('verificationCard').classList.remove('d-none');
-            
-            // Update step indicator
-            updateStepIndicator(2);
-            
-            // Generate verification fields
-            generateVerificationFields();
-        } else {
-            console.log("No employee found with mobile number:", mobileNumber);
-            showMessage('searchError', 'No employee found with this mobile number', true);
-        }
+        console.log("Form submission completed successfully");
+        
     } catch (error) {
-        console.error("Exception in searchEmployee:", error);
+        console.error("Error submitting form:", error);
         
         // Hide spinner
-        document.getElementById('searchSpinner').style.display = 'none';
-        document.getElementById('searchButton').disabled = false;
+        document.getElementById('submitSpinner').style.display = 'none';
+        document.getElementById('submitButton').disabled = false;
         
-        // Show error message
-        showMessage('searchError', 'Error: ' + error.message, true);
+        // Show error
+        alert('Error submitting form: ' + error.message);
     }
 }
 
