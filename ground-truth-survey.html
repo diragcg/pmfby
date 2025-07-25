@@ -1,1 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block wise Officials Personal Information for Ground Truth Survey for Kharif 2025</title>
+    <!-- Include Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Include Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #800000; /* Maroon Red */
+            --secondary-color: #4d0000; /* Darker Maroon */
+            --accent-color: #ff9999; /* Light Red */
+            --text-color: #333333; /* Dark Gray for text */
+            --light-color: #ffffff; /* White */
+            --gray-color: #f4f4f4; /* Light Gray */
+            --border-color: #dddddd; /* Border color */
+            --shadow-color: rgba(0, 0, 0, 0.2); /* Shadow color */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            background-color: #f0f0f0;
+            color: var(--text-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: var(--light-color);
+            padding: 20px;
+            text-align: center;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px var(--shadow-color);
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0));
+            z-index: 0;
+            transform: skewY(-2deg);
+        }
+
+        .header h1, .header p {
+            position: relative;
+            z-index: 1;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .card {
+            background-color: var(--light-color);
+            border-radius: 10px;
+            box-shadow: 0 10px 20px var(--shadow-color);
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px var(--shadow-color);
+        }
+
+        .card-header {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: var(--light-color);
+            padding: 15px 20px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            font-weight: 600;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+        }
+
+        .card-header i {
+            margin-right: 10px;
+        }
+
+        .card-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .required::after {
+            content: " *";
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(128, 0, 0, 0.1);
+        }
+
+        small {
+            display: block;
+            margin-top: 5px;
+            color: #777;
+            font-size: 12px;
+        }
+
+        button {
+            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            color: var(--light-color);
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover {
+            background: linear-gradient(to right, var(--secondary-color), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        button i {
+            margin-right: 8px;
+        }
+
+        .tab {
+            overflow: hidden;
+            background-color: var(--light-color);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px var(--shadow-color);
+            display: flex;
+            margin-bottom: 30px;
+        }
+
+        .tab button {
+            flex: 1;
+            background-color: transparent;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 15px 20px;
+            transition: 0.3s;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--text-color);
+            border-bottom: 3px solid transparent;
+            border-radius: 0;
+            box-shadow: none;
+        }
+
+        .tab button:hover {
+            background-color: rgba(128, 0, 0, 0.05);
+            transform: none;
+        }
+
+        .tab button.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            background-color: rgba(128, 0, 0, 0.1);
+        }
+
+        .tabcontent {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0;}
+            to {opacity: 1;}
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: var(--light-color);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        table th, table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        table th {
+            background-color: var(--primary-color);
+            color: var(--light-color);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 0.5px;
+        }
+
+        table tr:nth-child(even) {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+
+        table tr:hover {
+            background-color: rgba(128, 0, 0, 0.05);
+        }
+
+        table input {
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+
+        .add-row-btn {
+            background-color: #333;
+            margin-bottom: 20px;
+        }
+
+        .add-row-btn:hover {
+            background-color: #000;
+        }
+
+        .success-message, .error-message {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            display: none;
+            animation: slideIn 0.5s;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .success-message {
+            background-color: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid #4CAF50;
+            color: #2e7d32;
+        }
+
+        .error-message {
+            background-color: rgba(244, 67, 54, 0.1);
+            border-left: 4px solid #F44336;
+            color: #d32f2f;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .reset-btn {
+            background: linear-gradient(to right, #333, #000);
+        }
+
+        .reset-btn:hover {
+            background: linear-gradient(to right, #000, #333);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            .tab button {
+                padding: 10px;
+                font-size: 14px;
+            }
+            
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: var(--primary-color);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+
+        .form-col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 250px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Block wise Officials Personal Information for Ground Truth Survey for Kharif 2025</h1>
+            <p>Using Krishi Mapper App</p>
+        </div>
+
+        <div id="successMessage" class="success-message">
+            <i class="fas fa-check-circle"></i> डेटा सफलतापूर्वक सहेजा गया!
+        </div>
+        <div id="errorMessage" class="error-message">
+            <i class="fas fa-exclamation-circle"></i> एक त्रुटि हुई। कृपया पुनः प्रयास करें।
+        </div>
+
+        <div class="tab">
+            <button class="tablinks active" onclick="openTab(event, 'Module1')">
+                <i class="fas fa-user"></i> अधिकारी व्यक्तिगत जानकारी
+            </button>
+            <button class="tablinks" onclick="openTab(event, 'Module2')">
+                <i class="fas fa-map-marked-alt"></i> Ground Truth Survey
+            </button>
+            <button class="tablinks" onclick="openTab(event, 'Module3')">
+                <i class="fas fa-seedling"></i> Crop Assessment
+            </button>
+        </div>
+
+        <!-- Module 1: Personal Information Form -->
+        <div id="Module1" class="tabcontent" style="display: block;">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-user-edit"></i> अधिकारी व्यक्तिगत जानकारी फॉर्म
+                </div>
+                <div class="card-body">
+                    <form id="personalInfoForm">
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="name" class="required">अधिकारी/कर्मचारी का नाम</label>
+                                    <input type="text" id="name" name="name" required>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="designation" class="required">पदनाम</label>
+                                    <select id="designation" name="designation" required>
+                                        <option value="">पदनाम चुनें</option>
+                                        <option value="R.A.EO">R.A.EO</option>
+                                        <option value="A.D.O">A.D.O</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="district" class="required">पदस्थापना का जिला</label>
+                                    <select id="district" name="district" required>
+                                        <option value="">जिला चुनें</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="block" class="required">पदस्थापना का विकासखंड</label>
+                                    <select id="block" name="block" required>
+                                        <option value="">पहले जिला चुनें</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="mobile" class="required">मोबाइल नंबर</label>
+                                    <input type="tel" id="mobile" name="mobile" pattern="[0-9]{10}" required>
+                                    <small>10 अंकों का मोबाइल नंबर दर्ज करें</small>
+                                </div>
+                            </div>
+                            <div class="form-col">
+                                <div class="form-group">
+                                    <label for="email">ईमेल (वैकल्पिक)</label>
+                                    <input type="email" id="email" name="email">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button type="reset" class="reset-btn"><i class="fas fa-redo"></i> रीसेट</button>
+                            <button type="submit"><i class="fas fa-save"></i> जमा करें</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module 2: Ground Truth Survey Form -->
+        <div id="Module2" class="tabcontent">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-map-marked-alt"></i> Ground Truth Survey के लिए अधिकारी डेटा संग्रह
+                </div>
+                <div class="card-body">
+                    <form id="groundTruthForm">
+                        <div class="form-group">
+                            <label for="surveyDate" class="required">सर्वे की तारीख</label>
+                            <input type="date" id="surveyDate" name="surveyDate" required>
+                        </div>
+                        
+                        <div style="overflow-x: auto;">
+                            <table id="groundTruthTable">
+                                <thead>
+                                    <tr>
+                                        <th>क्र.सं.</th>
+                                        <th>तहसील का नाम</th>
+                                        <th>गाँव का नाम</th>
+                                        <th>अधिकारी/कर्मचारी का नाम ADA/SDAO/RAEO</th>
+                                        <th>जिला का नाम</th>
+                                        <th>विकासखण्ड का नाम</th>
+                                        <th>फसल विवरण (स्पष्ट)</th>
+                                        <th>कुल क्षेत्र हेक्टर में</th>
+                                        <th>फसल क्षेत्र हेक्टर</th>
+                                        <th>टिप्पणियां/संख्या</th>
+                                        <th>रिमार्क</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" class="add-row-btn" onclick="addGroundTruthRow()">
+                            <i class="fas fa-plus"></i> नई पंक्ति जोड़ें
+                        </button>
+                        
+                        <div class="action-buttons">
+                            <button type="reset" class="reset-btn"><i class="fas fa-redo"></i> रीसेट</button>
+                            <button type="submit"><i class="fas fa-save"></i> जमा करें</button>
+                        </div>
+                    </form>
+                    <div class="loading-spinner" id="groundTruthSpinner">
+                        <div class="spinner"></div>
+                        <p>डेटा सहेज रहा है...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Module 3: Crop Assessment Form -->
+        <div id="Module3" class="tabcontent">
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-seedling"></i> Kharif 2025 Crop Assessment Under FASAL Project
+                </div>
+                <div class="card-body">
+                    <form id="cropAssessmentForm">
+                        <div class="form-group">
+                            <label for="assessmentDate" class="required">Assessment Date</label>
+                            <input type="date" id="assessmentDate" name="assessmentDate" required>
+                        </div>
+                        
+                        <div style="overflow-x: auto;">
+                            <table id="cropAssessmentTable">
+                                <thead>
+                                    <tr>
+                                        <th>क्र.सं.</th>
+                                        <th>तहसील का नाम</th>
+                                        <th>गाँव का नाम</th>
+                                        <th>अधिकारी/कर्मचारी का नाम ADA/SDAO/RAEO</th>
+                                        <th>जिला का नाम</th>
+                                        <th>विकासखण्ड का नाम</th>
+                                        <th>फसल विवरण (स्पष्ट)</th>
+                                        <th>फसल स्थिति/अवस्था</th>
+                                        <th>कुल क्षेत्र हेक्टर</th>
+                                        <th>टिप्पणियां संख्या</th>
+                                        <th>रिमार्क</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                        
+                        <button type="button" class="add-row-btn" onclick="addCropAssessmentRow()">
+                            <i class="fas fa-plus"></i> नई पंक्ति जोड़ें
+                        </button>
+                        
+                        <div class="action-buttons">
+                            <button type="reset" class="reset-btn"><i class="fas fa-redo"></i> रीसेट</button>
+                            <button type="submit"><i class="fas fa-save"></i> जमा करें</button>
+                        </div>
+                    </form>
+                    <div class="loading-spinner" id="cropAssessmentSpinner">
+                        <div class="spinner"></div>
+                        <p>डेटा सहेज रहा है...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Supabase client
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        let supabaseClient;
+
+        // Initialize Supabase when the page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            try {
+                supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+                console.log('Supabase client initialized successfully');
+                
+                // Create tables if they don't exist
+                await initializeDatabase();
+            } catch (error) {
+                console.error('Error initializing Supabase client:', error);
+                showError('डेटाबेस कनेक्शन में त्रुटि। कृपया पुनः प्रयास करें।');
+            }
+        });
+
+        // Initialize database tables if they don't exist
+        async function initializeDatabase() {
+            try {
+                // Check if tables exist and create them if they don't
+                // This would typically be done through Supabase dashboard or migration scripts
+                // For demo purposes, we're just logging that this would happen
+                console.log('Database tables initialized');
+            } catch (error) {
+                console.error('Error initializing database:', error);
+            }
+        }
+
+        // District and Block data
+        const districtBlockData = {
+            "Balod": ["Gunderdehi", "Balod", "Dondi", "Dondilohara", "Gurur"],
+            "Balodabazar-Bhatapara": ["Baloda Bazar", "Bhatapara", "Kasdol", "Palari", "Simga"],
+            "Balrampur Ramanujganj": ["Balrampur", "Wadrafnagar", "Kusmi", "Rajpur", "Ramchandrapur", "Shankargarh"],
+            "Bastar": ["Bakawand", "Bastanar", "Bastar", "Darbha", "Jagdalpur", "Lohandiguda", "Tokapal"],
+            "Bemetara": ["Bemetara", "Berla", "Saja", "Nawagarh"],
+            "Bijapur": ["Bhairamgarh", "Bhopal Patnam", "Bijapur", "Usoor"],
+            "Bilaspur": ["Kota", "Belha", "Masturi", "Takhatpur"],
+            "Dakshin Bastar Dantewada": ["Kuwakonda", "Dantewada", "Geedam", "Katekalyan"],
+            "Dhamtari": ["Nagari", "Dhamtari", "Kurud", "Magarlod"],
+            "Durg": ["Dhamdha", "Durg", "Patan"],
+            "Gariyaband": ["Mainpur", "Chhurra", "Deobhog", "Gariyaband", "Fingeshwar"],
+            "Gaurela Pendra Marwahi": ["Marwahi", "Gaurella-1", "Gaurella-2"],
+            "Janjgir-Champa": ["Akaltara", "Baloda", "Bamhindih", "Nawagarh", "Pamgarh"],
+            "Jashpur": ["Bagicha", "Duldula", "Pharsabahar", "Jashpur", "Kansabel", "Kunkuri", "Manora", "Patthalgaon"],
+            "Kabeerdham": ["Bodla", "Kawardha", "S.Lohara", "Pandariya"],
+            "Khairagarh Chhuikhadan Gandai": ["Chhuikhadan", "Khairagarh"],
+            "Kondagaon": ["Baderajpur", "Keshkal", "Kondagaon", "Makdi", "Pharasgaon"],
+            "Korba": ["Korba", "Kartala", "Katghora", "Pali", "Podi Uparoda"],
+            "Korea": ["Baikunthpur", "Khadgawana", "Sonhat"],
+            "Mahasamund": ["Bagbahara", "Pithora", "Mahasamund", "Basna", "Saraipali"],
+            "Manendragarh Chirmiri Bharatpur Mcb": ["Bharatpur", "Khadgawana", "Manendragarh"],
+            "Mohla Manpur Ambagarh Chouki": ["A.Chowki (Td)", "Manpur (Td)", "Mohala (Td)"],
+            "Mungeli": ["Mungeli", "Lormi", "Pathariya"],
+            "Narayanpur": ["Narayanpur", "Orchha(Abhujmad)"],
+            "Raigarh": ["Dharamjaigarh", "Gharghoda", "Kharsia", "Lailunga", "Pussore", "Raigarh", "Tamnar"],
+            "Raipur": ["Abhanpur", "Arang", "Dharsiwa", "Tilda"],
+            "Rajnandgaon": ["Chhuriya", "Dongargaon", "Dongarghar", "Rajnandgaon"],
+            "Sakti": ["Malkharoda", "Sakti", "Dabhara", "Jaijaipur"],
+            "Sarangarh Bilaigarh": ["Baramkela", "Sarangarh", "Bilaigarh"],
+            "Sukma": ["Chhindgarh", "Sukma", "Konta"],
+            "Surajpur": ["Bhaiyathan", "Odagi", "Surajpur", "Pratappur", "Premnagar", "Ramanujnagar"],
+            "Surguja": ["Ambikapur", "Batauli", "Lakhanpur", "Lundra", "Mainpat", "Sitapur", "Udaipur"],
+            "Uttar Bastar Kanker": ["Antagarh", "Bhanupratappur", "Charama", "Durgukondal", "Kanker", "Narharpur", "Koilebeda"]
+        };
+
+        // Populate district dropdown
+        const districtDropdown = document.getElementById('district');
+        Object.keys(districtBlockData).sort().forEach(district => {
+            const option = document.createElement('option');
+            option.value = district;
+            option.textContent = district;
+            districtDropdown.appendChild(option);
+        });
+
+        // Handle district selection change
+        districtDropdown.addEventListener('change', function() {
+            const selectedDistrict = this.value;
+            const blockDropdown = document.getElementById('block');
+            
+            // Clear existing options
+            blockDropdown.innerHTML = '<option value="">विकासखंड चुनें</option>';
+            
+            if (selectedDistrict) {
+                // Populate blocks based on selected district
+                const blocks = districtBlockData[selectedDistrict] || [];
+                blocks.sort().forEach(block => {
+                    const option = document.createElement('option');
+                    option.value = block;
+                    option.textContent = block;
+                    blockDropdown.appendChild(option);
+                });
+            }
+        });
+
+        // Tab functionality
+        function openTab(evt, tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(tabName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+
+        // Ground Truth table row counter
+        let groundTruthRowCount = 1;
+        
+// Function to add new row to Ground Truth table
+function addGroundTruthRow() {
+    const table = document.getElementById("groundTruthTable").getElementsByTagName('tbody')[0];
+    const row = table.insertRow(-1);
+    
+    // Insert cells
+    for (let i = 0; i < 11; i++) {
+        const cell = row.insertCell(i);
+        
+        if (i === 0) {
+            // Serial number
+            cell.textContent = groundTruthRowCount;
+        } else {
+            // Add input for other cells
+            const input = document.createElement("input");
+            input.type = "text";
+            input.name = `groundTruth_${groundTruthRowCount}_col${i}`;
+            input.required = true;
+            
+            // Add specific properties based on column
+            if (i === 4) { // District column
+                input.value = document.getElementById('district').value || '';
+            } else if (i === 5) { // Block column
+                input.value = document.getElementById('block').value || '';
+            }
+            
+            cell.appendChild(input);
+        }
+    }
+    
+    groundTruthRowCount++;
+}
+
+// Add initial row for Ground Truth table
+addGroundTruthRow();
+
+// Crop Assessment table row counter
+let cropAssessmentRowCount = 1;
+
+// Function to add new row to Crop Assessment table
+function addCropAssessmentRow() {
+    const table = document.getElementById("cropAssessmentTable").getElementsByTagName('tbody')[0];
+    const row = table.insertRow(-1);
+    
+    // Insert cells
+    for (let i = 0; i < 11; i++) {
+        const cell = row.insertCell(i);
+        
+        if (i === 0) {
+            // Serial number
+            cell.textContent = cropAssessmentRowCount;
+        } else {
+            // Add input for other cells
+            const input = document.createElement("input");
+            input.type = "text";
+            input.name = `cropAssessment_${cropAssessmentRowCount}_col${i}`;
+            input.required = true;
+            
+            // Add specific properties based on column
+            if (i === 4) { // District column
+                input.value = document.getElementById('district').value || '';
+            } else if (i === 5) { // Block column
+                input.value = document.getElementById('block').value || '';
+            }
+            
+            cell.appendChild(input);
+        }
+    }
+    
+    cropAssessmentRowCount++;
+}
+
+// Add initial row for Crop Assessment table
+addCropAssessmentRow();
+
+// Show success message
+function showSuccess(message) {
+    const successElement = document.getElementById('successMessage');
+    successElement.textContent = message || 'डेटा सफलतापूर्वक सहेजा गया!';
+    successElement.style.display = 'block';
+    setTimeout(() => {
+        successElement.style.display = 'none';
+    }, 3000);
+}
+
+// Show error message
+function showError(message) {
+    const errorElement = document.getElementById('errorMessage');
+    errorElement.textContent = message || 'एक त्रुटि हुई। कृपया पुनः प्रयास करें।';
+    errorElement.style.display = 'block';
+    setTimeout(() => {
+        errorElement.style.display = 'none';
+    }, 3000);
+}
+
+// Form submission handlers
+document.getElementById('personalInfoForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        name: document.getElementById('name').value,
+        designation: document.getElementById('designation').value,
+        district: document.getElementById('district').value,
+        development_block: document.getElementById('block').value,
+        mobile_number: document.getElementById('mobile').value,
+        email: document.getElementById('email').value || null,
+        created_at: new Date().toISOString()
+    };
+    
+    try {
+        // Insert data into Supabase
+        const { data, error } = await supabaseClient
+            .from('chhattisgarh_officials')
+            .insert([formData]);
+        
+        if (error) throw error;
+        
+        showSuccess('अधिकारी की जानकारी सफलतापूर्वक सहेजी गई!');
+        this.reset();
+        
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        showError('डेटा सहेजने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+    }
+});
+
+document.getElementById('groundTruthForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Show loading spinner
+    document.getElementById('groundTruthSpinner').style.display = 'block';
+    
+    const surveyDate = document.getElementById('surveyDate').value;
+    const entries = [];
+    
+    // Collect data from all rows
+    for (let i = 1; i < groundTruthRowCount; i++) {
+        const rowData = {
+            survey_date: surveyDate,
+            serial_number: i,
+            tehsil: document.querySelector(`input[name="groundTruth_${i}_col1"]`)?.value || '',
+            village: document.querySelector(`input[name="groundTruth_${i}_col2"]`)?.value || '',
+            official_name: document.querySelector(`input[name="groundTruth_${i}_col3"]`)?.value || '',
+            district: document.querySelector(`input[name="groundTruth_${i}_col4"]`)?.value || '',
+            block: document.querySelector(`input[name="groundTruth_${i}_col5"]`)?.value || '',
+            crop_details: document.querySelector(`input[name="groundTruth_${i}_col6"]`)?.value || '',
+            total_area_hectare: document.querySelector(`input[name="groundTruth_${i}_col7"]`)?.value || '',
+            crop_area_hectare: document.querySelector(`input[name="groundTruth_${i}_col8"]`)?.value || '',
+            comments: document.querySelector(`input[name="groundTruth_${i}_col9"]`)?.value || '',
+            remarks: document.querySelector(`input[name="groundTruth_${i}_col10"]`)?.value || '',
+            created_at: new Date().toISOString()
+        };
+        
+        // Only add rows with data
+        if (rowData.tehsil || rowData.village || rowData.official_name) {
+            entries.push(rowData);
+        }
+    }
+    
+    try {
+        // Insert data into Supabase
+        const { data, error } = await supabaseClient
+            .from('ground_truth_survey')
+            .insert(entries);
+        
+        if (error) throw error;
+        
+        // Hide loading spinner
+        document.getElementById('groundTruthSpinner').style.display = 'none';
+        
+        showSuccess('Ground Truth Survey डेटा सफलतापूर्वक सहेजा गया!');
+        
+        // Reset form and table
+        this.reset();
+        const table = document.getElementById("groundTruthTable").getElementsByTagName('tbody')[0];
+        table.innerHTML = '';
+        groundTruthRowCount = 1;
+        addGroundTruthRow();
+        
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        
+        // Hide loading spinner
+        document.getElementById('groundTruthSpinner').style.display = 'none';
+        
+        showError('डेटा सहेजने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+    }
+});
+
+document.getElementById('cropAssessmentForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Show loading spinner
+    document.getElementById('cropAssessmentSpinner').style.display = 'block';
+    
+    const assessmentDate = document.getElementById('assessmentDate').value;
+    const entries = [];
+    
+    // Collect data from all rows
+    for (let i = 1; i < cropAssessmentRowCount; i++) {
+        const rowData = {
+            assessment_date: assessmentDate,
+            serial_number: i,
+            tehsil: document.querySelector(`input[name="cropAssessment_${i}_col1"]`)?.value || '',
+            village: document.querySelector(`input[name="cropAssessment_${i}_col2"]`)?.value || '',
+            official_name: document.querySelector(`input[name="cropAssessment_${i}_col3"]`)?.value || '',
+            district: document.querySelector(`input[name="cropAssessment_${i}_col4"]`)?.value || '',
+            block: document.querySelector(`input[name="cropAssessment_${i}_col5"]`)?.value || '',
+            crop_details: document.querySelector(`input[name="cropAssessment_${i}_col6"]`)?.value || '',
+            crop_condition: document.querySelector(`input[name="cropAssessment_${i}_col7"]`)?.value || '',
+            total_area_hectare: document.querySelector(`input[name="cropAssessment_${i}_col8"]`)?.value || '',
+            comments: document.querySelector(`input[name="cropAssessment_${i}_col9"]`)?.value || '',
+            remarks: document.querySelector(`input[name="cropAssessment_${i}_col10"]`)?.value || '',
+            created_at: new Date().toISOString()
+        };
+        
+        // Only add rows with data
+        if (rowData.tehsil || rowData.village || rowData.official_name) {
+            entries.push(rowData);
+        }
+    }
+    
+    try {
+        // Insert data into Supabase
+        const { data, error } = await supabaseClient
+            .from('crop_assessment')
+            .insert(entries);
+        
+        if (error) throw error;
+        
+        // Hide loading spinner
+        document.getElementById('cropAssessmentSpinner').style.display = 'none';
+        
+        showSuccess('Crop Assessment डेटा सफलतापूर्वक सहेजा गया!');
+        
+        // Reset form and table
+        this.reset();
+        const table = document.getElementById("cropAssessmentTable").getElementsByTagName('tbody')[0];
+        table.innerHTML = '';
+        cropAssessmentRowCount = 1;
+        addCropAssessmentRow();
+        
+    } catch (error) {
+        console.error('Error submitting form:', error);
+        
+        // Hide loading spinner
+        document.getElementById('cropAssessmentSpinner').style.display = 'none';
+        
+        showError('डेटा सहेजने में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+    }
+});
+</script>
 
