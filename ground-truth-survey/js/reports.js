@@ -316,4 +316,142 @@ const Reports = {
      * @param {string} dateFrom - Start date
      * @param {string} dateTo - End date
      */
-    generateB
+    generateBudgetReport: function(dateFrom, dateTo) {
+        const divisionFilter = this.currentUser.division_id !== 0 ? 
+            { division_id: this.currentUser.division_id } : {};
+        
+        this.supabaseClient
+            .from(CONFIG.TABLES.GROUND_TRUTH)
+            .select('division_id, division_name, expenditure_amount, total_amount_demanded')
+            .gte('survey_date', dateFrom)
+            .lte('survey_date', dateTo)
+            .match(divisionFilter)
+            .then(({ data, error }) => {
+                if (error) {
+                    console.error('Error generating budget report:', error);
+                    Utils.showError('Failed to generate budget report');
+                    Utils.hideLoading();
+                    return;
+                }
+                
+                // Process data to aggregate by division
+                const budgetData = {};
+                
+                if (data && data.length > 0) {
+                    data.forEach(item => {
+                        if (!budgetData[item.division_id]) {
+                            budgetData[item.division_id] = {
+                                division_name: item.division_name,
+                                expenditure_amount: 0,
+                                total_amount_demanded: 0
+                            };
+                        }
+                        
+                        budgetData[item.division_id].expenditure_amount += parseFloat(item.expenditure_amount) || 0;
+                        budgetData[item.division_id].total_amount_demanded += parseFloat(item.total_amount_demanded) || 0;
+                    });
+                }
+                
+                // Convert to array and calculate balance
+                const reportData = Object.values(budgetData).map(item => ({
+                    ...item,
+                    balance: item.total_amount_demanded - item.expenditure_amount
+                })).sort((a, b) => 
+                    a.division_name.localeCompare(b.division_name)
+                );
+                
+                // Display report
+                this.displayReport('Budget Report', reportData, [
+                    { key: 'division_name', label: 'Division' },
+                    { 
+                        key: 'expenditure_amount', 
+                        label: 'Expenditure Amount',
+                        format: (value) => Utils.formatCurrency(value)
+                    },
+                    { 
+                        key: 'total_amount_demanded', 
+                        label: 'Amount Demanded',
+                        format: (value) => Utils.formatCurrency(value)
+                    },
+                    { 
+                        key: 'balance', 
+                        label: 'Balance',
+                        format: (value) => Utils.formatCurrency(value)
+                    }
+                ]);
+            });
+    },
+
+    /**
+     * Display report in the UI
+     * @param {string} title - Report title
+     * @param {Array} data - Report data
+     * @param {Array} columns - Column definitions
+     */
+    displayReport: function(title, data, columns) {
+        Utils.hideLoading();
+        
+        let reportHtml = `
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>${title} (${Utils.formatDate(document.getElementById('reportDateFrom').value)} to \${Utils.formatDate(document.getElementById('reportDateTo').value)})</span>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary me-2" onclick="Reports.exportCurrentReportToPDF()">
+                            <i class="fas fa-file-pdf me-1"></i> PDF
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="Reports.exportCurrentReportToExcel()">
+                            <i class="fas fa-file-excel me-1"></i> Excel
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+        `;
+        
+        if (data && data.length > 0) {
+            reportHtml += `
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="reportDataTable">
+                        <thead>
+                            <tr>
+                                <th>क्र.सं.</th>
+            `;
+            
+            // Add column headers
+            columns.forEach(column => {
+                reportHtml += `<th>\${column.label}</th>`;
+            });
+            
+            reportHtml += `
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            // Add data rows
+            data.forEach((row, index) => {
+                reportHtml += `<tr><td>${index + 1}</td>`;
+                
+                columns.forEach(column => {
+                    let value = row[column.key];
+                    if (column.format) {
+                        value = column.format(value);
+                    } else if (column.calculate) {
+                        value = column.calculate(row);
+                    }
+                    reportHtml += `<td>${value}</td>`;
+                });
+                
+                reportHtml += `</tr>`;
+            });
+            
+            reportHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            reportHtml += `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    No
+
