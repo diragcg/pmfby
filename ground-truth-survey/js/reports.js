@@ -352,11 +352,8 @@ const Reports = {
                     });
                 }
                 
-                // Convert to array and calculate balance
-                const reportData = Object.values(budgetData).map(item => ({
-                    ...item,
-                    balance: item.total_amount_demanded - item.expenditure_amount
-                })).sort((a, b) => 
+                // Convert to array and sort by division name
+                const reportData = Object.values(budgetData).sort((a, b) => 
                     a.division_name.localeCompare(b.division_name)
                 );
                 
@@ -370,31 +367,33 @@ const Reports = {
                     },
                     { 
                         key: 'total_amount_demanded', 
-                        label: 'Amount Demanded',
+                        label: 'Total Amount Demanded',
                         format: (value) => Utils.formatCurrency(value)
                     },
                     { 
                         key: 'balance', 
                         label: 'Balance',
+                        calculate: (item) => item.total_amount_demanded - item.expenditure_amount,
                         format: (value) => Utils.formatCurrency(value)
                     }
                 ]);
             });
     },
-
+    
     /**
      * Display report in the UI
      * @param {string} title - Report title
      * @param {Array} data - Report data
-     * @param {Array} columns - Column definitions
+     * @param {Array} columns - Column definitions for the table
      */
     displayReport: function(title, data, columns) {
         Utils.hideLoading();
+        const reportResult = document.getElementById('reportResult');
         
         let reportHtml = `
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>${title} (${Utils.formatDate(document.getElementById('reportDateFrom').value)} to \${Utils.formatDate(document.getElementById('reportDateTo').value)})</span>
+                    <span>\${title}</span>
                     <div>
                         <button class="btn btn-sm btn-outline-secondary me-2" onclick="Reports.exportCurrentReportToPDF()">
                             <i class="fas fa-file-pdf me-1"></i> PDF
@@ -410,15 +409,15 @@ const Reports = {
         if (data && data.length > 0) {
             reportHtml += `
                 <div class="table-responsive">
-                    <table class="table table-bordered table-striped" id="reportDataTable">
+                    <table class="table table-bordered table-striped" id="generatedReportTable">
                         <thead>
                             <tr>
                                 <th>क्र.सं.</th>
             `;
             
             // Add column headers
-            columns.forEach(column => {
-                reportHtml += `<th>\${column.label}</th>`;
+            columns.forEach(col => {
+                reportHtml += `<th>\${col.label}</th>`;
             });
             
             reportHtml += `
@@ -431,12 +430,13 @@ const Reports = {
             data.forEach((row, index) => {
                 reportHtml += `<tr><td>${index + 1}</td>`;
                 
-                columns.forEach(column => {
-                    let value = row[column.key];
-                    if (column.format) {
-                        value = column.format(value);
-                    } else if (column.calculate) {
-                        value = column.calculate(row);
+                columns.forEach(col => {
+                    let value = row[col.key];
+                    if (col.calculate) {
+                        value = col.calculate(row);
+                    }
+                    if (col.format) {
+                        value = col.format(value);
                     }
                     reportHtml += `<td>${value}</td>`;
                 });
@@ -453,5 +453,8 @@ const Reports = {
             reportHtml += `
                 <div class="alert alert-info">
                     <i class="fas fa-info-circle me-2"></i>
-                    No
-
+                    No data found for the selected criteria.
+                </div>
+            `;
+        }
+        
