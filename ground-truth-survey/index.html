@@ -35,7 +35,7 @@
     <!-- Login Container -->
     <div class="container" id="loginContainer">
         <div class="login-container">
-            <div class="card">
+            <div class="card transform-card">
                 <div class="card-header text-center">
                     <h4 class="mb-0">संचालनालय कृषि, छत्तीसगढ़</h4>
                 </div>
@@ -166,7 +166,57 @@
 
                     <!-- Summary Cards -->
                     <div class="row" id="dashboardSummary">
-                        <!-- Will be populated by dashboard.js -->
+                        <!-- Card 1 -->
+                        <div class="col-md-3 mb-4">
+                            <div class="card transform-card">
+                                <div class="card-body text-center">
+                                    <div class="display-4 fw-bold text-primary mb-2">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </div>
+                                    <h3 class="stats-counter" id="totalSurveys">0</h3>
+                                    <p class="stats-label">Total Surveys</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 2 -->
+                        <div class="col-md-3 mb-4">
+                            <div class="card transform-card">
+                                <div class="card-body text-center">
+                                    <div class="display-4 fw-bold text-success mb-2">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <h3 class="stats-counter" id="completedSurveys">0</h3>
+                                    <p class="stats-label">Completed Surveys</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 3 -->
+                        <div class="col-md-3 mb-4">
+                            <div class="card transform-card">
+                                <div class="card-body text-center">
+                                    <div class="display-4 fw-bold text-info mb-2">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <h3 class="stats-counter" id="totalOfficers">0</h3>
+                                    <p class="stats-label">Active Officers</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Card 4 -->
+                        <div class="col-md-3 mb-4">
+                            <div class="card transform-card">
+                                <div class="card-body text-center">
+                                    <div class="display-4 fw-bold text-warning mb-2">
+                                        <i class="fas fa-money-bill-wave"></i>
+                                    </div>
+                                    <h3 class="stats-counter" id="totalBudget">0</h3>
+                                    <p class="stats-label">Budget Allocated (₹)</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Recent Survey Data -->
@@ -354,6 +404,11 @@
                                     <i class="fas fa-info-circle me-2"></i>
                                     Select report parameters and click Generate to view reports.
                                 </div>
+                            </div>
+
+                            <!-- Chart container for reports -->
+                            <div class="chart-container" id="reportChart" style="display: none;">
+                                <!-- Chart will be rendered here -->
                             </div>
                         </div>
                     </div>
@@ -680,6 +735,42 @@
         </div>
     </div>
 
+    <!-- Success Action Modal -->
+    <div class="modal fade" id="successActionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="mb-3">
+                        <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h4 class="modal-title" id="successActionTitle">Success!</h4>
+                    <p id="successActionMessage">Your action has been completed successfully.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Modal -->
+    <div class="modal fade" id="progressModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center py-4">
+                    <div class="spinner-border text-primary mb-3" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <h5 id="progressTitle">Processing...</h5>
+                    <p id="progressMessage">Please wait while we process your request.</p>
+                    <div class="progress mt-3">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%" id="progressBar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -695,6 +786,9 @@
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
     
+    <!-- Chart.js for reports -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
     <!-- Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
@@ -708,6 +802,58 @@
     <script src="js/surveys.js"></script>
     <script src="js/crop-assessment.js"></script>
     <script src="js/reports.js"></script>
+    
+    <!-- 3D Card Effect Script -->
+    <script>
+        // Add 3D tilt effect to cards with transform-card class
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.transform-card');
+            
+            cards.forEach(card => {
+                card.addEventListener('mousemove', handleCardTilt);
+                card.addEventListener('mouseleave', resetCardTilt);
+            });
+            
+            function handleCardTilt(e) {
+                const card = this;
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const angleX = (y - centerY) / 20;
+                const angleY = (centerX - x) / 20;
+                
+                card.style.transform = `perspective(1000px) rotateX(${angleX}deg) rotateY(${angleY}deg) scale3d(1.02, 1.02, 1.02)`;
+                
+                // Add highlight effect
+                const glareX = (x / rect.width) * 100;
+                const glareY = (y / rect.height) * 100;
+                card.style.background = `
+                    linear-gradient(145deg, #ffffff, #f0f0f0),
+                    radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 60%)
+                `;
+            }
+            
+            function resetCardTilt(e) {
+                const card = this;
+                card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+                card.style.background = 'linear-gradient(145deg, #ffffff, #f0f0f0)';
+            }
+        });
+        
+        // Set current date in dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentDateElement = document.getElementById('currentDate');
+            if (currentDateElement) {
+                const today = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                currentDateElement.textContent = today.toLocaleDateString('en-US', options);
+            }
+        });
+    </script>
 </body>
 </html>
 
