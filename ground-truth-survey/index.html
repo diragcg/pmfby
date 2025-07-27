@@ -32,22 +32,52 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 30px;
+        }
+        
+        .scene {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
         }
         
         .card-container {
             width: 100%;
-            max-width: 450px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            height: 580px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .card-container.flipped {
+            transform: rotateY(180deg);
+        }
+        
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
             overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-front, .card-back {
+            background-color: white;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-back {
+            transform: rotateY(180deg);
         }
         
         .card-header {
             background-color: var(--dark-blue);
             color: var(--text-light);
-            padding: 20px;
+            padding: 25px 30px;
             text-align: center;
         }
         
@@ -66,7 +96,9 @@
         }
         
         .card-body {
-            padding: 25px;
+            padding: 30px;
+            flex: 1;
+            overflow-y: auto;
         }
         
         .form-group {
@@ -76,8 +108,9 @@
         .form-label {
             font-weight: 500;
             color: var(--text-dark);
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-size: 14px;
+            display: block;
         }
         
         .form-control {
@@ -92,11 +125,6 @@
         
         .form-control::placeholder {
             color: rgba(255, 255, 255, 0.7);
-        }
-        
-        .form-control:focus {
-            border-color: var(--medium-blue);
-            box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.2);
         }
         
         .form-select {
@@ -117,7 +145,7 @@
         .btn-primary {
             background-color: var(--dark-blue);
             border: none;
-            padding: 10px 0;
+            padding: 12px 0;
             font-weight: 600;
             font-size: 16px;
             border-radius: 4px;
@@ -128,7 +156,7 @@
         }
         
         .card-footer {
-            padding: 15px 25px;
+            padding: 20px 30px;
             background-color: #f8f9fa;
             text-align: center;
             border-top: 1px solid #eee;
@@ -145,122 +173,125 @@
             text-decoration: underline;
         }
         
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        .tabs {
-            display: flex;
-            border-bottom: 1px solid #ddd;
-            margin-bottom: 20px;
-        }
-        
-        .tab {
-            flex: 1;
-            text-align: center;
-            padding: 10px;
-            cursor: pointer;
-            font-weight: 500;
-            color: var(--text-dark);
-        }
-        
-        .tab.active {
-            color: var(--dark-blue);
-            border-bottom: 2px solid var(--dark-blue);
-        }
-        
         option {
             background-color: white;
             color: var(--text-dark);
         }
+        
+        /* Custom scrollbar */
+        .card-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .card-body::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        
+        .card-body::-webkit-scrollbar-thumb {
+            background: var(--dark-blue);
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
-    <div class="card-container">
-        <div class="card-header">
-            <h1>संचालनालय कृषि छत्तीसगढ़</h1>
-            <p>ग्राउंड ट्रुथ सर्वे</p>
-        </div>
-        
-        <div class="card-body">
-            <div class="tabs">
-                <div class="tab active" data-target="login">लॉगिन</div>
-                <div class="tab" data-target="register">रजिस्टर</div>
+    <div class="scene">
+        <div class="card-container" id="card">
+            <!-- Login Card (Front) -->
+            <div class="card-face card-front">
+                <div class="card-header">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>ग्राउंड ट्रुथ सर्वे</p>
+                </div>
+                
+                <div class="card-body">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <label for="loginUsername" class="form-label">यूजरनेम</label>
+                            <select class="form-select" id="loginUsername" required>
+                                <option value="" selected disabled>यूजरनेम चुनें</option>
+                                <!-- Usernames will be populated from Supabase -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="loginPassword" class="form-label">पासवर्ड</label>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="पासवर्ड दर्ज करें" required>
+                        </div>
+                        
+                        <div class="form-group form-check">
+                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                            <label class="form-check-label" for="rememberMe">मुझे याद रखें</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">लॉगिन करें</button>
+                    </form>
+                </div>
+                
+                <div class="card-footer">
+                    <p>अकाउंट नहीं है? <a href="#" class="switch-form" id="showRegister">रजिस्टर करें</a></p>
+                </div>
             </div>
             
-            <!-- Login Form -->
-            <div class="tab-content active" id="login">
-                <form id="loginForm">
-                    <div class="form-group">
-                        <label for="loginUsername" class="form-label">यूजरनेम</label>
-                        <input type="text" class="form-control" id="loginUsername" placeholder="यूजरनेम दर्ज करें" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="loginPassword" class="form-label">पासवर्ड</label>
-                        <input type="password" class="form-control" id="loginPassword" placeholder="पासवर्ड दर्ज करें" required>
-                    </div>
-                    
-                    <div class="form-group form-check">
-                        <input type="checkbox" class="form-check-input" id="rememberMe">
-                        <label class="form-check-label" for="rememberMe">मुझे याद रखें</label>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary w-100">लॉगिन करें</button>
-                </form>
-            </div>
-            
-            <!-- Registration Form -->
-            <div class="tab-content" id="register">
-                <form id="registerForm">
-                    <div class="form-group">
-                        <label for="fullName" class="form-label">पूरा नाम</label>
-                        <input type="text" class="form-control" id="fullName" placeholder="पूरा नाम दर्ज करें" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="username" class="form-label">यूजरनेम (अधिकतम 50 अक्षर)</label>
-                        <input type="text" class="form-control" id="username" placeholder="यूजरनेम दर्ज करें" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="password" class="form-label">पासवर्ड</label>
-                        <input type="password" class="form-control" id="password" placeholder="पासवर्ड दर्ज करें" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="divisionId" class="form-label">विभाग</label>
-                        <select class="form-select" id="divisionId" required>
-                            <option value="" selected disabled>विभाग चुनें</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="role" class="form-label">भूमिका</label>
-                        <select class="form-select" id="role" required>
-                            <option value="" selected disabled>भूमिका चुनें</option>
-                            <option value="admin">एडमिन</option>
-                            <option value="manager">मैनेजर</option>
-                            <option value="user">यूजर</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="mobileNumber" class="form-label">मोबाइल नंबर (वैकल्पिक)</label>
-                        <input type="tel" class="form-control" id="mobileNumber" placeholder="मोबाइल नंबर दर्ज करें">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="email" class="form-label">ईमेल (वैकल्पिक)</label>
-                        <input type="email" class="form-control" id="email" placeholder="ईमेल दर्ज करें">
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary w-100">रजिस्टर करें</button>
-                </form>
+            <!-- Registration Card (Back) -->
+            <div class="card-face card-back">
+                <div class="card-header">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>ग्राउंड ट्रुथ सर्वे</p>
+                </div>
+                
+                <div class="card-body">
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <label for="fullName" class="form-label">पूरा नाम</label>
+                            <input type="text" class="form-control" id="fullName" placeholder="पूरा नाम दर्ज करें" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="username" class="form-label">यूजरनेम (अधिकतम 50 अक्षर)</label>
+                            <input type="text" class="form-control" id="username" placeholder="यूजरनेम दर्ज करें" required maxlength="50">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password" class="form-label">पासवर्ड</label>
+                            <input type="password" class="form-control" id="password" placeholder="पासवर्ड दर्ज करें" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="divisionId" class="form-label">विभाग</label>
+                            <select class="form-select" id="divisionId" required>
+                                <option value="" selected disabled>विभाग चुनें</option>
+                                <!-- Divisions will be populated from Supabase -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="role" class="form-label">भूमिका</label>
+                            <select class="form-select" id="role" required>
+                                <option value="" selected disabled>भूमिका चुनें</option>
+                                <option value="admin">एडमिन</option>
+                                <option value="manager">मैनेजर</option>
+                                <option value="user">यूजर</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="mobileNumber" class="form-label">मोबाइल नंबर (वैकल्पिक)</label>
+                            <input type="tel" class="form-control" id="mobileNumber" placeholder="मोबाइल नंबर दर्ज करें" maxlength="15">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="email" class="form-label">ईमेल (वैकल्पिक)</label>
+                            <input type="email" class="form-control" id="email" placeholder="ईमेल दर्ज करें" maxlength="100">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">रजिस्टर करें</button>
+                    </form>
+                </div>
+                
+                <div class="card-footer">
+                    <p>पहले से अकाउंट है? <a href="#" class="switch-form" id="showLogin">लॉगिन करें</a></p>
+                </div>
             </div>
         </div>
     </div>
@@ -273,39 +304,72 @@
         // Initialize Supabase client
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-        const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MzExNTY1NCwiZXhwIjoyMDY4NjkxNjU0fQ.LK9zJVsvXvJ4RQJkueywh0RrdyMsiKmkxa2aA8ydXFU';
-        
-        // Initialize with anon key for client-side operations
         const supabase = supabase.createClient(supabaseUrl, supabaseAnonKey);
         
-        // Tab switching functionality
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', function() {
-                // Remove active class from all tabs
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                
-                // Add active class to clicked tab
-                this.classList.add('active');
-                
-                // Hide all tab content
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                
-                // Show selected tab content
-                const target = this.getAttribute('data-target');
-                document.getElementById(target).classList.add('active');
-            });
+        // DOM Elements
+        const card = document.getElementById('card');
+        const showRegisterBtn = document.getElementById('showRegister');
+        const showLoginBtn = document.getElementById('showLogin');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        
+        // Card flip functionality
+        showRegisterBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            card.classList.add('flipped');
         });
         
-        // Helper function to hash passwords
-        async function hashPassword(password) {
-            const encoder = new TextEncoder();
-            const data = encoder.encode(password);
-            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-            const hashArray = Array.from(new Uint8Array(hashBuffer));
-            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        showLoginBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            card.classList.remove('flipped');
+        });
+        
+        // Load usernames from divisional_users table for login dropdown
+        async function loadUsernames() {
+            try {
+                const { data, error } = await supabase
+                    .from('divisional_users')
+                    .select('username')
+                    .eq('is_active', true)
+                    .order('username');
+                
+                if (error) throw error;
+                
+                const usernameSelect = document.getElementById('loginUsername');
+                
+                if (data && data.length > 0) {
+                    data.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.username;
+                        option.textContent = user.username;
+                        usernameSelect.appendChild(option);
+                    });
+                } else {
+                    // Add sample usernames if no data is found
+                    const sampleUsers = ['user1', 'admin', 'manager', 'supervisor', 'operator'];
+                    sampleUsers.forEach(username => {
+                        const option = document.createElement('option');
+                        option.value = username;
+                        option.textContent = username;
+                        usernameSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading usernames:', error);
+                
+                // Add sample usernames as fallback
+                const usernameSelect = document.getElementById('loginUsername');
+                const sampleUsers = ['user1', 'admin', 'manager', 'supervisor', 'operator'];
+                sampleUsers.forEach(username => {
+                    const option = document.createElement('option');
+                    option.value = username;
+                    option.textContent = username;
+                    usernameSelect.appendChild(option);
+                });
+            }
         }
         
-        // Load divisions directly from the divisional_users table
+        // Load divisions for dropdown
         async function loadDivisions() {
             try {
                 // Get unique divisions from the divisional_users table
@@ -356,8 +420,17 @@
             }
         }
         
+        // Helper function to hash passwords
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        
         // Login form submission
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -414,7 +487,7 @@
         });
         
         // Registration form submission
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -459,11 +532,14 @@
                 
                 alert('रजिस्ट्रेशन सफल! कृपया लॉगिन करें।');
                 
-                // Switch to login tab
-                document.querySelector('.tab[data-target="login"]').click();
+                // Flip to login card
+                card.classList.remove('flipped');
                 
                 // Reset form
-                document.getElementById('registerForm').reset();
+                registerForm.reset();
+                
+                // Refresh username dropdown to include the new user
+                loadUsernames();
             } catch (error) {
                 console.error('Registration error:', error);
                 alert('रजिस्ट्रेशन विफल। कृपया पुनः प्रयास करें।');
@@ -473,8 +549,11 @@
             }
         });
         
-        // Load divisions when page loads
-        document.addEventListener('DOMContentLoaded', loadDivisions);
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadUsernames();
+            loadDivisions();
+        });
     </script>
 </body>
 </html>
