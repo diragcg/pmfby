@@ -3,157 +3,552 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Divisional User System</title>
+    <title>Advanced Divisional User System</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Poppins Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --primary-color: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary-color: #10b981;
+            --dark-color: #1e293b;
+            --light-color: #f8fafc;
+            --gray-color: #94a3b8;
+            --card-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --input-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --hover-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
+            overflow-x: hidden;
         }
         
-        .card-container {
+        .scene {
             perspective: 1000px;
             width: 100%;
             max-width: 450px;
+            margin: 0 auto;
         }
         
-        .card-3d {
-            transition: transform 0.8s;
-            transform-style: preserve-3d;
-            position: relative;
+        .card-container {
             width: 100%;
+            height: 580px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         
-        .card-3d.flipped {
+        .card-container.flipped {
             transform: rotateY(180deg);
         }
         
         .card-face {
-            backface-visibility: hidden;
             position: absolute;
             width: 100%;
             height: 100%;
-            border-radius: 15px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            background: rgba(255, 255, 255, 0.9);
-            padding: 30px;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .card-front, .card-back {
+            background: rgba(255, 255, 255, 0.95);
+            display: flex;
+            flex-direction: column;
         }
         
         .card-back {
             transform: rotateY(180deg);
         }
         
-        h2 {
-            font-weight: 700;
-            color: #4a4a4a;
+        .card-header {
+            background: var(--primary-color);
+            color: white;
+            padding: 30px;
             text-align: center;
-            margin-bottom: 30px;
+            border-radius: 20px 20px 0 0;
+            position: relative;
+            z-index: 1;
         }
         
-        .form-floating {
-            margin-bottom: 20px;
+        .card-header::before {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 0;
+            right: 0;
+            height: 40px;
+            background: var(--primary-color);
+            transform: skewY(-3deg);
+            z-index: -1;
+        }
+        
+        .card-header h2 {
+            font-weight: 800;
+            font-size: 28px;
+            margin: 0;
+            letter-spacing: 1px;
+        }
+        
+        .card-body {
+            padding: 40px 30px 20px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group {
+            position: relative;
+            margin-bottom: 25px;
+        }
+        
+        .form-control {
+            height: 55px;
+            padding: 0 20px;
+            padding-left: 50px;
+            border: none;
+            border-radius: 12px;
+            background-color: #f1f5f9;
+            color: var(--dark-color);
+            font-size: 15px;
+            font-weight: 500;
+            box-shadow: var(--input-shadow);
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+            background-color: white;
+        }
+        
+        .form-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary-color);
+            font-size: 18px;
         }
         
         .btn-primary {
-            background: linear-gradient(45deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
             border: none;
-            padding: 12px 0;
+            height: 55px;
+            border-radius: 12px;
             font-weight: 700;
+            font-size: 16px;
             letter-spacing: 1px;
-            width: 100%;
-            border-radius: 10px;
             margin-top: 10px;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);
+            transition: all 0.3s ease;
         }
         
-        .btn-link {
-            font-weight: 700;
-            color: #6a11cb;
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 20px 25px -5px rgba(99, 102, 241, 0.5);
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%);
         }
         
-        .division-select {
+        .card-footer {
+            text-align: center;
+            padding: 20px 30px 30px;
+        }
+        
+        .switch-form {
+            color: var(--primary-color);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+        
+        .switch-form:hover {
+            transform: translateY(-2px);
+            color: var(--primary-dark);
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+        }
+        
+        .divider span {
+            flex: 1;
+            height: 1px;
+            background: var(--gray-color);
+        }
+        
+        .divider-text {
+            padding: 0 15px;
+            color: var(--gray-color);
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .social-login {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        .social-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            color: white;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .social-btn:hover {
+            transform: translateY(-3px);
+        }
+        
+        .google {
+            background: #DB4437;
+        }
+        
+        .facebook {
+            background: #4267B2;
+        }
+        
+        .twitter {
+            background: #1DA1F2;
+        }
+        
+        .card-back .card-body {
+            padding-top: 20px;
+            overflow-y: auto;
+        }
+        
+        .form-select {
+            height: 55px;
+            padding-left: 50px;
+            border: none;
+            border-radius: 12px;
+            background-color: #f1f5f9;
+            color: var(--dark-color);
+            font-size: 15px;
+            font-weight: 500;
+            box-shadow: var(--input-shadow);
+        }
+        
+        .form-select:focus {
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+            background-color: white;
+        }
+        
+        .floating-elements {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        .floating-element {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            animation: float 15s infinite ease-in-out;
+        }
+        
+        .floating-element:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            width: 60px;
+            height: 60px;
+            animation-delay: 0s;
+        }
+        
+        .floating-element:nth-child(2) {
+            top: 60%;
+            left: 80%;
+            width: 100px;
+            height: 100px;
+            animation-delay: 2s;
+        }
+        
+        .floating-element:nth-child(3) {
+            top: 40%;
+            left: 40%;
+            width: 40px;
+            height: 40px;
+            animation-delay: 4s;
+        }
+        
+        .floating-element:nth-child(4) {
+            top: 80%;
+            left: 20%;
+            width: 70px;
+            height: 70px;
+            animation-delay: 6s;
+        }
+        
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) rotate(0deg);
+            }
+            50% {
+                transform: translateY(-20px) rotate(10deg);
+            }
+        }
+        
+        .brand-logo {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .brand-logo i {
+            font-size: 30px;
+            margin-right: 10px;
+        }
+        
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .remember-me {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             margin-bottom: 20px;
         }
         
-        .card-header-tabs {
-            margin-bottom: 20px;
+        .form-check-label {
+            font-size: 14px;
+            color: var(--dark-color);
         }
+        
+        .forgot-password {
+            font-size: 14px;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .forgot-password:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 576px) {
+            .card-header h2 {
+                font-size: 24px;
+            }
+            
+            .form-control, .btn-primary, .form-select, .social-btn {
+                height: 50px;
+            }
+            
+            .card-body {
+                padding: 30px 20px 15px;
+            }
+        }
+        
+        /* Custom scrollbar for registration form */
+        .card-back .card-body::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .card-back .card-body::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 10px;
+        }
+        
+        .card-back .card-body::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 10px;
+        }
+        
+        /* Animation for form elements */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translate3d(0, 20px, 0);
+            }
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0);
+            }
+        }
+        
+        .form-group {
+            animation: fadeInUp 0.5s ease backwards;
+        }
+        
+        .form-group:nth-child(1) { animation-delay: 0.1s; }
+        .form-group:nth-child(2) { animation-delay: 0.2s; }
+        .form-group:nth-child(3) { animation-delay: 0.3s; }
+        .form-group:nth-child(4) { animation-delay: 0.4s; }
+        .form-group:nth-child(5) { animation-delay: 0.5s; }
+        .form-group:nth-child(6) { animation-delay: 0.6s; }
+        .form-group:nth-child(7) { animation-delay: 0.7s; }
     </style>
 </head>
 <body>
-    <div class="card-container">
-        <div class="card-3d" id="card">
+    <!-- Floating Background Elements -->
+    <div class="floating-elements">
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+        <div class="floating-element"></div>
+    </div>
+
+    <div class="scene">
+        <div class="card-container" id="card">
             <!-- Login Card (Front) -->
             <div class="card-face card-front">
-                <h2>Login</h2>
-                <form id="loginForm">
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="loginUsername" placeholder="Username" required>
-                        <label for="loginUsername">Username</label>
+                <div class="card-header">
+                    <div class="brand-logo">
+                        <i class="fas fa-building"></i>
+                        <h2>Divisional Portal</h2>
                     </div>
-                    <div class="form-floating mb-4">
-                        <input type="password" class="form-control" id="loginPassword" placeholder="Password" required>
-                        <label for="loginPassword">Password</label>
+                    <p>Access your division workspace</p>
+                </div>
+                
+                <div class="card-body">
+                    <form id="loginForm">
+                        <div class="form-group">
+                            <i class="fas fa-user form-icon"></i>
+                            <input type="text" class="form-control" id="loginUsername" placeholder="Username" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <i class="fas fa-lock form-icon"></i>
+                            <input type="password" class="form-control" id="loginPassword" placeholder="Password" required>
+                        </div>
+                        
+                        <div class="remember-me">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="rememberMe">
+                                <label class="form-check-label" for="rememberMe">Remember me</label>
+                            </div>
+                            <a href="#" class="forgot-password">Forgot Password?</a>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i> LOGIN
+                        </button>
+                    </form>
+                    
+                    <div class="divider">
+                        <span></span>
+                        <div class="divider-text">OR LOGIN WITH</div>
+                        <span></span>
                     </div>
-                    <button type="submit" class="btn btn-primary">LOGIN</button>
-                    <div class="text-center mt-4">
-                        <a href="#" class="btn-link" id="showRegister">Don't have an account? Register</a>
+                    
+                    <div class="social-login">
+                        <div class="social-btn google">
+                            <i class="fab fa-google"></i>
+                        </div>
+                        <div class="social-btn facebook">
+                            <i class="fab fa-facebook-f"></i>
+                        </div>
+                        <div class="social-btn twitter">
+                            <i class="fab fa-twitter"></i>
+                        </div>
                     </div>
-                </form>
+                </div>
+                
+                <div class="card-footer">
+                    <p>Don't have an account? <a href="#" class="switch-form" id="showRegister">Register Now</a></p>
+                </div>
             </div>
             
             <!-- Registration Card (Back) -->
             <div class="card-face card-back">
-                <h2>Register</h2>
-                <form id="registerForm">
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="fullName" placeholder="Full Name" required>
-                        <label for="fullName">Full Name</label>
+                <div class="card-header">
+                    <div class="brand-logo">
+                        <i class="fas fa-user-plus"></i>
+                        <h2>Create Account</h2>
                     </div>
-                    <div class="form-floating mb-3">
-                        <input type="text" class="form-control" id="username" placeholder="Username" required>
-                        <label for="username">Username (Max 50 chars)</label>
-                    </div>
-                    <div class="form-floating mb-3">
-                        <input type="password" class="form-control" id="password" placeholder="Password" required>
-                        <label for="password">Password</label>
-                    </div>
-                    <div class="form-floating mb-3">
-                        <select class="form-select" id="divisionId" required>
-                            <option value="" selected disabled>Select Division</option>
-                            <!-- Division options will be populated from database -->
-                        </select>
-                        <label for="divisionId">Division</label>
-                    </div>
-                    <div class="form-floating mb-3">
-                        <select class="form-select" id="role" required>
-                            <option value="" selected disabled>Select Role</option>
-                            <option value="admin">Admin</option>
-                            <option value="manager">Manager</option>
-                            <option value="user">User</option>
-                        </select>
-                        <label for="role">Role</label>
-                    </div>
-                    <div class="form-floating mb-3">
-                        <input type="tel" class="form-control" id="mobileNumber" placeholder="Mobile Number">
-                        <label for="mobileNumber">Mobile Number (Optional)</label>
-                    </div>
-                    <div class="form-floating mb-3">
-                        <input type="email" class="form-control" id="email" placeholder="Email">
-                        <label for="email">Email (Optional)</label>
-                    </div>
-                    <button type="submit" class="btn btn-primary">REGISTER</button>
-                    <div class="text-center mt-4">
-                        <a href="#" class="btn-link" id="showLogin">Already have an account? Login</a>
-                    </div>
-                </form>
+                    <p>Join your division workspace</p>
+                </div>
+                
+                <div class="card-body">
+                    <form id="registerForm">
+                        <div class="form-group">
+                            <i class="fas fa-user form-icon"></i>
+                            <input type="text" class="form-control" id="fullName" placeholder="Full Name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <i class="fas fa-id-badge form-icon"></i>
+                            <input type="text" class="form-control" id="username" placeholder="Username (Max 50 chars)" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <i class="fas fa-lock form-icon"></i>
+                            <input type="password" class="form-control" id="password" placeholder="Password" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <i class="fas fa-building form-icon"></i>
+                            <select class="form-select" id="divisionId" required>
+                                <option value="" selected disabled>Select Division</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <i class="fas fa-user-tag form-icon"></i>
+                            <select class="form-select" id="role" required>
+                                <option value="" selected disabled>Select Role</option>
+                                <option value="admin">Admin</option>
+                                <option value="manager">Manager</option>
+                                <option value="user">User</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <i class="fas fa-mobile-alt form-icon"></i>
+                            <input type="tel" class="form-control" id="mobileNumber" placeholder="Mobile Number (Optional)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <i class="fas fa-envelope form-icon"></i>
+                            <input type="email" class="form-control" id="email" placeholder="Email (Optional)">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-user-plus me-2"></i> REGISTER
+                        </button>
+                    </form>
+                </div>
+                
+                <div class="card-footer">
+                    <p>Already have an account? <a href="#" class="switch-form" id="showLogin">Login Now</a></p>
+                </div>
             </div>
         </div>
     </div>
@@ -178,7 +573,7 @@
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
         
-        // Card flip functionality
+        // Card flip functionality with enhanced animation
         showRegisterBtn.addEventListener('click', (e) => {
             e.preventDefault();
             card.classList.add('flipped');
@@ -193,7 +588,7 @@
         async function loadDivisions() {
             try {
                 const { data, error } = await supabase
-                    .from('divisions')  // Assuming you have a divisions table
+                    .from('divisions')
                     .select('id, name');
                 
                 if (error) throw error;
@@ -227,9 +622,8 @@
             }
         }
         
-        // Helper function to hash passwords (in a real app, use a proper hashing library)
+        // Helper function to hash passwords
         async function hashPassword(password) {
-            // This is a simple hash for demonstration - in production use bcrypt or similar
             const encoder = new TextEncoder();
             const data = encoder.encode(password);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -237,15 +631,20 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
         }
         
-        // Login form submission
+        // Login form submission with loading state
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const submitBtn = loginForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Logging in...';
+            submitBtn.disabled = true;
             
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
             
             try {
-                // Hash the password for comparison (in a real app, this would be different)
+                // Hash the password for comparison
                 const hashedPassword = await hashPassword(password);
                 
                 // Query the divisional_users table
@@ -258,8 +657,6 @@
                 
                 if (error) throw error;
                 
-                // In a real app, you'd use proper password comparison
-                // This is simplified for demonstration
                 if (data && data.password_hash === hashedPassword) {
                     // Update last_login timestamp
                     await supabase
@@ -276,21 +673,49 @@
                         role: data.role
                     }));
                     
-                    alert('Login successful!');
-                    // Redirect to dashboard or home page
-                    // window.location.href = 'dashboard.html';
+                    // Show success message with animation
+                    submitBtn.innerHTML = '<i class="fas fa-check me-2"></i> Success!';
+                    submitBtn.classList.add('btn-success');
+                    
+                    setTimeout(() => {
+                        alert('Login successful!');
+                        // Redirect to dashboard or home page
+                        // window.location.href = 'dashboard.html';
+                        
+                        // Reset button
+                        submitBtn.innerHTML = originalBtnText;
+                        submitBtn.classList.remove('btn-success');
+                        submitBtn.disabled = false;
+                    }, 1000);
                 } else {
-                    alert('Invalid username or password');
+                    throw new Error('Invalid credentials');
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                alert('Login failed. Please try again.');
+                
+                // Show error message with animation
+                submitBtn.innerHTML = '<i class="fas fa-times me-2"></i> Failed!';
+                submitBtn.classList.add('btn-danger');
+                
+                setTimeout(() => {
+                    alert('Invalid username or password. Please try again.');
+                    
+                    // Reset button
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.disabled = false;
+                }, 1000);
             }
         });
         
-        // Registration form submission
+        // Registration form submission with loading state
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            const submitBtn = registerForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Registering...';
+            submitBtn.disabled = true;
             
             const fullName = document.getElementById('fullName').value;
             const username = document.getElementById('username').value;
@@ -339,13 +764,57 @@
                 
                 if (error) throw error;
                 
-                alert('Registration successful! Please login.');
-                card.classList.remove('flipped');
-                registerForm.reset();
+                // Show success message with animation
+                submitBtn.innerHTML = '<i class="fas fa-check me-2"></i> Success!';
+                submitBtn.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    alert('Registration successful! Please login.');
+                    card.classList.remove('flipped');
+                    registerForm.reset();
+                    
+                    // Reset button
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.classList.remove('btn-success');
+                    submitBtn.disabled = false;
+                }, 1000);
             } catch (error) {
                 console.error('Registration error:', error);
-                alert('Registration failed. Please try again.');
+                
+                // Show error message with animation
+                submitBtn.innerHTML = '<i class="fas fa-times me-2"></i> Failed!';
+                submitBtn.classList.add('btn-danger');
+                
+                setTimeout(() => {
+                    alert('Registration failed. Please try again.');
+                    
+                    // Reset button
+                    submitBtn.innerHTML = originalBtnText;
+                    submitBtn.classList.remove('btn-danger');
+                    submitBtn.disabled = false;
+                }, 1000);
             }
+        });
+        
+        // Add 3D tilt effect to cards
+        document.querySelectorAll('.card-face').forEach(card => {
+            card.addEventListener('mousemove', e => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                
+                const angleX = (y - centerY) / 30;
+                const angleY = (centerX - x) / 30;
+                
+                card.style.transform = `rotateX(${angleX}deg) rotateY(${angleY}deg)`;
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = '';
+            });
         });
         
         // Load divisions when page loads
