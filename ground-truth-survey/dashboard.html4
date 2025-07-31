@@ -1737,6 +1737,220 @@
                 console.error('Error loading officers training data:', error);
             }
         }
+// Function to load divisions
+async function loadDivisions() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('divisions')
+            .select('id, name')
+            .order('name');
+            
+        if (error) throw error;
+        
+        return data || [];
+    } catch (error) {
+        console.error('Error loading divisions:', error);
+        return [];
+    }
+}
+
+// Function to load districts by division
+async function loadDistrictsByDivision(divisionId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('districts')
+            .select('id, name')
+            .eq('division_id', divisionId)
+            .order('name');
+            
+        if (error) throw error;
+        
+        return data || [];
+    } catch (error) {
+        console.error('Error loading districts:', error);
+        return [];
+    }
+}
+
+// Function to load all districts
+async function loadAllDistricts() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('districts')
+            .select('id, name, division_id')
+            .order('name');
+            
+        if (error) throw error;
+        
+        return data || [];
+    } catch (error) {
+        console.error('Error loading all districts:', error);
+        return [];
+    }
+}
+
+// Function to load blocks by district
+async function loadBlocksByDistrict(districtId) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('blocks')
+            .select('id, name')
+            .eq('district_id', districtId)
+            .order('name');
+            
+        if (error) throw error;
+        
+        return data || [];
+    } catch (error) {
+        console.error('Error loading blocks:', error);
+        return [];
+    }
+}
+
+// Modified function to populate district dropdowns
+async function populateDistrictDropdowns() {
+    try {
+        // Get all districts that the user is allowed to access
+        let districts = [];
+        
+        if (currentUser.role === 'super_admin') {
+            // Super admin can access all districts
+            districts = await loadAllDistricts();
+        } else if (currentUser.role === 'division_admin') {
+            // Get the division from the user's full name
+            const divisionMatch = currentUser.fullName.match(/संभागीय संयुक्त संचालक कृषि (.*)/);
+            if (divisionMatch && divisionMatch[1]) {
+                const divisionName = divisionMatch[1] + " संभाग";
+                
+                // Find division ID by name
+                const divisions = await loadDivisions();
+                const division = divisions.find(d => d.name === divisionName);
+                
+                if (division) {
+                    // Get districts for this division
+                    districts = await loadDistrictsByDivision(division.id);
+                }
+            }
+        }
+        
+        // Store user districts for later use
+        userDistricts = districts.map(district => district.name);
+        
+        // Populate all district dropdowns
+        const districtSelectors = [
+            'districtSelector',
+            'cropAssessmentDistrictFilter',
+            'cropDistrictName',
+            'officersTrainingDistrictFilter',
+            'officerDistrictName'
+        ];
+        
+        districtSelectors.forEach(selectorId => {
+            const selector = document.getElementById(selectorId);
+            if (selector) {
+                // Clear existing options except the first one
+                while (selector.options.length > 1) {
+                    selector.remove(1);
+                }
+                
+                // Add user's allowed districts
+                districts.forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district.id;
+                    option.textContent = district.name;
+                    option.dataset.districtId = district.id;
+                    selector.appendChild(option);
+                });
+            }
+        });
+    } catch (error) {
+        console.error('Error populating district dropdowns:', error);
+    }
+}
+
+// Modified function to populate blocks based on selected district
+async function populateBlocks(districtSelector, blockSelector) {
+    try {
+        const districtSelect = document.getElementById(districtSelector);
+        const blockSelect = document.getElementById(blockSelector);
+        const districtId = districtSelect.value;
+        
+        // Clear existing options except the first one
+        while (blockSelect.options.length > 1) {
+            blockSelect.remove(1);
+        }
+        
+        if (districtId) {
+            // Load blocks for the selected district
+            const blocks = await loadBlocksByDistrict(districtId);
+            
+            // Add blocks to the dropdown
+            blocks.forEach(block => {
+                const option = document.createElement('option');
+                option.value = block.id;
+                option.textContent = block.name;
+                blockSelect.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error populating blocks:', error);
+    }
+}
+
+// Update the saveCropAssessment function to use IDs
+async function saveCropAssessment() {
+    try {
+        const cropAssessmentId = document.getElementById('cropAssessmentId').value;
+        const divisionName = document.getElementById('cropDivisionName').value;
+        const teamNumber = document.getElementById('cropTeamNumber').value;
+        const officerNames = document.getElementById('cropOfficerNames').value;
+        const districtId = document.getElementById('cropDistrictName').value;
+        const blockId = document.getElementById('cropBlockName').value;
+        const villageName = document.getElementById('cropVillageName').value;
+        const irrigationStatus = document.getElementById('cropIrrigationStatus').value;
+        const totalSurveys = document.getElementById('cropTotalSurveys').value;
+        const completedSurveys = document.getElementById('cropCompletedSurveys').value;
+        const assessmentDate = document.getElementById('cropAssessmentDate').value;
+        const remarks = document.getElementById('cropRemarks').value;
+        
+        // Get district and block names for display purposes
+        const districtSelect = document.getElementById('cropDistrictName');
+        const blockSelect = document.getElementById('cropBlockName');
+        const districtName = districtSelect.options[districtSelect.selectedIndex].textContent;
+        const blockName = blockSelect.options[blockSelect.selectedIndex].textContent;
+        
+        // Validate required fields
+        if (!divisionName || !teamNumber || !officerNames || !districtId || !blockId || 
+            !villageName || !irrigationStatus || !totalSurveys || !completedSurveys || !assessmentDate) {
+            showAlert(document.getElementById('cropAssessmentAlert'), 'कृपया सभी आवश्यक फ़ील्ड भरें', 'danger');
+            return;
+        }
+        
+        // Create data object
+        const cropData = {
+            division_name: divisionName,
+            team_number: parseInt(teamNumber),
+            officer_names: officerNames,
+            district_id: districtId,
+            district_name: districtName, // Store name for display
+            block_id: blockId,
+            block_name: blockName, // Store name for display
+            village_name: villageName,
+            crop_irrigation_status: irrigationStatus,
+            total_crop_surveys: parseInt(totalSurveys),
+            completed_surveys: parseInt(completedSurveys),
+            assessment_date: assessmentDate,
+            remarks: remarks,
+            updated_at: new Date().toISOString()
+        };
+        
+        // Similar modifications would be needed for other save functions
+        // ...rest of the function remains the same
+    } catch (error) {
+        console.error('Error saving crop assessment:', error);
+        showAlert(document.getElementById('cropAssessmentAlert'), 'फसल आकलन सहेजने में त्रुटि', 'danger');
+    }
+}
 
         // Function to load recent activities
         async function loadRecentActivities() {
