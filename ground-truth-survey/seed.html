@@ -1,98 +1,313 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>डेटा प्रविष्टि टेस्ट</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>बीज मांग डेटा प्रविष्टि</title>
+
+<!-- Bootstrap CSS and FontAwesome -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet"/>
+<!-- Google Fonts Mukta -->
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;400;600;700&display=swap" rel="stylesheet"/>
+
+<style>
+  body {
+    font-family: 'Mukta', sans-serif;
+    background-color: #fff9e6;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  h2 {
+    color: #1b5e20;
+    margin-bottom: 20px;
+  }
+  table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 10px;
+  }
+  thead th {
+    background-color: #1b5e20;
+    color: white;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px 8px 0 0;
+  }
+  tbody tr {
+    background-color: #f5f9f2;
+  }
+  tbody td {
+    padding: 8px 12px;
+    vertical-align: middle;
+  }
+  select.form-select, input.form-control {
+    border-radius: 6px;
+    border: 1px solid #a5d6a7;
+    background-color: white;
+    height: 38px;
+  }
+  select.form-select:focus, input.form-control:focus {
+    border-color: #4caf50;
+    box-shadow: 0 0 8px #81c784;
+    outline: none;
+    background-color: white;
+  }
+  button {
+    font-weight: 700;
+  }
+  .btn-add-row {
+    margin-top: 15px;
+    background-color: #2e7d32;
+    color: white;
+  }
+  .btn-add-row:hover {
+    background-color: #1b5e20;
+  }
+  .btn-submit {
+    margin-top: 25px;
+    width: 100%;
+    background-color: #2e7d32;
+    color: white;
+    font-size: 1.15rem;
+  }
+  .btn-submit:hover {
+    background-color: #145214;
+  }
+  .btn-delete {
+    background-color: #d9534f;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+  }
+  .btn-delete:hover {
+    background-color: #c9302c;
+  }
+  #alertBox {
+    margin-top: 15px;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    display: none;
+  }
+  #alertBox.success {
+    background-color: #e8f5e9;
+    color: #256029;
+    border: 1px solid #a5d6a7;
+  }
+  #alertBox.error {
+    background-color: #fcebea;
+    color: #b71c1c;
+    border: 1px solid #f08080;
+  }
+</style>
 </head>
 <body>
 
-<div class="container my-5">
-  <h3 class="mb-3">डेटा प्रविष्टि से परीक्षण</h3>
-  <table class="table table-bordered" id="entryTable">
-    <thead class="table-success">
-      <tr>
-        <th>फसल</th>
-        <th>समिति</th>
-        <th>बीज निगम</th>
-        <th>कार्य</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-  <button id="addRowBtn" class="btn btn-primary mb-3">नई पंक्ति जोड़ें</button>
-  <br />
-  <button id="submitBtn" class="btn btn-success">सबमिट करें</button>
+<h2>बीज मांग डेटा प्रविष्टि ({{districtName}})</h2>
 
-  <div id="alertBox" class="mt-3"></div>
-</div>
+<div id="alertBox"></div>
 
+<table aria-label="Seed Demand Entry Table">
+  <thead>
+    <tr>
+      <th>फसल</th>
+      <th>विविधता</th>
+      <th>समिति</th>
+      <th>मांगित मात्रा (qtl)</th>
+      <th>कार्य</th>
+    </tr>
+  </thead>
+  <tbody id="entryTableBody">
+    <!-- Rows added dynamically -->
+  </tbody>
+</table>
+
+<button class="btn btn-add-row" id="addRowBtn"><i class="fas fa-plus-circle me-2"></i>नई पंक्ति जोड़ें</button>
+<button class="btn btn-submit" id="submitBtn"><i class="fas fa-save me-2"></i>सबमिट करें</button>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
 <script>
+  // Configure Supabase client here:
+  const SUPABASE_URL = "https://txjbfqrbbtvzlxpeegkv.supabase.co";
+  const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY"; // Replace with your anon key
+
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // User info loaded from session/local storage after login
+  const user = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user") || "{}");
+  const userId = user.id;
+  const districtId = user.district_id;
+  const districtName = user.district_name || "";
+
+  // Insert district name in headline
+  document.querySelector('h2').textContent = `बीज मांग डेटा प्रविष्टि (${districtName})`;
+
+  // Cached masters
+  let crops = [];
+  let committees = [];
+
+  const entryTableBody = document.getElementById('entryTableBody');
+  const alertBox = document.getElementById('alertBox');
   const addRowBtn = document.getElementById('addRowBtn');
   const submitBtn = document.getElementById('submitBtn');
-  const tableBody = document.getElementById('tableBody');
-  const alertBox = document.getElementById('alertBox');
 
-  // Add a new empty row with input fields
+  function showAlert(message, type='success') {
+    alertBox.textContent = message;
+    alertBox.className = type === 'success' ? 'success' : 'error';
+    alertBox.style.display = 'block';
+    setTimeout(() => alertBox.style.display = 'none', 6000);
+  }
+
+  async function loadMasterData() {
+    try {
+      // Fetch crops with crop_name and variety
+      const { data: cropData, error: cropErr } = await supabase
+        .from('crop_master')
+        .select('id, crop_name, variety')
+        .order('crop_name');
+      if (cropErr) throw cropErr;
+      crops = cropData || [];
+
+      // Fetch committees filtered by user district
+      const { data: committeeData, error: commErr } = await supabase
+        .from('committee_master')
+        .select('id, committee_name')
+        .eq('district_id', districtId)
+        .order('committee_name');
+      if (commErr) throw commErr;
+      committees = committeeData || [];
+    } catch (err) {
+      showAlert('मास्टर डेटा लोड करने में त्रुटि: ' + err.message, 'error');
+    }
+  }
+
+  function createCropOptions() {
+    return crops.map(c => `<option value="${c.id}">${c.crop_name}${c.variety ? ' - ' + c.variety : ''}</option>`).join('');
+  }
+
+  function createCommitteeOptions() {
+    return '<option value="">-- चुनें (वैकल्पिक) --</option>' + committees.map(c => `<option value="${c.id}">${c.committee_name}</option>`).join('');
+  }
+
   function addRow() {
     const tr = document.createElement('tr');
 
     tr.innerHTML = `
-      <td><input type="text" class="form-control" placeholder="फसल का नाम" /></td>
-      <td><input type="text" class="form-control" placeholder="समिति" /></td>
-      <td><input type="text" class="form-control" placeholder="बीज निगम" /></td>
-      <td><button type="button" class="btn btn-danger btn-sm removeBtn">हटाएँ</button></td>
-    `;
+      <td>
+        <select class="form-select form-select-sm demand-crop" required>
+          <option value="">-- फसल चुनें --</option>
+          ${createCropOptions()}
+        </select>
+      </td>
+      <td>
+        <select class="form-select form-select-sm demand-variety" required>
+          <option value="">-- विविधता स्वचालित --</option>
+        </select>
+      </td>
+      <td>
+        <select class="form-select form-select-sm demand-committee">
+          ${createCommitteeOptions()}
+        </select>
+      </td>
+      <td>
+        <input type="number" min="0" step="0.01" class="form-control form-control-sm demand-quantity" placeholder="दर्ज करें" required />
+      </td>
+      <td>
+        <button type="button" class="btn btn-danger btn-sm delete-row-btn" title="पंक्ति हटाएं"><i class="fas fa-trash"></i></button>
+      </td>`;
 
-    tableBody.appendChild(tr);
+    entryTableBody.appendChild(tr);
 
-    // Attach delete functionality
-    tr.querySelector('.removeBtn').addEventListener('click', () => tr.remove());
+    // Wire delete button
+    tr.querySelector('.delete-row-btn').addEventListener('click', () => tr.remove());
+
+    // Sync variety dropdown dynamically based on selected crop
+    const cropSelect = tr.querySelector('.demand-crop');
+    const varietySelect = tr.querySelector('.demand-variety');
+
+    cropSelect.addEventListener('change', function () {
+      const selectedId = this.value;
+      varietySelect.innerHTML = ''; // Clear old options
+      if (!selectedId) {
+        varietySelect.innerHTML = '<option value="">-- विविधता स्वचालित --</option>';
+        return;
+      }
+      // Find variety for selected crop
+      const selectedCrop = crops.find(c => c.id === selectedId);
+      if(selectedCrop && selectedCrop.variety) {
+        varietySelect.innerHTML = `<option>${selectedCrop.variety}</option>`;
+      } else {
+        varietySelect.innerHTML = '<option value="">-- विविधता उपलब्ध नहीं --</option>';
+      }
+    });
   }
 
   addRowBtn.addEventListener('click', addRow);
 
-  submitBtn.addEventListener('click', () => {
-    alertBox.innerHTML = '';
-    const rows = tableBody.querySelectorAll('tr');
+  submitBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    const rows = Array.from(entryTableBody.querySelectorAll('tr'));
     if (rows.length === 0) {
-      alertBox.innerHTML = '<div class="alert alert-danger">कृपया कम से कम एक रिकॉर्ड जोड़ें।</div>';
+      showAlert("कृपया कम से कम एक मांग दर्ज करें।", "error");
       return;
     }
 
-    const records = [];
-    let validationErrors = [];
+    const insertPayload = [];
+    const errors = [];
 
-    rows.forEach((tr, index) => {
-      const tds = tr.querySelectorAll('input');
-      const crop = tds[0].value.trim();
-      const committee = tds[1].value.trim();
-      const seedCorp = tds[2].value.trim();
+    rows.forEach((row, idx) => {
+      const cropSelect = row.querySelector('.demand-crop');
+      const committeeSelect = row.querySelector('.demand-committee');
+      const quantityInput = row.querySelector('.demand-quantity');
 
-      if (!crop) {
-        validationErrors.push(`पंक्ति ${index + 1}: फसल का नाम आवश्यक है।`);
+      if (!cropSelect.value) {
+        errors.push(`पंक्ति ${idx+1}: कृपया फसल चुनें।`);
+      }
+      if (!quantityInput.value || isNaN(quantityInput.value) || Number(quantityInput.value) <= 0) {
+        errors.push(`पंक्ति ${idx+1}: वैध मांग मात्रा दर्ज करें।`);
       }
 
-      records.push({ crop, committee, seedCorp });
+      insertPayload.push({
+        user_id: userId,
+        district_id: districtId,
+        crop_id: cropSelect.value,
+        committee_id: committeeSelect.value || null,
+        demand_quantity: Number(quantityInput.value),
+        demand_unit: 'qtl',  // fixed unit as per your requirement
+        requested_date: new Date().toISOString().split('T')[0] // today
+      });
     });
 
-    if (validationErrors.length) {
-      alertBox.innerHTML = `<div class="alert alert-danger">${validationErrors.join('<br>')}</div>`;
+    if (errors.length > 0) {
+      showAlert(errors.join(' '), 'error');
       return;
     }
 
-    // Log data — replace this with your supabase insert logic
-    console.log('सबमिट किए गए रिकॉर्ड:', records);
-    alertBox.innerHTML = '<div class="alert alert-success">डेटा सफलतापूर्वक सबमिट किया गया।</div>';
-    tableBody.innerHTML = '';
-    addRow();
+    try {
+      const { error } = await supabase.from('seed_demand').insert(insertPayload);
+      if (error) throw error;
+
+      showAlert("मांग सफलतापूर्वक सहेजी गई।", "success");
+      entryTableBody.innerHTML = '';
+      addRow();
+    } catch (err) {
+      showAlert("डेटा सहेजते समय त्रुटि: " + err.message, "error");
+    }
   });
 
-  // Add first empty row on load
-  window.onload = () => addRow();
+  // On page load, fetch master data and add initial row
+  window.addEventListener('DOMContentLoaded', async () => {
+    if (!userId || !districtId) {
+      alert('प्रयोगकर्ता लॉगिन आवश्यक है। कृपया पुनः लॉगिन करें।');
+      window.location.href = "seedlogin.html";
+      return;
+    }
+    await loadMasterData();
+    addRow();
+  });
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
