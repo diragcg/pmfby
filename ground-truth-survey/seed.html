@@ -4,55 +4,46 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>संचालनालय कृषि छत्तीसगढ़ - डेटा प्रविष्टि</title>
+
 <!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 <!-- Font Awesome -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
-<!-- Mukta Devanagari Font -->
+<!-- Google Font Mukta -->
 <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet" />
 <!-- SheetJS for XLSX parsing -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <style>
-  /* Reuse your theme colors and styles */
   :root {
     --primary-color: #1B5E20;
     --secondary-color: #388E3C;
+    --highlight-bg: #2E7D32;
+    --highlight-hover-bg: #1b4d12;
     --accent-color: #8BC34A;
     --text-dark: #263238;
-    --text-medium: #455A64;
     --text-light: #FFF8E1;
     --background-light: #FFF8E1;
-    --background-medium: #F1F8E9;
     --border-color: #C8E6C9;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.15);
     --shadow-lg: 0 8px 24px rgba(27, 94, 32, 0.2);
   }
 
-  * {
-    margin: 0; padding: 0; box-sizing: border-box;
-  }
   body {
     font-family: 'Mukta', sans-serif;
     background-color: var(--background-light);
     min-height: 100vh;
-    overflow-x: hidden;
   }
+
   .hindi {
     font-weight: 500;
     letter-spacing: 0.3px;
-    line-height: 1.5;
   }
-  .header {
+
+  header.header {
     background-color: var(--primary-color);
-    box-shadow: var(--shadow);
-    position: relative;
-    z-index: 100;
+    box-shadow: var(--shadow-lg);
   }
-  .navbar {
-    padding: 12px 0;
-  }
+
   .navbar-brand {
     font-weight: 700;
     font-size: 1.5rem;
@@ -60,118 +51,138 @@
     display: flex;
     align-items: center;
   }
+
   .navbar-brand img {
     height: 45px;
     margin-right: 15px;
     filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
   }
+
   .nav-link {
-    font-family: 'Mukta', sans-serif;
-    color: rgba(255, 248, 225, 0.9) !important;
     font-weight: 600;
-    padding: 12px 20px !important;
-    margin: 0 5px;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    color: rgba(255, 248, 225, 0.9) !important;
+    letter-spacing: 0.2px;
   }
+
   .nav-link:hover, .nav-link.active {
-    color: var(--text-light) !important;
     background-color: rgba(255, 248, 225, 0.2);
+    color: var(--text-light) !important;
   }
+
+  .nav-link.dropdown-toggle {
+    font-weight: 700 !important;
+    color: var(--highlight-bg) !important;
+  }
+  .nav-link.dropdown-toggle:hover,
+  .nav-link.dropdown-toggle:focus {
+    color: var(--highlight-hover-bg) !important;
+  }
+
   .container-main {
-    padding: 40px 20px;
     max-width: 1100px;
-    margin: auto;
+    margin: 40px auto;
+    padding: 0 20px;
   }
+
   .card {
-    background-color: #fff;
     border-radius: 16px;
     box-shadow: var(--shadow-lg);
-    margin-bottom: 30px;
     border: none;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    margin-bottom: 30px;
   }
-  .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(27, 94, 32, 0.25);
-  }
+
   .card-header {
     background-color: var(--primary-color);
     color: var(--text-light);
-    padding: 30px 40px;
-    border-bottom: none;
-    border-radius: 16px 16px 0 0;
     font-weight: 700;
     font-size: 1.75rem;
+    border-radius: 16px 16px 0 0;
+    padding: 30px 40px;
   }
+
   .card-body {
     padding: 30px 40px;
   }
-  .form-label {
+
+  label {
     font-weight: 600;
     color: var(--text-dark);
-    margin-bottom: 8px;
     font-size: 1.1rem;
   }
-  .form-control, .form-select {
-    height: 50px;
+
+  input.form-control,
+  select.form-select {
     border-radius: 10px;
     border: 1px solid var(--border-color);
+    height: 50px;
     padding: 10px 15px;
-    font-size: 1.05rem;
-    font-family: 'Mukta', sans-serif;
-    background-color: #F9FBF7;
-    transition: all 0.3s ease;
+    font-size: 1rem;
+    background-color: #f9fbf7;
   }
-  .form-control:focus, .form-select:focus {
+
+  input.form-control:focus,
+  select.form-select:focus {
     border-color: var(--secondary-color);
-    background-color: #FFFFFF;
+    background-color: #ffffff;
     box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.15);
   }
-  .btn-primary {
+
+  button.btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    height: 50px;
     font-weight: 700;
-    border-radius: 10px;
-    font-size: 1.1rem;
     letter-spacing: 0.5px;
-    transition: all 0.3s ease;
+    font-size: 1.1rem;
+    border-radius: 10px;
+    height: 50px;
+    transition: background-color 0.3s ease;
     box-shadow: 0 4px 10px rgba(27, 94, 32, 0.2);
-    padding: 0 24px;
   }
-  .btn-primary:hover {
+
+  button.btn-primary:hover {
     background-color: var(--secondary-color);
     border-color: var(--secondary-color);
-    box-shadow: 0 6px 15px rgba(27, 94, 32, 0.3);
-    transform: translateY(-2px);
   }
-  .btn-primary:active {
-    transform: translateY(1px);
+
+  /* Bold and highlighted download/upload buttons in modals */
+  .btn-download, .btn-upload {
+    font-weight: 900;
+    background-color: var(--highlight-bg);
+    color: white;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    height: 50px;
+    transition: background-color 0.3s ease;
+    box-shadow: 0 5px 12px rgba(46, 125, 50, 0.8);
   }
-  .alert {
+
+  .btn-download:hover, .btn-upload:hover {
+    background-color: var(--highlight-hover-bg);
+  }
+
+  /* Alert styles */
+  #alertBox {
     border-radius: 10px;
-    font-weight: 500;
+    font-weight: 600;
     padding: 16px;
     margin-bottom: 25px;
-    box-shadow: var(--shadow-sm);
+    display: none;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
   }
-  .alert-success {
+  #alertBox.success {
     background-color: #E8F5E9;
     border-color: #C8E6C9;
     color: #2E7D32;
   }
-  .alert-danger {
+  #alertBox.danger {
     background-color: #FFEBEE;
     border-color: #FFCDD2;
     color: #C62828;
   }
-  /* Autocomplete container and items styling */
+
+  /* Autocomplete styles */
   .autocomplete {
     position: relative;
-    display: block;
-    width: 100%;
   }
   .autocomplete-items {
     position: absolute;
@@ -197,8 +208,8 @@
   }
 </style>
 </head>
+
 <body>
-<!-- Header/Navbar -->
 <header class="header">
   <div class="container">
     <nav class="navbar navbar-expand-lg navbar-dark">
@@ -208,9 +219,7 @@
           <span class="hindi">संचालनालय कृषि छत्तीसगढ़</span>
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
-                aria-expanded="false" aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
+          aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav ms-auto">
             <li class="nav-item">
@@ -229,9 +238,7 @@
               <a href="#" id="logoutBtn" class="nav-link hindi">लॉग आउट</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link hindi" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
-                <i class="fas fa-question-circle me-1"></i> सहायता
-              </a>
+              <a href="#" class="nav-link hindi" data-bs-toggle="modal" data-bs-target="#helpModal"><i class="fas fa-question-circle me-1"></i> सहायता</a>
             </li>
           </ul>
         </div>
@@ -240,28 +247,27 @@
   </div>
 </header>
 
-<!-- Main Container -->
 <main class="container-main">
-  <div id="alertBox" class="alert" style="display:none;"></div>
+  <div id="alertBox" class="alert hindi"></div>
 
-  <!-- Data Entry Form Card -->
+  <!-- Data Entry Form -->
   <div class="card">
     <div class="card-header hindi">डेटा प्रविष्टि फॉर्म</div>
     <div class="card-body">
       <form id="dataEntryForm" novalidate autocomplete="off">
         <div class="mb-3 autocomplete">
           <label for="district" class="form-label hindi">जिला</label>
-          <input type="text" id="district" name="district" class="form-control" placeholder="जिला चुनें या टाइप करें" required aria-required="true" />
+          <input type="text" id="district" name="district" class="form-control" placeholder="जिला चुनें या टाइप करें" required />
           <div id="districtList" class="autocomplete-items"></div>
         </div>
         <div class="mb-3 autocomplete">
           <label for="block" class="form-label hindi">ब्लॉक</label>
-          <input type="text" id="block" name="block" class="form-control" placeholder="ब्लॉक चुनें या टाइप करें" required aria-required="true" disabled />
+          <input type="text" id="block" name="block" class="form-control" placeholder="ब्लॉक चुनें या टाइप करें" required disabled />
           <div id="blockList" class="autocomplete-items"></div>
         </div>
         <div class="mb-3 autocomplete">
           <label for="crop_name" class="form-label hindi">फसल का नाम</label>
-          <input type="text" id="crop_name" name="crop_name" class="form-control" placeholder="फसल का नाम चुनें या टाइप करें" required aria-required="true" />
+          <input type="text" id="crop_name" name="crop_name" class="form-control" placeholder="फसल का नाम चुनें या टाइप करें" required />
           <div id="cropList" class="autocomplete-items"></div>
         </div>
         <div class="mb-3 autocomplete">
@@ -279,7 +285,7 @@
         </div>
         <div class="mb-3">
           <label for="distribution" class="form-label hindi">प्रक्रिया केन्द्र से नगद/ उत्पादन वितरण</label>
-          <input type="text" id="distribution" name="distribution" class="form-control" placeholder="" autocomplete="off" />
+          <input type="text" id="distribution" name="distribution" class="form-control" autocomplete="off" />
         </div>
         <button type="submit" class="btn btn-primary w-100 hindi">
           <i class="fas fa-save me-2"></i> सहेजें
@@ -293,23 +299,19 @@
 <div class="modal fade" id="cropUploadModal" tabindex="-1" aria-labelledby="cropUploadLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form id="cropUploadForm" class="modal-content" novalidate autocomplete="off">
-      <div class="modal-header" style="background-color: var(--primary-color); color: var(--text-light); border-bottom:none;">
+      <div class="modal-header" style="background-color: var(--primary-color); color: var(--text-light);">
         <h5 class="modal-title hindi" id="cropUploadLabel">फसल मास्टर अपलोड करें</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1); opacity: 0.8;"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1) opacity: 0.8;"></button>
       </div>
       <div class="modal-body">
         <p class="hindi">टेम्पलेट डाउनलोड करें, भरें, और अपलोड करें।</p>
-        <div class="mb-3">
-          <button type="button" class="btn btn-outline-primary w-100" id="downloadCropTemplate">
-            <i class="fas fa-file-download me-2"></i> टेम्पलेट डाउनलोड करें (.xlsx)
-          </button>
-        </div>
-        <div class="mb-3">
-          <input type="file" id="cropFileInput" accept=".xlsx" class="form-control" required aria-required="true" />
-        </div>
+        <button type="button" class="btn btn-download w-100 mb-3" id="downloadCropTemplate">
+          <i class="fas fa-file-download me-2"></i> टेम्पलेट डाउनलोड करें (.xlsx)
+        </button>
+        <input type="file" id="cropFileInput" accept=".xlsx" class="form-control" required />
       </div>
       <div class="modal-footer" style="border-top:none; background-color:#FAFAFA;">
-        <button type="submit" class="btn btn-primary hindi w-100">
+        <button type="submit" class="btn btn-upload w-100 hindi">
           <i class="fas fa-upload me-2"></i> अपलोड करें
         </button>
       </div>
@@ -321,23 +323,19 @@
 <div class="modal fade" id="committeeUploadModal" tabindex="-1" aria-labelledby="committeeUploadLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form id="committeeUploadForm" class="modal-content" novalidate autocomplete="off">
-      <div class="modal-header" style="background-color: var(--primary-color); color: var(--text-light); border-bottom:none;">
+      <div class="modal-header" style="background-color: var(--primary-color); color: var(--text-light);">
         <h5 class="modal-title hindi" id="committeeUploadLabel">समिति मास्टर अपलोड करें</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1); opacity: 0.8;"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1) opacity: 0.8;"></button>
       </div>
       <div class="modal-body">
         <p class="hindi">टेम्पलेट डाउनलोड करें, भरें, और अपलोड करें।</p>
-        <div class="mb-3">
-          <button type="button" class="btn btn-outline-primary w-100" id="downloadCommitteeTemplate">
-            <i class="fas fa-file-download me-2"></i> टेम्पलेट डाउनलोड करें (.xlsx)
-          </button>
-        </div>
-        <div class="mb-3">
-          <input type="file" id="committeeFileInput" accept=".xlsx" class="form-control" required aria-required="true" />
-        </div>
+        <button type="button" class="btn btn-download w-100 mb-3" id="downloadCommitteeTemplate">
+          <i class="fas fa-file-download me-2"></i> टेम्पलेट डाउनलोड करें (.xlsx)
+        </button>
+        <input type="file" id="committeeFileInput" accept=".xlsx" class="form-control" required />
       </div>
       <div class="modal-footer" style="border-top:none; background-color:#FAFAFA;">
-        <button type="submit" class="btn btn-primary hindi w-100">
+        <button type="submit" class="btn btn-upload w-100 hindi">
           <i class="fas fa-upload me-2"></i> अपलोड करें
         </button>
       </div>
@@ -349,9 +347,9 @@
 <div class="modal fade" id="helpModal" tabindex="-1" aria-labelledby="helpModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header" style="background-color: var(--primary-color); color: var(--text-light); border-bottom:none;">
+      <div class="modal-header" style="background-color: var(--primary-color); color: var(--text-light);">
         <h5 class="modal-title hindi" id="helpModalLabel">मदद और निर्देश</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1); opacity: 0.8;"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="filter: brightness(0) invert(1) opacity: 0.8;"></button>
       </div>
       <div class="modal-body">
         <h6 class="fw-bold hindi">डेटा प्रविष्टि फॉर्म</h6>
@@ -361,7 +359,7 @@
         <h6 class="fw-bold hindi">सहायता संपर्क</h6>
         <p class="hindi">किसी समस्या के लिए, कृपया <strong>diagri-cg@cg.gov.in</strong> पर ईमेल करें या <strong>9399207068</strong> पर कॉल करें।</p>
       </div>
-      <div class="modal-footer" style="border-top:none; background-color:#FAFAFA;">
+      <div class="modal-footer" style="background-color:#FAFAFA;">
         <button type="button" class="btn btn-primary hindi" data-bs-dismiss="modal">समझ गया</button>
       </div>
     </div>
@@ -374,34 +372,34 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
 
 <script>
-  // Supabase config - replace with your keys
+  // Replace with your Supabase project info
   const supabaseUrl = "https://txjbfqrbbtvzlxpeegkv.supabase.co";
-  const supabaseKey = "YOUR_SUPABASE_ANON_KEY"; // Replace with your anon key
+  const supabaseKey = "YOUR_SUPABASE_ANON_KEY"; // Replace with your anon key here!
   const { createClient } = supabase;
   const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-  // Global data caches
+  // Global master data cache
   let districts = [];
   let blocks = [];
   let crops = [];
   let committees = [];
 
-  // Utility: Show alert
-  function showAlert(msg, type = "success") {
+  // Alert function to show messages
+  function showAlert(message, type = "success") {
     const alertBox = document.getElementById("alertBox");
-    alertBox.textContent = msg;
-    alertBox.className = `alert alert-${type} hindi`;
+    alertBox.textContent = message;
+    alertBox.className = `alert hindi ${type === "success" ? "success" : "danger"}`;
     alertBox.style.display = "block";
-    alertBox.style.animation = `fadeIn 0.3s ease-in forwards`;
+    alertBox.style.animation = "fadeIn 0.3s ease-in forwards";
     setTimeout(() => {
-      alertBox.style.animation = `fadeOut 0.3s ease-out forwards`;
+      alertBox.style.animation = "fadeOut 0.3s ease-out forwards";
       setTimeout(() => {
         alertBox.style.display = "none";
       }, 300);
-    }, 5000);
+    }, 6000);
   }
 
-  // Load user or redirect to login
+  // Load user or redirect
   function loadUser() {
     const userJSON = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (!userJSON) {
@@ -411,90 +409,44 @@
     return JSON.parse(userJSON);
   }
 
-  // Logout
+  // Logout button
   document.getElementById("logoutBtn").addEventListener("click", () => {
     localStorage.removeItem("user");
     sessionStorage.removeItem("user");
     window.location.href = "seedlogin.html";
   });
 
-  // Fetch districts from Supabase
-  async function loadDistricts() {
+  // Fetch master tables
+  async function loadMasters() {
     try {
-      const { data, error } = await supabaseClient
-        .from("districts")
-        .select("id, name")
-        .order("name", { ascending: true });
-      if (error) throw error;
-      districts = data || [];
-    } catch (err) {
-      console.error("District load error:", err);
-      showAlert("जिला लोड करने में त्रुटि हुई। कृपया पुनः प्रयास करें।", "danger");
+      const [{ data: dData }, { data: bData }, { data: cData }, { data: cmData }] = await Promise.all([
+        supabaseClient.from("districts").select("id, name").order("name"),
+        supabaseClient.from("blocks").select("id, district_id, name").order("name"),
+        supabaseClient.from("crop_master").select("id, crop_name").order("crop_name"),
+        supabaseClient.from("committee_master").select("id, district_id, block_id, committee_name").order("committee_name"),
+      ]);
+      districts = dData || [];
+      blocks = bData || [];
+      crops = cData || [];
+      committees = cmData || [];
+    } catch (error) {
+      console.error(error);
+      showAlert("मास्टर डेटा लोड करने में त्रुटि हुई। कृपया पुनः प्रयास करें।", "danger");
     }
   }
 
-  // Fetch blocks from Supabase
-  async function loadBlocks() {
-    try {
-      const { data, error } = await supabaseClient
-        .from("blocks")
-        .select("id, district_id, name")
-        .order("name");
-      if (error) throw error;
-      blocks = data || [];
-    } catch (err) {
-      console.error("Block load error:", err);
-      showAlert("ब्लॉक लोड करने में त्रुटि हुई।", "danger");
-    }
-  }
-
-  // Fetch crops from Supabase
-  async function loadCrops() {
-    try {
-      const { data, error } = await supabaseClient
-        .from("crop_master")
-        .select("id, crop_name")
-        .order("crop_name");
-      if (error) throw error;
-      crops = data || [];
-    } catch (err) {
-      console.error("Crop load error:", err);
-      showAlert("फसल लोड करने में त्रुटि हुई।", "danger");
-    }
-  }
-
-  // Fetch committees from Supabase
-  async function loadCommittees() {
-    try {
-      const { data, error } = await supabaseClient
-        .from("committee_master")
-        .select("id, district_id, block_id, committee_name")
-        .order("committee_name");
-      if (error) throw error;
-      committees = data || [];
-    } catch (err) {
-      console.error("Committee load error:", err);
-      showAlert("समिति लोड करने में त्रुटि हुई।", "danger");
-    }
-  }
-
-  // --- AUTOCOMPLETE UTILITY FUNCTION ---
-  // inputEl: <input>, listEl: container div for suggestions,
-  // items: array of {id, name}, filterFn: optional filtering function,
-  // onSelect: callback(item)
+  // AUTOCOMPLETE implementation (same as previous code snippet)
   function setupAutocomplete(inputEl, listEl, items, filterFn = null, onSelect) {
     let currentFocus = -1;
 
     inputEl.addEventListener("input", function () {
       const val = this.value.toLowerCase();
-      closeAllLists();
+      closeLists();
       if (!val) return false;
-
       const filtered = filterFn
         ? items.filter((item) => filterFn(item, val))
         : items.filter((item) => item.name.toLowerCase().includes(val));
-      
-      if (filtered.length === 0) return false;
+      if (!filtered.length) return false;
 
       let container = document.createElement("DIV");
       container.setAttribute("class", "autocomplete-items");
@@ -502,7 +454,6 @@
 
       filtered.slice(0, 10).forEach((item) => {
         let itemDiv = document.createElement("DIV");
-        // Highlight matching part
         const startIdx = item.name.toLowerCase().indexOf(val);
         if (startIdx >= 0) {
           itemDiv.innerHTML =
@@ -514,11 +465,10 @@
         } else {
           itemDiv.textContent = item.name;
         }
-
         itemDiv.addEventListener("click", () => {
           inputEl.value = item.name;
           inputEl.dataset.id = item.id;
-          closeAllLists();
+          closeLists();
           if (onSelect) onSelect(item);
         });
         container.appendChild(itemDiv);
@@ -528,7 +478,6 @@
     inputEl.addEventListener("keydown", function (e) {
       const itemsDiv = listEl.querySelector(".autocomplete-items");
       if (!itemsDiv) return;
-
       let items = itemsDiv.getElementsByTagName("div");
       if (e.key === "ArrowDown") {
         currentFocus++;
@@ -538,11 +487,8 @@
         addActive(items);
       } else if (e.key === "Enter") {
         e.preventDefault();
-        if (currentFocus > -1) {
-          if (items[currentFocus]) items[currentFocus].click();
-        }
+        if (currentFocus > -1 && items[currentFocus]) items[currentFocus].click();
       }
-
       function addActive(items) {
         if (!items) return false;
         removeActive(items);
@@ -551,91 +497,74 @@
         items[currentFocus].classList.add("autocomplete-active");
       }
       function removeActive(items) {
-        for (let i = 0; i < items.length; i++) {
-          items[i].classList.remove("autocomplete-active");
-        }
+        for (let item of items) item.classList.remove("autocomplete-active");
       }
     });
 
     document.addEventListener("click", function (e) {
-      if (e.target != inputEl) {
-        closeAllLists();
-      }
+      if (e.target !== inputEl) closeLists();
     });
 
-    function closeAllLists() {
-      while (listEl.firstChild) {
-        listEl.removeChild(listEl.firstChild);
-      }
+    function closeLists() {
+      while (listEl.firstChild) listEl.removeChild(listEl.firstChild);
       currentFocus = -1;
     }
   }
 
-  // Helper to reset dependent inputs when parent changes
+  // Helper: reset inputs
   function resetInput(inputEl) {
     inputEl.value = "";
     inputEl.dataset.id = "";
     inputEl.disabled = true;
   }
 
-  // On page load, fetch all master data and setup autocompletes
-  async function initialize() {
-    const user = loadUser();
-    if (!user) return;
-
-    await Promise.all([loadDistricts(), loadBlocks(), loadCrops(), loadCommittees()]);
-
-    // Setup autocomplete for District (no filter)
+  // Initialize autocomplete with cascading logic
+  function initAutocomplete() {
+    // District autocomplete
     setupAutocomplete(
       document.getElementById("district"),
       document.getElementById("districtList"),
-      districts.map(d => ({ id: d.id, name: d.name })),
+      districts.map((d) => ({ id: d.id, name: d.name })),
       null,
       () => {
-        // On district select, reset block and committee input and enable block input
         resetInput(document.getElementById("block"));
         resetInput(document.getElementById("committee"));
         document.getElementById("block").disabled = false;
       }
     );
 
-    // Setup autocomplete for Block: filter by selected district
+    // Block autocomplete: filter blocks by selected district
     setupAutocomplete(
       document.getElementById("block"),
       document.getElementById("blockList"),
       [],
       (item, val) => {
-        const selectedDistrictId = document.getElementById("district").dataset.id || "";
-        if (!selectedDistrictId) return false;
-        if (item.name.toLowerCase().includes(val) && item.district_id === selectedDistrictId) return true;
-        return false;
+        const districtId = document.getElementById("district").dataset.id || "";
+        return item.name.toLowerCase().includes(val) && item.district_id === districtId;
       },
       () => {
         resetInput(document.getElementById("committee"));
       }
     );
-    // Dynamically update block autocomplete source when district input changes (by name matching)
+
     document.getElementById("district").addEventListener("input", () => {
       const districtName = document.getElementById("district").value.toLowerCase();
-      const district = districts.find(d => d.name.toLowerCase() === districtName);
+      const district = districts.find((d) => d.name.toLowerCase() === districtName);
       if (district) {
         document.getElementById("district").dataset.id = district.id;
         document.getElementById("block").dataset.id = "";
         document.getElementById("committee").dataset.id = "";
         document.getElementById("block").value = "";
         document.getElementById("committee").value = "";
-        // update autocomplete blocks source to only blocks of selected district
-        const filteredBlocks = blocks.filter(b => b.district_id === district.id)
-          .map(b => ({ id: b.id, name: b.name, district_id: b.district_id }));
-        // Re-setup autocomplete for blocks
+        const filteredBlocks = blocks
+          .filter((b) => b.district_id === district.id)
+          .map((b) => ({ id: b.id, name: b.name, district_id: b.district_id }));
         setupAutocomplete(
           document.getElementById("block"),
           document.getElementById("blockList"),
           filteredBlocks,
           null,
-          () => {
-            resetInput(document.getElementById("committee"));
-          }
+          () => resetInput(document.getElementById("committee"))
         );
         document.getElementById("block").disabled = false;
       } else {
@@ -645,44 +574,38 @@
       }
     });
 
-    // Setup autocomplete for Committee: filter by selected district and block
+    // Committee autocomplete: filter by selected district and block
     setupAutocomplete(
       document.getElementById("committee"),
       document.getElementById("committeeList"),
       [],
       (item, val) => {
-        const selectedDistrictId = document.getElementById("district").dataset.id || "";
-        const selectedBlockId = document.getElementById("block").dataset.id || "";
-        if (!selectedDistrictId || !selectedBlockId) return false;
-        if (
+        const districtId = document.getElementById("district").dataset.id || "";
+        const blockId = document.getElementById("block").dataset.id || "";
+        return (
           item.committee_name.toLowerCase().includes(val) &&
-          item.district_id === selectedDistrictId &&
-          item.block_id === selectedBlockId
-        ) return true;
-        return false;
+          item.district_id === districtId &&
+          item.block_id === blockId
+        );
       },
       (item) => {
         document.getElementById("committee").dataset.id = item.id;
       }
     );
-    // Dynamically update committee autocomplete source when district or block input changes (by name matching)
+
     function updateCommitteeSource() {
       const districtName = document.getElementById("district").value.toLowerCase();
       const blockName = document.getElementById("block").value.toLowerCase();
-
-      const district = districts.find(d => d.name.toLowerCase() === districtName);
-      const block = blocks.find(b => b.name.toLowerCase() === blockName && b.district_id === (district ? district.id : null));
-
+      const district = districts.find((d) => d.name.toLowerCase() === districtName);
+      const block = blocks.find((b) => b.name.toLowerCase() === blockName && b.district_id === (district ? district.id : null));
       if (district && block) {
         document.getElementById("district").dataset.id = district.id;
         document.getElementById("block").dataset.id = block.id;
         document.getElementById("committee").value = "";
         document.getElementById("committee").dataset.id = "";
-
-        const filteredCommittees = committees.filter(
-          c => c.district_id === district.id && c.block_id === block.id
-        ).map(c => ({ id: c.id, name: c.committee_name, committee_name: c.committee_name, district_id: c.district_id, block_id: c.block_id }));
-
+        const filteredCommittees = committees
+          .filter((c) => c.district_id === district.id && c.block_id === block.id)
+          .map((c) => ({ id: c.id, name: c.committee_name, committee_name: c.committee_name, district_id: c.district_id, block_id: c.block_id }));
         setupAutocomplete(
           document.getElementById("committee"),
           document.getElementById("committeeList"),
@@ -699,11 +622,11 @@
     document.getElementById("district").addEventListener("input", updateCommitteeSource);
     document.getElementById("block").addEventListener("input", updateCommitteeSource);
 
-    // Setup autocomplete for Crops
+    // Crop autocomplete
     setupAutocomplete(
       document.getElementById("crop_name"),
       document.getElementById("cropList"),
-      crops.map(c => ({ id: c.id, name: c.crop_name })),
+      crops.map((c) => ({ id: c.id, name: c.crop_name })),
       null,
       (item) => {
         document.getElementById("crop_name").dataset.id = item.id;
@@ -711,40 +634,38 @@
     );
   }
 
-  // Data Entry form submission handler
+  // Data Entry form submission
   document.getElementById("dataEntryForm").addEventListener("submit", async (e) => {
     e.preventDefault();
-
-    const btn = e.target.querySelector('button[type="submit"]');
+    const btn = e.target.querySelector("button[type=submit]");
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> कृपया प्रतीक्षा करें...';
-
     try {
       const user = loadUser();
       if (!user) return;
 
-      const districtId = document.getElementById("district").dataset.id || "";
-      const blockId = document.getElementById("block").dataset.id || "";
-      const cropNameId = document.getElementById("crop_name").dataset.id || "";
-      const committeeId = document.getElementById("committee").dataset.id || "";
+      const districtId = document.getElementById("district").dataset.id;
+      const blockId = document.getElementById("block").dataset.id;
+      const cropId = document.getElementById("crop_name").dataset.id;
+      const committeeId = document.getElementById("committee").dataset.id || null;
       const seedCorp = e.target.seed_corp.value.trim() || null;
       const scheme = e.target.scheme.value.trim() || null;
       const distribution = e.target.distribution.value.trim() || null;
 
-      if (!districtId || !blockId || !cropNameId) {
-        showAlert("कृपया जिला, ब्लॉक, और फसल का नाम सही ढंग से चुनें।", "danger");
+      if (!districtId || !blockId || !cropId) {
+        showAlert("कृपया जिला, ब्लॉक और फसल का नाम सही ढंग से चुनें।", "danger");
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save me-2"></i> सहेजें';
         return;
       }
 
-      // Insert into seed_entries table - adjust accordingly if your table differs
+      // Insert into seed_entries table — adjust columns as per your schema
       const { error } = await supabaseClient.from("seed_entries").insert([{
         user_id: user.id,
         district_id: districtId,
         block_id: blockId,
-        crop_name_id: cropNameId,  // Use crop ID instead of raw name to keep consistency
-        committee_id: committeeId || null,
+        crop_name_id: cropId,
+        committee_id: committeeId,
         seed_corp: seedCorp,
         scheme,
         distribution
@@ -753,16 +674,13 @@
 
       showAlert("डेटा सफलतापूर्वक सहेजा गया।", "success");
       e.target.reset();
-
-      // Clear stored IDs
-      ["district", "block", "crop_name", "committee"].forEach(id => {
-        const input = document.getElementById(id);
-        input.dataset.id = "";
-        // Disable block and committee again to prevent confusion
-        if (id === "block" || id === "committee") input.disabled = true;
+      ["district", "block", "crop_name", "committee"].forEach((id) => {
+        const el = document.getElementById(id);
+        el.dataset.id = "";
+        if (id === "block" || id === "committee") el.disabled = true;
       });
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       showAlert("डेटा सहेजने में त्रुटि हुई। कृपया पुनः प्रयास करें।", "danger");
     } finally {
       btn.disabled = false;
@@ -770,12 +688,11 @@
     }
   });
 
-  // Template generation helper for XLSX using SheetJS
+  /* XLSX Download Template Helpers */
   function generateExcelSheet(columns, sheetName = "Sheet1") {
     const ws = XLSX.utils.aoa_to_sheet([columns]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
-    /* return binary string */
     return XLSX.write(wb, { bookType: "xlsx", type: "binary" });
   }
   function s2ab(s) {
@@ -799,30 +716,25 @@
     }, 0);
   }
 
-  // Crop template download
   document.getElementById("downloadCropTemplate").addEventListener("click", () => {
     downloadExcel(["crop_name", "variety"], "Crop_Master_Template.xlsx", "CropMaster");
   });
 
-  // Committee template download
   document.getElementById("downloadCommitteeTemplate").addEventListener("click", () => {
     downloadExcel(["district_name", "block_name", "committee_name"], "Committee_Master_Template.xlsx", "CommitteeMaster");
   });
 
-  // XLSX parsing helper
   async function parseXlsxFile(file) {
     const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: "array" });
-    return workbook;
+    return XLSX.read(data, { type: "array" });
   }
 
-  // Crop upload handler
+  // Crop Upload Handler
   document.getElementById("cropUploadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector("button[type=submit]");
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> अपलोड हो रहा है...';
-
     try {
       const user = loadUser();
       if (!user) return;
@@ -834,12 +746,11 @@
         btn.innerHTML = '<i class="fas fa-upload me-2"></i> अपलोड करें';
         return;
       }
-
       const workbook = await parseXlsxFile(fileInput.files[0]);
       const sheetName = workbook.SheetNames.includes("CropMaster") ? "CropMaster" : workbook.SheetNames[0];
       const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
 
-      if (jsonData.length === 0) {
+      if (!jsonData.length) {
         showAlert("फ़ाइल में कोई डेटा नहीं मिला।", "danger");
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-upload me-2"></i> अपलोड करें';
@@ -848,7 +759,6 @@
 
       let rowsToInsert = [];
       let errors = [];
-
       jsonData.forEach((row, i) => {
         const lineNum = i + 2;
         const crop_name = (row.crop_name || "").trim();
@@ -863,7 +773,6 @@
         btn.innerHTML = '<i class="fas fa-upload me-2"></i> अपलोड करें';
         return;
       }
-
       const { error } = await supabaseClient.from("crop_master").insert(rowsToInsert);
       if (error) throw error;
 
@@ -872,20 +781,19 @@
       bootstrap.Modal.getInstance(document.getElementById("cropUploadModal")).hide();
     } catch (err) {
       console.error(err);
-      showAlert("अपलोड में समस्या हुई। कृपया पुनः प्रयास करें।", "danger");
+      showAlert("अपलोड में त्रुटि हुई। कृपया पुनः प्रयास करें।", "danger");
     } finally {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-upload me-2"></i> अपलोड करें';
     }
   });
 
-  // Committee upload handler (with mapping district & block names)
+  // Committee Upload Handler (with district/block name mapping)
   document.getElementById("committeeUploadForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = e.target.querySelector("button[type=submit]");
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> अपलोड हो रहा है...';
-
     try {
       const user = loadUser();
       if (!user) return;
@@ -897,65 +805,59 @@
         btn.innerHTML = '<i class="fas fa-upload me-2"></i> अपलोड करें';
         return;
       }
-
       const workbook = await parseXlsxFile(fileInput.files[0]);
       const sheetName = workbook.SheetNames.includes("CommitteeMaster")
         ? "CommitteeMaster"
         : workbook.SheetNames[0];
       const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: "" });
 
-      if (jsonData.length === 0) {
+      if (!jsonData.length) {
         showAlert("फ़ाइल में कोई डेटा नहीं मिला।", "danger");
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-upload me-2"></i> अपलोड करें';
         return;
       }
 
-      // Build lookup maps for districts and blocks (lowercase names → UUID)
       const districtMap = new Map(districts.map((d) => [d.name.toLowerCase(), d.id]));
-
-      // Filter blocks per district, we create a nested map: districtId -> Map(blockName -> blockId)
       const blocksByDistrict = new Map();
-      blocks.forEach((b) => {
-        let m = blocksByDistrict.get(b.district_id);
-        if (!m) {
-          m = new Map();
-          blocksByDistrict.set(b.district_id, m);
+      blocks.forEach((block) => {
+        if (!blocksByDistrict.has(block.district_id)) {
+          blocksByDistrict.set(block.district_id, new Map());
         }
-        m.set(b.name.toLowerCase(), b.id);
+        blocksByDistrict.get(block.district_id).set(block.name.toLowerCase(), block.id);
       });
 
       let errors = [];
       let rowsToInsert = [];
-
       jsonData.forEach((row, i) => {
         const lineNum = i + 2;
         const districtName = (row.district_name || "").trim().toLowerCase();
         const blockName = (row.block_name || "").trim().toLowerCase();
         const committeeName = (row.committee_name || "").trim();
 
-        if (!districtName || !districtMap.has(districtName))
+        if (!districtMap.has(districtName)) {
           errors.push(`पंक्ति ${lineNum}: अमान्य जिला नाम "${row.district_name}"`);
-
+          return;
+        }
         const districtId = districtMap.get(districtName);
-        if (!districtId) return; // skip row, already error on district
 
         const blockMapForDistrict = blocksByDistrict.get(districtId);
-        if (!blockName || !blockMapForDistrict || !blockMapForDistrict.has(blockName))
-          errors.push(
-            `पंक्ति ${lineNum}: अमान्य ब्लॉक नाम "${row.block_name}" जिला "${row.district_name}" के लिए`
-          );
+        if (!blockMapForDistrict || !blockMapForDistrict.has(blockName)) {
+          errors.push(`पंक्ति ${lineNum}: अमान्य ब्लॉक नाम "${row.block_name}" जिला "${row.district_name}" के लिए`);
+          return;
+        }
+        const blockId = blockMapForDistrict.get(blockName);
 
-        const blockId = blockMapForDistrict ? blockMapForDistrict.get(blockName) : null;
+        if (!committeeName) {
+          errors.push(`पंक्ति ${lineNum}: समिति नाम आवश्यक है`);
+          return;
+        }
 
-        if (!committeeName) errors.push(`पंक्ति ${lineNum}: समिति नाम आवश्यक है`);
-
-        if (districtId && blockId && committeeName)
-          rowsToInsert.push({
-            district_id: districtId,
-            block_id: blockId,
-            committee_name: committeeName,
-          });
+        rowsToInsert.push({
+          district_id: districtId,
+          block_id: blockId,
+          committee_name: committeeName,
+        });
       });
 
       if (errors.length) {
@@ -973,14 +875,14 @@
       bootstrap.Modal.getInstance(document.getElementById("committeeUploadModal")).hide();
     } catch (err) {
       console.error(err);
-      showAlert("अपलोड में समस्या हुई। कृपया पुनः प्रयास करें।", "danger");
+      showAlert("अपलोड में त्रुटि हुई। कृपया पुनः प्रयास करें।", "danger");
     } finally {
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-upload me-2"></i> अपलोड करें';
     }
   });
 
-  // Navbar dropdown modal triggers
+  // Open modals from navbar dropdown
   document.getElementById("openCropMasterUpload").addEventListener("click", (e) => {
     e.preventDefault();
     new bootstrap.Modal(document.getElementById("cropUploadModal")).show();
@@ -990,9 +892,12 @@
     new bootstrap.Modal(document.getElementById("committeeUploadModal")).show();
   });
 
-  // Initialization
+  // Initialize page
   document.addEventListener("DOMContentLoaded", async () => {
-    await initialize();
+    const user = loadUser();
+    if (!user) return;
+    await loadMasters();
+    initAutocomplete();
   });
 </script>
 
