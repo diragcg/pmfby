@@ -18,6 +18,7 @@
     </div>
     <p>डेटा लोड हो रहा है...</p>
   </div>
+  <div id="errorContainer" class="alert alert-danger" style="display: none;"></div>
   <table class="table table-bordered" id="entryTable" style="display:none;">
     <thead class="table-success">
       <tr>
@@ -41,48 +42,94 @@
   const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
   const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
   
-  // Initialize Supabase client
-  const supabase = supabase.createClient(supabaseUrl, supabaseKey);
-
   const addRowBtn = document.getElementById('addRowBtn');
   const submitBtn = document.getElementById('submitBtn');
   const tableBody = document.getElementById('tableBody');
   const alertBox = document.getElementById('alertBox');
   const loadingSpinner = document.getElementById('loadingSpinner');
   const entryTable = document.getElementById('entryTable');
+  const errorContainer = document.getElementById('errorContainer');
 
   // Store fetched data
   let crops = [];
   let committees = [];
   let seedCorps = [];
 
+  // Initialize Supabase client
+  let supabaseClient;
+  try {
+    // Try different initialization methods
+    if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
+      supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+      console.log('Supabase client initialized using supabase.createClient');
+    } else if (typeof createClient === 'function') {
+      supabaseClient = createClient(supabaseUrl, supabaseKey);
+      console.log('Supabase client initialized using createClient');
+    } else {
+      throw new Error('Supabase client not available. Make sure the library is loaded correctly.');
+    }
+  } catch (error) {
+    showError(`Supabase client initialization error: ${error.message}`);
+  }
+
+  function showError(message) {
+    console.error(message);
+    errorContainer.textContent = message;
+    errorContainer.style.display = 'block';
+    loadingSpinner.style.display = 'none';
+  }
+
   // Fetch data from Supabase
   async function fetchData() {
+    if (!supabaseClient) {
+      showError('Supabase client not initialized');
+      return;
+    }
+
     try {
+      console.log('Fetching data from crop_master...');
       // Fetch crops from crop_master table
-      let { data: cropsData, error: cropsError } = await supabase
+      let { data: cropsData, error: cropsError } = await supabaseClient
         .from('crop_master')
         .select('*');
       
       if (cropsError) throw cropsError;
-      crops = cropsData;
+      console.log('Crop data:', cropsData);
+      crops = cropsData || [];
 
+      console.log('Fetching data from committee_master...');
       // Fetch committees from committee_master table
-      let { data: committeesData, error: committeesError } = await supabase
+      let { data: committeesData, error: committeesError } = await supabaseClient
         .from('committee_master')
         .select('*');
       
       if (committeesError) throw committeesError;
-      committees = committeesData;
+      console.log('Committee data:', committeesData);
+      committees = committeesData || [];
 
-      // Fetch seed corporations (assuming there's a seed_corporation_master table)
-      // If there's a different table name, replace it here
-      let { data: seedCorpsData, error: seedCorpsError } = await supabase
-        .from('seed_corporation_master')
-        .select('*');
-      
-      if (seedCorpsError) throw seedCorpsError;
-      seedCorps = seedCorpsData || []; // Default to empty array if table doesn't exist
+      // Try to fetch seed corporations if available
+      try {
+        console.log('Attempting to fetch seed corporation data...');
+        let { data: seedCorpsData, error: seedCorpsError } = await supabaseClient
+          .from('seed_corporation_master')
+          .select('*');
+        
+        if (!seedCorpsError) {
+          console.log('Seed corporation data:', seedCorpsData);
+          seedCorps = seedCorpsData || [];
+        } else {
+          console.log('No seed corporation table found or error:', seedCorpsError);
+          seedCorps = [];
+        }
+      } catch (seedCorpError) {
+        console.log('Error fetching seed corporations:', seedCorpError);
+        seedCorps = [];
+      }
+
+      if (crops.length === 0 && committees.length === 0) {
+        showError('No data found in tables. Check that your tables have data and RLS policies allow access.');
+        return;
+      }
 
       // Hide loading spinner and show table
       loadingSpinner.style.display = 'none';
@@ -93,9 +140,7 @@
       // Add first row
       addRow();
     } catch (error) {
-      console.error('Error fetching data:', error);
-      alertBox.innerHTML = `<div class="alert alert-danger">डेटा लोड करने में त्रुटि: ${error.message}</div>`;
-      loadingSpinner.style.display = 'none';
+      showError(`Error fetching data: ${error.message}`);
     }
   }
 
@@ -103,30 +148,37 @@
   function addRow() {
     const tr = document.createElement('tr');
 
-    // Determine the name field in your tables
-    // Adjust these if your column names are different
-    const cropNameField = crops.length > 0 && 'name' in crops[0] ? 'name' : 
-                         (crops.length > 0 && 'crop_name' in crops[0] ? 'crop_name' : 'id');
-    
-    const committeeNameField = committees.length > 0 && 'name' in committees[0] ? 'name' : 
-                              (committees.length > 0 && 'committee_name' in committees[0] ? 'committee_name' : 'id');
-    
-    const seedCorpNameField = seedCorps.length > 0 && 'name' in seedCorps[0] ? 'name' : 
-                             (seedCorps.length > 0 && 'corporation_name' in seedCorps[0] ? 'corporation_name' : 'id');
+    // Try to determine the name fields in the tables
+    const cropFields = crops.length > 0 ? Object.keys(crops[0]) : [];
+    const committeeFields = committees.length > 0 ? Object.keys(committees[0]) : [];
+    const seedCorpFields = seedCorps.length > 0 ? Object.keys(seedCorps[0]) : [];
+
+    console.log('Crop fields:', cropFields);
+    console.log('Committee fields:', committeeFields);
+    console.log('Seed corp fields:', seedCorpFields);
+
+    // Find name-like fields
+    const cropNameField = findNameField(cropFields);
+    const committeeNameField = findNameField(committeeFields);
+    const seedCorpNameField = findNameField(seedCorpFields);
+
+    console.log('Using crop name field:', cropNameField);
+    console.log('Using committee name field:', committeeNameField);
+    console.log('Using seed corp name field:', seedCorpNameField);
 
     // Create crop dropdown HTML
     let cropOptions = crops.map(crop => 
-      `<option value="${crop.id}">${crop[cropNameField]}</option>`
+      `<option value="${crop.id}">${crop[cropNameField] || crop.id}</option>`
     ).join('');
 
     // Create committee dropdown HTML
     let committeeOptions = committees.map(committee => 
-      `<option value="${committee.id}">${committee[committeeNameField]}</option>`
+      `<option value="${committee.id}">${committee[committeeNameField] || committee.id}</option>`
     ).join('');
 
     // Create seed corp dropdown HTML
     let seedCorpOptions = seedCorps.map(seedCorp => 
-      `<option value="${seedCorp.id}">${seedCorp[seedCorpNameField]}</option>`
+      `<option value="${seedCorp.id}">${seedCorp[seedCorpNameField] || seedCorp.id}</option>`
     ).join('');
 
     tr.innerHTML = `
@@ -155,6 +207,27 @@
 
     // Attach delete functionality
     tr.querySelector('.removeBtn').addEventListener('click', () => tr.remove());
+  }
+
+  // Helper function to find name-like field in a table
+  function findNameField(fields) {
+    const nameFields = ['name', 'title', 'crop_name', 'committee_name', 'corporation_name', 'label', 'display_name'];
+    
+    for (const field of nameFields) {
+      if (fields.includes(field)) {
+        return field;
+      }
+    }
+    
+    // If no name field found, return the first field that's not 'id'
+    for (const field of fields) {
+      if (field !== 'id') {
+        return field;
+      }
+    }
+    
+    // Fallback to id
+    return 'id';
   }
 
   addRowBtn.addEventListener('click', addRow);
@@ -196,10 +269,9 @@
     }
 
     // Insert data to Supabase (assuming table name is 'entries')
-    // Change the table name if it's different
     async function insertRecords() {
       try {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from('entries')
           .insert(records);
           
