@@ -1,414 +1,98 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>संचालनालय कृषि छत्तीसगढ़ - उन्नत डैशबोर्ड</title>
-
-<!-- Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-<!-- Font Awesome -->
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet" />
-<!-- Google Fonts Mukta -->
-<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet" />
-<!-- SheetJS for Export -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-<style>
-  body {
-    font-family: 'Mukta', sans-serif;
-    background-color: #FFF8E1;
-    min-height: 100vh;
-  }
-  .hindi {
-    font-weight: 500;
-    letter-spacing: 0.3px;
-  }
-  header {
-    background-color: #1B5E20;
-    padding: 1rem 2rem;
-    color: white;
-    box-shadow: 0 10px 15px rgba(27, 94, 32, 0.5);
-  }
-  /* 3D card styles */
-  .card-3d {
-    border-radius: 16px;
-    background: #f9fbf7;
-    padding: 25px 30px;
-    margin-bottom: 2rem;
-    box-shadow:
-      0 4px 6px rgba(27,94,32,.15),
-      0 8px 20px rgba(27,94,32,.12),
-      0 12px 40px rgba(27,94,32,.10);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-  .card-3d:hover {
-    transform: translateY(-6px);
-    box-shadow:
-      0 12px 24px rgba(27,94,32,.2),
-      0 20px 40px rgba(27,94,32,.19),
-      0 28px 60px rgba(27,94,32,.17);
-  }
-
-  /* Table styles */
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0 0.8rem;
-  }
-  thead tr {
-    background-color: #1B5E20;
-    color: white;
-    text-align: left;
-    border-radius: 12px;
-  }
-  thead th {
-    padding: 12px 20px;
-  }
-  tbody tr {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 3px 10px rgba(27,94,32,0.1);
-    transition: box-shadow 0.3s ease;
-  }
-  tbody tr:hover {
-    box-shadow: 0 8px 18px rgba(27,94,32,0.25);
-  }
-  tbody td {
-    padding: 15px 20px;
-    vertical-align: middle;
-  }
-  select.form-select, input.form-control {
-    border-radius: 8px;
-    padding: 6px 10px;
-    font-size: 1rem;
-  }
-
-  /* Pagination */
-  .pagination-wrapper {
-    display: flex;
-    justify-content: flex-end;
-    margin-top: 15px;
-  }
-
-  .pagination-item {
-    padding: 6px 12px;
-    margin: 0 3px;
-    border-radius: 6px;
-    cursor: pointer;
-    background-color: #a5d6a7;
-    color: #1b5e20;
-    font-weight: 700;
-    user-select: none;
-  }
-  .pagination-item.active {
-    background-color: #1b5e20;
-    color: white;
-  }
-  .pagination-item:hover:not(.active) {
-    background-color: #81c784;
-    color: white;
-  }
-
-  /* Buttons */
-  .action-buttons {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 1rem;
-  }
-  .btn-custom {
-    background-color: #2e7d32;
-    color: white;
-    font-weight: 700;
-    border-radius: 12px;
-    padding: 10px 18px;
-    border: none;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  .btn-custom:hover {
-    background-color: #1b4d12;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>डेटा प्रविष्टि टेस्ट</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 <body>
 
-<header>
-  <div class="container d-flex justify-content-between align-items-center">
-    <div style="display:flex; align-items:center;" class="hindi">
-      <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत" style="height:45px; margin-right:15px;" />
-      संचालनालय कृषि छत्तीसगढ़ - डैशबोर्ड
-    </div>
-    <button id="logoutBtn" class="btn btn-custom hindi">लॉग आउट</button>
-  </div>
-</header>
+<div class="container my-5">
+  <h3 class="mb-3">डेटा प्रविष्टि से परीक्षण</h3>
+  <table class="table table-bordered" id="entryTable">
+    <thead class="table-success">
+      <tr>
+        <th>फसल</th>
+        <th>समिति</th>
+        <th>बीज निगम</th>
+        <th>कार्य</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+  <button id="addRowBtn" class="btn btn-primary mb-3">नई पंक्ति जोड़ें</button>
+  <br />
+  <button id="submitBtn" class="btn btn-success">सबमिट करें</button>
 
-<main class="container mt-4">
-
-  <section class="card-3d">
-    <div class="hindi mb-3 fs-4 fw-bold">
-      आपका जिला: <span id="districtDisplay">लोड हो रहा है...</span>
-    </div>
-
-    <div class="action-buttons">
-      <button id="btnAddRow" class="btn-custom hindi"><i class="fas fa-plus me-2"></i>नई पंक्ति जोड़ें</button>
-      <button id="btnExportExcel" class="btn-custom hindi"><i class="fas fa-file-excel me-2"></i>एक्सेल में निर्यात करें</button>
-      <button id="btnExportCSV" class="btn-custom hindi"><i class="fas fa-file-csv me-2"></i>CSV में निर्यात करें</button>
-    </div>
-
-    <table id="dataTable" aria-label="डेटा प्रविष्टि तालिका">
-      <thead>
-        <tr>
-          <th>फसल <span class="text-danger">*</span></th>
-          <th>समिति</th>
-          <th>बीज निगम</th>
-          <th>विभागीय योजना/ प्रदर्शन</th>
-          <th>नगद / वितरण</th>
-          <th>कार्य</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody">
-        <!-- Data rows -->
-      </tbody>
-    </table>
-
-    <nav aria-label="पृष्ठ नेविगेशन" class="pagination-wrapper mt-3">
-      <div id="paginationControls"></div>
-    </nav>
-  </section>
-</main>
-
-<!-- Help and Master Upload Modals here (omitted for brevity but should be included similar to previous examples) -->
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <div id="alertBox" class="mt-3"></div>
+</div>
 
 <script>
-  const supabaseUrl = "https://txjbfqrbbtvzlxpeegkv.supabase.co";
-  const supabaseKey = "YOUR_SUPABASE_ANON_KEY"; // replace with yours
-  const { createClient } = supabase;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  let currentUser = null;
-  let userDistrictId = null;
-  let userDistrictName = null;
-
-  // Pagination variables
-  const pageSize = 10;
-  let currentPage = 1;
-  let entries = [];
-
-  const districtDisplay = document.getElementById('districtDisplay');
+  const addRowBtn = document.getElementById('addRowBtn');
+  const submitBtn = document.getElementById('submitBtn');
   const tableBody = document.getElementById('tableBody');
-  const paginationControls = document.getElementById('paginationControls');
-  const btnAddRow = document.getElementById('btnAddRow');
-  const btnExportExcel = document.getElementById('btnExportExcel');
-  const btnExportCSV = document.getElementById('btnExportCSV');
-  const logoutBtn = document.getElementById('logoutBtn');
+  const alertBox = document.getElementById('alertBox');
 
-  // Load current user and display district
-  function loadUser() {
-    let userJson = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (!userJson) {
-      window.location.href = 'seedlogin.html'; 
+  // Add a new empty row with input fields
+  function addRow() {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td><input type="text" class="form-control" placeholder="फसल का नाम" /></td>
+      <td><input type="text" class="form-control" placeholder="समिति" /></td>
+      <td><input type="text" class="form-control" placeholder="बीज निगम" /></td>
+      <td><button type="button" class="btn btn-danger btn-sm removeBtn">हटाएँ</button></td>
+    `;
+
+    tableBody.appendChild(tr);
+
+    // Attach delete functionality
+    tr.querySelector('.removeBtn').addEventListener('click', () => tr.remove());
+  }
+
+  addRowBtn.addEventListener('click', addRow);
+
+  submitBtn.addEventListener('click', () => {
+    alertBox.innerHTML = '';
+    const rows = tableBody.querySelectorAll('tr');
+    if (rows.length === 0) {
+      alertBox.innerHTML = '<div class="alert alert-danger">कृपया कम से कम एक रिकॉर्ड जोड़ें।</div>';
       return;
     }
-    currentUser = JSON.parse(userJson);
-    userDistrictId = currentUser.district_id;
-    userDistrictName = currentUser.district_name;
-    districtDisplay.textContent = userDistrictName || 'अज्ञात जिला';
-  }
 
-  // Fetch seed entries for user's district with pagination
-  async function fetchEntries() {
-    try {
-      // Adjust your query for filtering by district and user if needed
-      const { data, error } = await supabase
-        .from('seed_entries')
-        .select(`id, crop_name, committee, seed_corp, scheme, distribution`)
-        .eq('district_id', userDistrictId)
-        .order('created_at', { ascending: false });
+    const records = [];
+    let validationErrors = [];
 
-      if (error) throw error;
+    rows.forEach((tr, index) => {
+      const tds = tr.querySelectorAll('input');
+      const crop = tds[0].value.trim();
+      const committee = tds[1].value.trim();
+      const seedCorp = tds[2].value.trim();
 
-      entries = data || [];
-      currentPage = 1;
-      renderTablePage(currentPage);
-      renderPagination(entries.length, pageSize, currentPage);
-    } catch (err) {
-      console.error(err);
-      alert('डेटा लोड करने में त्रुटि हुई।');
-    }
-  }
+      if (!crop) {
+        validationErrors.push(`पंक्ति ${index + 1}: फसल का नाम आवश्यक है।`);
+      }
 
-  // Render table for current page
-  function renderTablePage(page) {
-    tableBody.innerHTML = '';
-    const start = (page - 1) * pageSize;
-    const end = Math.min(start + pageSize, entries.length);
-    for (let i = start; i < end; i++) {
-      const row = entries[i];
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${row.crop_name || ''}</td>
-        <td>${row.committee || ''}</td>
-        <td>${row.seed_corp || ''}</td>
-        <td>${row.scheme || ''}</td>
-        <td>${row.distribution || ''}</td>
-        <td><button class="btn btn-danger btn-sm remove-btn" data-id="${row.id}"><i class="fas fa-trash-alt"></i></button></td>
-      `;
-      tableBody.appendChild(tr);
-    }
-
-    // Add event listeners for delete buttons
-    tableBody.querySelectorAll('.remove-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.target.closest('button').dataset.id;
-        if (confirm('क्या आप इस रिकॉर्ड को हटाना चाहते हैं?')) {
-          await deleteEntry(id);
-        }
-      });
+      records.push({ crop, committee, seedCorp });
     });
-  }
 
-  // Render pagination controls
-  function renderPagination(total, pageSize, currentPage) {
-    const totalPages = Math.ceil(total / pageSize);
-    paginationControls.innerHTML = '';
-
-    if (totalPages <= 1) return;
-
-    function createPageBtn(num) {
-      const btn = document.createElement('span');
-      btn.className = 'pagination-item';
-      if (num === currentPage) btn.classList.add('active');
-      btn.textContent = num;
-      btn.addEventListener('click', () => {
-        currentPage = num;
-        renderTablePage(currentPage);
-        renderPagination(total, pageSize, currentPage);
-      });
-      return btn;
+    if (validationErrors.length) {
+      alertBox.innerHTML = `<div class="alert alert-danger">${validationErrors.join('<br>')}</div>`;
+      return;
     }
 
-    // Previous button
-    const prev = document.createElement('span');
-    prev.className = 'pagination-item';
-    prev.textContent = 'पूर्व';
-    prev.style.cursor = currentPage === 1 ? 'not-allowed' : 'pointer';
-    prev.onclick = () => {
-      if (currentPage > 1) {
-        currentPage--;
-        renderTablePage(currentPage);
-        renderPagination(total, pageSize, currentPage);
-      }
-    };
-    paginationControls.appendChild(prev);
-
-    // Page buttons (limit to 7 for simplicity)
-    let startPage = Math.max(1, currentPage - 3);
-    let endPage = Math.min(totalPages, currentPage + 3);
-    for (let i = startPage; i <= endPage; i++) {
-      paginationControls.appendChild(createPageBtn(i));
-    }
-
-    // Next button
-    const next = document.createElement('span');
-    next.className = 'pagination-item';
-    next.textContent = 'अगला';
-    next.style.cursor = currentPage === totalPages ? 'not-allowed' : 'pointer';
-    next.onclick = () => {
-      if (currentPage < totalPages) {
-        currentPage++;
-        renderTablePage(currentPage);
-        renderPagination(total, pageSize, currentPage);
-      }
-    };
-    paginationControls.appendChild(next);
-  }
-
-  // Delete a seed entry
-  async function deleteEntry(id) {
-    try {
-      const { error } = await supabase.from('seed_entries').delete().eq('id', id);
-      if (error) throw error;
-      showAlert('रिकॉर्ड सफलतापूर्वक हटाया गया।', 'success');
-      await fetchEntries();
-    } catch (err) {
-      console.error(err);
-      showAlert('रिकॉर्ड हटाने में त्रुटि हुई।', 'danger');
-    }
-  }
-
-  // Export current page data to Excel
-  function exportToExcel() {
-    const XLSX = window XLSX;
-
-    const start = (currentPage -1)*pageSize;
-    const end = Math.min(start + pageSize, entries.length);
-    const exportData = entries.slice(start, end).map(r => ({
-      'फसल': r.crop_name,
-      'समिति': r.committee,
-      'बीज निगम': r.seed_corp,
-      'विभागीय योजना/ प्रदर्शन': r.scheme,
-      'नगद / वितरण': r.distribution
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Seed Entries");
-    XLSX.writeFile(wb, "Seed_Entries_Export.xlsx");
-  }
-
-  // Export current page data to CSV
-  function exportToCSV() {
-    const start = (currentPage -1)*pageSize;
-    const end = Math.min(start + pageSize, entries.length);
-    const exportData = entries.slice(start, end).map(r => ({
-      'फसल': r.crop_name,
-      'समिति': r.committee,
-      'बीज निगम': r.seed_corp,
-      'विभागीय योजना/ प्रदर्शन': r.scheme,
-      'नगद / वितरण': r.distribution
-    }));
-
-    const headers = Object.keys(exportData[0]).join(",") + "\n";
-    const rows = exportData.map(obj => Object.values(obj).map(v => `"${v || ''}"`).join(",")).join("\n");
-    const csvContent = headers + rows;
-
-    const blob = new Blob([csvContent], {type: "text/csv;charset=utf-8;"});
-    const url = URL.createObjectURL(blob);
-    let a = document.createElement("a");
-    a.href = url;
-    a.download = "Seed_Entries_Export.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-
-  // Bind buttons
-  btnAddRow.addEventListener('click', () => {
-    // For this view, adding rows is not applicable as it is view-only with pagination.
-    // You can develop a page/modal to add/edit records separately.
-    alert('डेटा जोड़ने के लिए अलग पेज या फॉर्म विकसित करें।');
+    // Log data — replace this with your supabase insert logic
+    console.log('सबमिट किए गए रिकॉर्ड:', records);
+    alertBox.innerHTML = '<div class="alert alert-success">डेटा सफलतापूर्वक सबमिट किया गया।</div>';
+    tableBody.innerHTML = '';
+    addRow();
   });
 
-  btnExportExcel.addEventListener('click', exportToExcel);
-  btnExportCSV.addEventListener('click', exportToCSV);
-
-  logoutBtn.addEventListener('click', () => {
-    localStorage.removeItem('user');
-    sessionStorage.removeItem('user');
-    window.location.href = 'seedlogin.html';
-  });
-
-  // Initialize
-  document.addEventListener('DOMContentLoaded', async () => {
-    loadUser();
-    await fetchEntries();
-  });
+  // Add first empty row on load
+  window.onload = () => addRow();
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
