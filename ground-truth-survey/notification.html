@@ -1,189 +1,447 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Rabi Annexure - Notification Upload</title>
-<style>
-  body { font-family: Arial, sans-serif; margin: 2rem; max-width: 800px; }
-  h1 { margin-bottom: 1rem; }
-  button, input[type="file"] { margin: 0.5rem 0; }
-  table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
-  th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
-  .error { color: red; margin-top: 1rem; }
-  .success { color: green; margin-top: 1rem; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>रबी संलग्नक मास्टर अपलोड</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- Mukta Devanagari Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --primary-color: #1B5E20;
+      --secondary-color: #388E3C;
+      --accent-color: #8BC34A;
+      --text-dark: #263238;
+      --text-medium: #455A64;
+      --text-light: #FFF8E1;
+      --background-light: #FFF8E1;
+      --background-medium: #F1F8E9;
+      --border-color: #C8E6C9;
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+      --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.15);
+      --shadow-lg: 0 8px 24px rgba(27, 94, 32, 0.2);
+    }
+
+    body {
+      font-family: 'Mukta', sans-serif;
+      background-color: var(--background-light);
+      min-height: 100vh;
+      margin: 0;
+      overflow-x: hidden;
+      color: var(--text-dark);
+    }
+
+    /* Navbar/ Header */
+    .header {
+      background-color: var(--primary-color);
+      box-shadow: var(--shadow);
+      position: relative;
+      z-index: 100;
+    }
+    .navbar {
+      padding: 12px 0;
+    }
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .navbar-brand img {
+      height: 45px;
+      filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2));
+    }
+    .nav-link {
+      font-family: 'Mukta', sans-serif;
+      color: rgba(255, 248, 225, 0.9) !important;
+      font-weight: 600;
+      padding: 12px 20px !important;
+      margin: 0 5px;
+      border-radius: 8px;
+      transition: all 0.3s ease;
+    }
+    .nav-link:hover {
+      color: var(--text-light) !important;
+      background-color: rgba(255, 248, 225, 0.1);
+    }
+    .nav-link.active {
+      color: var(--text-light) !important;
+      background-color: rgba(255, 248, 225, 0.2);
+    }
+
+    /* Main container */
+    .main-container {
+      padding: 3rem 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .card {
+      width: 100%;
+      max-width: 900px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      border: none;
+      background-color: #FFFFFF;
+    }
+    .card-header {
+      background-color: var(--primary-color);
+      color: var(--text-light);
+      padding: 30px 40px;
+      border-bottom: none;
+    }
+    .card-header h2 {
+      font-weight: 700;
+      margin-bottom: 10px;
+      font-size: 2rem;
+    }
+    .card-header p {
+      font-weight: 500;
+      margin-bottom: 0;
+      opacity: 0.9;
+    }
+    .card-body {
+      padding: 40px;
+      background-color: #FFFFFF;
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+      height: 48px;
+      font-weight: 700;
+      border-radius: 10px;
+      font-size: 1.1rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 10px rgba(27,94,32,0.2);
+      transition: all 0.3s ease;
+      padding: 0 24px;
+      user-select: none;
+    }
+    .btn-primary:hover {
+      background-color: var(--secondary-color);
+      border-color: var(--secondary-color);
+      box-shadow: 0 6px 15px rgba(27,94,32,0.3);
+      transform: translateY(-2px);
+    }
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    /* File input */
+    input[type="file"] {
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      width: 100%;
+      font-size: 1rem;
+      background-color: #F9FBF7;
+      font-family: 'Mukta', sans-serif;
+      transition: border-color 0.3s ease;
+      cursor: pointer;
+    }
+    input[type="file"]:focus {
+      outline: none;
+      border-color: var(--secondary-color);
+      background-color: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(56,142,60,0.15);
+    }
+    label {
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--text-dark);
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    /* Table preview */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+    }
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 8px 12px;
+      text-align: left;
+      color: var(--text-dark);
+    }
+    th {
+      background-color: var(--background-medium);
+      font-weight: 700;
+    }
+
+    /* Alerts */
+    .alert {
+      border-radius: 10px;
+      font-weight: 600;
+      padding: 16px;
+      margin-bottom: 25px;
+      box-shadow: var(--shadow-sm);
+    }
+    .alert-success {
+      background-color: #E8F5E9;
+      border-color: #C8E6C9;
+      color: #2E7D32;
+    }
+    .alert-danger {
+      background-color: #FFEBEE;
+      border-color: #FFCDD2;
+      color: #C62828;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .card-body {
+        padding: 25px;
+      }
+      .card-header {
+        padding: 25px 25px;
+      }
+    }
+    @media (max-width: 576px) {
+      .main-container {
+        padding: 2rem 1rem;
+      }
+    }
+  </style>
 </head>
 <body>
+  <header class="header">
+    <div class="container">
+      <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+          <a class="navbar-brand hindi" href="#">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत सरकार" />
+            संचालनालय कृषि छत्तीसगढ़
+          </a>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="false">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+              <li class="nav-item">
+                <a class="nav-link active hindi" href="#">मुख्य पृष्ठ</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link hindi" href="#">सेवाएं</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link hindi" href="#">संपर्क करें</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link hindi" href="#">
+                  <i class="fas fa-question-circle me-1"></i> सहायता
+                </a>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
 
-<h1>Rabi Annexure Master - Upload Notification</h1>
+  <main class="main-container">
+    <div class="card shadow-sm">
+      <div class="card-header">
+        <h2 class="hindi">रबी संलग्नक मास्टर अपलोड</h2>
+        <p class="hindi">CSV टेम्पलेट डाउनलोड करें और भरे हुए फाइल को अपलोड करें</p>
+      </div>
+      <div class="card-body">
+        <button id="download-template" class="btn btn-primary mb-4">
+          <i class="fas fa-file-download me-2"></i> टेम्पलेट डाउनलोड करें
+        </button>
 
-<!-- Download Template Button -->
-<button id="download-template">Download CSV Template</button>
+        <label for="csv-file" class="form-label hindi">भरे हुए CSV टेम्पलेट को अपलोड करें:</label>
+        <input type="file" id="csv-file" accept=".csv" />
 
-<!-- Upload CSV -->
-<div>
-  <label for="csv-file">Upload Completed CSV Template:</label><br />
-  <input type="file" id="csv-file" accept=".csv" />
-</div>
+        <div id="message" class="mt-4"></div>
 
-<!-- Upload progress / message -->
-<div id="message"></div>
+        <table id="preview-table" style="display:none;">
+          <thead>
+            <tr>
+              <th>जिला</th>
+              <th>तहसील</th>
+              <th>Riname</th>
+              <th>हलका</th>
+              <th>नंबर</th>
+              <th>गाँव का नाम</th>
+              <th>कोड</th>
+              <th>बंगाल ग्राम</th>
+              <th>गेहूँ IR</th>
+              <th>गेहूँ RF</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
 
-<!-- Preview uploaded rows (optional) -->
-<table id="preview-table" style="display:none;">
-  <thead>
-    <tr>
-      <th>District</th><th>Tehsil</th><th>Riname</th><th>Halka</th><th>Number</th><th>Village Name</th><th>Code</th><th>Bengal Gram</th><th>Wheat IR</th><th>Wheat RF</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <!-- Bootstrap Bundle JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Supabase JS (UMD) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
 
-<script type="module">
-  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+  <script>
+    (function() {
+      // Supabase keys from your snippet
+      const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
 
-  // Your supabase keys (replace these!)
-  const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT.supabase.co'
-  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'
+      const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      // Elements
+      const downloadBtn = document.getElementById('download-template');
+      const fileInput = document.getElementById('csv-file');
+      const messageDiv = document.getElementById('message');
+      const previewTable = document.getElementById('preview-table');
+      const previewBody = previewTable.querySelector('tbody');
 
-  const downloadBtn = document.getElementById('download-template');
-  const fileInput = document.getElementById('csv-file');
-  const messageDiv = document.getElementById('message');
-  const previewTable = document.getElementById('preview-table');
-  const previewBody = previewTable.querySelector('tbody');
+      const TEMPLATE_COLUMNS = [
+        'district', 'tehsil', 'riname', 'halka', 'number',
+        'village_name', 'code', 'bengal_gram', 'wheat_ir', 'wheat_rf'
+      ];
 
-  // Columns in the template
-  const TEMPLATE_COLUMNS = [
-    'district', 'tehsil', 'riname', 'halka', 'number',
-    'village_name', 'code', 'bengal_gram', 'wheat_ir', 'wheat_rf'
-  ];
+      const ALLOWED_CROP_VALUES = ['✓', '-'];
 
-  // Allowed crop values
-  const ALLOWED_CROP_VALUES = ['✓', '-'];
-
-  // -------------- Download CSV Template ----------------
-  downloadBtn.addEventListener('click', () => {
-    const header = TEMPLATE_COLUMNS.join(',');
-    const exampleRow = [
-      'Hisar','Barwala','RINA1','H1','123',
-      'VillageA','V001', '✓', '-', '✓'
-    ].join(',');
-
-    const csvContent = [header, exampleRow].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'rabi_annexure_template.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-
-  // -------------- Parse CSV ----------------
-  function parseCSV(text) {
-    // Simple CSV parser for well-formed files (no quoted commas)
-    const lines = text.trim().split('\n');
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const rows = [];
-    for(let i=1;i<lines.length;i++) {
-      const values = lines[i].split(',').map(v => v.trim());
-      if(values.length !== headers.length) continue;
-      const row = {};
-      for(let j=0;j<headers.length;j++) {
-        row[headers[j]] = values[j];
+      // Show message helper
+      function showMessage(msg, type = 'success') {
+        messageDiv.innerHTML = `<div class="alert alert-${type} hindi">${msg}</div>`;
       }
-      rows.push(row);
-    }
-    return rows;
-  }
 
-  // -------------- Validate Each Row ----------------
-  function validateRow(row, rowIndex) {
-    const errors = [];
-
-    // Check all required columns exist and non-empty
-    for(const col of TEMPLATE_COLUMNS) {
-      if(!(col in row)) errors.push(`Missing column ${col}`);
-      else if(row[col] === '') errors.push(`${col} is empty`);
-    }
-
-    // Validate crop marks are only ✓ or -
-    for(const cropCol of ['bengal_gram','wheat_ir','wheat_rf']) {
-      if(!ALLOWED_CROP_VALUES.includes(row[cropCol])) {
-        errors.push(`Invalid value '${row[cropCol]}' in column ${cropCol} at row ${rowIndex+2}`);
+      // Clear message
+      function clearMessage() {
+        messageDiv.innerHTML = '';
       }
-    }
 
-    return errors;
-  }
+      // Download CSV Template
+      downloadBtn.addEventListener('click', () => {
+        const header = TEMPLATE_COLUMNS.join(',');
+        const exampleRow = [
+          'Hisar', 'Barwala', 'RINA1', 'H1', '123',
+          'VillageA', 'V001', '✓', '-', '✓'
+        ].join(',');
 
-  // -------------- Upload CSV Handler ----------------
-  fileInput.addEventListener('change', async (event) => {
-    messageDiv.textContent = '';
-    previewTable.style.display = 'none';
-    previewBody.innerHTML = '';
+        const csvContent = [header, exampleRow].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
 
-    if (!event.target.files.length) return;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'rabi_annexure_template.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
 
-    const file = event.target.files[0];
-    const text = await file.text();
-    let rows = [];
-
-    try {
-      rows = parseCSV(text);
-    } catch (err) {
-      messageDiv.innerHTML = `<div class="error">Failed to parse CSV: ${err.message}</div>`;
-      return;
-    }
-
-    if(rows.length === 0) {
-      messageDiv.innerHTML = `<div class="error">No valid data found in CSV.</div>`;
-      return;
-    }
-
-    // Validate all rows
-    const allErrors = [];
-    rows.forEach((r,i) => {
-      const errs = validateRow(r, i);
-      if(errs.length) allErrors.push(...errs);
-    });
-
-    if(allErrors.length) {
-      messageDiv.innerHTML = `<div class="error"><strong>Validation errors found:</strong><br>${allErrors.join('<br>')}</div>`;
-      return;
-    }
-
-    // Optional: Show preview
-    rows.forEach(r => {
-      const tr = document.createElement('tr');
-      for(const col of TEMPLATE_COLUMNS) {
-        const td = document.createElement('td');
-        td.textContent = r[col];
-        tr.appendChild(td);
+      // Simple CSV parser for well-formed csv (without quoted, multi-line cell support)
+      function parseCSV(text) {
+        const lines = text.trim().split(/\r?\n/);
+        const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+        const rows = [];
+        for(let i=1; i < lines.length; i++) {
+          const values = lines[i].split(',').map(v => v.trim());
+          if(values.length !== headers.length) continue;
+          const row = {};
+          for(let j=0; j < headers.length; j++) {
+            row[headers[j]] = values[j];
+          }
+          rows.push(row);
+        }
+        return rows;
       }
-      previewBody.appendChild(tr);
-    });
-    previewTable.style.display = 'table';
 
-    // Upload to Supabase - batch insert
-    messageDiv.innerHTML = 'Uploading data... Please wait';
+      // Validate row
+      function validateRow(row, index) {
+        const errors = [];
+        for (const col of TEMPLATE_COLUMNS) {
+          if (!(col in row)) errors.push(`पंक्ति ${index+2} : कॉलम "${col}" मौजूद नहीं है।`);
+          else if (row[col] === '') errors.push(`पंक्ति ${index+2} : कॉलम "${col}" खाली है।`);
+        }
+        ['bengal_gram', 'wheat_ir', 'wheat_rf'].forEach(cropCol => {
+          if (!ALLOWED_CROP_VALUES.includes(row[cropCol])) {
+            errors.push(`पंक्ति ${index+2} : कॉलम "${cropCol}" में मान गलत है: "${row[cropCol]}" (✓ या - होना चाहिए)`);
+          }
+        });
+        return errors;
+      }
 
-    const { data, error } = await supabase
-      .from('rabi_annexure_master')
-      .insert(rows);
+      // Handle file upload
+      fileInput.addEventListener('change', async (e) => {
+        clearMessage();
+        previewBody.innerHTML = '';
+        previewTable.style.display = 'none';
 
-    if (error) {
-      messageDiv.innerHTML = `<div class="error">Upload failed: ${error.message}</div>`;
-    } else {
-      messageDiv.innerHTML = `<div class="success">Upload successful: ${data.length} rows inserted.</div>`;
-      fileInput.value = ''; // Clear file input on success
-    }
-  });
-</script>
+        if (!e.target.files.length) return;
 
+        const file = e.target.files[0];
+        const text = await file.text();
+
+        let rows;
+        try {
+          rows = parseCSV(text);
+        } catch (err) {
+          showMessage('CSV पार्सिंग विफल: ' + err.message, 'danger');
+          return;
+        }
+
+        if (!rows.length) {
+          showMessage('CSV में कोई डेटा नहीं मिला।', 'danger');
+          return;
+        }
+
+        // Validate rows
+        let allErrors = [];
+        rows.forEach((row, idx) => {
+          const errs = validateRow(row, idx);
+          if(errs.length) allErrors = allErrors.concat(errs);
+        });
+
+        if (allErrors.length) {
+          showMessage('<b>वैलिडेशन त्रुटि:</b><br>' + allErrors.join('<br>'), 'danger');
+          return;
+        }
+
+        // Preview data
+        rows.forEach(row => {
+          const tr = document.createElement('tr');
+          TEMPLATE_COLUMNS.forEach(col => {
+            const td = document.createElement('td');
+            td.textContent = row[col];
+            tr.appendChild(td);
+          });
+          previewBody.appendChild(tr);
+        });
+        previewTable.style.display = 'table';
+
+        // Upload data to Supabase
+        showMessage('डेटा अपलोड किया जा रहा है, कृपया प्रतीक्षा करें...', 'info');
+
+        // Supabase insert call
+        const { data, error } = await supabase
+          .from('rabi_annexure_master')
+          .insert(rows);
+
+        if (error) {
+          showMessage('अपलोड विफल: ' + error.message, 'danger');
+        } else {
+          showMessage(`अपलोड सफल: ${data.length} पंक्ति(याँ) जोड़ी गईं।`, 'success');
+          fileInput.value = ''; // reset file input
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
