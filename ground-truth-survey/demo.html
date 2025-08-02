@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>जिला द्वारा डेटा संपादन</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+  <!-- Mukta Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --primary-color: #1B5E20;
+      --secondary-color: #388E3C;
+      --text-light: #FFF8E1;
+      --text-dark: #263238;
+      --border-color: #C8E6C9;
+      --background-light: #FFF8E1;
+      --background-medium: #F1F8E9;
+      --shadow-lg: 0 8px 24px rgba(27,94,32,0.2);
+    }
+    body {
+      font-family: 'Mukta', sans-serif;
+      background-color: var(--background-light);
+      color: var(--text-dark);
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .header {
+      background-color: var(--primary-color);
+      padding: 1rem 2rem;
+      color: var(--text-light);
+      font-weight: 700;
+      font-size: 1.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+    main.main-container {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+    label {
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+    select.form-select {
+      max-width: 300px;
+      margin-bottom: 1.5rem;
+    }
+    .table-scroll {
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 980px;
+    }
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 6px 10px;
+      text-align: left;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+    th {
+      background-color: var(--background-medium);
+      font-weight: 700;
+    }
+    tbody tr:hover {
+      background-color: #e6f4d9;
+    }
+    td.editable {
+      cursor: pointer;
+      background-color: #f9fbf7;
+      transition: background-color 0.3s ease;
+    }
+    td.editable:hover {
+      background-color: #d9efab;
+    }
+    td.editable input {
+      width: 100%;
+      border: none;
+      background: transparent;
+      font-size: 0.9rem;
+      font-family: inherit;
+      padding: 2px 5px;
+      color: var(--text-dark);
+    }
+    td.editable input:focus {
+      outline: 1px solid var(--primary-color);
+      background-color: white;
+    }
+    button.btn-save {
+      background-color: var(--primary-color);
+      color: var(--text-light);
+      border: none;
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background-color 0.3s ease;
+      display: none;
+    }
+    button.btn-save:hover {
+      background-color: var(--secondary-color);
+    }
+    .alert {
+      max-width: 1100px;
+      margin: 1rem auto;
+      padding: 0.9rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .alert-success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      border: 1px solid #c8e6c9;
+    }
+    .alert-danger {
+      background-color: #ffebee;
+      color: #c62828;
+      border: 1px solid #ffcdd2;
+    }
+  </style>
+</head>
+<body>
+  <header class="header hindi">
+    संचालनालय कृषि छत्तीसगढ़ - जिला डेटा संपादन
+  </header>
+
+  <main class="main-container">
+    <label for="district-select" class="hindi">जिला चुनें:</label>
+    <select id="district-select" class="form-select hindi" aria-label="जिला चुनें">
+      <option value="">-- जिला चुनें --</option>
+      <!-- districts dynamically loaded -->
+    </select>
+
+    <div id="message-container"></div>
+
+    <div class="table-scroll" style="display:none;" id="table-container">
+      <table id="district-data-table" class="table hindi">
+        <thead>
+          <tr>
+            <th>जिला</th>
+            <th>तहसील</th>
+            <th>Riname</th>
+            <th>हलका</th>
+            <th>नंबर</th>
+            <th>गाँव का नाम</th>
+            <th>कोड</th>
+            <th>बंगाल ग्राम</th>
+            <th>गेहूँ IR</th>
+            <th>गेहूँ RF</th>
+            <th>बंगाल ग्राम क्षेत्रफल (हेक्टेयर)</th>
+            <th>गेहूँ IR क्षेत्रफल (हेक्टेयर)</th>
+            <th>गेहूँ RF क्षेत्रफल (हेक्टेयर)</th>
+            <th>सहेजें</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+  <!-- Bootstrap JS (optional for some UI components) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    (function() {
+      const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+      const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+
+      const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+      const districtSelect = document.getElementById('district-select');
+      const messageContainer = document.getElementById('message-container');
+      const tableContainer = document.getElementById('table-container');
+      const tbody = document.querySelector('#district-data-table tbody');
+
+      // Load districts from Supabase
+      async function loadDistricts() {
+        showMessage('लोड हो रहा है...', 'info');
+        try {
+          const { data, error } = await supabase
+            .from('districts')
+            .select('name')
+            .order('name', { ascending: true });
+          if (error) throw error;
+
+          clearMessage();
+
+          data.forEach(district => {
+            const option = document.createElement('option');
+            option.value = district.name;
+            option.textContent = district.name;
+            districtSelect.appendChild(option);
+          });
+        } catch (err) {
+          showMessage('जिला लोड करने में त्रुटि: ' + err.message, 'danger');
+        }
+      }
+
+      // Show message
+      function showMessage(msg, type='success') {
+        messageContainer.innerHTML = `<div class="alert alert-${type} hindi">${msg}</div>`;
+      }
+      function clearMessage() {
+        messageContainer.innerHTML = '';
+      }
+
+      // Fetch and render data for the selected district
+      async function loadDistrictData(district) {
+        clearMessage();
+        tbody.innerHTML = '';
+        if(!district) {
+          tableContainer.style.display = 'none';
+          return;
+        }
+        showMessage('डेटा लोड हो रहा है...', 'info');
+        tableContainer.style.display = 'none';
+
+        try {
+          const { data, error } = await supabase
+            .from('rabi_annexure_master')
+            .select()
+            .eq('district', district)
+            .order('village_name', { ascending: true });
+
+          if (error) throw error;
+
+          clearMessage();
+
+          if (!data.length) {
+            showMessage('इस जिले के लिए कोई डेटा उपलब्ध नहीं है।', 'info');
+            tableContainer.style.display = 'none';
+            return;
+          }
+
+          data.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.dataset.id = row.id;
+
+            // Helper to set fixed text td
+            function createTextTd(text) {
+              const td = document.createElement('td');
+              td.textContent = text || '';
+              return td;
+            }
+
+            // Fixed columns
+            ['district','tehsil','riname','halka','number','village_name','code'].forEach(col => {
+              tr.appendChild(createTextTd(row[col]));
+            });
+
+            // Crop columns (✓ or -)
+            ['bengal_gram','wheat_ir','wheat_rf'].forEach(col => {
+              const td = createTextTd(row[col]);
+              td.style.textAlign = 'center';
+              tr.appendChild(td);
+            });
+
+            // Editable area columns (only editable if corresponding crop col is '-')
+            const areas = ['bengal_gram_area','wheat_ir_area','wheat_rf_area'];
+            ['bengal_gram','wheat_ir','wheat_rf'].forEach((cropCol, idx) => {
+              const areaCol = areas[idx];
+              const td = document.createElement('td');
+              td.classList.add('editable');
+              td.style.textAlign = 'right';
+              td.dataset.col = areaCol;
+              td.dataset.crop = cropCol;
+
+              const cropMark = row[cropCol];
+              const val = row[areaCol];
+              td.textContent = val === null || val === undefined ? '' : val;
+
+              if (cropMark === '-') {
+                td.contentEditable = 'true';
+                td.title = 'इस क्षेत्र को संपादित करें';
+              } else {
+                td.contentEditable = 'false';
+                td.title = 'यह क्षेत्र संपादित नहीं किया जा सकता, क्योंकि फ़सल के लिए ✓ चिह्न है';
+                td.style.backgroundColor = '#e9ecef';
+                td.style.color = '#6c757d';
+                td.style.cursor = 'not-allowed';
+              }
+
+              tr.appendChild(td);
+            });
+
+            // Save button column
+            const actionTd = document.createElement('td');
+            actionTd.style.textAlign = 'center';
+            const saveBtn = document.createElement('button');
+            saveBtn.textContent = 'सहेजें';
+            saveBtn.classList.add('btn-save');
+            saveBtn.disabled = true;
+            actionTd.appendChild(saveBtn);
+            tr.appendChild(actionTd);
+
+            // Track changes to enable save button
+            let originalValues = {};
+            ['bengal_gram_area','wheat_ir_area','wheat_rf_area'].forEach(areaCol => {
+              originalValues[areaCol] = row[areaCol];
+            });
+
+            // Whenever content changes in editable cells enable/disable save button
+            tr.querySelectorAll('td.editable').forEach(td => {
+              td.addEventListener('input', () => {
+                let changed = false;
+                tr.querySelectorAll('td.editable').forEach(cell => {
+                  const col = cell.dataset.col;
+                  let val = cell.textContent.trim();
+                  val = val === '' ? null : val;
+                  const orig = originalValues[col];
+                  if (orig === null || orig === undefined) {
+                    if (val !== null) changed = true;
+                  } else {
+                    if (String(orig) !== val) changed = true;
+                  }
+                });
+                saveBtn.disabled = !changed;
+                saveBtn.style.display = changed ? 'inline-block' : 'none';
+              });
+            });
+
+            // Click save button event handler
+            saveBtn.addEventListener('click', async () => {
+              saveBtn.disabled = true;
+              clearMessage();
+              showMessage('डेटा अपडेट हो रहा है...', 'info');
+
+              // Collect updated values
+              let updateObj = {};
+              let hasError = false;
+
+              tr.querySelectorAll('td.editable').forEach(td => {
+                const col = td.dataset.col;
+                const cropCol = td.dataset.crop;
+                const cropMark = row[cropCol];
+                const valText = td.textContent.trim();
+
+                if (cropMark !== '-') {
+                  showMessage(`त्रुटि: आप "${col}" संपादित नहीं कर सकते क्योंकि संबंधित फ़सल के लिए ✓ चिह्न है।`, 'danger');
+                  hasError = true;
+                  return;
+                }
+
+                if (valText === '') {
+                  updateObj[col] = null;
+                } else {
+                  // Validate numeric (up to 2 decimals)
+                  if (!/^\d+(\.\d{1,2})?$/.test(valText)) {
+                    showMessage(`त्रुटि: "${col}" के लिए मान अमान्य है: "${valText}"`, 'danger');
+                    hasError = true;
+                    return;
+                  }
+                  updateObj[col] = Number(valText);
+                }
+              });
+              if (hasError) {
+                saveBtn.disabled = false;
+                return;
+              }
+
+              try {
+                const { error } = await supabase
+                  .from('rabi_annexure_master')
+                  .update(updateObj)
+                  .eq('id', row.id);
+
+                if (error) {
+                  showMessage('अपडेट विफल: ' + error.message, 'danger');
+                  saveBtn.disabled = false;
+                } else {
+                  // Update local copy and UI state
+                  Object.keys(updateObj).forEach(k => {
+                    row[k] = updateObj[k];
+                    originalValues[k] = updateObj[k];
+                  });
+                  saveBtn.style.display = 'none';
+                  showMessage('डेटा सफलतापूर्वक अपडेट किया गया।', 'success');
+                }
+              } catch (ex) {
+                showMessage('अपडेट त्रुटि: ' + ex.message, 'danger');
+                saveBtn.disabled = false;
+              }
+            });
+
+            tbody.appendChild(tr);
+          });
+
+          tableContainer.style.display = 'block';
+        } catch (err) {
+          showMessage('डेटा लोड करने में त्रुटि: ' + err.message, 'danger');
+          tableContainer.style.display = 'none';
+        }
+      }
+
+      // On district select change
+      districtSelect.addEventListener('change', (e) => {
+        const district = e.target.value;
+        clearMessage();
+        tbody.innerHTML = '';
+        if (!district) {
+          tableContainer.style.display = 'none';
+          return;
+        }
+        loadDistrictData(district);
+      });
+
+      // Initialize load districts on page load
+      loadDistricts();
+
+    })();
+  </script>
+</body>
+</html>
