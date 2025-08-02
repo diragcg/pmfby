@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rabi Annexure - Notification Upload</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 2rem; max-width: 800px; }
+  h1 { margin-bottom: 1rem; }
+  button, input[type="file"] { margin: 0.5rem 0; }
+  table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+  th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; }
+  .error { color: red; margin-top: 1rem; }
+  .success { color: green; margin-top: 1rem; }
+</style>
+</head>
+<body>
+
+<h1>Rabi Annexure Master - Upload Notification</h1>
+
+<!-- Download Template Button -->
+<button id="download-template">Download CSV Template</button>
+
+<!-- Upload CSV -->
+<div>
+  <label for="csv-file">Upload Completed CSV Template:</label><br />
+  <input type="file" id="csv-file" accept=".csv" />
+</div>
+
+<!-- Upload progress / message -->
+<div id="message"></div>
+
+<!-- Preview uploaded rows (optional) -->
+<table id="preview-table" style="display:none;">
+  <thead>
+    <tr>
+      <th>District</th><th>Tehsil</th><th>Riname</th><th>Halka</th><th>Number</th><th>Village Name</th><th>Code</th><th>Bengal Gram</th><th>Wheat IR</th><th>Wheat RF</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+  // Your supabase keys (replace these!)
+  const SUPABASE_URL = 'https://YOUR_SUPABASE_PROJECT.supabase.co'
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'
+
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const downloadBtn = document.getElementById('download-template');
+  const fileInput = document.getElementById('csv-file');
+  const messageDiv = document.getElementById('message');
+  const previewTable = document.getElementById('preview-table');
+  const previewBody = previewTable.querySelector('tbody');
+
+  // Columns in the template
+  const TEMPLATE_COLUMNS = [
+    'district', 'tehsil', 'riname', 'halka', 'number',
+    'village_name', 'code', 'bengal_gram', 'wheat_ir', 'wheat_rf'
+  ];
+
+  // Allowed crop values
+  const ALLOWED_CROP_VALUES = ['✓', '-'];
+
+  // -------------- Download CSV Template ----------------
+  downloadBtn.addEventListener('click', () => {
+    const header = TEMPLATE_COLUMNS.join(',');
+    const exampleRow = [
+      'Hisar','Barwala','RINA1','H1','123',
+      'VillageA','V001', '✓', '-', '✓'
+    ].join(',');
+
+    const csvContent = [header, exampleRow].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rabi_annexure_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // -------------- Parse CSV ----------------
+  function parseCSV(text) {
+    // Simple CSV parser for well-formed files (no quoted commas)
+    const lines = text.trim().split('\n');
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+    const rows = [];
+    for(let i=1;i<lines.length;i++) {
+      const values = lines[i].split(',').map(v => v.trim());
+      if(values.length !== headers.length) continue;
+      const row = {};
+      for(let j=0;j<headers.length;j++) {
+        row[headers[j]] = values[j];
+      }
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  // -------------- Validate Each Row ----------------
+  function validateRow(row, rowIndex) {
+    const errors = [];
+
+    // Check all required columns exist and non-empty
+    for(const col of TEMPLATE_COLUMNS) {
+      if(!(col in row)) errors.push(`Missing column ${col}`);
+      else if(row[col] === '') errors.push(`${col} is empty`);
+    }
+
+    // Validate crop marks are only ✓ or -
+    for(const cropCol of ['bengal_gram','wheat_ir','wheat_rf']) {
+      if(!ALLOWED_CROP_VALUES.includes(row[cropCol])) {
+        errors.push(`Invalid value '${row[cropCol]}' in column ${cropCol} at row ${rowIndex+2}`);
+      }
+    }
+
+    return errors;
+  }
+
+  // -------------- Upload CSV Handler ----------------
+  fileInput.addEventListener('change', async (event) => {
+    messageDiv.textContent = '';
+    previewTable.style.display = 'none';
+    previewBody.innerHTML = '';
+
+    if (!event.target.files.length) return;
+
+    const file = event.target.files[0];
+    const text = await file.text();
+    let rows = [];
+
+    try {
+      rows = parseCSV(text);
+    } catch (err) {
+      messageDiv.innerHTML = `<div class="error">Failed to parse CSV: ${err.message}</div>`;
+      return;
+    }
+
+    if(rows.length === 0) {
+      messageDiv.innerHTML = `<div class="error">No valid data found in CSV.</div>`;
+      return;
+    }
+
+    // Validate all rows
+    const allErrors = [];
+    rows.forEach((r,i) => {
+      const errs = validateRow(r, i);
+      if(errs.length) allErrors.push(...errs);
+    });
+
+    if(allErrors.length) {
+      messageDiv.innerHTML = `<div class="error"><strong>Validation errors found:</strong><br>${allErrors.join('<br>')}</div>`;
+      return;
+    }
+
+    // Optional: Show preview
+    rows.forEach(r => {
+      const tr = document.createElement('tr');
+      for(const col of TEMPLATE_COLUMNS) {
+        const td = document.createElement('td');
+        td.textContent = r[col];
+        tr.appendChild(td);
+      }
+      previewBody.appendChild(tr);
+    });
+    previewTable.style.display = 'table';
+
+    // Upload to Supabase - batch insert
+    messageDiv.innerHTML = 'Uploading data... Please wait';
+
+    const { data, error } = await supabase
+      .from('rabi_annexure_master')
+      .insert(rows);
+
+    if (error) {
+      messageDiv.innerHTML = `<div class="error">Upload failed: ${error.message}</div>`;
+    } else {
+      messageDiv.innerHTML = `<div class="success">Upload successful: ${data.length} rows inserted.</div>`;
+      fileInput.value = ''; // Clear file input on success
+    }
+  });
+</script>
+
+</body>
+</html>
