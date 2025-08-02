@@ -58,16 +58,9 @@
   // Initialize Supabase client
   let supabaseClient;
   try {
-    // Try different initialization methods
-    if (typeof supabase !== 'undefined' && typeof supabase.createClient === 'function') {
-      supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
-      console.log('Supabase client initialized using supabase.createClient');
-    } else if (typeof createClient === 'function') {
-      supabaseClient = createClient(supabaseUrl, supabaseKey);
-      console.log('Supabase client initialized using createClient');
-    } else {
-      throw new Error('Supabase client not available. Make sure the library is loaded correctly.');
-    }
+    // Initialize the Supabase client properly
+    supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+    console.log('Supabase client initialized successfully');
   } catch (error) {
     showError(`Supabase client initialization error: ${error.message}`);
   }
@@ -93,7 +86,12 @@
         .from('crop_master')
         .select('*');
       
-      if (cropsError) throw cropsError;
+      if (cropsError) {
+        console.error('Error fetching crops:', cropsError);
+        showError(`Error fetching crops: ${cropsError.message}`);
+        return;
+      }
+      
       console.log('Crop data:', cropsData);
       crops = cropsData || [];
 
@@ -103,7 +101,12 @@
         .from('committee_master')
         .select('*');
       
-      if (committeesError) throw committeesError;
+      if (committeesError) {
+        console.error('Error fetching committees:', committeesError);
+        showError(`Error fetching committees: ${committeesError.message}`);
+        return;
+      }
+      
       console.log('Committee data:', committeesData);
       committees = committeesData || [];
 
@@ -133,6 +136,7 @@
 
       // Hide loading spinner and show table
       loadingSpinner.style.display = 'none';
+      errorContainer.style.display = 'none';
       entryTable.style.display = 'table';
       addRowBtn.style.display = 'inline-block';
       submitBtn.style.display = 'inline-block';
@@ -290,7 +294,7 @@
   });
 
   // Load data when page loads
-  window.onload = fetchData;
+  document.addEventListener('DOMContentLoaded', fetchData);
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
