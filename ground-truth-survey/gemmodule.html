@@ -835,225 +835,68 @@
             }
         }
 
-        
-        // Create the gem_entries table and view if they don't exist
-        async function createGemEntriesTableIfNotExists() {
-            try {
-                // Check if the gem_entries table exists
-                const { data: tables, error: tablesError } = await supabaseClient
-                    .rpc('check_table_exists', { table_name: 'gem_entries' })
-                    .catch(() => {
-                        // Create RPC function if it doesn't exist
-                        return createRpcFunctions();
-                    });
-                
-                if (tablesError) throw tablesError;
-                
-                if (!tables) {
-                    // Create the table using SQL
-                    const createTableSQL = `
-                        -- Create table for GeM Portal Buyers and Consignees
-                        CREATE TABLE IF NOT EXISTS gem_entries (
-                            id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-                            district_id UUID NOT NULL REFERENCES districts(id),
-                            office_name TEXT NOT NULL,
-                            buyer_name TEXT NOT NULL,
-                            position TEXT NOT NULL,
-                            mobile_number VARCHAR(15) NOT NULL,
-                            email_id VARCHAR(255) NOT NULL,
-                            gem_buyer_id VARCHAR(50),
-                            proposed_buyer_name TEXT,
-                            proposed_email_id VARCHAR(255),
-                            proposed_mobile_number VARCHAR(15),
-                            entry_type VARCHAR(10) NOT NULL CHECK (entry_type IN ('Buyer', 'Consignee')),
-                            office_order_url TEXT NOT NULL,
-                            created_by UUID REFERENCES test_users(id),
-                            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-                        );
-                        
-                        -- Create function to update the updated_at timestamp
-                        CREATE OR REPLACE FUNCTION update_modified_column()
-                        RETURNS TRIGGER AS $$
-                        BEGIN
-                            NEW.updated_at = CURRENT_TIMESTAMP;
-                            RETURN NEW;
-                        END;
-                        $$ LANGUAGE plpgsql;
-                        
-                        -- Create trigger to automatically update the updated_at column
-                        DROP TRIGGER IF EXISTS update_gem_entries_timestamp ON gem_entries;
-                        CREATE TRIGGER update_gem_entries_timestamp
-                        BEFORE UPDATE ON gem_entries
-                        FOR EACH ROW
-                        EXECUTE FUNCTION update_modified_column();
-                        
-                        -- Create view to join with district names for easier querying
-                        CREATE OR REPLACE VIEW gem_entries_view AS
-                        SELECT 
-                            g.id,
-                            g.district_id,
-                            d.name AS district_name,
-                            g.office_name,
-                            g.buyer_name,
-                            g.position,
-                            g.mobile_number,
-                            g.email_id,
-                            g.gem_buyer_id,
-                            g.proposed_buyer_name,
-                            g.proposed_email_id,
-                            g.proposed_mobile_number,
-                            g.entry_type,
-                            g.office_order_url,
-                            g.created_by,
-                            u.full_name AS created_by_name,
-                            g.created_at,
-                            g.updated_at
-                        FROM 
-                            gem_entries g
-                        JOIN 
-                            districts d ON g.district_id = d.id
-                        LEFT JOIN 
-                            test_users u ON g.created_by = u.id;
-                        
-                        -- Create index for faster queries
-                        CREATE INDEX IF NOT EXISTS idx_gem_entries_district ON gem_entries(district_id);
-                        CREATE INDEX IF NOT EXISTS idx_gem_entries_type ON gem_entries(entry_type);
-                    `;
-                    
-                    // Execute the SQL
-                    const { error: sqlError } = await supabaseClient.rpc('execute_sql', { sql: createTableSQL });
-                    
-                    if (sqlError) throw sqlError;
-                    
-                    console.log('Created gem_entries table and view');
-                }
-            } catch (error) {
-                console.error('Error creating table:', error);
-                throw error;
-            }
-        }
-        
-        // Create RPC functions if they don't exist
-        async function createRpcFunctions() {
-            try {
-                const createFunctionSQL = `
-                    -- Function to check if a table exists
-                    CREATE OR REPLACE FUNCTION check_table_exists(table_name TEXT)
-                    RETURNS BOOLEAN
-                    LANGUAGE plpgsql
-                    SECURITY DEFINER
-                    AS $$
-                    DECLARE
-                        table_exists BOOLEAN;
-                    BEGIN
-                        SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_schema = 'public'
-                            AND table_name = $1
-                        ) INTO table_exists;
-                        
-                        RETURN table_exists;
-                    END;
-                    $$;
-                    
-                    -- Function to execute arbitrary SQL (use with caution)
-                    CREATE OR REPLACE FUNCTION execute_sql(sql TEXT)
-                    RETURNS VOID
-                    LANGUAGE plpgsql
-                    SECURITY DEFINER
-                    AS $$
-                    BEGIN
-                        EXECUTE sql;
-                    END;
-                    $$;
-                `;
-                
-                // Try to execute the SQL directly
-                await fetch(`${supabaseUrl}/rest/v1/rpc/execute_sql`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': supabaseKey,
-                        'Authorization': `Bearer ${supabaseKey}`
-                    },
-                    body: JSON.stringify({ sql: createFunctionSQL })
-                }).catch(err => {
-                    console.error('Error creating RPC functions:', err);
-                    // If this fails, we'll need to create them manually in the Supabase dashboard
-                    showAlert('RPC फंक्शंस बनाने में त्रुटि हुई। कृपया सिस्टम एडमिन से संपर्क करें।', 'danger');
-                });
-                
-                return { data: false };
-            } catch (error) {
-                console.error('Error creating RPC functions:', error);
-                return { data: false };
-            }
-        }
-
         // Upload file to Supabase storage
-            async function uploadFile(file) {
-                try {
-                    // First, check if the bucket exists
-                    const { data: buckets, error: bucketsError } = await supabaseClient
-                        .storage
-                        .listBuckets();
-                        
-                    if (bucketsError) throw bucketsError;
+        async function uploadFile(file) {
+            try {
+                // First, check if the bucket exists
+                const { data: buckets, error: bucketsError } = await supabaseClient
+                    .storage
+                    .listBuckets();
                     
-                    // Check if our bucket exists
-                    let bucketExists = false;
-                    if (buckets) {
-                        bucketExists = buckets.some(b => b.name === 'gem_documents');
-                    }
-                    
-                    // Create bucket if it doesn't exist
-                    if (!bucketExists) {
-                        const { error: createBucketError } = await supabaseClient
+                if (bucketsError) throw bucketsError;
+                
+                // Check if our bucket exists
+                let bucketExists = false;
+                if (buckets) {
+                    bucketExists = buckets.some(b => b.name === 'gem_documents');
+                }
+                
+                // If bucket doesn't exist, create it
+                if (!bucketExists) {
+                    try {
+                        await supabaseClient
                             .storage
                             .createBucket('gem_documents', {
                                 public: true,
-                                allowedMimeTypes: ['application/pdf'],
                                 fileSizeLimit: 10485760 // 10MB
                             });
-                            
-                        if (createBucketError) {
-                            console.error('Error creating bucket:', createBucketError);
-                            throw new Error('फाइल अपलोड के लिए स्टोरेज बकेट बनाने में त्रुटि हुई');
-                        }
+                    } catch (createBucketError) {
+                        console.error('Error creating bucket:', createBucketError);
+                        // If bucket creation fails, we'll try to upload anyway
+                        // The bucket might already exist but not be visible to the current user
                     }
-                    
-                    // Now upload the file
-                    const fileExt = file.name.split('.').pop();
-                    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-                    const filePath = `office_orders/${fileName}`;
-                    
-                    const { data, error: uploadError } = await supabaseClient
-                        .storage
-                        .from('gem_documents')
-                        .upload(filePath, file, {
-                            cacheControl: '3600',
-                            upsert: false
-                        });
-                        
-                    if (uploadError) {
-                        console.error('Upload error:', uploadError);
-                        throw new Error('फाइल अपलोड करने में त्रुटि हुई');
-                    }
-                    
-                    // Get public URL
-                    const { data: urlData } = await supabaseClient
-                        .storage
-                        .from('gem_documents')
-                        .getPublicUrl(filePath);
-                        
-                    return urlData.publicUrl;
-                } catch (error) {
-                    console.error('Error in file upload:', error);
-                    throw new Error(error.message || 'फाइल अपलोड करने में त्रुटि हुई');
                 }
+                
+                // Now upload the file
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+                const filePath = `office_orders/${fileName}`;
+                
+                const { data, error: uploadError } = await supabaseClient
+                    .storage
+                    .from('gem_documents')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+                    
+                if (uploadError) {
+                    console.error('Upload error:', uploadError);
+                    throw new Error('फाइल अपलोड करने में त्रुटि हुई');
+                }
+                
+                // Get public URL
+                const { data: urlData } = await supabaseClient
+                    .storage
+                    .from('gem_documents')
+                    .getPublicUrl(filePath);
+                    
+                return urlData.publicUrl;
+            } catch (error) {
+                console.error('Error in file upload:', error);
+                throw new Error(error.message || 'फाइल अपलोड करने में त्रुटि हुई');
             }
-
+        }
 
         // Save entry function
         async function saveEntry() {
@@ -1096,41 +939,50 @@
                     throw new Error('कृपया कार्यालय आदेश अपलोड करें');
                 }
                 
-                // Prepare data object
-                const entryData = {
-                    district_id,
-                    office_name,
-                    buyer_name,
-                    position,
-                    mobile_number,
-                    email_id,
-                    gem_buyer_id,
-                    proposed_buyer_name,
-                    proposed_email_id,
-                    proposed_mobile_number,
-                    entry_type,
-                    office_order_url,
-                    created_by: currentUser.id
-                };
-                
                 // Check if editing or creating new
                 const entryId = form.dataset.entryId;
-                let result;
                 
                 if (entryId) {
                     // Update existing entry
-                    result = await supabaseClient
+                    const { data, error } = await supabaseClient
                         .from('gem_entries')
-                        .update(entryData)
+                        .update({
+                            district_id,
+                            office_name,
+                            buyer_name,
+                            position,
+                            mobile_number,
+                            email_id,
+                            gem_buyer_id,
+                            proposed_buyer_name,
+                            proposed_email_id,
+                            proposed_mobile_number,
+                            entry_type,
+                            office_order_url
+                        })
                         .eq('id', entryId);
+                        
+                    if (error) throw error;
                 } else {
-                    // Insert new entry
-                    result = await supabaseClient
-                        .from('gem_entries')
-                        .insert(entryData);
+                    // Insert new entry using our function
+                    const { data, error } = await supabaseClient.rpc('insert_gem_entry', {
+                        p_district_id: district_id,
+                        p_office_name: office_name,
+                        p_buyer_name: buyer_name,
+                        p_position: position,
+                        p_mobile_number: mobile_number,
+                        p_email_id: email_id,
+                        p_entry_type: entry_type,
+                        p_office_order_url: office_order_url,
+                        p_gem_buyer_id: gem_buyer_id || null,
+                        p_proposed_buyer_name: proposed_buyer_name || null,
+                        p_proposed_email_id: proposed_email_id || null,
+                        p_proposed_mobile_number: proposed_mobile_number || null,
+                        p_created_by: currentUser.id
+                    });
+                    
+                    if (error) throw error;
                 }
-                
-                if (result.error) throw result.error;
                 
                 // Show success message
                 showAlert('विवरण सफलतापूर्वक सहेजा गया!', 'success');
