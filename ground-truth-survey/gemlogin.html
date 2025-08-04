@@ -126,6 +126,10 @@
             font-size: 1.5rem;
             margin: 0;
             line-height: 1.4;
+            /* Fix for title wrapping issue */
+            white-space: nowrap; 
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
         
         .card-body {
@@ -434,18 +438,26 @@
                     .select('name')
                     .order('name', { ascending: true });
 
-                if (error) throw error;
-                
-                districtSelect.innerHTML = '<option value="">-- जिला चुनें --</option>';
-                data.forEach(district => {
-                    const option = document.createElement('option');
-                    option.value = district.name;
-                    option.textContent = district.name;
-                    districtSelect.appendChild(option);
-                });
+                if (error) {
+                    console.error('Supabase fetch error:', error);
+                    throw new Error('लोड करने में त्रुटि');
+                }
+
+                if (data && data.length > 0) {
+                    districtSelect.innerHTML = '<option value="">-- जिला चुनें --</option>';
+                    data.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.name;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                } else {
+                    districtSelect.innerHTML = '<option value="">कोई जिला नहीं मिला</option>';
+                    showLoginMessage('Supabase में कोई जिला नहीं मिला।');
+                }
             } catch (err) {
-                console.error('Error loading districts:', err.message);
-                showLoginMessage('जिला लोड करने में त्रुटि। कृपया बाद में प्रयास करें।');
+                console.error('An unexpected error occurred:', err);
+                showLoginMessage(err.message || 'जिला लोड करने में त्रुटि। कृपया बाद में प्रयास करें।');
                 districtSelect.innerHTML = '<option value="">लोड करने में त्रुटि</option>';
             } finally {
                 districtSelect.disabled = false;
@@ -469,10 +481,8 @@
             loginBtn.disabled = true;
             loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">प्रवेश हो रहा है...</span>';
 
-            // Here you would add your actual authentication logic.
-            // For now, we simulate a successful login and redirect to the new file name.
+            // Here is where you would put your actual authentication logic
             try {
-                // A quick check to make sure a district was selected
                 if (!district) {
                     showLoginMessage('कृपया एक जिला चुनें।');
                     loginForm.classList.add('was-validated');
@@ -481,11 +491,10 @@
 
                 console.log('Attempting to log in with:', { username, password, district });
                 
-                // Simulate an API call delay
+                // Simulating a successful login and redirect
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 showLoginMessage('लॉगिन सफल! आपको डैशबोर्ड पर रीडायरेक्ट किया जा रहा है।', 'success');
-                // Redirect to the gemmodule.html file
                 window.location.href = 'gemmodule.html';
 
             } catch (err) {
