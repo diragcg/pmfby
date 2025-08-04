@@ -345,7 +345,541 @@
                 form.reportValidity();
             }
         });
+        // Initialize Supabase client (add this to your script section)
+const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+const { createClient } = supabase;
+const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+// Get logged in user
+const currentUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user'));
+
+// Load districts function
+async function loadDistricts() {
+    try {
+        const districtSelect = document.getElementById('district');
+        const districtFilter = document.getElementById('districtFilter');
         
+        // Add loading class
+        districtSelect.classList.add('select-loading');
+        
+        // Fetch districts from the districts table
+        const { data, error } = await supabaseClient
+            .from('districts')
+            .select('id, name')
+            .order('name', { ascending: true });
+            
+        if (error) throw error;
+        
+        // Clear existing options except the first one
+        while (districtSelect.options.length > 1) {
+            districtSelect.remove(1);
+        }
+        
+        while (districtFilter.options.length > 1) {
+            districtFilter.remove(1);
+        }
+        
+        // Add districts to dropdowns
+        if (data) {
+            data.forEach(district => {
+                // For the form dropdown
+                const option1 = document.createElement('option');
+                option1.value = district.id;
+                option1.textContent = district.name;
+                districtSelect.appendChild(option1);
+                
+                // For the filter dropdown
+                const option2 = document.createElement('option');
+                option2.value = district.id;
+                option2.textContent = district.name;
+                districtFilter.appendChild(option2);
+            });
+            
+            // If user has a district, preselect it
+            if (currentUser && currentUser.districtId) {
+                districtSelect.value = currentUser.districtId;
+                districtFilter.value = currentUser.districtId;
+            }
+        }
+        
+        // Remove loading class
+        districtSelect.classList.remove('select-loading');
+    } catch (error) {
+        console.error('Error loading districts:', error);
+        const districtSelect = document.getElementById('district');
+        districtSelect.classList.remove('select-loading');
+        
+        // Add a default option indicating error
+        const errorOption = document.createElement('option');
+        errorOption.value = "";
+        errorOption.textContent = "जिला लोड करने में त्रुटि";
+        errorOption.style.color = "#C62828";
+        districtSelect.appendChild(errorOption);
+    }
+}
+
+// Load entries function
+async function loadEntries() {
+    try {
+        const tableBody = document.querySelector('.data-table tbody');
+        const districtFilter = document.getElementById('districtFilter').value;
+        const typeFilter = document.getElementById('typeFilter').value;
+        const searchInput = document.getElementById('searchInput').value.toLowerCase();
+        
+        // Prepare query
+        let query = supabaseClient
+            .from('gem_entries_view')
+            .select('*')
+            .order('created_at', { ascending: false });
+        
+        // Apply filters
+        if (districtFilter) {
+            query = query.eq('district_id', districtFilter);
+        } else if (currentUser && currentUser.role !== 'admin') {
+            // Non-admin users can only see their district
+            query = query.eq('district_id', currentUser.districtId);
+        }
+        
+        if (typeFilter) {
+            query = query.eq('entry_type', typeFilter);
+        }
+        
+        // Execute query
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        
+        // Clear table
+        tableBody.innerHTML = '';
+        
+        // Filter by search term if provided
+        let filteredData = data;
+        if (searchInput) {
+            filteredData = data.filter(entry => 
+                entry.district_name.toLowerCase().includes(searchInput) ||
+                entry.office_name.toLowerCase().includes(searchInput) ||
+                entry.buyer_name.toLowerCase().includes(searchInput) ||
+                entry.position.toLowerCase().includes(searchInput) ||
+                entry.mobile_number.includes(searchInput) ||
+                entry.email_id.toLowerCase().includes(searchInput) ||
+                (entry.gem_buyer_id && entry.gem_buyer_id.toLowerCase().includes(searchInput))
+            );
+        }
+        
+        // Populate table
+        if (filteredData.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="9" class="text-center">कोई डेटा उपलब्ध नहीं है</td></tr>`;
+        } else {
+            filteredData.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${entry.district_name}</td>
+                    <td>${entry.office_name}</td>
+                    <td>${entry.buyer_name}</td>
+                    <td>${entry.position}</td>
+                    <td>${entry.mobile_number}</td>
+                    <td>${entry.email_id}</td>
+                    <td>${entry.gem_buyer_id || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info view-btn" data-id="${entry.id}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning edit-btn" data-id="${entry.id}">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Add event listeners to buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', () => viewEntry(btn.dataset.id));
+            });
+            
+            document.querySelectorAll('.edit-btn').forEach(btn => {
+                btn.addEventListener('click', () => editEntry(btn.dataset.id));
+            });
+        }
+    } catch (error) {
+        console.error('Error loading entries:', error);
+        showAlert('डेटा लोड करने में त्रुटि हुई', 'danger');
+    }
+}
+
+// Upload file to Supabase storage
+async function uploadFile(file) {
+    try {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+        const filePath = `office_orders/${fileName}`;
+        
+        const { data, error } = await supabaseClient
+            .storage
+            .from('gem_documents')
+            .upload(filePath, file);
+            
+        if (error) throw error;
+        
+        // Get public URL
+        const { data: urlData } = await supabaseClient
+            .storage
+            .from('gem_documents')
+            .getPublicUrl(filePath);
+            
+        return urlData.publicUrl;
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        throw error;
+    }
+}
+
+// Save entry function
+async function saveEntry() {
+    try {
+        const form = document.getElementById('gemEntryForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        // Show loading state
+        const saveBtn = document.getElementById('saveEntry');
+        const originalBtnText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">प्रोसेसिंग...</span>';
+        saveBtn.disabled = true;
+        
+        // Get form values
+        const district_id = document.getElementById('district').value;
+        const office_name = document.getElementById('officeName').value;
+        const buyer_name = document.getElementById('buyerName').value;
+        const position = document.getElementById('position').value;
+        const mobile_number = document.getElementById('mobileNumber').value;
+        const email_id = document.getElementById('emailId').value;
+        const gem_buyer_id = document.getElementById('gemBuyerId').value;
+        const proposed_buyer_name = document.getElementById('proposedBuyerName').value;
+        const proposed_email_id = document.getElementById('proposedEmailId').value;
+        const proposed_mobile_number = document.getElementById('proposedMobileNumber').value;
+        const entry_type = document.getElementById('entryType').value;
+        
+        // Handle file upload
+        const fileInput = document.getElementById('officeOrder');
+        let office_order_url = '';
+        
+        if (fileInput.files.length > 0) {
+            office_order_url = await uploadFile(fileInput.files[0]);
+        } else if (document.getElementById('addEntryModalLabel').textContent.includes('संपादित')) {
+            // If editing and no new file, keep existing URL
+            office_order_url = document.getElementById('fileName').dataset.url || '';
+        } else {
+            throw new Error('कृपया कार्यालय आदेश अपलोड करें');
+        }
+        
+        // Prepare data object
+        const entryData = {
+            district_id,
+            office_name,
+            buyer_name,
+            position,
+            mobile_number,
+            email_id,
+            gem_buyer_id,
+            proposed_buyer_name,
+            proposed_email_id,
+            proposed_mobile_number,
+            entry_type,
+            office_order_url,
+            created_by: currentUser.id
+        };
+        
+        // Check if editing or creating new
+        const entryId = form.dataset.entryId;
+        let result;
+        
+        if (entryId) {
+            // Update existing entry
+            result = await supabaseClient
+                .from('gem_entries')
+                .update(entryData)
+                .eq('id', entryId);
+        } else {
+            // Insert new entry
+            result = await supabaseClient
+                .from('gem_entries')
+                .insert(entryData);
+        }
+        
+        if (result.error) throw result.error;
+        
+        // Show success message
+        showAlert('विवरण सफलतापूर्वक सहेजा गया!', 'success');
+        
+        // Close modal and reset form
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addEntryModal'));
+        modal.hide();
+        form.reset();
+        document.getElementById('fileName').textContent = '';
+        document.getElementById('fileName').dataset.url = '';
+        form.removeAttribute('data-entry-id');
+        
+        // Reset modal title
+        document.getElementById('addEntryModalLabel').textContent = 'जीईएम पोर्टल बायर/कंसाइनी विवरण';
+        
+        // Refresh entries
+        loadEntries();
+    } catch (error) {
+        console.error('Error saving entry:', error);
+        showAlert(error.message || 'विवरण सहेजने में त्रुटि हुई', 'danger');
+    } finally {
+        // Reset button
+        const saveBtn = document.getElementById('saveEntry');
+        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> सहेजें';
+        saveBtn.disabled = false;
+    }
+}
+
+// View entry details
+async function viewEntry(id) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('gem_entries_view')
+            .select('*')
+            .eq('id', id)
+            .single();
+            
+        if (error) throw error;
+        
+        // Create and show a modal with the entry details
+        const viewModal = `
+            <div class="modal fade" id="viewEntryModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title hindi">विवरण देखें</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">जिला:</strong></p>
+                                    <p>${data.district_name}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">कार्यालय का नाम:</strong></p>
+                                    <p>${data.office_name}</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">बायर/कंसाइनी का नाम:</strong></p>
+                                    <p>${data.buyer_name}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">पद:</strong></p>
+                                    <p>${data.position}</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">मोबाइल नंबर:</strong></p>
+                                    <p>${data.mobile_number}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">ईमेल आईडी:</strong></p>
+                                    <p>${data.email_id}</p>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">जीईएम बायर आईडी:</strong></p>
+                                    <p>${data.gem_buyer_id || '-'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">प्रकार:</strong></p>
+                                    <p>${data.entry_type === 'Buyer' ? 'बायर' : 'कंसाइनी'}</p>
+                                </div>
+                            </div>
+                            
+                            ${data.proposed_buyer_name ? `
+                            <hr>
+                            <h6 class="hindi mb-3">प्रस्तावित बायर विवरण</h6>
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong class="hindi">नाम:</strong></p>
+                                    <p>${data.proposed_buyer_name}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong class="hindi">ईमेल:</strong></p>
+                                    <p>${data.proposed_email_id || '-'}</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <p class="mb-1"><strong class="hindi">मोबाइल:</strong></p>
+                                    <p>${data.proposed_mobile_number || '-'}</p>
+                                </div>
+                            </div>
+                            ` : ''}
+                            
+                            <hr>
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <p class="mb-1"><strong class="hindi">कार्यालय आदेश:</strong></p>
+                                    <p><a href="${data.office_order_url}" target="_blank" class="btn btn-sm btn-primary">
+                                        <i class="fas fa-file-pdf me-1"></i> देखें
+                                    </a></p>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">द्वारा बनाया गया:</strong></p>
+                                    <p>${data.created_by_name}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong class="hindi">बनाने की तिथि:</strong></p>
+                                    <p>${new Date(data.created_at).toLocaleString()}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary hindi" data-bs-dismiss="modal">बंद करें</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add modal to body
+        document.body.insertAdjacentHTML('beforeend', viewModal);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('viewEntryModal'));
+        modal.show();
+        
+        // Remove modal from DOM when hidden
+        document.getElementById('viewEntryModal').addEventListener('hidden.bs.modal', function() {
+            this.remove();
+        });
+    } catch (error) {
+        console.error('Error viewing entry:', error);
+        showAlert('विवरण प्राप्त करने में त्रुटि हुई', 'danger');
+    }
+}
+
+// Edit entry
+async function editEntry(id) {
+    try {
+        const { data, error } = await supabaseClient
+            .from('gem_entries')
+            .select('*')
+            .eq('id', id)
+            .single();
+            
+        if (error) throw error;
+        
+        // Populate form with data
+        document.getElementById('district').value = data.district_id;
+        document.getElementById('officeName').value = data.office_name;
+        document.getElementById('buyerName').value = data.buyer_name;
+        document.getElementById('position').value = data.position;
+        document.getElementById('mobileNumber').value = data.mobile_number;
+        document.getElementById('emailId').value = data.email_id;
+        document.getElementById('gemBuyerId').value = data.gem_buyer_id || '';
+        document.getElementById('proposedBuyerName').value = data.proposed_buyer_name || '';
+        document.getElementById('proposedEmailId').value = data.proposed_email_id || '';
+        document.getElementById('proposedMobileNumber').value = data.proposed_mobile_number || '';
+        document.getElementById('entryType').value = data.entry_type;
+        
+        // Set file name and URL in dataset
+        const fileName = data.office_order_url.split('/').pop();
+        document.getElementById('fileName').textContent = fileName;
+        document.getElementById('fileName').dataset.url = data.office_order_url;
+        
+        // Update form title and set entry ID
+        document.getElementById('addEntryModalLabel').textContent = 'जीईएम पोर्टल बायर/कंसाइनी विवरण संपादित करें';
+        document.getElementById('gemEntryForm').dataset.entryId = id;
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('addEntryModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error editing entry:', error);
+        showAlert('विवरण प्राप्त करने में त्रुटि हुई', 'danger');
+    }
+}
+
+// Show alert message (reusing from login form)
+function showAlert(message, type) {
+    // Create alert element if it doesn't exist
+    let alertBox = document.getElementById('alertBox');
+    if (!alertBox) {
+        alertBox = document.createElement('div');
+        alertBox.id = 'alertBox';
+        alertBox.className = `alert alert-${type} hindi`;
+        alertBox.style.position = 'fixed';
+        alertBox.style.top = '20px';
+        alertBox.style.right = '20px';
+        alertBox.style.zIndex = '1050';
+        document.body.appendChild(alertBox);
+    } else {
+        alertBox.className = `alert alert-${type} hindi`;
+    }
+    
+    alertBox.textContent = message;
+    alertBox.style.display = 'block';
+    
+    // Add animation
+    alertBox.style.animation = 'fadeIn 0.3s';
+    
+    // Auto hide after 5 seconds
+    setTimeout(() => {
+        alertBox.style.animation = 'fadeOut 0.3s';
+        setTimeout(() => {
+            alertBox.style.display = 'none';
+        }, 300);
+    }, 5000);
+}
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if user is logged in
+    if (!currentUser) {
+        window.location.href = 'index.html';
+        return;
+    }
+    
+    // Load districts and entries
+    loadDistricts();
+    loadEntries();
+    
+    // Add event listeners
+    document.getElementById('saveEntry').addEventListener('click', saveEntry);
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') {
+            loadEntries();
+        }
+    });
+    document.getElementById('districtFilter').addEventListener('change', loadEntries);
+    document.getElementById('typeFilter').addEventListener('change', loadEntries);
+    
+    // File upload preview
+    document.getElementById('officeOrder').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || '';
+        document.getElementById('fileName').textContent = fileName;
+    });
+    
+    // Reset form when modal is closed
+    document.getElementById('addEntryModal').addEventListener('hidden.bs.modal', function() {
+        document.getElementById('gemEntryForm').reset();
+        document.getElementById('fileName').textContent = '';
+        document.getElementById('fileName').dataset.url = '';
+        document.getElementById('gemEntryForm').removeAttribute('data-entry-id');
+        document.getElementById('addEntryModalLabel').textContent = 'जीईएम पोर्टल बायर/कंसाइनी विवरण';
+    });
+});
+
         // Load districts (similar to your login form)
         function loadDistricts() {
             // This would fetch districts from your Supabase database
