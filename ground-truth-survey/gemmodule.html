@@ -1009,48 +1009,68 @@
         }
 
         // Upload file to Supabase storage
-        async function uploadFile(file) {
-            try {
-                // Create the bucket if it doesn't exist
-                const { data: buckets } = await supabaseClient
-                    .storage
-                    .listBuckets();
-                
-                const bucketExists = buckets.some(b => b.name === 'gem_documents');
-                
-                if (!bucketExists) {
-                    await supabaseClient
+            async function uploadFile(file) {
+                try {
+                    // First, check if the bucket exists
+                    const { data: buckets, error: bucketsError } = await supabaseClient
                         .storage
-                        .createBucket('gem_documents', { public: true });
+                        .listBuckets();
+                        
+                    if (bucketsError) throw bucketsError;
+                    
+                    // Check if our bucket exists
+                    let bucketExists = false;
+                    if (buckets) {
+                        bucketExists = buckets.some(b => b.name === 'gem_documents');
+                    }
+                    
+                    // Create bucket if it doesn't exist
+                    if (!bucketExists) {
+                        const { error: createBucketError } = await supabaseClient
+                            .storage
+                            .createBucket('gem_documents', {
+                                public: true,
+                                allowedMimeTypes: ['application/pdf'],
+                                fileSizeLimit: 10485760 // 10MB
+                            });
+                            
+                        if (createBucketError) {
+                            console.error('Error creating bucket:', createBucketError);
+                            throw new Error('फाइल अपलोड के लिए स्टोरेज बकेट बनाने में त्रुटि हुई');
+                        }
+                    }
+                    
+                    // Now upload the file
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+                    const filePath = `office_orders/${fileName}`;
+                    
+                    const { data, error: uploadError } = await supabaseClient
+                        .storage
+                        .from('gem_documents')
+                        .upload(filePath, file, {
+                            cacheControl: '3600',
+                            upsert: false
+                        });
+                        
+                    if (uploadError) {
+                        console.error('Upload error:', uploadError);
+                        throw new Error('फाइल अपलोड करने में त्रुटि हुई');
+                    }
+                    
+                    // Get public URL
+                    const { data: urlData } = await supabaseClient
+                        .storage
+                        .from('gem_documents')
+                        .getPublicUrl(filePath);
+                        
+                    return urlData.publicUrl;
+                } catch (error) {
+                    console.error('Error in file upload:', error);
+                    throw new Error(error.message || 'फाइल अपलोड करने में त्रुटि हुई');
                 }
-                
-                // Upload the file
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-                const filePath = `office_orders/${fileName}`;
-                
-                const { data, error } = await supabaseClient
-                    .storage
-                    .from('gem_documents')
-                    .upload(filePath, file, {
-                        cacheControl: '3600',
-                        upsert: false
-                    });
-                    
-                if (error) throw error;
-                
-                // Get public URL
-                const { data: urlData } = await supabaseClient
-                    .storage
-                    .from('gem_documents')
-                    .getPublicUrl(filePath);
-                    
-                return urlData.publicUrl;
-            } catch (error) {
-                console.error('Error uploading file:', error);
-                throw error;
             }
-        }
+
 
         // Save entry function
         async function saveEntry() {
