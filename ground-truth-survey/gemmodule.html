@@ -765,29 +765,11 @@
                 // Show loading state
                 tableBody.innerHTML = `<tr><td colspan="9" class="text-center">डेटा लोड हो रहा है...</td></tr>`;
                 
-                // Create the gem_entries table if it doesn't exist
-                await createGemEntriesTableIfNotExists();
-                
-                // Prepare query
-                let query = supabaseClient
-                    .from('gem_entries_view')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                // Apply filters
-                if (districtFilter) {
-                    query = query.eq('district_id', districtFilter);
-                } else if (currentUser && currentUser.role !== 'admin') {
-                    // Non-admin users can only see their district
-                    query = query.eq('district_id', currentUser.districtId);
-                }
-                
-                if (typeFilter) {
-                    query = query.eq('entry_type', typeFilter);
-                }
-                
-                // Execute query
-                const { data, error } = await query;
+                // Call the database function to get entries
+                const { data, error } = await supabaseClient.rpc('get_gem_entries', {
+                    p_district_id: districtFilter || null,
+                    p_entry_type: typeFilter || null
+                });
                 
                 if (error) throw error;
                 
@@ -796,7 +778,7 @@
                 
                 // Filter by search term if provided
                 let filteredData = data;
-                if (searchInput) {
+                if (searchInput && filteredData) {
                     filteredData = data.filter(entry => 
                         (entry.district_name && entry.district_name.toLowerCase().includes(searchInput)) ||
                         (entry.office_name && entry.office_name.toLowerCase().includes(searchInput)) ||
@@ -852,6 +834,7 @@
                 showAlert('डेटा लोड करने में त्रुटि हुई', 'danger');
             }
         }
+
         
         // Create the gem_entries table and view if they don't exist
         async function createGemEntriesTableIfNotExists() {
