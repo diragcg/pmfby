@@ -1597,15 +1597,15 @@
         
         // Load data for specific sections when activated
         function loadSectionData(sectionId) {
+            console.log(`Loading data for section: ${sectionId}`); // Debugging
             switch(sectionId) {
                 case 'admin-dashboard':
-                    loadDashboardData(); // Already called on DOMContentLoaded, but good to re-call on explicit navigation if needed
+                    loadDashboardData(); 
                     break;
                 case 'manage-users':
                     loadUsers();
-                    // Also populate districts for the 'Add User' and 'Edit User' modals
-                    loadDistrictsForDropdown('district');
-                    loadDistrictsForDropdown('editDistrict');
+                    loadDistrictsForDropdown('district'); // For Add User modal
+                    loadDistrictsForDropdown('editDistrict'); // For Edit User modal
                     break;
                 case 'manage-districts':
                     loadDistricts();
@@ -1630,6 +1630,7 @@
         function setupModalEventHandlers() {
             // Add New User button (opens modal)
             document.getElementById('addNewUserBtn').addEventListener('click', function() {
+                console.log("Add New User button clicked."); // Debugging
                 document.getElementById('addUserForm').reset();
                 document.getElementById('addUserModalLabel').textContent = 'Add New User';
                 // Ensure password fields are visible and required for new user
@@ -1651,6 +1652,7 @@
             
             // Save User button (for adding new user)
             document.getElementById('saveUserBtn').addEventListener('click', async function() {
+                console.log("Save User button clicked (Add New User)."); // Debugging
                 const fullName = document.getElementById('fullName').value;
                 const username = document.getElementById('username').value;
                 const password = document.getElementById('password').value;
@@ -1718,9 +1720,9 @@
                 }
             });
 
-            // Edit User Modal (populates and shows)
-            // This function is called from the 'edit-user-btn' in loadUsers()
+            // Edit User Modal (populates and shows) - called by delegated event listener
             async function editUser(userId) {
+                console.log("Edit User function called for ID:", userId); // Debugging
                 try {
                     const { data: user, error } = await supabaseClient
                         .from('test_users')
@@ -1739,12 +1741,6 @@
                         document.getElementById('editEmail').value = user.email || '';
                         document.getElementById('editIsActive').checked = user.is_active;
                         
-                        // Hide password fields for edit user (password change is separate)
-                        document.getElementById('password').closest('.mb-3').style.display = 'none';
-                        document.getElementById('confirmPassword').closest('.mb-3').style.display = 'none';
-                        document.getElementById('password').removeAttribute('required');
-                        document.getElementById('confirmPassword').removeAttribute('required');
-
                         // Populate district dropdown for edit modal
                         await loadDistrictsForDropdown('editDistrict');
                         document.getElementById('editDistrict').value = user.district_id || '';
@@ -1761,6 +1757,7 @@
 
             // Update User button (for saving edited user)
             document.getElementById('updateUserBtn').addEventListener('click', async function() {
+                console.log("Update User button clicked."); // Debugging
                 const userId = document.getElementById('editUserId').value;
                 const fullName = document.getElementById('editFullName').value;
                 const role = document.getElementById('editRole').value;
@@ -1803,9 +1800,20 @@
                 }
             });
 
-            // Add/Edit Crop Modal (populates and shows)
-            // This function is called from the 'edit-crop-btn' in loadCrops()
+            // Add New Crop button (opens modal)
+            document.getElementById('addNewCropBtn').addEventListener('click', function() {
+                console.log("Add New Crop button clicked."); // Debugging
+                document.getElementById('cropForm').reset();
+                document.getElementById('cropId').value = ''; // Clear hidden ID for new record
+                document.getElementById('cropModalLabel').textContent = 'Add New Crop'; // Set modal title
+                
+                const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
+                cropModal.show();
+            });
+
+            // Edit Crop Modal (populates and shows) - called by delegated event listener
             async function editCrop(cropId) {
+                console.log("Edit Crop function called for ID:", cropId); // Debugging
                 try {
                     const { data: crop, error } = await supabaseClient
                         .from('crops')
@@ -1819,7 +1827,7 @@
                         document.getElementById('cropId').value = crop.id;
                         document.getElementById('cropName').value = crop.name;
                         document.getElementById('cropCode').value = crop.code;
-                        document.getElementById('cropModalLabel').textContent = 'Edit Crop';
+                        document.getElementById('cropModalLabel').textContent = 'Edit Crop'; // Set modal title
                         
                         const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
                         cropModal.show();
@@ -1832,6 +1840,7 @@
 
             // Save Crop button (for adding/editing crop)
             document.getElementById('saveCropBtn').addEventListener('click', async function() {
+                console.log("Save Crop button clicked."); // Debugging
                 const cropId = document.getElementById('cropId').value;
                 const cropName = document.getElementById('cropName').value;
                 const cropCode = document.getElementById('cropCode').value;
@@ -1883,9 +1892,20 @@
                 }
             });
 
-            // Add/Edit District Modal (populates and shows)
-            // This function is called from the 'edit-district-btn' in loadDistricts()
+            // Add New District button (opens modal)
+            document.getElementById('addNewDistrictBtn').addEventListener('click', function() {
+                console.log("Add New District button clicked."); // Debugging
+                document.getElementById('districtForm').reset();
+                document.getElementById('districtId').value = ''; // Clear hidden ID for new record
+                document.getElementById('districtModalLabel').textContent = 'Add New District'; // Set modal title
+                
+                const districtModal = new bootstrap.Modal(document.getElementById('districtModal'));
+                districtModal.show();
+            });
+
+            // Edit District Modal (populates and shows) - called by delegated event listener
             async function editDistrict(districtId) {
+                console.log("Edit District function called for ID:", districtId); // Debugging
                 try {
                     const { data: district, error } = await supabaseClient
                         .from('districts')
@@ -1898,7 +1918,7 @@
                     if (district) {
                         document.getElementById('districtId').value = district.id;
                         document.getElementById('districtName').value = district.name;
-                        document.getElementById('districtModalLabel').textContent = 'Edit District';
+                        document.getElementById('districtModalLabel').textContent = 'Edit District'; // Set modal title
                         
                         const districtModal = new bootstrap.Modal(document.getElementById('districtModal'));
                         districtModal.show();
@@ -1911,6 +1931,7 @@
 
             // Save District button (for adding/editing district)
             document.getElementById('saveDistrictBtn').addEventListener('click', async function() {
+                console.log("Save District button clicked."); // Debugging
                 const districtId = document.getElementById('districtId').value;
                 const districtName = document.getElementById('districtName').value;
                 
@@ -2005,6 +2026,7 @@
         }
         
         // Load users for the Manage Users section
+        let usersTableInstance = null; // Declare instance to manage destruction
         async function loadUsers() {
             try {
                 const tableElement = document.getElementById('usersTable');
@@ -2014,8 +2036,9 @@
                 }
                 
                 // Destroy existing DataTable instance if it exists
-                if ($.fn.DataTable.isDataTable('#usersTable')) {
-                    $('#usersTable').DataTable().destroy();
+                if (usersTableInstance) { // Use the instance variable
+                    usersTableInstance.destroy();
+                    usersTableInstance = null;
                 }
 
                 const { data: users, error } = await supabaseClient
@@ -2058,7 +2081,7 @@
                 });
                 
                 // Initialize DataTable with new data
-                $('#usersTable').DataTable({
+                usersTableInstance = $('#usersTable').DataTable({ // Assign to instance variable
                     data: tableData,
                     columns: [
                         { title: "ID" },
@@ -2082,13 +2105,15 @@
                 });
                 
                 // Attach delegated event listeners for edit and delete buttons
-                // This is more robust as it listens on the table body, which isn't re-rendered by DataTable
+                // Listen on the table body, which persists across DataTable redraws
                 $('#usersTable tbody').off('click', '.edit-user-btn').on('click', '.edit-user-btn', function() {
+                    console.log("Edit User button (delegated) clicked for ID:", $(this).data('id')); // Debugging
                     const userId = $(this).data('id');
                     editUser(userId);
                 });
                 
                 $('#usersTable tbody').off('click', '.delete-user-btn').on('click', '.delete-user-btn', function() {
+                    console.log("Delete User button (delegated) clicked for ID:", $(this).data('id')); // Debugging
                     const userId = $(this).data('id');
                     deleteUser(userId);
                 });
@@ -2104,7 +2129,7 @@
         }
         
         // Load districts for the Manage Districts section
-        let districtsTableInstance = null;
+        let districtsTableInstance = null; // Declare instance
         async function loadDistricts() {
             try {
                 const tableElement = document.getElementById('districtsTable');
@@ -2114,7 +2139,7 @@
                 }
                 
                 // Destroy existing DataTable instance if it exists
-                if (districtsTableInstance) {
+                if (districtsTableInstance) { // Use the instance variable
                     districtsTableInstance.destroy();
                     districtsTableInstance = null;
                 }
@@ -2160,7 +2185,7 @@
                     ]);
                 }
                 
-                districtsTableInstance = $('#districtsTable').DataTable({
+                districtsTableInstance = $('#districtsTable').DataTable({ // Assign to instance variable
                     data: tableData,
                     columns: [
                         { title: "ID" },
@@ -2179,11 +2204,13 @@
                 
                 // Attach delegated event listeners for edit and delete buttons
                 $('#districtsTable tbody').off('click', '.edit-district-btn').on('click', '.edit-district-btn', function() {
+                    console.log("Edit District button (delegated) clicked for ID:", $(this).data('id')); // Debugging
                     const districtId = $(this).data('id');
                     editDistrict(districtId);
                 });
                 
                 $('#districtsTable tbody').off('click', '.delete-district-btn').on('click', '.delete-district-btn', function() {
+                    console.log("Delete District button (delegated) clicked for ID:", $(this).data('id')); // Debugging
                     const districtId = $(this).data('id');
                     deleteDistrict(districtId);
                 });
@@ -2202,7 +2229,7 @@
         }
         
         // Load crops for the Manage Crops section
-        let cropsTableInstance = null;
+        let cropsTableInstance = null; // Declare instance
         async function loadCrops() {
             try {
                 const tableElement = document.getElementById('cropsTable');
@@ -2212,7 +2239,7 @@
                 }
                 
                 // Destroy existing DataTable instance if it exists
-                if (cropsTableInstance) {
+                if (cropsTableInstance) { // Use the instance variable
                     cropsTableInstance.destroy();
                     cropsTableInstance = null;
                 }
@@ -2246,7 +2273,7 @@
                     ]);
                 });
                 
-                cropsTableInstance = $('#cropsTable').DataTable({
+                cropsTableInstance = $('#cropsTable').DataTable({ // Assign to instance variable
                     data: tableData,
                     columns: [
                         { title: "ID" },
@@ -2265,11 +2292,13 @@
                 
                 // Attach delegated event listeners for edit and delete buttons
                 $('#cropsTable tbody').off('click', '.edit-crop-btn').on('click', '.edit-crop-btn', function() {
+                    console.log("Edit Crop button (delegated) clicked for ID:", $(this).data('id')); // Debugging
                     const cropId = $(this).data('id');
                     editCrop(cropId);
                 });
                 
                 $('#cropsTable tbody').off('click', '.delete-crop-btn').on('click', '.delete-crop-btn', function() {
+                    console.log("Delete Crop button (delegated) clicked for ID:", $(this).data('id')); // Debugging
                     const cropId = $(this).data('id');
                     deleteCrop(cropId);
                 });
@@ -2288,7 +2317,7 @@
         }
         
         // Load activity logs
-        let activityLogsTableInstance = null;
+        let activityLogsTableInstance = null; // Declare instance
         async function loadActivityLogs() {
             try {
                 const tableElement = document.getElementById('activityLogsTable');
@@ -2298,7 +2327,7 @@
                 }
                 
                 // Destroy existing DataTable instance if it exists
-                if (activityLogsTableInstance) {
+                if (activityLogsTableInstance) { // Use the instance variable
                     activityLogsTableInstance.destroy();
                     activityLogsTableInstance = null;
                 }
@@ -2339,7 +2368,7 @@
                     ]);
                 });
                 
-                activityLogsTableInstance = $('#activityLogsTable').DataTable({
+                activityLogsTableInstance = $('#activityLogsTable').DataTable({ // Assign to instance variable
                     data: tableData,
                     columns: [
                         { title: "Date & Time" },
@@ -2624,7 +2653,7 @@
             if (!ws['!merges']) ws['!merges'] = [];
             const tableHeaders = table.querySelectorAll('thead th').length;
             if (tableHeaders > 0) {
-                ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: tableHeaders - 1 } }); // Merge Title row
+                ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: tableHeaders - 1 } }); // Merge A1 to F1 for title (adjust F based on max columns)
             }
             // You might need to adjust other merge ranges if you add more styled headers
 
@@ -2633,8 +2662,7 @@
                 Array.from(table.querySelectorAll('tr')).reduce((w, tr) => Math.max(w, (tr.children[i] && tr.children[i].textContent.length || 0)), 10)
             );
             ws['!cols'] = max_width.map(w => ({ wch: w + 2 })); // Add a little extra width
-
-            // Add the worksheet to the workbook
+            
             XLSX.utils.book_append_sheet(wb, ws, title);
             
             const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -2766,8 +2794,10 @@
                     const currentValue = dropdown.value; 
 
                     // Clear existing options except the first one (which is "-- Select/All --")
-                    while (dropdown.options.length > (dropdown.options[0]?.value === "" ? 1 : 0)) {
-                        dropdown.remove(dropdown.options[0]?.value === "" ? 1 : 0);
+                    // Check if the first option is a placeholder, and keep it if it is.
+                    const isPlaceholder = dropdown.options.length > 0 && (dropdown.options[0].value === "" || dropdown.options[0].disabled);
+                    while (dropdown.options.length > (isPlaceholder ? 1 : 0)) {
+                        dropdown.remove(isPlaceholder ? 1 : 0);
                     }
                     
                     // Add districts to dropdown
@@ -2782,9 +2812,9 @@
                     // Attempt to restore previous selection
                     if (currentValue && dropdown.querySelector(`option[value="${currentValue}"]`)) {
                         dropdown.value = currentValue;
-                    } else if (dropdown.options.length > 0 && dropdown.options[0].value !== "") {
-                        // If no previous value or not found, select the first valid option
-                        dropdown.value = dropdown.options[0].value;
+                    } else if (dropdown.options.length > (isPlaceholder ? 1 : 0) && dropdown.options[0].value !== "") {
+                        // If no previous value or not found, and there are actual options, select the first actual option
+                        dropdown.value = dropdown.options[isPlaceholder ? 1 : 0].value;
                     }
                 }
             } catch (error) {
