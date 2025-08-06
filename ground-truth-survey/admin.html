@@ -4,14 +4,440 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>संचालनालय कृषि छत्तीसगढ़ - Admin Dashboard</title>
-    <!-- Include the same CSS and JS libraries as your main page -->
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Mukta Devanagari Font -->
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Use the same styles as your main app but add admin-specific styling -->
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* Forest Green & Cream Theme */
+            --primary-color: #1B5E20;     /* Dark Forest Green */
+            --secondary-color: #388E3C;   /* Medium Green */
+            --accent-color: #8BC34A;      /* Light Green */
+            --text-dark: #263238;
+            --text-medium: #455A64;
+            --text-light: #FFF8E1;        /* Cream */
+            --background-light: #FFF8E1;  /* Cream */
+            --background-medium: #F1F8E9; /* Light Green-Cream */
+            --border-color: #C8E6C9;      /* Light Green Border */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 8px 24px rgba(27, 94, 32, 0.2);
+            --admin-primary: #1B5E20;
+            --admin-secondary: #388E3C;
+            --admin-accent: #8BC34A;
+            --admin-danger: #d32f2f;
+            --admin-warning: #ff9800;
+            --admin-info: #0288d1;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Mukta', sans-serif;
+            background-color: var(--background-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Hindi text styling */
+        .hindi {
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            line-height: 1.5;
+        }
+        
+        /* Header and Navbar Styles */
+        .header {
+            background-color: var(--admin-primary);
+            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 100;
+        }
+        
+        .navbar {
+            padding: 12px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand img {
+            height: 45px;
+            margin-right: 15px;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+        }
+        
+        .nav-link {
+            font-family: 'Mukta', sans-serif;
+            color: rgba(255, 248, 225, 0.9) !important;
+            font-weight: 600;
+            padding: 12px 20px !important;
+            margin: 0 5px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 248, 225, 0.1);
+        }
+        
+        .nav-link.active {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 248, 225, 0.2);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background-color: #FFFFFF;
+            height: calc(100vh - 76px);
+            width: 280px;
+            position: fixed;
+            top: 76px;
+            left: 0;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background-color: var(--background-medium);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .sidebar-header h5 {
+            margin-bottom: 5px;
+            color: var(--admin-primary);
+            font-weight: 700;
+        }
+        
+        .sidebar-header p {
+            margin-bottom: 0;
+            color: var(--text-medium);
+            font-size: 0.9rem;
+        }
+        
+        .sidebar-menu {
+            padding: 15px 0;
+        }
+        
+        .menu-item {
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            color: var(--text-medium);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+        }
+        
+        .menu-item:hover {
+            background-color: var(--background-medium);
+            color: var(--admin-primary);
+            border-left-color: var(--accent-color);
+        }
+        
+        .menu-item.active {
+            background-color: var(--background-medium);
+            color: var(--admin-primary);
+            border-left-color: var(--admin-primary);
+            font-weight: 600;
+        }
+        
+        .menu-item i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: calc(100vh - 76px);
+            transition: all 0.3s ease;
+        }
+        
+        .page-title {
+            margin-bottom: 25px;
+            color: var(--admin-primary);
+            font-weight: 700;
+        }
+        
+        /* Card Styles */
+        .card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+            overflow: hidden;
+            background-color: #FFFFFF;
+        }
+        
+        .card-header {
+            background-color: var(--background-medium);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+        }
+        
+        .card-header h5 {
+            margin-bottom: 0;
+            color: var(--admin-primary);
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Form Styles */
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.15);
+        }
+        
+        /* Button Styles */
+        .btn-primary {
+            background-color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--admin-secondary);
+            border-color: var(--admin-secondary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-outline-primary {
+            color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--admin-primary);
+            color: var(--text-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        /* Table Styles */
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            background-color: var(--background-medium);
+            color: var(--admin-primary);
+            font-weight: 600;
+            border-bottom-width: 1px;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        /* Admin specific styles */
+        .admin-badge {
+            background-color: var(--admin-primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .stats-card {
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .stats-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .stats-primary {
+            background-color: rgba(27, 94, 32, 0.1);
+            color: var(--admin-primary);
+        }
+        
+        .stats-warning {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: var(--admin-warning);
+        }
+        
+        .stats-info {
+            background-color: rgba(2, 136, 209, 0.1);
+            color: var(--admin-info);
+        }
+        
+        .stats-danger {
+            background-color: rgba(211, 47, 47, 0.1);
+            color: var(--admin-danger);
+        }
+        
+        .stats-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--text-dark);
+        }
+        
+        .stats-label {
+            font-size: 1rem;
+            color: var(--text-medium);
+            margin-bottom: 0;
+        }
+        
+        /* Alert Styles */
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 240px;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+        }
+        
+        /* Toggle sidebar button */
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--admin-primary);
+            color: var(--text-light);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            border: none;
+            cursor: pointer;
+        }
+        
+        /* DataTables customization */
+        .dataTables_wrapper .dataTables_length, 
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 15px;
+        }
+        
+        .dataTables_wrapper .dataTables_info, 
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 15px;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: var(--background-medium);
+            border-color: var(--border-color);
+            color: var(--admin-primary) !important;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--background-medium);
+            border-color: var(--border-color);
+            color: var(--admin-primary) !important;
+        }
+        
+        /* User roles */
+        .role-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .role-admin {
+            background-color: rgba(27, 94, 32, 0.1);
+            color: var(--admin-primary);
+        }
+        
+        .role-manager {
+            background-color: rgba(2, 136, 209, 0.1);
+            color: var(--admin-info);
+        }
+        
+        .role-user {
+            background-color: rgba(56, 142, 60, 0.1);
+            color: var(--secondary-color);
+        }
+    </style>
 </head>
 <body>
-    <!-- Header similar to main app but with admin indicators -->
+    <!-- Header with Interactive Navbar -->
     <header class="header">
         <div class="container-fluid">
             <nav class="navbar navbar-expand-lg navbar-dark">
@@ -20,17 +446,44 @@
                         <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत सरकार">
                         <span class="hindi">संचालनालय कृषि छत्तीसगढ़ - Admin Panel</span>
                     </a>
-                    <!-- Admin navbar with logout, etc. -->
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="false">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <a class="nav-link hindi" href="gts.html">
+                                    <i class="fas fa-home me-1"></i> मुख्य एप्लिकेशन
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link hindi" href="#" id="helpLink">
+                                    <i class="fas fa-question-circle me-1"></i> सहायता
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle hindi" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-circle me-1"></i> <span id="userNameDisplay">Admin</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item hindi" href="#" id="profileLink"><i class="fas fa-id-card me-2"></i> प्रोफ़ाइल</a></li>
+                                    <li><a class="dropdown-item hindi" href="#" id="changePasswordLink"><i class="fas fa-key me-2"></i> पासवर्ड बदलें</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item hindi" href="#" id="logoutLink"><i class="fas fa-sign-out-alt me-2"></i> लॉगआउट</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </nav>
         </div>
     </header>
 
-    <!-- Admin Sidebar with admin-specific options -->
+    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h5 class="hindi">Admin Dashboard</h5>
-            <p class="hindi" id="adminRoleDisplay">Administrator</p>
+            <p class="hindi" id="adminRoleDisplay">System Administrator</p>
         </div>
         <div class="sidebar-menu">
             <a href="#admin-dashboard" class="menu-item active" id="adminDashboardLink">
@@ -51,31 +504,1546 @@
             <a href="#reports-admin" class="menu-item" id="reportsAdminLink">
                 <i class="fas fa-chart-bar"></i> <span class="hindi">Advanced Reports</span>
             </a>
+            <a href="#activity-logs" class="menu-item" id="activityLogsLink">
+                <i class="fas fa-history"></i> <span class="hindi">Activity Logs</span>
+            </a>
+            <hr>
             <a href="gts.html" class="menu-item">
                 <i class="fas fa-arrow-left"></i> <span class="hindi">Return to Main App</span>
             </a>
         </div>
     </div>
 
-    <!-- Main Content Area for Admin -->
+    <!-- Main Content -->
     <div class="main-content" id="mainContent">
         <!-- Admin Dashboard Section -->
         <div id="admin-dashboard-section" class="content-section">
-            <!-- Admin stats and overview cards here -->
+            <h4 class="page-title hindi">Admin Dashboard</h4>
+            
+            <!-- Quick Stats Cards -->
+            <div class="row">
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-primary mx-auto">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3 class="stats-value" id="totalUsers">0</h3>
+                            <p class="stats-label hindi">Total Users</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-info mx-auto">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <h3 class="stats-value" id="totalDistricts">0</h3>
+                            <p class="stats-label hindi">Total Districts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-warning mx-auto">
+                                <i class="fas fa-seedling"></i>
+                            </div>
+                            <h3 class="stats-value" id="totalCrops">0</h3>
+                            <p class="stats-label hindi">Total Crops</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-danger mx-auto">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h3 class="stats-value" id="pendingIssues">0</h3>
+                            <p class="stats-label hindi">Pending Issues</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Overview -->
+            <div class="row">
+                <div class="col-lg-8 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">System Overview</h5>
+                            <button class="btn btn-sm btn-outline-primary" id="refreshOverviewBtn">
+                                <i class="fas fa-sync-alt me-1"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="systemOverviewChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="hindi">Recent Activities</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="recentActivitiesList">
+                                <!-- Activities will be populated dynamically -->
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Loading activities...</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="hindi">Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="addUserBtn">
+                                        <i class="fas fa-user-plus mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Add New User</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="addDistrictBtn">
+                                        <i class="fas fa-plus-circle mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Add District</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="addCropBtn">
+                                        <i class="fas fa-leaf mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Add Crop</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="generateReportBtn">
+                                        <i class="fas fa-file-alt mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Generate Report</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <!-- User Management Section -->
+        <!-- Manage Users Section -->
         <div id="manage-users-section" class="content-section" style="display: none;">
-            <!-- User management table and forms here -->
+            <h4 class="page-title hindi">Manage Users</h4>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="hindi">All Users</h5>
+                    <button class="btn btn-primary" id="addNewUserBtn">
+                        <i class="fas fa-plus me-1"></i> Add New User
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Role</th>
+                                    <th>District</th>
+                                    <th>Status</th>
+                                    <th>Last Login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Users will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <!-- Other admin sections... -->
+        <!-- Manage Districts Section -->
+        <div id="manage-districts-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Manage Districts</h4>
+            
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">All Districts</h5>
+                            <button class="btn btn-primary" id="addNewDistrictBtn">
+                                <i class="fas fa-plus me-1"></i> Add New District
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="districtsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Total Villages</th>
+                                            <th>Total Users</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Districts will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">District Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="districtChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manage Crops Section -->
+        <div id="manage-crops-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Manage Crops</h4>
+            
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">All Crops</h5>
+                            <button class="btn btn-primary" id="addNewCropBtn">
+                                <i class="fas fa-plus me-1"></i> Add New Crop
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="cropsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Season</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Crops will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">Crop Categories</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cropCategoriesChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Settings Section -->
+        <div id="system-settings-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">System Settings</h4>
+            
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="hindi">General Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="generalSettingsForm">
+                            <div class="mb-3">
+                                <label for="systemName" class="form-label hindi">System Name</label>
+                                <input type="text" class="form-control" id="systemName" value="संचालनालय कृषि छत्तीसगढ़ - ग्राउंड ट्रुथिंग सिस्टम">
+                            </div>
+                            <div class="mb-3">
+                                <label for="systemLogo" class="form-label hindi">System Logo URL</label>
+                                <input type="text" class="form-control" id="systemLogo" value="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg">
+                            </div>
+                            <div class="mb-3">
+                                <label for="defaultLanguage" class="form-label hindi">Default Language</label>
+                                <select class="form-control" id="defaultLanguage">
+                                    <option value="hi" selected>Hindi</option>
+                                    <option value="en">English</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="sessionTimeout" class="form-label hindi">Session Timeout (minutes)</label>
+                                <input type="number" class="form-control" id="sessionTimeout" value="30">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Save Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="hindi">Email Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="emailSettingsForm">
+                            <div class="mb-3">
+                                <label for="smtpServer" class="form-label hindi">SMTP Server</label>
+                                <input type="text" class="form-control" id="smtpServer" placeholder="smtp.example.com">
+                            </div>
+                            <div class="mb-3">
+                                <label for="smtpPort" class="form-label hindi">SMTP Port</label>
+                                <input type="number" class="form-control" id="smtpPort" placeholder="587">
+                            </div>
+                            <div class="mb-3">
+                                <label for="smtpUsername" class="form-label hindi">SMTP Username</label>
+                                <input type="text" class="form-control" id="smtpUsername" placeholder="username@example.com">
+                            </div>
+                            <div class="mb-3">
+                                <label for="smtpPassword" class="form-label hindi">SMTP Password</label>
+                                <input type="password" class="form-control" id="smtpPassword">
+                            </div>
+                            <div class="mb-3">
+                                <label for="senderEmail" class="form-label hindi">Sender Email</label>
+                                <input type="email" class="form-control" id="senderEmail" placeholder="noreply@example.com">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Save Email Settings
+                            </button>
+                            <button type="button" class="btn btn-outline-primary ms-2" id="testEmailBtn">
+                                <i class="fas fa-paper-plane me-2"></i> Send Test Email
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="hindi">Security Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="securitySettingsForm">
+                            <div class="mb-3">
+                                <label class="form-label hindi">Password Policy</label>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="requireUppercase" checked>
+                                    <label class="form-check-label" for="requireUppercase">
+                                        Require uppercase letters
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="requireLowercase" checked>
+                                    <label class="form-check-label" for="requireLowercase">
+                                        Require lowercase letters
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="requireNumbers" checked>
+                                    <label class="form-check-label" for="requireNumbers">
+                                        Require numbers
+                                    </label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="requireSpecialChars">
+                                    <label class="form-check-label" for="requireSpecialChars">
+                                        Require special characters
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="minPasswordLength" class="form-label hindi">Minimum Password Length</label>
+                                <input type="number" class="form-control" id="minPasswordLength" value="8">
+                            </div>
+                            <div class="mb-3">
+                                <label for="passwordExpiryDays" class="form-label hindi">Password Expiry (days)</label>
+                                <input type="number" class="form-control" id="passwordExpiryDays" value="90">
+                            </div>
+                            <div class="mb-3">
+                                <label for="maxLoginAttempts" class="form-label hindi">Max Failed Login Attempts</label>
+                                <input type="number" class="form-control" id="maxLoginAttempts" value="5">
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i> Save Security Settings
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="hindi">Backup & Restore</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <h6 class="hindi mb-3">Database Backup</h6>
+                            <button type="button" class="btn btn-primary" id="backupDatabaseBtn">
+                                <i class="fas fa-database me-2"></i> Backup Database
+                            </button>
+                            <button type="button" class="btn btn-outline-primary ms-2" id="scheduleBackupBtn">
+                                <i class="fas fa-calendar-alt me-2"></i> Schedule Backups
+                            </button>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6 class="hindi mb-3">Restore Database</h6>
+                            <div class="input-group mb-3">
+                                <input type="file" class="form-control" id="restoreFile" accept=".sql,.dump">
+                                <button class="btn btn-outline-primary" type="button" id="restoreDatabaseBtn">
+                                    <i class="fas fa-upload me-2"></i> Restore
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> Restoring a database will overwrite all current data. Make sure to backup before restoring.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+        
+        <!-- Advanced Reports Section -->
+        <div id="reports-admin-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Advanced Reports</h4>
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">Generate Reports</h5>
+                            <div>
+                                <button class="btn btn-outline-primary me-2" id="exportReportBtn">
+                                    <i class="fas fa-file-excel me-1"></i> Export to Excel
+                                </button>
+                                <button class="btn btn-outline-primary" id="printReportBtn">
+                                    <i class="fas fa-print me-1"></i> Print
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <label for="reportType" class="form-label hindi">Report Type</label>
+                                    <select class="form-control" id="reportType">
+                                        <option value="user">User Report</option>
+                                        <option value="district">District Report</option>
+                                        <option value="crop">Crop Report</option>
+                                        <option value="progress">Progress Report</option>
+                                        <option value="survey">Survey Data Report</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="reportDistrict" class="form-label hindi">District</label>
+                                    <select class="form-control" id="reportDistrict">
+                                        <option value="">All Districts</option>
+                                        <!-- Districts will be populated dynamically -->
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="reportDateFrom" class="form-label hindi">Date From</label>
+                                    <input type="date" class="form-control" id="reportDateFrom">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="reportDateTo" class="form-label hindi">Date To</label>
+                                    <input type="date" class="form-control" id="reportDateTo">
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button class="btn btn-primary" id="generateReportBtnAdv">
+                                    <i class="fas fa-chart-bar me-2"></i> Generate Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="hindi">Report Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="reportResults">
+                        <p class="text-center text-muted">Select report type and click "Generate Report" to view results.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Logs Section -->
+        <div id="activity-logs-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Activity Logs</h4>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="hindi">System Activity Logs</h5>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" id="exportLogsBtn">
+                            <i class="fas fa-file-export me-1"></i> Export Logs
+                        </button>
+                        <button class="btn btn-outline-danger" id="clearLogsBtn">
+                            <i class="fas fa-trash me-1"></i> Clear Logs
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label for="logType" class="form-label hindi">Log Type</label>
+                            <select class="form-control" id="logType">
+                                <option value="">All Types</option>
+                                <option value="login">Login/Logout</option>
+                                <option value="user">User Management</option>
+                                <option value="data">Data Changes</option>
+                                <option value="system">System Changes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="logUser" class="form-label hindi">User</label>
+                            <select class="form-control" id="logUser">
+                                <option value="">All Users</option>
+                                <!-- Users will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="logDateFrom" class="form-label hindi">Date From</label>
+                            <input type="date" class="form-control" id="logDateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="logDateTo" class="form-label hindi">Date To</label>
+                            <input type="date" class="form-control" id="logDateTo">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="activityLogsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>User</th>
+                                    <th>Activity Type</th>
+                                    <th>Description</th>
+                                    <th>IP Address</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Logs will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- Scripts -->
+    <!-- Toggle Sidebar Button for Mobile -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="addUserModalLabel">Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="mb-3">
+                            <label for="newUsername" class="form-label hindi">Username</label>
+                            <input type="text" class="form-control" id="newUsername" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newFullName" class="form-label hindi">Full Name</label>
+                            <input type="text" class="form-control" id="newFullName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newPassword" class="form-label hindi">Password</label>
+                            <input type="password" class="form-control" id="newPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newEmail" class="form-label hindi">Email</label>
+                            <input type="email" class="form-control" id="newEmail" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newMobile" class="form-label hindi">Mobile Number</label>
+                            <input type="tel" class="form-control" id="newMobile">
+                        </div>
+                        <div class="mb-3">
+                            <label for="newRole" class="form-label hindi">Role</label>
+                            <select class="form-control" id="newRole" required>
+                                <option value="">-- Select Role --</option>
+                                <option value="admin">Administrator</option>
+                                <option value="manager">District Manager</option>
+                                <option value="user">Regular User</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newDistrict" class="form-label hindi">District</label>
+                            <select class="form-control" id="newDistrict">
+                                <option value="">-- Select District --</option>
+                                <!-- Districts will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="newActive" checked>
+                            <label class="form-check-label" for="newActive">
+                                Active Account
+                            </label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveNewUserBtn">Save User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Add your admin JavaScript file -->
-    <script src="js/admin.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Supabase configuration
+            const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+            
+            // Initialize Supabase client
+            const { createClient } = supabase;
+            const supabaseClient = createClient(supabaseUrl, supabaseKey);
+            
+            // Current user data
+            let currentUser = null;
+            
+            // DOM elements for sections (cached for performance)
+            const sections = {
+                adminDashboard: document.getElementById('admin-dashboard-section'),
+                manageUsers: document.getElementById('manage-users-section'),
+                manageDistricts: document.getElementById('manage-districts-section'),
+                manageCrops: document.getElementById('manage-crops-section'),
+                systemSettings: document.getElementById('system-settings-section'),
+                reportsAdmin: document.getElementById('reports-admin-section'),
+                activityLogs: document.getElementById('activity-logs-section')
+            };
+            
+            // Menu items (cached for performance)
+            const menuItems = {
+                adminDashboard: document.getElementById('adminDashboardLink'),
+                manageUsers: document.getElementById('manageUsersLink'),
+                manageDistricts: document.getElementById('manageDistrictsLink'),
+                manageCrops: document.getElementById('manageCropsLink'),
+                systemSettings: document.getElementById('systemSettingsLink'),
+                reportsAdmin: document.getElementById('reportsAdminLink'),
+                activityLogs: document.getElementById('activityLogsLink')
+            };
+            
+            // Function to show/hide sections and manage active menu items
+            function showSection(sectionId) {
+                console.log(`Navigating to section: \${sectionId}`);
+                
+                // Hide all sections
+                Object.values(sections).forEach(section => {
+                    if (section) section.style.display = 'none';
+                });
+                
+                // Remove active class from all menu items
+                Object.values(menuItems).forEach(item => {
+                    if (item) item.classList.remove('active');
+                });
+                
+                // Show selected section and mark menu item as active
+                if (sections[sectionId]) {
+                    sections[sectionId].style.display = 'block';
+                }
+                if (menuItems[sectionId]) {
+                    menuItems[sectionId].classList.add('active');
+                }
+
+                // Load section-specific data
+                switch(sectionId) {
+                    case 'adminDashboard':
+                        loadDashboardData();
+                        break;
+                    case 'manageUsers':
+                        loadUsers();
+                        break;
+                    case 'manageDistricts':
+                        loadDistricts();
+                        break;
+                    case 'manageCrops':
+                        loadCrops();
+                        break;
+                    case 'activityLogs':
+                        loadActivityLogs();
+                        break;
+                }
+            }
+            
+            // Load user data from storage and update UI
+            async function loadUserData() {
+                try {
+                    const storedUserData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user'));
+                    
+                    if (!storedUserData) {
+                        console.log('No user data found in storage. Redirecting to login.');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    
+                    currentUser = storedUserData;
+                    console.log("Current user loaded:", currentUser);
+                    
+                    // Check if user is admin
+                    if (currentUser.role !== 'admin') {
+                        console.log('User is not an admin. Redirecting to main app.');
+                        window.location.href = 'gts.html';
+                        return;
+                    }
+                    
+                    // Update UI elements
+                    document.getElementById('userNameDisplay').textContent = currentUser.fullName || currentUser.username;
+                    document.getElementById('adminRoleDisplay').textContent = 'Administrator';
+                    
+                } catch (error) {
+                    console.error('Failed to load user data or initialize app:', error);
+                    // Critical error, redirect to login
+                    window.location.href = 'login.html';
+                }
+            }
+            
+            // Load data for the Admin Dashboard
+            async function loadDashboardData() {
+                try {
+                    // Fetch total users count
+                    const { count: userCount, error: userError } = await supabaseClient
+                        .from('test_users')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (userError) throw userError;
+                    document.getElementById('totalUsers').textContent = userCount || '0';
+                    
+                    // Fetch total districts count
+                    const { count: districtCount, error: districtError } = await supabaseClient
+                        .from('districts')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (districtError) throw districtError;
+                    document.getElementById('totalDistricts').textContent = districtCount || '0';
+                    
+                    // Fetch total crops count
+                    const { count: cropCount, error: cropError } = await supabaseClient
+                        .from('crops')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (cropError) throw cropError;
+                    document.getElementById('totalCrops').textContent = cropCount || '0';
+                    
+                    // For demonstration, set pending issues to a random number
+                    document.getElementById('pendingIssues').textContent = Math.floor(Math.random() * 10);
+                    
+                    // Initialize system overview chart
+                    initSystemOverviewChart();
+                    
+                    // Load recent activities
+                    loadRecentActivities();
+                    
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                }
+            }
+            
+            // Initialize system overview chart
+            function initSystemOverviewChart() {
+                const ctx = document.getElementById('systemOverviewChart').getContext('2d');
+                
+                // Sample data for the chart
+                const data = {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [
+                        {
+                            label: 'Users',
+                            data: [12, 19, 25, 31, 42, 47, 50],
+                            borderColor: '#1B5E20',
+                            backgroundColor: 'rgba(27, 94, 32, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Survey Data',
+                            data: [5, 15, 30, 50, 65, 80, 120],
+                            borderColor: '#0288D1',
+                            backgroundColor: 'rgba(2, 136, 209, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                };
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: false,
+                                text: 'System Overview'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Load recent activities
+            async function loadRecentActivities() {
+                try {
+                    const { data: activities, error } = await supabaseClient
+                        .from('activity_logs')
+                        .select('created_at, activity_type, description, status, user_id, test_users(full_name)')
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+                    
+                    if (error) throw error;
+                    
+                    const activitiesList = document.getElementById('recentActivitiesList');
+                    activitiesList.innerHTML = '';
+                    
+                    if (activities && activities.length > 0) {
+                        activities.forEach(activity => {
+                            const date = activity.created_at ? new Date(activity.created_at).toLocaleString() : 'N/A';
+                            const userName = activity.test_users ? activity.test_users.full_name : 'N/A';
+                            
+                            let statusClass = '';
+                            if (activity.status === 'success') statusClass = 'text-success';
+                            else if (activity.status === 'pending') statusClass = 'text-warning';
+                            else if (activity.status === 'failed') statusClass = 'text-danger';
+                            
+                            const activityItem = document.createElement('div');
+                            activityItem.className = 'list-group-item';
+                            activityItem.innerHTML = `
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">\${activity.activity_type}</h6>
+                                    <small>\${date}</small>
+                                </div>
+                                <p class="mb-1">\${activity.description}</p>
+                                <div class="d-flex justify-content-between">
+                                    <small>By: \${userName}</small>
+                                    <small class="${statusClass}">${activity.status}</small>
+                                </div>
+                            `;
+                            
+                            activitiesList.appendChild(activityItem);
+                        });
+                    } else {
+                        activitiesList.innerHTML = `
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">No recent activities found</h6>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading recent activities:', error);
+                    document.getElementById('recentActivitiesList').innerHTML = `
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Error loading activities</h6>
+                            </div>
+                            <p class="mb-1 text-danger">Failed to load recent activities</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Load users for the Manage Users section
+            let usersTableInstance = null;
+            async function loadUsers() {
+                try {
+                    const tableElement = document.getElementById('usersTable');
+                    if (!tableElement) {
+                        console.warn('Users table element not found.');
+                        return;
+                    }
+                    
+                    if (usersTableInstance) {
+                        usersTableInstance.destroy();
+                        usersTableInstance = null;
+                    }
+                    
+                    const { data: users, error } = await supabaseClient
+                        .from('test_users')
+                        .select(`
+                            id, username, full_name, role, district_id, 
+                            is_active, last_login, districts(name)
+                        `)
+                        .order('full_name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    const tableData = [];
+                    (users || []).forEach(user => {
+                        const roleBadge = getRoleBadge(user.role);
+                        const statusBadge = user.is_active ? 
+                            '<span class="badge bg-success">Active</span>' : 
+                            '<span class="badge bg-danger">Inactive</span>';
+                        
+                        const lastLogin = user.last_login ? 
+                            new Date(user.last_login).toLocaleString() : 'Never';
+                        
+                        tableData.push([
+                            user.id,
+                            user.username,
+                            user.full_name,
+                            roleBadge,
+                            user.districts?.name || 'N/A',
+                            statusBadge,
+                            lastLogin,
+                            `<div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-user-btn" data-id="${user.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-user-btn" data-id="${user.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`
+                        ]);
+                    });
+                    
+                    usersTableInstance = $(tableElement).DataTable({
+                        data: tableData,
+                        columns: [
+                            { title: "ID" },
+                            { title: "Username" },
+                            { title: "Full Name" },
+                            { title: "Role" },
+                            { title: "District" },
+                            { title: "Status" },
+                            { title: "Last Login" },
+                            { title: "Actions" }
+                        ],
+                        responsive: true,
+                        language: {
+                            search: "Search:",
+                            paginate: { next: 'Next', previous: 'Previous' },
+                            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                            infoEmpty: "Showing 0 to 0 of 0 entries",
+                            infoFiltered: "(filtered from _MAX_ total entries)",
+                            lengthMenu: "Show _MENU_ entries"
+                        }
+                    });
+                    
+                    // Add event listeners for edit and delete buttons
+                    $(tableElement).off('click', '.edit-user-btn').on('click', '.edit-user-btn', function() {
+                        const userId = $(this).data('id');
+                        editUser(userId);
+                    });
+                    
+                    $(tableElement).off('click', '.delete-user-btn').on('click', '.delete-user-btn', function() {
+                        const userId = $(this).data('id');
+                        deleteUser(userId);
+                    });
+                    
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                }
+            }
+            
+            // Helper function to get role badge HTML
+            function getRoleBadge(role) {
+                switch(role) {
+                    case 'admin':
+                        return '<span class="role-badge role-admin">Admin</span>';
+                    case 'manager':
+                        return '<span class="role-badge role-manager">Manager</span>';
+                    case 'user':
+                        return '<span class="role-badge role-user">User</span>';
+                    default:
+                        return '<span class="role-badge">Unknown</span>';
+                }
+            }
+            
+            // Edit user function
+            function editUser(userId) {
+                alert(`Edit user with ID: ${userId} - Feature under development`);
+                // This would open a modal with user details for editing
+            }
+            
+            // Delete user function
+            function deleteUser(userId) {
+                if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                    supabaseClient
+                        .from('test_users')
+                        .update({ is_active: false })
+                        .eq('id', userId)
+                        .then(({ error }) => {
+                            if (error) {
+                                console.error('Error deactivating user:', error);
+                                alert('Failed to deactivate user. Please try again.');
+                            } else {
+                                alert('User deactivated successfully!');
+                                loadUsers(); // Reload the users table
+                                
+                                // Log activity
+                                supabaseClient.from('activity_logs').insert({
+                                    user_id: currentUser.id,
+                                    activity_type: 'User Management',
+                                    description: `User with ID ${userId} was deactivated`,
+                                    status: 'success'
+                                });
+                            }
+                        });
+                }
+            }
+            
+            // Load districts for the Manage Districts section
+            let districtsTableInstance = null;
+            async function loadDistricts() {
+                try {
+                    const tableElement = document.getElementById('districtsTable');
+                    if (!tableElement) {
+                        console.warn('Districts table element not found.');
+                        return;
+                    }
+                    
+                    if (districtsTableInstance) {
+                        districtsTableInstance.destroy();
+                        districtsTableInstance = null;
+                    }
+                    
+                    const { data: districts, error } = await supabaseClient
+                        .from('districts')
+                        .select('id, name')
+                        .order('name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    // Get village counts for each district
+                    const districtData = [];
+                    
+                    for (const district of districts || []) {
+                        // Get village count
+                        const { count: villageCount, error: villageError } = await supabaseClient
+                            .from('villages')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('district_id', district.id);
+                            
+                        if (villageError) throw villageError;
+                        
+                        // Get user count
+                        const { count: userCount, error: userError } = await supabaseClient
+                            .from('test_users')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('district_id', district.id);
+                            
+                        if (userError) throw userError;
+                        
+                        districtData.push([
+                            district.id,
+                            district.name,
+                            villageCount || 0,
+                            userCount || 0,
+                            '<span class="badge bg-success">Active</span>',
+                            `<div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-district-btn" data-id="${district.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-district-btn" data-id="${district.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`
+                        ]);
+                    }
+                    
+                    districtsTableInstance = $(tableElement).DataTable({
+                        data: districtData,
+                        columns: [
+                            { title: "ID" },
+                            { title: "Name" },
+                            { title: "Total Villages" },
+                            { title: "Total Users" },
+                            { title: "Status" },
+                            { title: "Actions" }
+                        ],
+                        responsive: true
+                    });
+                    
+                    // Add event listeners for edit and delete buttons
+                    $(tableElement).off('click', '.edit-district-btn').on('click', '.edit-district-btn', function() {
+                        const districtId = $(this).data('id');
+                        editDistrict(districtId);
+                    });
+                    
+                    $(tableElement).off('click', '.delete-district-btn').on('click', '.delete-district-btn', function() {
+                        const districtId = $(this).data('id');
+                        deleteDistrict(districtId);
+                    });
+                    
+                    // Initialize district chart
+                    initDistrictChart(districts);
+                    
+                } catch (error) {
+                    console.error('Error loading districts:', error);
+                }
+            }
+            
+            // Initialize district chart
+            function initDistrictChart(districts) {
+                const ctx = document.getElementById('districtChart').getContext('2d');
+                
+                // Extract district names and generate random data for demonstration
+                const labels = districts.map(district => district.name);
+                const data = districts.map(() => Math.floor(Math.random() * 100) + 10);
+                
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: [
+                                '#1B5E20', '#388E3C', '#4CAF50', '#8BC34A', '#CDDC39',
+                                '#0288D1', '#03A9F4', '#00BCD4', '#009688', '#4DB6AC'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Edit district function
+            function editDistrict(districtId) {
+                alert(`Edit district with ID: ${districtId} - Feature under development`);
+                // This would open a modal with district details for editing
+            }
+            
+            // Delete district function
+            function deleteDistrict(districtId) {
+                alert(`Delete district functionality is disabled for safety reasons.`);
+                // In a real system, this would require careful handling of dependencies
+            }
+            
+            // Load crops for the Manage Crops section
+            let cropsTableInstance = null;
+            async function loadCrops() {
+                try {
+                    const tableElement = document.getElementById('cropsTable');
+                    if (!tableElement) {
+                        console.warn('Crops table element not found.');
+                        return;
+                    }
+                    
+                    if (cropsTableInstance) {
+                        cropsTableInstance.destroy();
+                        cropsTableInstance = null;
+                    }
+                    
+                    const { data: crops, error } = await supabaseClient
+                        .from('crops')
+                        .select('id, name')
+                        .order('name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    // Sample seasons for demonstration
+                    const seasons = ['Kharif', 'Rabi', 'Zaid'];
+                    
+                    const cropData = [];
+                    (crops || []).forEach(crop => {
+                        // Randomly assign a season for demonstration
+                        const season = seasons[Math.floor(Math.random() * seasons.length)];
+                        
+                        cropData.push([
+                            crop.id,
+                            crop.name,
+                            season,
+                            '<span class="badge bg-success">Active</span>',
+                            `<div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-crop-btn" data-id="${crop.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-crop-btn" data-id="${crop.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`
+                        ]);
+                    });
+                    
+                    cropsTableInstance = $(tableElement).DataTable({
+                        data: cropData,
+                        columns: [
+                            { title: "ID" },
+                            { title: "Name" },
+                            { title: "Season" },
+                            { title: "Status" },
+                            { title: "Actions" }
+                        ],
+                        responsive: true
+                    });
+                    
+                    // Add event listeners for edit and delete buttons
+                    $(tableElement).off('click', '.edit-crop-btn').on('click', '.edit-crop-btn', function() {
+                        const cropId = $(this).data('id');
+                        editCrop(cropId);
+                    });
+                    
+                    $(tableElement).off('click', '.delete-crop-btn').on('click', '.delete-crop-btn', function() {
+                        const cropId = $(this).data('id');
+                        deleteCrop(cropId);
+                    });
+                    
+                    // Initialize crop categories chart
+                    initCropCategoriesChart();
+                    
+                } catch (error) {
+                    console.error('Error loading crops:', error);
+                }
+            }
+            
+            // Initialize crop categories chart
+            function initCropCategoriesChart() {
+                const ctx = document.getElementById('cropCategoriesChart').getContext('2d');
+                
+                // Sample data for demonstration
+                const data = {
+                    labels: ['Cereals', 'Pulses', 'Oilseeds', 'Vegetables', 'Fruits'],
+                    datasets: [{
+                        data: [30, 15, 20, 25, 10],
+                        backgroundColor: [
+                            '#1B5E20', '#388E3C', '#4CAF50', '#8BC34A', '#CDDC39'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+                
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Edit crop function
+            function editCrop(cropId) {
+                alert(`Edit crop with ID: ${cropId} - Feature under development`);
+                // This would open a modal with crop details for editing
+            }
+            
+            // Delete crop function
+            function deleteCrop(cropId) {
+                if (confirm('Are you sure you want to delete this crop? This action cannot be undone.')) {
+                    alert(`Delete functionality is currently disabled for safety reasons.`);
+                    // In a real system, you would need to handle dependencies carefully
+                }
+            }
+            
+            // Load activity logs
+            let activityLogsTableInstance = null;
+            async function loadActivityLogs() {
+                try {
+                    const tableElement = document.getElementById('activityLogsTable');
+                    if (!tableElement) {
+                        console.warn('Activity logs table element not found.');
+                        return;
+                    }
+                    
+                    if (activityLogsTableInstance) {
+                        activityLogsTableInstance.destroy();
+                        activityLogsTableInstance = null;
+                    }
+                    
+                    const { data: logs, error } = await supabaseClient
+                        .from('activity_logs')
+                        .select(`
+                            created_at, activity_type, description, status, 
+                            user_id, test_users(username, full_name)
+                        `)
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+                    
+                    if (error) throw error;
+                    
+                    const logsData = [];
+                    (logs || []).forEach(log => {
+                        const datetime = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
+                        const userName = log.test_users ? log.test_users.full_name : 'N/A';
+                        
+                        let statusBadge = '';
+                        if (log.status === 'success') {
+                            statusBadge = '<span class="badge bg-success">Success</span>';
+                        } else if (log.status === 'pending') {
+                            statusBadge = '<span class="badge bg-warning">Pending</span>';
+                        } else if (log.status === 'failed') {
+                            statusBadge = '<span class="badge bg-danger">Failed</span>';
+                        } else {
+                            statusBadge = '<span class="badge bg-secondary">Unknown</span>';
+                        }
+                        
+                        logsData.push([
+                            datetime,
+                            userName,
+                            log.activity_type,
+                            log.description,
+                            '192.168.1.1', // Placeholder IP address
+                            statusBadge
+                        ]);
+                    });
+                    
+                    activityLogsTableInstance = $(tableElement).DataTable({
+                        data: logsData,
+                        columns: [
+                            { title: "Date & Time" },
+                            { title: "User" },
+                            { title: "Activity Type" },
+                            { title: "Description" },
+                            { title: "IP Address" },
+                            { title: "Status" }
+                        ],
+                        order: [[0, 'desc']],
+                        responsive: true
+                    });
+                    
+                } catch (error) {
+                    console.error('Error loading activity logs:', error);
+                }
+            }
+            
+            // Set up event listeners
+            function setupEventListeners() {
+                // Menu item clicks
+                Object.entries(menuItems).forEach(([sectionId, menuItem]) => {
+                    if (menuItem) {
+                        menuItem.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            showSection(sectionId);
+                        });
+                    }
+                });
+                
+                // Profile link
+                document.getElementById('profileLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Typically would open a profile modal or navigate to profile page
+                    alert('Profile functionality is under development');
+                });
+                
+                // Change password link
+                document.getElementById('changePasswordLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Would typically open a change password modal
+                    alert('Change password functionality is under development');
+                });
+                
+                // Logout link
+                document.getElementById('logoutLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Clear user data from storage
+                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
+                    
+                    // Log activity
+                    supabaseClient.from('activity_logs').insert({
+                        user_id: currentUser ? currentUser.id : null,
+                        activity_type: 'Logout',
+                        description: 'User logged out',
+                        status: 'success'
+                    }).then(() => {
+                        window.location.href = 'login.html'; // Redirect after logging
+                    }).catch(error => {
+                        console.error('Error logging logout activity:', error);
+                        window.location.href = 'login.html'; // Redirect anyway
+                    });
+                });
+                
+                // Help link
+                document.getElementById('helpLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    alert('Admin help documentation is under development.');
+                });
+                
+                // Add new user button
+                document.getElementById('addNewUserBtn').addEventListener('click', () => {
+                    const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+                    addUserModal.show();
+                });
+                
+                // Save new user button
+                document.getElementById('saveNewUserBtn').addEventListener('click', async () => {
+                    // Get form values
+                    const username = document.getElementById('newUsername').value;
+                    const fullName = document.getElementById('newFullName').value;
+                    const password = document.getElementById('newPassword').value;
+                    const email = document.getElementById('newEmail').value;
+                    const mobile = document.getElementById('newMobile').value;
+                    const role = document.getElementById('newRole').value;
+                    const districtId = document.getElementById('newDistrict').value;
+                    const isActive = document.getElementById('newActive').checked;
+                    
+                    if (!username || !fullName || !password || !email || !role) {
+                        alert('Please fill in all required fields.');
+                        return;
+                    }
+                    
+                    try {
+                        // Hash the password (in a real app, this would be done server-side)
+                        const hashedPassword = await hashPassword(password);
+                        
+                        // Insert new user
+                        const { data, error } = await supabaseClient
+                            .from('test_users')
+                            .insert({
+                                username: username,
+                                full_name: fullName,
+                                password_hash: hashedPassword,
+                                email: email,
+                                mobile_number: mobile,
+                                role: role,
+                                district_id: districtId || null,
+                                is_active: isActive
+                            });
+                        
+                        if (error) throw error;
+                        
+                        alert('User added successfully!');
+                        
+                        // Log activity
+                        await supabaseClient.from('activity_logs').insert({
+                            user_id: currentUser.id,
+                            activity_type: 'User Management',
+                            description: `New user '${username}' was created`,
+                            status: 'success'
+                        });
+                        
+                        // Close modal and reload users
+                        const addUserModal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                        addUserModal.hide();
+                        document.getElementById('addUserForm').reset();
+                        loadUsers();
+                        
+                    } catch (error) {
+                        console.error('Error adding new user:', error);
+                        alert('Failed to add new user. Please try again.');
+                    }
+                });
+                
+                // Quick action buttons
+                document.getElementById('addUserBtn').addEventListener('click', () => {
+                    showSection('manageUsers');
+                    setTimeout(() => {
+                        document.getElementById('addNewUserBtn').click();
+                    }, 500);
+                });
+                
+                document.getElementById('addDistrictBtn').addEventListener('click', () => {
+                    showSection('manageDistricts');
+                    alert('Add district functionality is under development.');
+                });
+                
+                document.getElementById('addCropBtn').addEventListener('click', () => {
+                    showSection('manageCrops');
+                    alert('Add crop functionality is under development.');
+                });
+                
+                document.getElementById('generateReportBtn').addEventListener('click', () => {
+                    showSection('reportsAdmin');
+                });
+                
+                // Mobile sidebar toggle
+                const sidebarToggle = document.getElementById('sidebarToggle');
+                const sidebar = document.getElementById('sidebar');
+                if (sidebarToggle && sidebar) {
+                    sidebarToggle.addEventListener('click', () => {
+                        sidebar.classList.toggle('show');
+                    });
+                }
+            }
+            
+            // Hash password function
+            async function hashPassword(password) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+            
+            // Main initialization function
+            async function initApp() {
+                await loadUserData();
+                setupEventListeners();
+                showSection('adminDashboard');
+            }
+            
+            // Start the application
+            initApp();
+        });
+    </script>
 </body>
 </html>
+
+
