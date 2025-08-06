@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- SheetJS (xlsx) for Excel file generation -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             /* Forest Green & Cream Theme */
@@ -1049,8 +1051,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-    
-    <script>
+        <script>
         // Supabase configuration
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
@@ -1580,7 +1581,7 @@
         
         // Initialize survey data table
         function initSurveyDataTable() {
-            $('#surveyDataTable').DataTable({
+            \$('#surveyDataTable').DataTable({
                 paging: true,
                 searching: true,
                 ordering: true,
@@ -1837,6 +1838,114 @@
             }
         }
         
+        // Create survey template workbook
+        function createSurveyTemplate(districtName, blockName, cropName) {
+            // Create new workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Create instructions sheet
+            const instructionsData = [
+                ['सर्वेक्षण टेम्पलेट निर्देश'],
+                [''],
+                ['1. इस टेम्पलेट का उपयोग फसल सर्वेक्षण डेटा अपलोड करने के लिए किया जाता है।'],
+                ['2. सभी आवश्यक फ़ील्ड भरें।'],
+                ['3. डेटा शीट में सभी गांवों के लिए स्थिति भरें।'],
+                ['4. स्थिति फ़ील्ड में केवल निम्न मान स्वीकार्य हैं: pending, completed, verified'],
+                ['5. फाइल को .xlsx फ़ॉर्मेट में सहेजें।'],
+                ['6. भरे हुए टेम्पलेट को अपलोड सेक्शन से अपलोड करें।']
+            ];
+            const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
+            XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
+            
+            // Create data sheet with the exact fields required
+            const dataHeader = [
+                ['जिला', 'ब्लॉक', 'गांव', 'गांव कोड', 'फसल', 'स्थिति', 'टिप्पणी']
+            ];
+            
+            // Add sample data rows
+            const dataRows = [
+                [districtName, blockName, 'Village 1', 'V001', cropName, 'pending', ''],
+                [districtName, blockName, 'Village 2', 'V002', cropName, 'pending', ''],
+                [districtName, blockName, 'Village 3', 'V003', cropName, 'pending', ''],
+                [districtName, blockName, 'Village 4', 'V004', cropName, 'pending', ''],
+                [districtName, blockName, 'Village 5', 'V005', cropName, 'pending', '']
+            ];
+            
+            const wsData = [...dataHeader, ...dataRows];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Survey Data');
+            
+            // Create reference sheet
+            const refData = [
+                ['Reference Data'],
+                [''],
+                ['Status Values:'],
+                ['pending - अपूर्ण'],
+                ['completed - पूर्ण'],
+                ['verified - सत्यापित']
+            ];
+            const wsRef = XLSX.utils.aoa_to_sheet(refData);
+            XLSX.utils.book_append_sheet(wb, wsRef, 'Reference');
+            
+            return wb;
+        }
+
+        // Create report template workbook
+        function createReportTemplate() {
+            // Create new workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Create instructions sheet
+            const instructionsData = [
+                ['फसल सर्वेक्षण रिपोर्ट टेम्पलेट निर्देश'],
+                [''],
+                ['1. इस टेम्पलेट का उपयोग फसल सर्वेक्षण रिपोर्ट तैयार करने के लिए किया जाता है।'],
+                ['2. डेटा शीट में सभी आवश्यक जानकारी भरें।'],
+                ['3. फाइल को .xlsx फ़ॉर्मेट में सहेजें।']
+            ];
+            const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
+            XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
+            
+            // Create data sheet with the exact fields you need
+            const dataHeader = [
+                ['जिला', 'ब्लॉक', 'गांव', 'गांव कोड', 'फसल', 'स्थिति']
+            ];
+            
+            // Add sample data rows
+            const dataRows = [
+                ['District Name', 'Block Name', 'Village 1', 'V001', 'Crop Name', 'completed'],
+                ['District Name', 'Block Name', 'Village 2', 'V002', 'Crop Name', 'completed'],
+                ['District Name', 'Block Name', 'Village 3', 'V003', 'Crop Name', 'pending']
+            ];
+            
+            const wsData = [...dataHeader, ...dataRows];
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            XLSX.utils.book_append_sheet(wb, ws, 'Survey Data');
+            
+            return wb;
+        }
+
+        // String to ArrayBuffer for file download
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) {
+                view[i] = s.charCodeAt(i) & 0xFF;
+            }
+            return buf;
+        }
+
+        // FileSaver function for downloading files
+        function saveAs(blob, fileName) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            link.click();
+            setTimeout(() => {
+                URL.revokeObjectURL(link.href);
+            }, 100);
+        }
+        
         // Handle upload form submission
         function setupUploadForm() {
             const uploadForm = document.getElementById('uploadForm');
@@ -1923,7 +2032,7 @@
         function setupTemplateDownload() {
             const templateForm = document.getElementById('templateForm');
             if (templateForm) {
-                templateForm.addEventListener('submit', (e) => {
+                templateForm.addEventListener('submit', async (e) => {
                     e.preventDefault();
                     
                     const districtId = document.getElementById('templateDistrict').value;
@@ -1936,21 +2045,53 @@
                         return;
                     }
                     
-                    // Log activity
-                    supabaseClient
-                        .from('activity_logs')
-                        .insert({
-                            user_id: currentUser.id,
-                            activity_type: 'टेम्पलेट डाउनलोड',
-                            description: 'सर्वेक्षण टेम्पलेट डाउनलोड किया गया',
-                            status: 'success'
-                        })
-                        .then(() => {
-                            alert('टेम्पलेट डाउनलोड हो रहा है...');
-                        })
-                        .catch(error => {
-                            console.error('Error logging activity:', error);
-                        });
+                    try {
+                        // Get district and block names for the filename
+                        const { data: districtData } = await supabaseClient
+                            .from('districts')
+                            .select('name')
+                            .eq('id', districtId)
+                            .single();
+                            
+                        const { data: blockData } = await supabaseClient
+                            .from('blocks')
+                            .select('name')
+                            .eq('id', blockId)
+                            .single();
+                            
+                        const { data: cropData } = await supabaseClient
+                            .from('crops')
+                            .select('name')
+                            .eq('id', cropId)
+                            .single();
+                        
+                        const districtName = districtData?.name || 'district';
+                        const blockName = blockData?.name || 'block';
+                        const cropName = cropData?.name || 'crop';
+                        
+                        // Generate Excel file using SheetJS (xlsx)
+                        const fileName = `Survey_Template_${districtName}_${blockName}_${cropName}.xlsx`;
+                        
+                        // Create workbook with template structure
+                        const wb = createSurveyTemplate(districtName, blockName, cropName);
+                        
+                        // Convert to binary and download
+                        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                        saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                        
+                        // Log activity
+                        await supabaseClient
+                            .from('activity_logs')
+                            .insert({
+                                user_id: currentUser.id,
+                                activity_type: 'टेम्पलेट डाउनलोड',
+                                description: `${districtName} जिले के ${blockName} ब्लॉक के लिए ${cropName} फसल का सर्वेक्षण टेम्पलेट डाउनलोड किया गया`,
+                                status: 'success'
+                            });
+                    } catch (error) {
+                        console.error('Template download error:', error);
+                        alert('टेम्पलेट डाउनलोड करने में त्रुटि हुई।');
+                    }
                 });
             }
             
@@ -1958,21 +2099,119 @@
             const downloadSurveyTemplate = document.getElementById('downloadSurveyTemplate');
             if (downloadSurveyTemplate) {
                 downloadSurveyTemplate.addEventListener('click', () => {
-                    alert('सर्वेक्षण टेम्पलेट डाउनलोड हो रहा है...');
+                    // Create and download a generic survey template
+                    const wb = createSurveyTemplate('All Districts', 'All Blocks', 'All Crops');
+                    const fileName = 'Survey_Template_Generic.xlsx';
+                    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                    saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                    
+                    // Log activity
+                    supabaseClient
+                        .from('activity_logs')
+                        .insert({
+                            user_id: currentUser.id,
+                            activity_type: 'टेम्पलेट डाउनलोड',
+                            description: 'सामान्य सर्वेक्षण टेम्पलेट डाउनलोड किया गया',
+                            status: 'success'
+                        })
+                        .catch(error => {
+                            console.error('Error logging activity:', error);
+                        });
                 });
             }
             
             const downloadReportTemplate = document.getElementById('downloadReportTemplate');
             if (downloadReportTemplate) {
                 downloadReportTemplate.addEventListener('click', () => {
-                    alert('रिपोर्ट टेम्पलेट डाउनलोड हो रहा है...');
+                    // Create and download a report template
+                    const wb = createReportTemplate();
+                    const fileName = 'Report_Template.xlsx';
+                    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                    saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                    
+                    // Log activity
+                    supabaseClient
+                        .from('activity_logs')
+                        .insert({
+                            user_id: currentUser.id,
+                            activity_type: 'टेम्पलेट डाउनलोड',
+                            description: 'रिपोर्ट टेम्पलेट डाउनलोड किया गया',
+                            status: 'success'
+                        })
+                        .catch(error => {
+                            console.error('Error logging activity:', error);
+                        });
                 });
             }
             
             const downloadVillageList = document.getElementById('downloadVillageList');
             if (downloadVillageList) {
-                downloadVillageList.addEventListener('click', () => {
-                    alert('गांव सूची डाउनलोड हो रही है...');
+                downloadVillageList.addEventListener('click', async () => {
+                    try {
+                        // Get villages data if user has district access
+                        if (currentUser && currentUser.districtId) {
+                            const { data: villages, error } = await supabaseClient
+                                .from('villages')
+                                .select(`
+                                    name,
+                                    code,
+                                    blocks(name),
+                                    districts(name)
+                                `)
+                                .eq('district_id', currentUser.districtId);
+                                
+                            if (error) throw error;
+                            
+                            // Get district name for filename
+                            const { data: districtData } = await supabaseClient
+                                .from('districts')
+                                .select('name')
+                                .eq('id', currentUser.districtId)
+                                .single();
+                            
+                            const districtName = districtData?.name || 'district';
+                            
+                            // Create workbook with villages data
+                            const wb = XLSX.utils.book_new();
+                            
+                            // Convert villages data to worksheet format
+                            const wsData = [
+                                ['जिला', 'ब्लॉक', 'गांव', 'गांव कोड']
+                            ];
+                            
+                            villages.forEach(village => {
+                                wsData.push([
+                                    village.districts?.name || '',
+                                    village.blocks?.name || '',
+                                    village.name,
+                                    village.code
+                                ]);
+                            });
+                            
+                            const ws = XLSX.utils.aoa_to_sheet(wsData);
+                            XLSX.utils.book_append_sheet(wb, ws, 'Villages');
+                            
+                            // Download file
+                            const fileName = `Village_List_${districtName}.xlsx`;
+                            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                            saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                            
+                            // Log activity
+                            await supabaseClient
+                                .from('activity_logs')
+                                .insert({
+                                    user_id: currentUser.id,
+                                    activity_type: 'गांव सूची डाउनलोड',
+                                    description: `${districtName} जिले की गांव सूची डाउनलोड की गई`,
+                                    status: 'success'
+                                });
+                        } else {
+                            alert('गांव सूची डाउनलोड करने के लिए जिला आवश्यक है।');
+                        }
+                    } catch (error) {
+                        console.error('Village list download error:', error);
+                        alert('गांव सूची डाउनलोड करने में त्रुटि हुई।');
+                    }
                 });
             }
             
