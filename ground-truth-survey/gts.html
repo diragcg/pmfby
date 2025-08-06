@@ -14,6 +14,11 @@
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <!-- Chart.js (used for dashboard charts) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS (xlsx) for Excel file generation -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
             /* Forest Green & Cream Theme */
@@ -493,7 +498,7 @@
                 <i class="fas fa-user"></i> <span class="hindi">प्रोफ़ाइल</span>
             </a>
             <a href="#view-data" class="menu-item" id="viewDataLink">
-                <i class="fas fa-table"></i> <span class="hindi">डेटा देखें</span> <span style="color: #ff0718; font-weight: bold; font-size: 0.9em; margin-left: 5px;"></span>
+                <i class="fas fa-table"></i> <span class="hindi">डेटा देखें</span>
             </a>
             <a href="#update-progress" class="menu-item" id="updateProgressLink">
                 <i class="fas fa-edit"></i> <span class="hindi">प्रगति अपडेट करें</span> 
@@ -836,7 +841,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="targetGTSInput" class="form-label hindi">लक्ष्य GTS</label>
-                            <input type="number" class="form-control" id="targetGTSInput" min="0" required readonly> <!-- READONLY -->
+                            <input type="number" class="form-control" id="targetGTSInput" min="0" required readonly> <!-- READONLY attribute added here -->
                         </div>
                         <div class="mb-3">
                             <label for="achievedGTSInput" class="form-label hindi">पूर्ण GTS (संचयी)</label>
@@ -856,14 +861,63 @@
         <div id="reports-section" class="content-section" style="display: none;">
             <h4 class="page-title hindi">रिपोर्ट्स</h4>
             <div class="card mb-4">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="hindi">रिपोर्ट जनरेट करें</h5>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" id="exportReportExcelBtn">
+                            <i class="fas fa-file-excel me-1"></i> एक्सेल में निर्यात
+                        </button>
+                        <button class="btn btn-outline-primary" id="exportReportPdfBtn">
+                            <i class="fas fa-file-pdf me-1"></i> पीडीएफ में निर्यात
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">This section is under development. Please use the Admin Panel's Advanced Reports.</p>
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label for="reportType" class="form-label hindi">रिपोर्ट प्रकार</label>
+                            <select class="form-select" id="reportType">
+                                <option value="progress">प्रगति रिपोर्ट</option>
+                                <option value="survey">सर्वेक्षण डेटा रिपोर्ट</option>
+                                <!-- Add other report types if needed, e.g., 'user', 'crop' if they are relevant for regular users -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="reportCrop" class="form-label hindi">फसल (वैकल्पिक)</label>
+                            <select class="form-select" id="reportCrop">
+                                <option value="">-- सभी फसलें --</option>
+                                <!-- Crops will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="reportDateFrom" class="form-label hindi">दिनांक से</label>
+                            <input type="date" class="form-control" id="reportDateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="reportDateTo" class="form-label hindi">दिनांक तक</label>
+                            <input type="date" class="form-control" id="reportDateTo">
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button class="btn btn-primary" id="generateReportBtn">
+                            <i class="fas fa-chart-bar me-2"></i> रिपोर्ट जनरेट करें
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="hindi">रिपोर्ट के परिणाम</h5>
+                </div>
+                <div class="card-body">
+                    <div id="reportResults">
+                        <p class="text-center text-muted">रिपोर्ट प्रकार चुनें और परिणाम देखने के लिए "रिपोर्ट जनरेट करें" पर क्लिक करें।</p>
+                    </div>
                 </div>
             </div>
         </div>
+
 
         <!-- Settings Section -->
         <div id="settings-section" class="content-section" style="display: none;">
@@ -873,7 +927,7 @@
                     <h5 class="hindi">सामान्य सेटिंग्स</h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">This section is under development.</p>
+                    <p class="text-muted">यह अनुभाग विकास अधीन है।</p>
                 </div>
             </div>
         </div>
@@ -1027,7 +1081,7 @@
                         loadProgressUpdateForm();
                         break;
                     case 'reports':
-                        // No specific data loading for reports in GTS.html, it's a placeholder
+                        setupReportForm(); // Setup filters and default dates for reports
                         break;
                     case 'settings':
                         // No specific data loading for settings in GTS.html, it's a placeholder
@@ -1095,6 +1149,7 @@
                     // Load data for sections that need it initially
                     await loadDashboardData();
                     await loadDistrictsForDropdown('filterDistrict'); // For dropdowns in view-data
+                    await loadBlocks(document.getElementById('filterDistrict').value, 'filterBlock'); // Load blocks based on initial district
                     await loadCropsForDropdowns(); // For dropdowns (e.g., progress, filter)
                 } catch (error) {
                     console.error('Failed to load user data or initialize app:', error);
@@ -1468,7 +1523,7 @@
                     // Attempt to restore previous selection
                     if (currentValue && dropdown.querySelector(`option[value="${currentValue}"]`)) {
                         dropdown.value = currentValue;
-                    } else if (dropdown.options.length > (isPlaceholder ? 1 : 0) && dropdown.options[0].value !== "") {
+                    } else if (dropdown.options.length > (isPlaceholder ? 1 : 0) && dropdown.options[isPlaceholder ? 1 : 0].value !== "") {
                         // If no previous value or not found, select the first actual option
                         dropdown.value = dropdown.options[isPlaceholder ? 1 : 0].value;
                     }
@@ -1532,8 +1587,8 @@
                     console.log('Fetched crops for dropdowns:', data);
 
                     // List all relevant crop dropdown IDs
-                    const cropDropdownIds = ['filterCrop', 'progressCropSelect']; 
-                    // Note: 'uploadCrop' and 'templateCrop' are removed as per new requirements
+                    const cropDropdownIds = ['filterCrop', 'progressCropSelect', 'reportCrop']; 
+                    // 'uploadCrop' and 'templateCrop' are removed as per new requirements
 
                     cropDropdownIds.forEach(id => {
                         const dropdown = document.getElementById(id);
@@ -1580,7 +1635,6 @@
                     return;
                 }
 
-                // Destroy existing DataTable instance if any
                 if (surveyDataTableInstance) {
                     surveyDataTableInstance.destroy();
                     surveyDataTableInstance = null;
@@ -1593,8 +1647,14 @@
                 }
 
                 try {
-                    // Fetch survey data with joins
-                    const { data: surveyRecords, error } = await supabaseClient
+                    // Get filter values
+                    const filterDistrictId = document.getElementById('filterDistrict').value;
+                    const filterBlockId = document.getElementById('filterBlock').value;
+                    const filterCropId = document.getElementById('filterCrop').value;
+                    const filterStatus = document.getElementById('filterStatus').value;
+
+                    // Build query
+                    let query = supabaseClient
                         .from('survey_data')
                         .select(`
                             id,
@@ -1605,8 +1665,17 @@
                             status,
                             updated_at
                         `)
-                        .eq('district_id', currentUser.districtId)
                         .order('updated_at', { ascending: false });
+                    
+                    // Always filter by current user's district
+                    query = query.eq('district_id', currentUser.districtId);
+
+                    // Apply optional filters
+                    if (filterBlockId) { query = query.eq('block_id', filterBlockId); }
+                    if (filterCropId) { query = query.eq('crop_id', filterCropId); }
+                    if (filterStatus) { query = query.eq('status', filterStatus); }
+
+                    const { data: surveyRecords, error } = await query;
                         
                     if (error) throw error;
                     console.log('Fetched survey records:', surveyRecords);
@@ -1705,7 +1774,6 @@
                 document.getElementById('currentDistrictName').value = currentUser.districtName || 'N/A';
                 document.getElementById('progressUpdateAlert').style.display = 'none';
                 document.getElementById('progressCropSelect').disabled = false;
-                document.getElementById('targetGTSInput').disabled = false; // This is now readonly, but needs to be enabled for value setting
                 document.getElementById('achievedGTSInput').disabled = false;
                 document.getElementById('saveProgressBtn').disabled = true; // Disabled until crop selected
 
@@ -1728,6 +1796,7 @@
 
                 if (!districtId || !cropId) {
                     targetInput.value = '';
+                    targetInput.readOnly = true; // Keep readonly by default when no crop selected
                     achievedInput.value = '';
                     saveBtn.disabled = true;
                     return;
@@ -1741,12 +1810,19 @@
                         .eq('crop_id', cropId)
                         .single();
 
-                    if (error && error.code !== 'PGRST116') { // PGRST116 means "no rows found", which is expected for new entries
+                    if (error && error.code === 'PGRST116') { // No rows found - means target not set yet
+                        targetInput.value = 0; // Default to 0 for new target
+                        targetInput.readOnly = false; // Make editable
+                        achievedInput.value = 0;
+                        console.log('No existing target found. Making target editable.');
+                    } else if (error) { // Other error
                         throw error;
+                    } else { // Record found
+                        targetInput.value = data.target_gts;
+                        targetInput.readOnly = true; // Keep as readonly
+                        achievedInput.value = data.achieved_gts;
+                        console.log('Existing target found. Keeping target as readonly.');
                     }
-
-                    targetInput.value = data ? data.target_gts : 0; // Set value for read-only field
-                    achievedInput.value = data ? data.achieved_gts : 0;
                     saveBtn.disabled = false; // Enable save button once data is loaded/defaulted
 
                     console.log(`Loaded progress for crop ${cropId}: Target=${targetInput.value}, Achieved=${achievedInput.value}`);
@@ -1755,6 +1831,7 @@
                     console.error('Error loading progress for selected crop:', error);
                     showAlert('progressUpdateAlert', 'फसल प्रगति लोड करने में त्रुटि हुई।', 'danger');
                     targetInput.value = 0;
+                    targetInput.readOnly = true; // Ensure it's read-only on error
                     achievedInput.value = 0;
                     saveBtn.disabled = true;
                 }
@@ -1767,7 +1844,7 @@
 
                 const districtId = currentUser.districtId;
                 const cropId = document.getElementById('progressCropSelect').value;
-                const targetGTS = parseInt(document.getElementById('targetGTSInput').value, 10); // Read the now read-only target
+                const targetGTS = parseInt(document.getElementById('targetGTSInput').value, 10);
                 const achievedGTS = parseInt(document.getElementById('achievedGTSInput').value, 10);
                 const saveBtn = document.getElementById('saveProgressBtn');
 
@@ -1786,7 +1863,7 @@
                     // Check if record exists to decide between insert or update
                     const { data: existingRecord, error: fetchError } = await supabaseClient
                         .from('district_crop_progress')
-                        .select('id')
+                        .select('id, target_gts') // Also fetch current target to use in update
                         .eq('district_id', districtId)
                         .eq('crop_id', cropId)
                         .single();
@@ -1797,17 +1874,26 @@
 
                     let updateError;
                     if (existingRecord) {
-                        // Update existing record, only achieved_gts and updated_at should change by user action
+                        // If record exists, update only achieved_gts. Keep existing target_gts.
                         const { error } = await supabaseClient
                             .from('district_crop_progress')
-                            .update({ achieved_gts: achievedGTS, updated_at: new Date().toISOString() }) // Only update achieved_gts
+                            .update({ 
+                                achieved_gts: achievedGTS, 
+                                updated_at: new Date().toISOString() 
+                            })
                             .eq('id', existingRecord.id);
                         updateError = error;
                     } else {
-                        // Insert new record
+                        // If no record exists, insert new with both target and achieved
                         const { error } = await supabaseClient
                             .from('district_crop_progress')
-                            .insert({ district_id: districtId, crop_id: cropId, target_gts: targetGTS, achieved_gts: achievedGTS });
+                            .insert({ 
+                                district_id: districtId, 
+                                crop_id: cropId, 
+                                target_gts: targetGTS, // Use the target entered by user for new record
+                                achieved_gts: achievedGTS,
+                                updated_at: new Date().toISOString() // Set updated_at for new records too
+                            });
                         updateError = error;
                     }
 
@@ -1830,7 +1916,7 @@
 
                 } catch (error) {
                     console.error('Error saving progress:', error);
-                    showAlert('progressUpdateAlert', 'प्रगति सहेजने में त्रुटि हुई। कृपया पुनः प्रयास करें।', 'danger');
+                    showAlert('progressUpdateAlert', `प्रगति सहेजने में त्रुटि हुई: ${error.message || 'अज्ञात त्रुटि'}। कृपया पुनः प्रयास करें।`, 'danger');
                 } finally {
                     saveBtn.disabled = false;
                 }
@@ -1996,15 +2082,20 @@
                     alert('सहायता के लिए कृपया संपर्क करें: diagri-cg@cg.gov.in या 9399207068 पर कॉल करें।');
                 });
                 
-                // District dropdown change events (for loading blocks in filter/upload/template sections)
-                // Removed 'uploadDistrict' and 'templateDistrict' as per new requirements
+                // District dropdown change events (for loading blocks in filter section)
                 document.getElementById('filterDistrict').addEventListener('change', function() {
                     loadBlocks(this.value, 'filterBlock');
+                    loadSurveyData(); // Reload survey data when district filter changes
                 });
+
+                // Other filter change events for Survey Data Table
+                document.getElementById('filterBlock').addEventListener('change', loadSurveyData);
+                document.getElementById('filterCrop').addEventListener('change', loadSurveyData);
+                document.getElementById('filterStatus').addEventListener('change', loadSurveyData);
                 
                 // Action buttons on sections
                 document.getElementById('editProfileBtn').addEventListener('click', () => alert('प्रोफ़ाइल संपादन सुविधा अभी उपलब्ध नहीं है।'));
-                document.getElementById('exportDataBtn').addEventListener('click', () => alert('डेटा एक्सेल में निर्यात किया जा रहा है...'));
+                document.getElementById('exportDataBtn').addEventListener('click', () => alert('डेटा एक्सेल में निर्यात किया जा रहा है... (Feature under development)')); // Placeholder
                 document.getElementById('refreshDataBtn').addEventListener('click', () => loadSurveyData()); // Reload survey data table
                 document.getElementById('refreshActivitiesBtn').addEventListener('click', () => loadActivities()); // Reload recent activities table
                 document.getElementById('refreshCropProgressBtn').addEventListener('click', () => loadCropProgressTable(currentUser.districtId)); // Reload crop progress table
@@ -2012,6 +2103,18 @@
                 // Event listener for progress update form submission
                 document.getElementById('progressUpdateForm').addEventListener('submit', submitProgressUpdateForm);
                 
+                // Report generation and export buttons
+                document.getElementById('generateReportBtn').addEventListener('click', generateReport);
+                document.getElementById('exportReportExcelBtn').addEventListener('click', exportReportToExcel);
+                document.getElementById('exportReportPdfBtn').addEventListener('click', exportReportToPdf);
+
+                // Report filter change events
+                document.getElementById('reportType').addEventListener('change', generateReport);
+                document.getElementById('reportCrop').addEventListener('change', generateReport);
+                document.getElementById('reportDateFrom').addEventListener('change', generateReport);
+                document.getElementById('reportDateTo').addEventListener('change', generateReport);
+
+
                 // Mobile sidebar toggle
                 const sidebarToggle = document.getElementById('sidebarToggle');
                 const sidebar = document.getElementById('sidebar');
@@ -2022,18 +2125,263 @@
                 }
             }
 
-            // Main application initialization
-            async function initApp() {
-                console.log('Application initialization started.');
-                await loadUserData(); // This also triggers loadDashboardData, loadDistrictsForDropdown, loadCropsForDropdowns
-                handlePasswordChange(); // Set up password change event listeners
-                setupEventListeners(); // Set up general event listeners
-                showSection('dashboard'); // Show dashboard by default
-                console.log('Application initialization completed. (gts.html)');
+            // Generate Report (displays HTML table)
+            async function generateReport() {
+                const reportType = document.getElementById('reportType').value;
+                const reportCropId = document.getElementById('reportCrop').value;
+                const dateFrom = document.getElementById('reportDateFrom').value;
+                const dateTo = document.getElementById('reportDateTo').value;
+                
+                const reportResults = document.getElementById('reportResults');
+                reportResults.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> रिपोर्ट डेटा लोड हो रहा है...</p>';
+                
+                try {
+                    let data, error, tableHtml;
+                    
+                    switch (reportType) {
+                        case 'progress':
+                            const progressQuery = supabaseClient
+                                .from('district_crop_progress')
+                                .select(`id, target_gts, achieved_gts, updated_at, districts(name), crops(name, code)`)
+                                .eq('district_id', currentUser.districtId) // Filter by current user's district
+                                .order('updated_at', { ascending: false });
+                            
+                            if (reportCropId) { progressQuery.eq('crop_id', reportCropId); }
+                            if (dateFrom && dateTo) {
+                                progressQuery.gte('updated_at', dateFrom + 'T00:00:00Z').lte('updated_at', dateTo + 'T23:59:59Z');
+                            }
+
+                            ({ data, error } = await progressQuery);
+                            if (error) throw error;
+
+                            tableHtml = `
+                                <table class="table table-striped table-bordered">
+                                    <thead><tr><th>जिला</th><th>फसल</th><th>कोड</th><th>लक्ष्य GTS</th><th>पूर्ण GTS</th><th>प्रगति %</th><th>अंतिम अपडेट</th></tr></thead>
+                                    <tbody>
+                            `;
+                            if (data && data.length > 0) {
+                                data.forEach(item => {
+                                    const progressPercent = item.target_gts > 0 
+                                        ? Math.round((item.achieved_gts / item.target_gts) * 100) 
+                                        : 0;
+                                    
+                                    tableHtml += `<tr>
+                                        <td>${item.districts?.name || 'N/A'}</td><td>${item.crops?.name || 'N/A'}</td>
+                                        <td>${item.crops?.code || 'N/A'}</td><td>${item.target_gts}</td>
+                                        <td>${item.achieved_gts}</td><td>${progressPercent}%</td>
+                                        <td>${item.updated_at ? new Date(item.updated_at).toLocaleString('hi-IN') : 'N/A'}</td>
+                                    </tr>`;
+                                });
+                            } else { tableHtml += `<tr><td colspan="7" class="text-center">कोई प्रगति डेटा नहीं मिला</td></tr>`; }
+                            tableHtml += `</tbody></table>`;
+                            break;
+
+                        case 'survey':
+                            const surveyQuery = supabaseClient
+                                .from('survey_data')
+                                .select(`id, districts(name), blocks(name), villages(name, code), crops(name), status, updated_at`)
+                                .eq('district_id', currentUser.districtId) // Filter by current user's district
+                                .order('updated_at', { ascending: false });
+                            
+                            if (reportCropId) { surveyQuery.eq('crop_id', reportCropId); }
+                            if (dateFrom && dateTo) {
+                                surveyQuery.gte('updated_at', dateFrom + 'T00:00:00Z').lte('updated_at', dateTo + 'T23:59:59Z');
+                            }
+                            
+                            ({ data, error } = await surveyQuery);
+                            if (error) throw error;
+
+                            tableHtml = `
+                                <table class="table table-striped table-bordered">
+                                    <thead><tr><th>जिला</th><th>ब्लॉक</th><th>गांव</th><th>फसल</th><th>स्थिति</th><th>अंतिम अपडेट</th></tr></thead>
+                                    <tbody>
+                            `;
+                            if (data && data.length > 0) {
+                                data.forEach(item => {
+                                    tableHtml += `<tr>
+                                        <td>${item.districts?.name || 'N/A'}</td><td>${item.blocks?.name || 'N/A'}</td>
+                                        <td>${item.villages?.name || 'N/A'}</td><td>${item.crops?.name || 'N/A'}</td>
+                                        <td>${item.status}</td><td>${item.updated_at ? new Date(item.updated_at).toLocaleString('hi-IN') : 'N/A'}</td>
+                                    </tr>`;
+                                });
+                            } else { tableHtml += `<tr><td colspan="6" class="text-center">कोई सर्वेक्षण डेटा नहीं मिला</td></tr>`; }
+                            tableHtml += `</tbody></table>`;
+                            break;
+                            
+                        default:
+                            tableHtml = `<p class="text-center text-muted">कृपया एक वैध रिपोर्ट प्रकार चुनें।</p>`;
+                    }
+                    
+                    // Construct full report HTML with header
+                    const reportHeaderHtml = `
+                        <div class="mb-4 text-center">
+                            <h5 class="mb-2">${getReportTitle(reportType)}</h5>
+                            <p class="mb-1">जनरेट किया गया: ${new Date().toLocaleString('hi-IN')}</p>
+                            <p class="mb-1">जनरेट करने वाला: ${currentUser.fullName || currentUser.username}</p>
+                            <p class="mb-1">जिला: ${currentUser.districtName || 'N/A'}</p>
+                            ${reportCropId ? `<p class="mb-1">फसल: ${document.getElementById('reportCrop').options[document.getElementById('reportCrop').selectedIndex].text}</p>` : ''}
+                            ${dateFrom && dateTo ? `<p class="mb-1">दिनांक सीमा: ${new Date(dateFrom).toLocaleDateString('hi-IN')} से ${new Date(dateTo).toLocaleDateString('hi-IN')}</p>` : ''}
+                        </div>
+                    `;
+                    
+                    reportResults.innerHTML = reportHeaderHtml + tableHtml;
+                    
+                    // Log activity (assuming you have a logActivity function)
+                    // await logActivity('Report Generation (User)', `Generated ${reportType} report for district ${currentUser.districtName}`, 'success');
+                    
+                } catch (error) {
+                    console.error('Error generating report:', error);
+                    reportResults.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            रिपोर्ट जनरेट करने में त्रुटि: ${error.message || 'अज्ञात त्रुटि'}। कृपया पुनः प्रयास करें।
+                        </div>
+                    `;
+                    // await logActivity('Report Generation (User)', `Failed to generate ${reportType} report for district ${currentUser.districtName}`, 'failed');
+                }
             }
             
-            // Start the application
-            initApp();
+            // Export report to Excel
+            function exportReportToExcel() {
+                const reportResultsDiv = document.getElementById('reportResults');
+                const table = reportResultsDiv.querySelector('table');
+                const reportType = document.getElementById('reportType').value;
+                
+                if (!table) {
+                    alert('कृपया निर्यात करने के लिए पहले एक रिपोर्ट जनरेट करें।');
+                    return;
+                }
+                
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.table_to_sheet(table);
+                
+                // Add custom header information to the worksheet
+                const title = getReportTitle(reportType);
+                const generatedDate = `जनरेट किया गया: ${new Date().toLocaleString('hi-IN')}`;
+                const generatedBy = `जनरेट करने वाला: ${currentUser.fullName || currentUser.username}`;
+                const districtInfo = `जिला: ${currentUser.districtName || 'N/A'}`;
+                const reportCropId = document.getElementById('reportCrop').value;
+                const cropInfo = reportCropId ? `फसल: ${document.getElementById('reportCrop').options[document.getElementById('reportCrop').selectedIndex].text}` : '';
+                const dateFrom = document.getElementById('reportDateFrom').value;
+                const dateTo = document.getElementById('reportDateTo').value;
+                const dateRangeInfo = (dateFrom && dateTo) ? `दिनांक सीमा: ${new Date(dateFrom).toLocaleDateString('hi-IN')} से ${new Date(dateTo).toLocaleDateString('hi-IN')}` : '';
+
+                // Create header data as an array of arrays
+                const headerData = [[title], [generatedDate], [generatedBy], [districtInfo]];
+                if (cropInfo) headerData.push([cropInfo]);
+                if (dateRangeInfo) headerData.push([dateRangeInfo]);
+
+                // Insert header rows into the worksheet at the beginning
+                XLSX.utils.sheet_add_aoa(ws, headerData, { origin: 'A1' });
+
+                // Merge cells for title
+                if (!ws['!merges']) ws['!merges'] = [];
+                const tableHeaders = table.querySelectorAll('thead th').length;
+                if (tableHeaders > 0) {
+                    ws['!merges'].push({ s: { r: 0, c: 0 }, e: { r: 0, c: tableHeaders - 1 } }); 
+                }
+
+                // Auto-width columns
+                const max_width = Array.from(table.querySelectorAll('thead th')).map((th, i) =>
+                    Array.from(table.querySelectorAll('tr')).reduce((w, tr) => Math.max(w, (tr.children[i] && tr.children[i].textContent.length || 0)), 10)
+                );
+                ws['!cols'] = max_width.map(w => ({ wch: w + 2 })); 
+                
+                XLSX.utils.book_append_sheet(wb, ws, title);
+                
+                const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // logActivity('Report Export (User)', `Exported ${reportType} report for district ${currentUser.districtName} to Excel`, 'success');
+            }
+            
+            // Export report to PDF
+            function exportReportToPdf() {
+                const reportResultsDiv = document.getElementById('reportResults');
+                const table = reportResultsDiv.querySelector('table');
+                const reportType = document.getElementById('reportType').value;
+
+                if (!table) {
+                    alert('कृपया निर्यात करने के लिए पहले एक रिपोर्ट जनरेट करें।');
+                    return;
+                }
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape', 'pt', 'a4'); // Landscape A4 size
+
+                const title = getReportTitle(reportType);
+                const generatedDate = `जनरेट किया गया: ${new Date().toLocaleString('hi-IN')}`;
+                const generatedBy = `जनरेट करने वाला: ${currentUser.fullName || currentUser.username}`;
+                const districtInfo = `जिला: ${currentUser.districtName || 'N/A'}`;
+                const reportCropId = document.getElementById('reportCrop').value;
+                const cropInfo = reportCropId ? `फसल: ${document.getElementById('reportCrop').options[document.getElementById('reportCrop').selectedIndex].text}` : '';
+                const dateFrom = document.getElementById('reportDateFrom').value;
+                const dateTo = document.getElementById('reportDateTo').value;
+                const dateRangeInfo = (dateFrom && dateTo) ? `दिनांक सीमा: ${new Date(dateFrom).toLocaleDateString('hi-IN')} से ${new Date(dateTo).toLocaleDateString('hi-IN')}` : '';
+
+                // Header content
+                let yOffset = 40;
+                doc.setFontSize(16);
+                doc.text(title, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                yOffset += 20;
+                doc.setFontSize(10);
+                doc.text(generatedDate, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                yOffset += 12;
+                doc.text(generatedBy, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                yOffset += 12;
+                doc.text(districtInfo, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                yOffset += 12;
+                if (cropInfo) {
+                    doc.text(cropInfo, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                    yOffset += 12;
+                }
+                if (dateRangeInfo) {
+                    doc.text(dateRangeInfo, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                    yOffset += 12;
+                }
+                yOffset += 10; // Space before table
+
+                doc.autoTable({
+                    html: table,
+                    startY: yOffset,
+                    theme: 'striped',
+                    headStyles: {
+                        fillColor: [27, 94, 32], // Primary color for header
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold',
+                        halign: 'center' // Center align header text
+                    },
+                    styles: {
+                        fontSize: 9,
+                        cellPadding: 6,
+                        halign: 'center' // Center align all cell text
+                    },
+                    alternateRowStyles: {
+                        fillColor: [241, 248, 233] // Light green-cream for alternate rows
+                    },
+                    margin: { top: 30, right: 30, bottom: 30, left: 30 }, // Proper margins
+                    didDrawPage: function (data) {
+                        // Footer
+                        doc.setFontSize(8);
+                        doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.getWidth() - 30, doc.internal.pageSize.getHeight() - 20, { align: 'right' });
+                        doc.text('Generated by Ground Truthing System', 30, doc.internal.pageSize.getHeight() - 20, { align: 'left' });
+                    }
+                });
+
+                const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+
+                // logActivity('Report Export (User)', `Exported ${reportType} report for district ${currentUser.districtName} to PDF`, 'success');
+            }
+            
+            // Helper function for report titles
+            function getReportTitle(reportType) {
+                switch (reportType) {
+                    case 'progress': return 'फसल प्रगति रिपोर्ट';
+                    case 'survey': return 'सर्वेक्षण डेटा रिपोर्ट';
+                    default: return 'रिपोर्ट';
+                }
+            }
         });
     </script>
 </body>
