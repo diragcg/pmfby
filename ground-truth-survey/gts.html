@@ -4,29 +4,1055 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>संचालनालय कृषि छत्तीसगढ़ - ग्राउंड ट्रुथिंग सिस्टम</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Mukta Devanagari Font -->
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- SheetJS (xlsx) for Excel file generation -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Your existing CSS styles would be here -->
+    <style>
+        :root {
+            /* Forest Green & Cream Theme */
+            --primary-color: #1B5E20;     /* Dark Forest Green */
+            --secondary-color: #388E3C;   /* Medium Green */
+            --accent-color: #8BC34A;      /* Light Green */
+            --text-dark: #263238;
+            --text-medium: #455A64;
+            --text-light: #FFF8E1;        /* Cream */
+            --background-light: #FFF8E1;  /* Cream */
+            --background-medium: #F1F8E9; /* Light Green-Cream */
+            --border-color: #C8E6C9;      /* Light Green Border */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 8px 24px rgba(27, 94, 32, 0.2);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Mukta', sans-serif;
+            background-color: var(--background-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Hindi text styling */
+        .hindi {
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            line-height: 1.5;
+        }
+        
+        /* Header and Navbar Styles */
+        .header {
+            background-color: var(--primary-color);
+            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 100;
+        }
+        
+        .navbar {
+            padding: 12px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand img {
+            height: 45px;
+            margin-right: 15px;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+        }
+        
+        .nav-link {
+            font-family: 'Mukta', sans-serif;
+            color: rgba(255, 248, 225, 0.9) !important;
+            font-weight: 600;
+            padding: 12px 20px !important;
+            margin: 0 5px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 248, 225, 0.1);
+        }
+        
+        .nav-link.active {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 248, 225, 0.2);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background-color: #FFFFFF;
+            height: calc(100vh - 76px);
+            width: 280px;
+            position: fixed;
+            top: 76px;
+            left: 0;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background-color: var(--background-medium);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .sidebar-header h5 {
+            margin-bottom: 5px;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+        
+        .sidebar-header p {
+            margin-bottom: 0;
+            color: var(--text-medium);
+            font-size: 0.9rem;
+        }
+        
+        .sidebar-menu {
+            padding: 15px 0;
+        }
+        
+        .menu-item {
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            color: var(--text-medium);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+        }
+        
+        .menu-item:hover {
+            background-color: var(--background-medium);
+            color: var(--primary-color);
+            border-left-color: var(--accent-color);
+        }
+        
+        .menu-item.active {
+            background-color: var(--background-medium);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .menu-item i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: calc(100vh - 76px);
+            transition: all 0.3s ease;
+        }
+        
+        .page-title {
+            margin-bottom: 25px;
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+        
+        /* Card Styles */
+        .card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+            overflow: hidden;
+            background-color: #FFFFFF;
+        }
+        
+        .card-header {
+            background-color: var(--background-medium);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+        }
+        
+        .card-header h5 {
+            margin-bottom: 0;
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Form Styles */
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.15);
+        }
+        
+        /* Button Styles */
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            border-color: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        /* Table Styles */
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            background-color: var(--background-medium);
+            color: var(--primary-color);
+            font-weight: 600;
+            border-bottom-width: 1px;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        /* Profile Card */
+        .profile-card {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: var(--background-medium);
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--primary-color);
+            box-shadow: var(--shadow);
+        }
+        
+        .profile-info h4 {
+            color: var(--text-dark);
+            margin-bottom: 10px;
+        }
+        
+        .profile-info p {
+            color: var(--text-medium);
+            margin-bottom: 5px;
+        }
+        
+        .profile-actions {
+            margin-top: 20px;
+        }
+        
+        /* Tab Navigation */
+        .nav-tabs {
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+        
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-medium);
+            font-weight: 600;
+            padding: 12px 20px;
+            border-radius: 0;
+            margin-bottom: -1px;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            border-color: transparent;
+            color: var(--primary-color);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background-color: transparent;
+            border-bottom: 3px solid var(--primary-color);
+        }
+        
+        /* Alert Styles */
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 240px;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+        }
+        
+        /* Toggle sidebar button */
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: var(--text-light);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            border: none;
+            cursor: pointer;
+        }
+        
+        /* DataTables customization */
+        .dataTables_wrapper .dataTables_length, 
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 15px;
+        }
+        
+        .dataTables_wrapper .dataTables_info, 
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 15px;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: var(--background-medium);
+            border-color: var(--border-color);
+            color: var(--primary-color) !important;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--background-medium);
+            border-color: var(--border-color);
+            color: var(--primary-color) !important;
+        }
+        
+        /* Upload zone */
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            background-color: var(--background-light);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-zone:hover {
+            border-color: var(--secondary-color);
+            background-color: var(--background-medium);
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            color: var(--secondary-color);
+            margin-bottom: 15px;
+        }
+        
+        /* Progress bar */
+        .progress {
+            height: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+            background-color: var(--background-medium);
+        }
+        
+        .progress-bar {
+            background-color: var(--secondary-color);
+        }
+    </style>
 </head>
 <body>
-    <!-- Your existing HTML would be here -->
+    <!-- Header with Interactive Navbar -->
+    <header class="header">
+        <div class="container-fluid">
+            <nav class="navbar navbar-expand-lg navbar-dark">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत सरकार">
+                        <span class="hindi">संचालनालय कृषि छत्तीसगढ़</span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="false">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <a class="nav-link active hindi" href="gts.html">
+                                    <i class="fas fa-home me-1"></i> मुख्य पृष्ठ
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link hindi" href="#" id="helpLink">
+                                    <i class="fas fa-question-circle me-1"></i> सहायता
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle hindi" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-circle me-1"></i> <span id="userNameDisplay">उपयोगकर्ता</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item hindi" href="#" id="profileLink"><i class="fas fa-id-card me-2"></i> प्रोफ़ाइल</a></li>
+                                    <li><a class="dropdown-item hindi" href="#" id="changePasswordLink"><i class="fas fa-key me-2"></i> पासवर्ड बदलें</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item hindi" href="#" id="logoutLink"><i class="fas fa-sign-out-alt me-2"></i> लॉगआउट</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
 
-    <!-- Scripts at the end of the body -->
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h5 class="hindi">ग्राउंड ट्रुथिंग सिस्टम</h5>
+            <p class="hindi" id="districtDisplay">जिला: </p>
+        </div>
+        <div class="sidebar-menu">
+            <a href="#dashboard" class="menu-item active" id="dashboardLink">
+                <i class="fas fa-tachometer-alt"></i> <span class="hindi">डैशबोर्ड</span>
+            </a>
+            <a href="#profile" class="menu-item" id="profileMenuLink">
+                <i class="fas fa-user"></i> <span class="hindi">प्रोफ़ाइल</span>
+            </a>
+            <a href="#view-data" class="menu-item" id="viewDataLink">
+                <i class="fas fa-table"></i> <span class="hindi">डेटा देखें</span>
+            </a>
+            <a href="#upload-data" class="menu-item" id="uploadDataLink">
+                <i class="fas fa-upload"></i> <span class="hindi">डेटा अपलोड करें</span>
+            </a>
+            <a href="#download-template" class="menu-item" id="downloadTemplateLink">
+                <i class="fas fa-download"></i> <span class="hindi">टेम्पलेट डाउनलोड</span>
+            </a>
+            <a href="#reports" class="menu-item" id="reportsLink">
+                <i class="fas fa-chart-bar"></i> <span class="hindi">रिपोर्ट्स</span>
+            </a>
+            <a href="#settings" class="menu-item" id="settingsLink">
+                <i class="fas fa-cog"></i> <span class="hindi">सेटिंग्स</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Dashboard Section -->
+        <div id="dashboard-section" class="content-section">
+            <h2 class="page-title hindi">डैशबोर्ड</h2>
+            <div class="row">
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">कुल गांव</h6>
+                                    <h3 class="mb-0" id="totalVillages">0</h3>
+                                </div>
+                                <div class="bg-light p-3 rounded">
+                                    <i class="fas fa-map-marker-alt text-primary"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">कुल सर्वेक्षण</h6>
+                                    <h3 class="mb-0" id="totalSurveys">0</h3>
+                                </div>
+                                <div class="bg-light p-3 rounded">
+                                    <i class="fas fa-clipboard-list text-success"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">पूर्ण सर्वेक्षण</h6>
+                                    <h3 class="mb-0" id="completedSurveys">0</h3>
+                                </div>
+                                <div class="bg-light p-3 rounded">
+                                    <i class="fas fa-check-circle text-info"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="text-muted mb-1">प्रगति</h6>
+                                    <h3 class="mb-0" id="progressPercentage">0%</h3>
+                                </div>
+                                <div class="bg-light p-3 rounded">
+                                    <i class="fas fa-chart-line text-warning"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-8 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">ब्लॉक अनुसार प्रगति</h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-filter me-1"></i> फ़िल्टर
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    <li><a class="dropdown-item" href="#">सभी फसलें</a></li>
+                                    <li><a class="dropdown-item" href="#">धान</a></li>
+                                    <li><a class="dropdown-item" href="#">गेहूं</a></li>
+                                    <li><a class="dropdown-item" href="#">मक्का</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="blockProgressTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ब्लॉक</th>
+                                            <th>कुल गांव</th>
+                                            <th>पूर्ण सर्वेक्षण</th>
+                                            <th>प्रगति</th>
+                                            <th>स्थिति</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="hindi">फसल अनुसार सर्वेक्षण</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cropChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">हाल की गतिविधियां</h5>
+                            <button class="btn btn-sm btn-outline-primary" id="refreshActivitiesBtn">
+                                <i class="fas fa-sync-alt me-1"></i> रिफ्रेश
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table" id="recentActivitiesTable">
+                                    <thead>
+                                        <tr>
+                                            <th>दिनांक</th>
+                                            <th>गतिविधि</th>
+                                            <th>विवरण</th>
+                                            <th>उपयोगकर्ता</th>
+                                            <th>स्थिति</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Section -->
+        <div id="profile-section" class="content-section" style="display: none;">
+            <h2 class="page-title hindi">प्रोफ़ाइल</h2>
+            <div class="row">
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-body profile-card">
+                            <div class="profile-avatar">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div class="profile-info">
+                                <h4 class="hindi" id="profileFullName">पूरा नाम</h4>
+                                <p class="hindi" id="profileUsername">उपयोगकर्ता नाम</p>
+                                <p class="hindi" id="profileRole">भूमिका</p>
+                                <p class="hindi" id="profileDistrict">जिला</p>
+                            </div>
+                            <div class="profile-actions">
+                                <button class="btn btn-outline-primary hindi" id="editProfileBtn">
+                                    <i class="fas fa-edit me-2"></i> प्रोफ़ाइल संपादित करें
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <ul class="nav nav-tabs card-header-tabs" id="profileTabs">
+                                <li class="nav-item">
+                                    <a class="nav-link active hindi" href="#details" data-bs-toggle="tab">विवरण</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link hindi" href="#password" data-bs-toggle="tab">पासवर्ड बदलें</a>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="card-body">
+                            <div class="tab-content">
+                                <!-- Details Tab -->
+                                <div class="tab-pane fade show active" id="details">
+                                    <div class="mb-3">
+                                        <label class="form-label hindi">पूरा नाम</label>
+                                        <input type="text" class="form-control" id="fullNameInput" disabled>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label hindi">उपयोगकर्ता नाम</label>
+                                        <input type="text" class="form-control" id="usernameInput" disabled>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label hindi">मोबाइल नंबर</label>
+                                        <input type="tel" class="form-control" id="mobileInput" disabled>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label hindi">ईमेल</label>
+                                        <input type="email" class="form-control" id="emailInput" disabled>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label hindi">जिला</label>
+                                        <input type="text" class="form-control" id="districtInput" disabled>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label hindi">भूमिका</label>
+                                        <input type="text" class="form-control" id="roleInput" disabled>
+                                    </div>
+                                </div>
+                                
+                                <!-- Password Change Tab -->
+                                <div class="tab-pane fade" id="password">
+                                    <form id="passwordChangeForm">
+                                        <div class="mb-3">
+                                            <label for="currentPassword" class="form-label hindi">वर्तमान पासवर्ड</label>
+                                            <input type="password" class="form-control" id="currentPassword" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="newPassword" class="form-label hindi">नया पासवर्ड</label>
+                                            <input type="password" class="form-control" id="newPassword" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="confirmPassword" class="form-label hindi">पासवर्ड की पुष्टि करें</label>
+                                            <input type="password" class="form-control" id="confirmPassword" required>
+                                        </div>
+                                        <div id="passwordAlert" class="alert" style="display: none;"></div>
+                                        <button type="submit" class="btn btn-primary hindi">
+                                            <i class="fas fa-key me-2"></i> पासवर्ड बदलें
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Data Section -->
+        <div id="view-data-section" class="content-section" style="display: none;">
+            <h2 class="page-title hindi">डेटा देखें</h2>
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="hindi">जिले के अनुसार अपलोड की गई जानकारी</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary me-2" id="refreshDataBtn">
+                            <i class="fas fa-sync-alt me-1"></i> रिफ्रेश
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" id="exportDataBtn">
+                            <i class="fas fa-file-excel me-1"></i> एक्सेल में निर्यात
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label for="filterDistrict" class="form-label hindi">जिला</label>
+                            <select class="form-control" id="filterDistrict">
+                                <option value="">-- सभी जिले --</option>
+                                <!-- Districts will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterBlock" class="form-label hindi">ब्लॉक</label>
+                            <select class="form-control" id="filterBlock">
+                                <option value="">-- सभी ब्लॉक --</option>
+                                <!-- Blocks will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterCrop" class="form-label hindi">फसल</label>
+                            <select class="form-control" id="filterCrop">
+                                <option value="">-- सभी फसलें --</option>
+                                <!-- Crops will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="filterStatus" class="form-label hindi">स्थिति</label>
+                            <select class="form-control" id="filterStatus">
+                                <option value="">-- सभी स्थिति --</option>
+                                <option value="completed">पूर्ण</option>
+                                <option value="pending">अपूर्ण</option>
+                                <option value="verified">सत्यापित</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="surveyDataTable">
+                            <thead>
+                                <tr>
+                                    <th>क्र.सं.</th>
+                                    <th>जिला</th>
+                                    <th>ब्लॉक</th>
+                                    <th>गांव</th>
+                                    <th>गांव कोड</th>
+                                    <th>फसल</th>
+                                    <th>स्थिति</th>
+                                    <th>अपडेट तिथि</th>
+                                    <th>कार्रवाई</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Data will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload Data Section -->
+        <div id="upload-data-section" class="content-section" style="display: none;">
+            <h2 class="page-title hindi">डेटा अपलोड करें</h2>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="hindi">सर्वेक्षण डेटा अपलोड</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info hindi mb-4">
+                        <i class="fas fa-info-circle me-2"></i> कृपया सही प्रारूप में एक्सेल फाइल अपलोड करें। टेम्पलेट डाउनलोड करने के लिए <a href="#" id="downloadTemplateFromUpload" class="alert-link">यहां क्लिक करें</a>।
+                    </div>
+                    
+                    <form id="uploadForm">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label for="uploadDistrict" class="form-label hindi">जिला</label>
+                                <select class="form-control" id="uploadDistrict" required>
+                                    <option value="">-- जिला चुनें --</option>
+                                    <!-- Districts will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="uploadBlock" class="form-label hindi">ब्लॉक</label>
+                                <select class="form-control" id="uploadBlock" required>
+                                    <option value="">-- ब्लॉक चुनें --</option>
+                                    <!-- Blocks will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="uploadCrop" class="form-label hindi">फसल</label>
+                                <select class="form-control" id="uploadCrop" required>
+                                    <option value="">-- फसल चुनें --</option>
+                                    <!-- Crops will be populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="upload-zone mb-4" id="dropZone">
+                            <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+                            <div class="upload-icon">
+                                <i class="fas fa-file-excel"></i>
+                            </div>
+                            <h5 class="hindi mb-3">फाइल अपलोड करें</h5>
+                            <p class="hindi mb-2">फाइल खींचें और यहां छोड़ें या क्लिक करें</p>
+                            <p class="text-muted small">केवल .xlsx या .xls फाइलें (अधिकतम 10MB)</p>
+                            <button type="button" class="btn btn-outline-primary hindi mt-2" id="browseButton">
+                                <i class="fas fa-folder-open me-2"></i> फाइल चुनें
+                            </button>
+                        </div>
+                        
+                        <div id="fileDetails" style="display: none;">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-file-excel me-2 text-success"></i>
+                                <span id="fileName" class="me-auto">filename.xlsx</span>
+                                <button type="button" class="btn btn-sm btn-link text-danger" id="removeFile">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="progress mb-3">
+                                <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert" id="uploadAlert" style="display: none;"></div>
+                        
+                        <div class="text-end mt-4">
+                            <button type="button" class="btn btn-outline-secondary hindi me-2" id="resetUploadForm">
+                                <i class="fas fa-redo me-2"></i> रीसेट
+                            </button>
+                            <button type="submit" class="btn btn-primary hindi" id="uploadButton" disabled>
+                                <i class="fas fa-upload me-2"></i> अपलोड करें
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Template Section -->
+        <div id="download-template-section" class="content-section" style="display: none;">
+            <h2 class="page-title hindi">टेम्पलेट डाउनलोड</h2>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="hindi">सर्वेक्षण टेम्पलेट</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info hindi mb-4">
+                        <i class="fas fa-info-circle me-2"></i> सर्वेक्षण डेटा अपलोड करने के लिए इस टेम्पलेट का उपयोग करें। यह आपके जिले और ब्लॉक के अनुसार गांवों की जानकारी के साथ एक्सेल फाइल डाउनलोड करेगा।
+                    </div>
+                    
+                    <form id="templateForm">
+                        <div class="row mb-4">
+                            <div class="col-md-4">
+                                <label for="templateDistrict" class="form-label hindi">जिला</label>
+                                <select class="form-control" id="templateDistrict" required>
+                                    <option value="">-- जिला चुनें --</option>
+                                    <!-- Districts will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="templateBlock" class="form-label hindi">ब्लॉक</label>
+                                <select class="form-control" id="templateBlock" required>
+                                    <option value="">-- ब्लॉक चुनें --</option>
+                                    <!-- Blocks will be populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="templateCrop" class="form-label hindi">फसल</label>
+                                <select class="form-control" id="templateCrop" required>
+                                    <option value="">-- फसल चुनें --</option>
+                                    <!-- Crops will be populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary hindi">
+                                <i class="fas fa-download me-2"></i> टेम्पलेट डाउनलोड करें
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="hindi">उपलब्ध टेम्पलेट्स</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>टेम्पलेट</th>
+                                    <th>विवरण</th>
+                                    <th>कार्रवाई</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>सर्वेक्षण टेम्पलेट</td>
+                                    <td>गांव और फसल सर्वेक्षण के लिए मानक टेम्पलेट</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" id="downloadSurveyTemplate">
+                                            <i class="fas fa-download me-1"></i> डाउनलोड
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>रिपोर्ट टेम्पलेट</td>
+                                    <td>फसल उत्पादन रिपोर्ट के लिए टेम्पलेट</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" id="downloadReportTemplate">
+                                            <i class="fas fa-download me-1"></i> डाउनलोड
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>गांव सूची</td>
+                                    <td>गांव कोड के साथ गांवों की सूची</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" id="downloadVillageList">
+                                            <i class="fas fa-download me-1"></i> डाउनलोड
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Sidebar Button for Mobile -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-labelledby="changePasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="changePasswordModalLabel">पासवर्ड बदलें</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="modalPasswordForm">
+                        <div class="mb-3">
+                            <label for="modalCurrentPassword" class="form-label hindi">वर्तमान पासवर्ड</label>
+                            <input type="password" class="form-control" id="modalCurrentPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalNewPassword" class="form-label hindi">नया पासवर्ड</label>
+                            <input type="password" class="form-control" id="modalNewPassword" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="modalConfirmPassword" class="form-label hindi">पासवर्ड की पुष्टि करें</label>
+                            <input type="password" class="form-control" id="modalConfirmPassword" required>
+                        </div>
+                        <div id="modalPasswordAlert" class="alert" style="display: none;"></div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary hindi" data-bs-dismiss="modal">रद्द करें</button>
+                    <button type="button" class="btn btn-primary hindi" id="savePasswordBtn">
+                        <i class="fas fa-save me-2"></i> सहेजें
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     
     <script>
-        // Wait for DOM to fully load
-        window.addEventListener('DOMContentLoaded', function() {
-            console.log("DOM fully loaded");
-            
+        document.addEventListener('DOMContentLoaded', function() {
             // Supabase configuration
             const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
             const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
@@ -38,201 +1064,1415 @@
             // Current user data
             let currentUser = null;
             
-            // Simple function to handle navigation
-            function navigateTo(sectionId) {
+            // DOM elements for sections
+            const sections = {
+                dashboard: document.getElementById('dashboard-section'),
+                profile: document.getElementById('profile-section'),
+                viewData: document.getElementById('view-data-section'),
+                uploadData: document.getElementById('upload-data-section'),
+                downloadTemplate: document.getElementById('download-template-section')
+            };
+            
+            // Menu items
+            const menuItems = {
+                dashboard: document.getElementById('dashboardLink'),
+                profile: document.getElementById('profileMenuLink'),
+                viewData: document.getElementById('viewDataLink'),
+                uploadData: document.getElementById('uploadDataLink'),
+                downloadTemplate: document.getElementById('downloadTemplateLink')
+            };
+            
+            // Show alert message
+            function showAlert(elementId, message, type) {
+                const alertBox = document.getElementById(elementId);
+                if (!alertBox) return;
+                
+                alertBox.textContent = message;
+                alertBox.className = `alert alert-${type} hindi`;
+                alertBox.style.display = 'block';
+                
+                // Auto hide after 5 seconds
+                setTimeout(() => {
+                    alertBox.style.display = 'none';
+                }, 5000);
+            }
+            
+            // Hash password with SHA-256
+            async function hashPassword(password) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+            
+            // Show section
+            function showSection(sectionId) {
+                console.log(`Showing section: ${sectionId}`);
+                
                 // Hide all sections
-                document.querySelectorAll('.content-section').forEach(section => {
-                    section.style.display = 'none';
+                Object.entries(sections).forEach(([id, section]) => {
+                    if (section) {
+                        section.style.display = 'none';
+                    }
                 });
                 
-                // Show the requested section
-                const targetSection = document.getElementById(sectionId + '-section');
-                if (targetSection) {
-                    targetSection.style.display = 'block';
+                // Remove active class from all menu items
+                Object.entries(menuItems).forEach(([id, item]) => {
+                    if (item) {
+                        item.classList.remove('active');
+                    }
+                });
+                
+                // Show selected section and mark menu item as active
+                if (sections[sectionId]) {
+                    sections[sectionId].style.display = 'block';
                 }
-                
-                // Update active menu item
-                document.querySelectorAll('.menu-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                
-                const activeMenuItem = document.getElementById(sectionId + 'Link');
-                if (activeMenuItem) {
-                    activeMenuItem.classList.add('active');
+                if (menuItems[sectionId]) {
+                    menuItems[sectionId].classList.add('active');
                 }
             }
             
-            // Function to handle logout
-            function handleLogout() {
-                console.log('Logging out');
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
-                window.location.href = 'index.html';
-            }
-            
-            // Set up click events for navigation
-            document.getElementById('dashboardLink').onclick = function(e) {
-                e.preventDefault();
-                navigateTo('dashboard');
-            };
-            
-            document.getElementById('profileMenuLink').onclick = function(e) {
-                e.preventDefault();
-                navigateTo('profile');
-            };
-            
-            document.getElementById('viewDataLink').onclick = function(e) {
-                e.preventDefault();
-                navigateTo('view-data');
-            };
-            
-            document.getElementById('uploadDataLink').onclick = function(e) {
-                e.preventDefault();
-                navigateTo('upload-data');
-            };
-            
-            document.getElementById('downloadTemplateLink').onclick = function(e) {
-                e.preventDefault();
-                navigateTo('download-template');
-            };
-            
-            // Set up logout button
-            document.getElementById('logoutLink').onclick = function(e) {
-                e.preventDefault();
-                handleLogout();
-            };
-            
-            // Load user data on page load
-            function loadUserData() {
+            // Load user data
+            async function loadUserData() {
                 try {
+                    // Try to get user data from storage
                     const userData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user'));
+                    
                     if (!userData) {
+                        // Redirect to login page if no user data found
                         window.location.href = 'index.html';
                         return;
                     }
                     
                     currentUser = userData;
-                    document.getElementById('userNameDisplay').textContent = userData.fullName || userData.username;
-                    document.getElementById('districtDisplay').textContent = `जिला: ${userData.districtName || ''}`;
+                    console.log("Loaded user data:", currentUser);
+                    
+                    // Fetch district name if district ID exists
+                    if (userData.districtId) {
+                        try {
+                            const { data: districtData, error } = await supabaseClient
+                                .from('districts')
+                                .select('name')
+                                .eq('id', userData.districtId)
+                                .single();
+                                
+                            if (!error && districtData) {
+                                userData.districtName = districtData.name;
+                                
+                                // Update storage with district name
+                                if (localStorage.getItem('user')) {
+                                    localStorage.setItem('user', JSON.stringify(userData));
+                                } else {
+                                    sessionStorage.setItem('user', JSON.stringify(userData));
+                                }
+                            }
+                        } catch (districtError) {
+                            console.error('Error fetching district:', districtError);
+                        }
+                    }
+                    
+                    // Update UI with user data
+                    const userNameDisplay = document.getElementById('userNameDisplay');
+                    if (userNameDisplay) {
+                        userNameDisplay.textContent = userData.fullName || userData.username;
+                    }
+                    
+                    const districtDisplay = document.getElementById('districtDisplay');
+                    if (districtDisplay) {
+                        districtDisplay.textContent = `जिला: ${userData.districtName || ''}`;
+                    }
+                    
+                    // Update profile information
+                    const profileElements = {
+                        'profileFullName': userData.fullName || '',
+                        'profileUsername': userData.username || '',
+                        'profileRole': userData.role || '',
+                        'profileDistrict': userData.districtName || '',
+                        'fullNameInput': userData.fullName || '',
+                        'usernameInput': userData.username || '',
+                        'mobileInput': userData.mobileNumber || '',
+                        'emailInput': userData.email || '',
+                        'districtInput': userData.districtName || '',
+                        'roleInput': userData.role || ''
+                    };
+                    
+                    Object.entries(profileElements).forEach(([id, value]) => {
+                        const element = document.getElementById(id);
+                        if (element) {
+                            if (element.tagName === 'INPUT') {
+                                element.value = value;
+                            } else {
+                                element.textContent = value;
+                            }
+                        }
+                    });
+                    
+                    // Load dashboard data
+                    loadDashboardData();
+                    
+                    // Load districts data for dropdowns
+                    await loadDistricts();
+                    
+                    // Load crops data for dropdowns
+                    await loadCrops();
                 } catch (error) {
                     console.error('Error loading user data:', error);
-                    window.location.href = 'index.html';
                 }
             }
             
-            // Handle template downloads
-            document.getElementById('downloadSurveyTemplate').onclick = function() {
-                const fileName = "Survey_Template.xlsx";
-                
-                // Create a simple Excel file
-                const wb = XLSX.utils.book_new();
-                const wsData = [
-                    ["जिला", "ब्लॉक", "गांव", "गांव कोड", "फसल", "स्थिति", "टिप्पणी"],
-                    ["District Name", "Block Name", "Village Name", "V001", "Crop Name", "pending", ""]
-                ];
-                
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                XLSX.utils.book_append_sheet(wb, ws, "Survey Data");
-                
-                // Convert to binary and trigger download
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-                
-                // Convert string to ArrayBuffer
-                const buf = new ArrayBuffer(wbout.length);
-                const view = new Uint8Array(buf);
-                for (let i = 0; i < wbout.length; i++) {
-                    view[i] = wbout.charCodeAt(i) & 0xFF;
+            // Load dashboard data
+            async function loadDashboardData() {
+                try {
+                    if (currentUser && currentUser.districtId) {
+                        // Get village count
+                        try {
+                            const { count: villageCount, error: villageError } = await supabaseClient
+                                .from('villages')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('district_id', currentUser.districtId);
+                            
+                            if (!villageError) {
+                                const totalVillages = document.getElementById('totalVillages');
+                                if (totalVillages) {
+                                    totalVillages.textContent = villageCount || '0';
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error fetching village count:', error);
+                        }
+                        
+                        // Get survey count
+                        try {
+                            const { count: surveyCount, error: surveyError } = await supabaseClient
+                                .from('survey_data')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('district_id', currentUser.districtId);
+                            
+                            if (!surveyError) {
+                                const totalSurveys = document.getElementById('totalSurveys');
+                                if (totalSurveys) {
+                                    totalSurveys.textContent = surveyCount || '0';
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error fetching survey count:', error);
+                        }
+                        
+                        // Get completed survey count
+                        try {
+                            const { count: completedCount, error: completedError } = await supabaseClient
+                                .from('survey_data')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('district_id', currentUser.districtId)
+                                .eq('status', 'completed');
+                            
+                            if (!completedError) {
+                                const completedSurveys = document.getElementById('completedSurveys');
+                                if (completedSurveys) {
+                                    completedSurveys.textContent = completedCount || '0';
+                                }
+                                
+                                // Calculate progress percentage
+                                const surveyCount = parseInt(document.getElementById('totalSurveys').textContent) || 0;
+                                const progress = surveyCount > 0 ? Math.round((completedCount / surveyCount) * 100) : 0;
+                                
+                                const progressPercentage = document.getElementById('progressPercentage');
+                                if (progressPercentage) {
+                                    progressPercentage.textContent = `${progress}%`;
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Error fetching completed survey count:', error);
+                        }
+                        
+                        // Load block progress
+                        await loadBlockProgress(currentUser.districtId);
+                        
+                        // Load activities
+                        await loadActivities(currentUser.districtId);
+                        
+                        // Initialize crop chart
+                        await initCropChart(currentUser.districtId);
+                    }
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
                 }
-                
-                // Create Blob and download
-                const blob = new Blob([buf], { type: 'application/octet-stream' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(function() {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(link.href);
-                }, 200);
-            };
+            }
             
-            document.getElementById('downloadReportTemplate').onclick = function() {
-                const fileName = "Report_Template.xlsx";
-                
-                // Create a simple Excel file
-                const wb = XLSX.utils.book_new();
-                const wsData = [
-                    ["जिला", "ब्लॉक", "गांव", "गांव कोड", "फसल", "स्थिति"],
-                    ["District Name", "Block Name", "Village Name", "V001", "Crop Name", "completed"]
-                ];
-                
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                XLSX.utils.book_append_sheet(wb, ws, "Report Data");
-                
-                // Convert to binary and trigger download
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-                
-                // Convert string to ArrayBuffer
-                const buf = new ArrayBuffer(wbout.length);
-                const view = new Uint8Array(buf);
-                for (let i = 0; i < wbout.length; i++) {
-                    view[i] = wbout.charCodeAt(i) & 0xFF;
+            // Load block progress data
+            async function loadBlockProgress(districtId) {
+                try {
+                    // Get blocks for this district
+                    const { data: blocks, error: blockError } = await supabaseClient
+                        .from('blocks')
+                        .select('id, name')
+                        .eq('district_id', districtId);
+                        
+                    if (blockError) throw blockError;
+                    
+                    // Initialize DataTable
+                    const blockTableElement = document.getElementById('blockProgressTable');
+                    if (!blockTableElement) return;
+                    
+                    let blockTable;
+                    try {
+                        blockTable = $(blockTableElement).DataTable({
+                            paging: true,
+                            searching: false,
+                            info: false,
+                            destroy: true,
+                            language: {
+                                paginate: {
+                                    next: 'अगला',
+                                    previous: 'पिछला'
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error initializing block progress table:', error);
+                        return;
+                    }
+                    
+                    // Clear existing data
+                    blockTable.clear();
+                    
+                    // For each block, get villages and surveys
+                    for (const block of blocks || []) {
+                        try {
+                            // Get village count for this block
+                            const { count: villageCount } = await supabaseClient
+                                .from('villages')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('block_id', block.id);
+                            
+                            // Get completed survey count for this block
+                            const { count: completedCount } = await supabaseClient
+                                .from('survey_data')
+                                .select('*', { count: 'exact', head: true })
+                                .eq('block_id', block.id)
+                                .eq('status', 'completed');
+                            
+                            // Calculate progress
+                            const progress = villageCount > 0 ? Math.round((completedCount / villageCount) * 100) : 0;
+                            
+                            // Determine status badge
+                            let statusBadge = '';
+                            if (progress >= 75) {
+                                statusBadge = '<span class="badge bg-success">अच्छा</span>';
+                            } else if (progress >= 50) {
+                                statusBadge = '<span class="badge bg-warning">संतोषजनक</span>';
+                            } else {
+                                statusBadge = '<span class="badge bg-danger">कम</span>';
+                            }
+                            
+                            // Add row to table
+                            blockTable.row.add([
+                                block.name,
+                                villageCount || '0',
+                                completedCount || '0',
+                                `${progress}%`,
+                                statusBadge
+                            ]);
+                        } catch (error) {
+                            console.error(`Error processing block ${block.name}:`, error);
+                        }
+                    }
+                    
+                    blockTable.draw();
+                } catch (error) {
+                    console.error('Error loading block progress:', error);
                 }
-                
-                // Create Blob and download
-                const blob = new Blob([buf], { type: 'application/octet-stream' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                setTimeout(function() {
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(link.href);
-                }, 200);
-            };
+            }
             
-            document.getElementById('downloadVillageList').onclick = function() {
-                const fileName = "Village_List.xlsx";
+            // Load activities
+            async function loadActivities(districtId) {
+                try {
+                    // Get recent activities
+                    const { data: activities, error } = await supabaseClient
+                        .from('activity_logs')
+                        .select(`
+                            id, 
+                            created_at, 
+                            activity_type, 
+                            description, 
+                            status, 
+                            user_id, 
+                            test_users(full_name)
+                        `)
+                        .order('created_at', { ascending: false })
+                        .limit(10);
+                        
+                    if (error) throw error;
+                    
+                    // Initialize DataTable
+                    const activitiesTableElement = document.getElementById('recentActivitiesTable');
+                    if (!activitiesTableElement) return;
+                    
+                    let activitiesTable;
+                    try {
+                        activitiesTable = $(activitiesTableElement).DataTable({
+                            paging: true,
+                            searching: false,
+                            info: false,
+                            destroy: true,
+                            language: {
+                                paginate: {
+                                    next: 'अगला',
+                                    previous: 'पिछला'
+                                }
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error initializing activities table:', error);
+                        return;
+                    }
+                    
+                    // Clear existing data
+                    activitiesTable.clear();
+                    
+                    // Add activities to table
+                    if (activities && activities.length > 0) {
+                        activities.forEach(activity => {
+                            try {
+                                const date = new Date(activity.created_at).toLocaleDateString();
+                                const userName = activity.test_users ? activity.test_users.full_name : '';
+                                
+                                let statusBadge = '';
+                                if (activity.status === 'success') {
+                                    statusBadge = '<span class="badge bg-success">सफल</span>';
+                                } else if (activity.status === 'pending') {
+                                    statusBadge = '<span class="badge bg-warning">प्रक्रियाधीन</span>';
+                                } else if (activity.status === 'failed') {
+                                    statusBadge = '<span class="badge bg-danger">असफल</span>';
+                                } else {
+                                    statusBadge = '<span class="badge bg-secondary">अज्ञात</span>';
+                                }
+                                
+                                activitiesTable.row.add([
+                                    date,
+                                    activity.activity_type,
+                                    activity.description,
+                                    userName,
+                                    statusBadge
+                                ]);
+                            } catch (error) {
+                                console.error('Error processing activity:', error);
+                            }
+                        });
+                    }
+                    
+                    activitiesTable.draw();
+                } catch (error) {
+                    console.error('Error loading activities:', error);
+                }
+            }
+            
+            // Initialize crop chart
+            async function initCropChart(districtId) {
+                try {
+                    // Get crop distribution data
+                    const { data: cropData, error } = await supabaseClient
+                        .from('survey_data')
+                        .select(`
+                            crop_id,
+                            crops(name)
+                        `)
+                        .eq('district_id', districtId);
+                        
+                    if (error) throw error;
+                    
+                    // Count by crop
+                    const cropCounts = {};
+                    if (cropData && cropData.length > 0) {
+                        cropData.forEach(item => {
+                            const cropName = item.crops ? item.crops.name : 'अज्ञात';
+                            cropCounts[cropName] = (cropCounts[cropName] || 0) + 1;
+                        });
+                    } else {
+                        // Sample data if no data exists
+                        cropCounts['धान'] = 65;
+                        cropCounts['गेहूं'] = 20;
+                        cropCounts['मक्का'] = 10;
+                        cropCounts['अन्य'] = 5;
+                    }
+                    
+                    // Create chart
+                    const chartElement = document.getElementById('cropChart');
+                    if (!chartElement) return;
+                    
+                    const ctx = chartElement.getContext('2d');
+                    if (!ctx) return;
+                    
+                    new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(cropCounts),
+                            datasets: [{
+                                data: Object.values(cropCounts),
+                                backgroundColor: [
+                                    'rgba(75, 192, 192, 0.7)',
+                                    'rgba(255, 205, 86, 0.7)',
+                                    'rgba(54, 162, 235, 0.7)',
+                                    'rgba(201, 203, 207, 0.7)',
+                                    'rgba(255, 99, 132, 0.7)'
+                                ],
+                                borderColor: [
+                                    'rgba(75, 192, 192, 1)',
+                                    'rgba(255, 205, 86, 1)',
+                                    'rgba(54, 162, 235, 1)',
+                                    'rgba(201, 203, 207, 1)',
+                                    'rgba(255, 99, 132, 1)'
+                                ],
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                }
+                            }
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error initializing crop chart:', error);
+                }
+            }
+            
+            // Load districts data for dropdowns
+            async function loadDistricts() {
+                try {
+                    // Fetch districts from the districts table
+                    const { data, error } = await supabaseClient
+                        .from('districts')
+                        .select('id, name')
+                        .order('name', { ascending: true });
+                        
+                    if (error) throw error;
+                    
+                    // Get all district dropdowns
+                    const districtDropdowns = [
+                        document.getElementById('filterDistrict'),
+                        document.getElementById('uploadDistrict'),
+                        document.getElementById('templateDistrict')
+                    ];
+                    
+                    // Populate each dropdown
+                    districtDropdowns.forEach(dropdown => {
+                        if (!dropdown) return;
+                        
+                        // Clear existing options except the first one
+                        while (dropdown.options.length > 1) {
+                            dropdown.remove(1);
+                        }
+                        
+                        // Add districts to dropdown
+                        if (data) {
+                            data.forEach(district => {
+                                const option = document.createElement('option');
+                                option.value = district.id;
+                                option.textContent = district.name;
+                                dropdown.appendChild(option);
+                            });
+                        }
+                        
+                        // If user has a district, select it
+                        if (currentUser && currentUser.districtId) {
+                            dropdown.value = currentUser.districtId;
+                            
+                            // Trigger change event to load blocks
+                            const event = new Event('change');
+                            dropdown.dispatchEvent(event);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading districts:', error);
+                }
+            }
+            
+            // Load blocks based on selected district
+            async function loadBlocks(districtId, blockDropdownId) {
+                try {
+                    const blockDropdown = document.getElementById(blockDropdownId);
+                    if (!blockDropdown) return;
+                    
+                    // Clear existing options except the first one
+                    while (blockDropdown.options.length > 1) {
+                        blockDropdown.remove(1);
+                    }
+                    
+                    if (!districtId) return;
+                    
+                    // Fetch blocks from the blocks table
+                    const { data, error } = await supabaseClient
+                        .from('blocks')
+                        .select('id, name')
+                        .eq('district_id', districtId)
+                        .order('name', { ascending: true });
+                        
+                    if (error) throw error;
+                    
+                    // Add blocks to dropdown
+                    if (data) {
+                        data.forEach(block => {
+                            const option = document.createElement('option');
+                            option.value = block.id;
+                            option.textContent = block.name;
+                            blockDropdown.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading blocks:', error);
+                }
+            }
+            
+            // Load crops data for dropdowns
+            async function loadCrops() {
+                try {
+                    // Fetch crops from the crops table
+                    const { data, error } = await supabaseClient
+                        .from('crops')
+                        .select('id, name')
+                        .order('name', { ascending: true });
+                        
+                    if (error) throw error;
+                    
+                    // Get all crop dropdowns
+                    const cropDropdowns = [
+                        document.getElementById('filterCrop'),
+                        document.getElementById('uploadCrop'),
+                        document.getElementById('templateCrop')
+                    ];
+                    
+                    // Populate each dropdown
+                    cropDropdowns.forEach(dropdown => {
+                        if (!dropdown) return;
+                        
+                        // Clear existing options except the first one
+                        while (dropdown.options.length > 1) {
+                            dropdown.remove(1);
+                        }
+                        
+                        // Add crops to dropdown
+                        if (data) {
+                            data.forEach(crop => {
+                                const option = document.createElement('option');
+                                option.value = crop.id;
+                                option.textContent = crop.name;
+                                dropdown.appendChild(option);
+                            });
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading crops:', error);
+                }
+            }
+            
+            // Initialize survey data table
+            function initSurveyDataTable() {
+                try {
+                    const tableElement = document.getElementById('surveyDataTable');
+                    if (!tableElement) return;
+                    
+                    $(tableElement).DataTable({
+                        paging: true,
+                        searching: true,
+                        ordering: true,
+                        info: true,
+                        language: {
+                            search: "खोजें:",
+                            paginate: {
+                                next: 'अगला',
+                                previous: 'पिछला'
+                            },
+                            info: "_TOTAL_ में से _START_ से _END_ तक प्रविष्टियां दिखा रही हैं",
+                            infoEmpty: "कोई प्रविष्टि नहीं मिली",
+                            infoFiltered: "(कुल _MAX_ प्रविष्टियों से फ़िल्टर किया गया)",
+                            lengthMenu: "_MENU_ प्रविष्टियां दिखाएं"
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error initializing survey data table:', error);
+                }
+            }
+            
+            // Handle file upload
+            function handleFileUpload() {
+                const fileInput = document.getElementById('fileInput');
+                const dropZone = document.getElementById('dropZone');
+                const browseButton = document.getElementById('browseButton');
+                const fileDetails = document.getElementById('fileDetails');
+                const fileName = document.getElementById('fileName');
+                const removeFile = document.getElementById('removeFile');
+                const uploadButton = document.getElementById('uploadButton');
+                const progressBar = document.querySelector('.progress-bar');
                 
-                // Create a simple Excel file
-                const wb = XLSX.utils.book_new();
-                const wsData = [
-                    ["जिला", "ब्लॉक", "गांव", "गांव कोड"],
-                    ["District Name", "Block Name", "Village Name", "V001"]
-                ];
-                
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                XLSX.utils.book_append_sheet(wb, ws, "Villages");
-                
-                // Convert to binary and trigger download
-                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-                
-                // Convert string to ArrayBuffer
-                const buf = new ArrayBuffer(wbout.length);
-                const view = new Uint8Array(buf);
-                for (let i = 0; i < wbout.length; i++) {
-                    view[i] = wbout.charCodeAt(i) & 0xFF;
+                if (!fileInput || !dropZone || !browseButton || !fileDetails || !fileName || !removeFile || !uploadButton || !progressBar) {
+                    console.error('One or more file upload elements not found');
+                    return;
                 }
                 
-                // Create Blob and download
-                const blob = new Blob([buf], { type: 'application/octet-stream' });
+                // Click browse button to trigger file input
+                browseButton.addEventListener('click', () => {
+                    fileInput.click();
+                });
+                
+                // Handle file selection
+                fileInput.addEventListener('change', (e) => {
+                    if (fileInput.files.length > 0) {
+                        const file = fileInput.files[0];
+                        
+                        // Show file details
+                        fileName.textContent = file.name;
+                        dropZone.style.display = 'none';
+                        fileDetails.style.display = 'block';
+                        uploadButton.disabled = false;
+                        
+                        // Reset progress bar
+                        progressBar.style.width = '0%';
+                        progressBar.setAttribute('aria-valuenow', 0);
+                    }
+                });
+                
+                // Remove selected file
+                removeFile.addEventListener('click', () => {
+                    fileInput.value = '';
+                    dropZone.style.display = 'block';
+                    fileDetails.style.display = 'none';
+                    uploadButton.disabled = true;
+                });
+                
+                // Handle drag and drop
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    });
+                });
+                
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => {
+                        dropZone.classList.add('bg-light');
+                    });
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    dropZone.addEventListener(eventName, () => {
+                        dropZone.classList.remove('bg-light');
+                    });
+                });
+                
+                dropZone.addEventListener('drop', (e) => {
+                    const file = e.dataTransfer.files[0];
+                    
+                    // Check if a file was dropped
+                    if (!file) return;
+                    
+                    // Create a DataTransfer object and add the file
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    
+                    // Set the file input's files property
+                    fileInput.files = dataTransfer.files;
+                    
+                    // Show file details
+                    fileName.textContent = file.name;
+                    dropZone.style.display = 'none';
+                    fileDetails.style.display = 'block';
+                    uploadButton.disabled = false;
+                    
+                    // Reset progress bar
+                    progressBar.style.width = '0%';
+                    progressBar.setAttribute('aria-valuenow', 0);
+                });
+                
+                // Setup upload form
+                const uploadForm = document.getElementById('uploadForm');
+                if (uploadForm) {
+                    uploadForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        try {
+                            const districtId = document.getElementById('uploadDistrict').value;
+                            const blockId = document.getElementById('uploadBlock').value;
+                            const cropId = document.getElementById('uploadCrop').value;
+                            
+                            // Validate form
+                            if (!districtId || !blockId || !cropId || !fileInput.files[0]) {
+                                showAlert('uploadAlert', 'कृपया सभी फ़ील्ड भरें और फाइल चुनें।', 'danger');
+                                return;
+                            }
+                            
+                            // Disable form during upload
+                            uploadButton.disabled = true;
+                            
+                            // Simulate file upload with progress
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                                progress += 10;
+                                progressBar.style.width = `\${progress}%`;
+                                progressBar.setAttribute('aria-valuenow', progress);
+                                
+                                if (progress >= 100) {
+                                    clearInterval(interval);
+                                    
+                                    // Log activity
+                                    supabaseClient
+                                        .from('activity_logs')
+                                        .insert({
+                                            user_id: currentUser.id,
+                                            activity_type: 'डेटा अपलोड',
+                                            description: 'फसल सर्वेक्षण डेटा अपलोड किया गया',
+                                            status: 'success'
+                                        })
+                                        .then(() => {
+                                            showAlert('uploadAlert', 'फाइल सफलतापूर्वक अपलोड की गई!', 'success');
+                                            
+                                            // Reset form after 2 seconds
+                                            setTimeout(() => {
+                                                const resetButton = document.getElementById('resetUploadForm');
+                                                if (resetButton) {
+                                                    resetButton.click();
+                                                }
+                                            }, 2000);
+                                        })
+                                        .catch(error => {
+                                            console.error('Error logging activity:', error);
+                                        });
+                                }
+                            }, 300);
+                        } catch (error) {
+                            console.error('Upload error:', error);
+                            showAlert('uploadAlert', 'फाइल अपलोड करने में त्रुटि हुई।', 'danger');
+                        }
+                    });
+                }
+                
+                // Reset upload form
+                const resetUploadForm = document.getElementById('resetUploadForm');
+                if (resetUploadForm) {
+                    resetUploadForm.addEventListener('click', () => {
+                        fileInput.value = '';
+                        dropZone.style.display = 'block';
+                        fileDetails.style.display = 'none';
+                        uploadButton.disabled = true;
+                        
+                        const uploadAlert = document.getElementById('uploadAlert');
+                        if (uploadAlert) {
+                            uploadAlert.style.display = 'none';
+                        }
+                    });
+                }
+            }
+            
+            // Handle password change
+            function handlePasswordChange() {
+                // Password change form
+                const passwordForm = document.getElementById('passwordChangeForm');
+                if (passwordForm) {
+                    passwordForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        try {
+                            const currentPassword = document.getElementById('currentPassword').value;
+                            const newPassword = document.getElementById('newPassword').value;
+                            const confirmPassword = document.getElementById('confirmPassword').value;
+                            
+                            // Validate passwords
+                            if (newPassword !== confirmPassword) {
+                                showAlert('passwordAlert', 'नया पासवर्ड और पुष्टिकरण पासवर्ड मेल नहीं खाते।', 'danger');
+                                return;
+                            }
+                            
+                            // Hash passwords
+                            const hashedCurrentPassword = await hashPassword(currentPassword);
+                            const hashedNewPassword = await hashPassword(newPassword);
+                            
+                            // Check current password
+                            const { data, error } = await supabaseClient
+                                .from('test_users')
+                                .select('id')
+                                .eq('id', currentUser.id)
+                                .eq('password_hash', hashedCurrentPassword)
+                                .single();
+                                
+                            if (error || !data) {
+                                showAlert('passwordAlert', 'वर्तमान पासवर्ड गलत है।', 'danger');
+                                return;
+                            }
+                            
+                            // Update password
+                            const { error: updateError } = await supabaseClient
+                                .from('test_users')
+                                .update({ 
+                                    password_hash: hashedNewPassword,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', currentUser.id);
+                                
+                            if (updateError) {
+                                throw updateError;
+                            }
+                            
+                            showAlert('passwordAlert', 'पासवर्ड सफलतापूर्वक बदल दिया गया है!', 'success');
+                            passwordForm.reset();
+                        } catch (error) {
+                            console.error('Password change error:', error);
+                            showAlert('passwordAlert', 'पासवर्ड बदलने में त्रुटि हुई। कृपया पुनः प्रयास करें।', 'danger');
+                        }
+                    });
+                }
+                
+                // Modal password change
+                const savePasswordBtn = document.getElementById('savePasswordBtn');
+                if (savePasswordBtn) {
+                    savePasswordBtn.addEventListener('click', async () => {
+                        try {
+                            const currentPassword = document.getElementById('modalCurrentPassword').value;
+                            const newPassword = document.getElementById('modalNewPassword').value;
+                            const confirmPassword = document.getElementById('modalConfirmPassword').value;
+                            
+                            // Validate passwords
+                            if (newPassword !== confirmPassword) {
+                                showAlert('modalPasswordAlert', 'नया पासवर्ड और पुष्टिकरण पासवर्ड मेल नहीं खाते।', 'danger');
+                                return;
+                            }
+                            
+                            // Hash passwords
+                            const hashedCurrentPassword = await hashPassword(currentPassword);
+                            const hashedNewPassword = await hashPassword(newPassword);
+                            
+                            // Check current password
+                            const { data, error } = await supabaseClient
+                                .from('test_users')
+                                .select('id')
+                                .eq('id', currentUser.id)
+                                .eq('password_hash', hashedCurrentPassword)
+                                .single();
+                                
+                            if (error || !data) {
+                                showAlert('modalPasswordAlert', 'वर्तमान पासवर्ड गलत है।', 'danger');
+                                return;
+                            }
+                            
+                            // Update password
+                            const { error: updateError } = await supabaseClient
+                                .from('test_users')
+                                .update({ 
+                                    password_hash: hashedNewPassword,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', currentUser.id);
+                                
+                            if (updateError) {
+                                throw updateError;
+                            }
+                            
+                            showAlert('modalPasswordAlert', 'पासवर्ड सफलतापूर्वक बदल दिया गया है!', 'success');
+                            
+                            // Close modal after 2 seconds
+                            setTimeout(() => {
+                                const modalEl = document.getElementById('changePasswordModal');
+                                const modal = bootstrap.Modal.getInstance(modalEl);
+                                if (modal) {
+                                    modal.hide();
+                                }
+                                const modalForm = document.getElementById('modalPasswordForm');
+                                if (modalForm) {
+                                    modalForm.reset();
+                                }
+                            }, 2000);
+                        } catch (error) {
+                            console.error('Password change error:', error);
+                            showAlert('modalPasswordAlert', 'पासवर्ड बदलने में त्रुटि हुई। कृपया पुनः प्रयास करें।', 'danger');
+                        }
+                    });
+                }
+            }
+            
+            // Create survey template workbook
+            function createSurveyTemplate(districtName, blockName, cropName) {
+                // Create new workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Create instructions sheet
+                const instructionsData = [
+                    ['सर्वेक्षण टेम्पलेट निर्देश'],
+                    [''],
+                    ['1. इस टेम्पलेट का उपयोग फसल सर्वेक्षण डेटा अपलोड करने के लिए किया जाता है।'],
+                    ['2. सभी आवश्यक फ़ील्ड भरें।'],
+                    ['3. डेटा शीट में सभी गांवों के लिए स्थिति भरें।'],
+                    ['4. स्थिति फ़ील्ड में केवल निम्न मान स्वीकार्य हैं: pending, completed, verified'],
+                    ['5. फाइल को .xlsx फ़ॉर्मेट में सहेजें।'],
+                    ['6. भरे हुए टेम्पलेट को अपलोड सेक्शन से अपलोड करें।']
+                ];
+                const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
+                XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
+                
+                // Create data sheet with the exact fields required
+                const dataHeader = [
+                    ['जिला', 'ब्लॉक', 'गांव', 'गांव कोड', 'फसल', 'स्थिति', 'टिप्पणी']
+                ];
+                
+                // Add sample data rows
+                const dataRows = [
+                    [districtName, blockName, 'Village 1', 'V001', cropName, 'pending', ''],
+                    [districtName, blockName, 'Village 2', 'V002', cropName, 'pending', ''],
+                    [districtName, blockName, 'Village 3', 'V003', cropName, 'pending', ''],
+                    [districtName, blockName, 'Village 4', 'V004', cropName, 'pending', ''],
+                    [districtName, blockName, 'Village 5', 'V005', cropName, 'pending', '']
+                ];
+                
+                const wsData = [...dataHeader, ...dataRows];
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Survey Data');
+                
+                // Create reference sheet
+                const refData = [
+                    ['Reference Data'],
+                    [''],
+                    ['Status Values:'],
+                    ['pending - अपूर्ण'],
+                    ['completed - पूर्ण'],
+                    ['verified - सत्यापित']
+                ];
+                const wsRef = XLSX.utils.aoa_to_sheet(refData);
+                XLSX.utils.book_append_sheet(wb, wsRef, 'Reference');
+                
+                return wb;
+            }
+            
+            // Create report template workbook
+            function createReportTemplate() {
+                // Create new workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Create instructions sheet
+                const instructionsData = [
+                    ['फसल सर्वेक्षण रिपोर्ट टेम्पलेट निर्देश'],
+                    [''],
+                    ['1. इस टेम्पलेट का उपयोग फसल सर्वेक्षण रिपोर्ट तैयार करने के लिए किया जाता है।'],
+                    ['2. डेटा शीट में सभी आवश्यक जानकारी भरें।'],
+                    ['3. फाइल को .xlsx फ़ॉर्मेट में सहेजें।']
+                ];
+                const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsData);
+                XLSX.utils.book_append_sheet(wb, wsInstructions, 'Instructions');
+                
+                // Create data sheet with the exact fields you need
+                const dataHeader = [
+                    ['जिला', 'ब्लॉक', 'गांव', 'गांव कोड', 'फसल', 'स्थिति']
+                ];
+                
+                // Add sample data rows
+                const dataRows = [
+                    ['District Name', 'Block Name', 'Village 1', 'V001', 'Crop Name', 'completed'],
+                    ['District Name', 'Block Name', 'Village 2', 'V002', 'Crop Name', 'completed'],
+                    ['District Name', 'Block Name', 'Village 3', 'V003', 'Crop Name', 'pending']
+                ];
+                
+                const wsData = [...dataHeader, ...dataRows];
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, 'Survey Data');
+                
+                return wb;
+            }
+            
+            // String to ArrayBuffer for file download
+            function s2ab(s) {
+                const buf = new ArrayBuffer(s.length);
+                const view = new Uint8Array(buf);
+                for (let i = 0; i < s.length; i++) {
+                    view[i] = s.charCodeAt(i) & 0xFF;
+                }
+                return buf;
+            }
+            
+            // FileSaver function for downloading files
+            function saveAs(blob, fileName) {
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
                 link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
-                setTimeout(function() {
+                setTimeout(() => {
                     document.body.removeChild(link);
                     URL.revokeObjectURL(link.href);
-                }, 200);
-            };
+                }, 100);
+            }
+            
+            // Handle template download
+            function setupTemplateDownload() {
+                const templateForm = document.getElementById('templateForm');
+                if (templateForm) {
+                    templateForm.addEventListener('submit', async (e) => {
+                        e.preventDefault();
+                        
+                        const districtId = document.getElementById('templateDistrict').value;
+                        const blockId = document.getElementById('templateBlock').value;
+                        const cropId = document.getElementById('templateCrop').value;
+                        
+                        // Validate form
+                        if (!districtId || !blockId || !cropId) {
+                            alert('कृपया सभी फ़ील्ड भरें।');
+                            return;
+                        }
+                        
+                        try {
+                            // Get district and block names for the filename
+                            const { data: districtData } = await supabaseClient
+                                .from('districts')
+                                .select('name')
+                                .eq('id', districtId)
+                                .single();
+                                
+                            const { data: blockData } = await supabaseClient
+                                .from('blocks')
+                                .select('name')
+                                .eq('id', blockId)
+                                .single();
+                                
+                            const { data: cropData } = await supabaseClient
+                                .from('crops')
+                                .select('name')
+                                .eq('id', cropId)
+                                .single();
+                            
+                            const districtName = districtData?.name || 'district';
+                            const blockName = blockData?.name || 'block';
+                            const cropName = cropData?.name || 'crop';
+                            
+                            // Generate Excel file using SheetJS (xlsx)
+                            const fileName = `Survey_Template_${districtName}_${blockName}_${cropName}.xlsx`;
+                            
+                            // Create workbook with template structure
+                            const wb = createSurveyTemplate(districtName, blockName, cropName);
+                            
+                            // Convert to binary and download
+                            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                            saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                            
+                            // Log activity
+                            await supabaseClient
+                                .from('activity_logs')
+                                .insert({
+                                    user_id: currentUser.id,
+                                    activity_type: 'टेम्पलेट डाउनलोड',
+                                    description: `${districtName} जिले के ${blockName} ब्लॉक के लिए ${cropName} फसल का सर्वेक्षण टेम्पलेट डाउनलोड किया गया`,
+                                    status: 'success'
+                                });
+                        } catch (error) {
+                            console.error('Template download error:', error);
+                            alert('टेम्पलेट डाउनलोड करने में त्रुटि हुई।');
+                        }
+                    });
+                }
+                
+                // Template buttons
+                const downloadSurveyTemplate = document.getElementById('downloadSurveyTemplate');
+                if (downloadSurveyTemplate) {
+                    downloadSurveyTemplate.addEventListener('click', () => {
+                        try {
+                            // Create and download a generic survey template
+                            const wb = createSurveyTemplate('All Districts', 'All Blocks', 'All Crops');
+                            const fileName = 'Survey_Template_Generic.xlsx';
+                            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                            saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                            
+                            // Log activity
+                            supabaseClient
+                                .from('activity_logs')
+                                .insert({
+                                    user_id: currentUser.id,
+                                    activity_type: 'टेम्पलेट डाउनलोड',
+                                    description: 'सामान्य सर्वेक्षण टेम्पलेट डाउनलोड किया गया',
+                                    status: 'success'
+                                })
+                                .catch(error => {
+                                    console.error('Error logging activity:', error);
+                                });
+                        } catch (error) {
+                            console.error('Error downloading survey template:', error);
+                            alert('टेम्पलेट डाउनलोड करने में त्रुटि हुई।');
+                        }
+                    });
+                }
+                
+                const downloadReportTemplate = document.getElementById('downloadReportTemplate');
+                if (downloadReportTemplate) {
+                    downloadReportTemplate.addEventListener('click', () => {
+                        try {
+                            // Create and download a report template
+                            const wb = createReportTemplate();
+                            const fileName = 'Report_Template.xlsx';
+                            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                            saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                            
+                            // Log activity
+                            supabaseClient
+                                .from('activity_logs')
+                                .insert({
+                                    user_id: currentUser.id,
+                                    activity_type: 'टेम्पलेट डाउनलोड',
+                                    description: 'रिपोर्ट टेम्पलेट डाउनलोड किया गया',
+                                    status: 'success'
+                                })
+                                .catch(error => {
+                                    console.error('Error logging activity:', error);
+                                });
+                        } catch (error) {
+                            console.error('Error downloading report template:', error);
+                            alert('टेम्पलेट डाउनलोड करने में त्रुटि हुई।');
+                        }
+                    });
+                }
+                
+                const downloadVillageList = document.getElementById('downloadVillageList');
+                if (downloadVillageList) {
+                    downloadVillageList.addEventListener('click', async () => {
+                        try {
+                            // Get villages data if user has district access
+                            if (currentUser && currentUser.districtId) {
+                                const { data: villages, error } = await supabaseClient
+                                    .from('villages')
+                                    .select(`
+                                        name,
+                                        code,
+                                        blocks(name),
+                                        districts(name)
+                                    `)
+                                    .eq('district_id', currentUser.districtId);
+                                    
+                                if (error) throw error;
+                                
+                                // Get district name for filename
+                                const { data: districtData } = await supabaseClient
+                                    .from('districts')
+                                    .select('name')
+                                    .eq('id', currentUser.districtId)
+                                    .single();
+                                
+                                const districtName = districtData?.name || 'district';
+                                
+                                // Create workbook with villages data
+                                const wb = XLSX.utils.book_new();
+                                
+                                // Convert villages data to worksheet format
+                                const wsData = [
+                                    ['जिला', 'ब्लॉक', 'गांव', 'गांव कोड']
+                                ];
+                                
+                                if (villages && villages.length > 0) {
+                                    villages.forEach(village => {
+                                        wsData.push([
+                                            village.districts?.name || '',
+                                            village.blocks?.name || '',
+                                            village.name,
+                                            village.code
+                                        ]);
+                                    });
+                                } else {
+                                    // Add sample data if no villages found
+                                    wsData.push([districtName, 'Block Name', 'Sample Village', 'V001']);
+                                }
+                                
+                                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                                XLSX.utils.book_append_sheet(wb, ws, 'Villages');
+                                
+                                // Download file
+                                const fileName = `Village_List_${districtName}.xlsx`;
+                                const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+                                saveAs(new Blob([s2ab(wbout)], { type: 'application/octet-stream' }), fileName);
+                                
+                                // Log activity
+                                await supabaseClient
+                                    .from('activity_logs')
+                                    .insert({
+                                        user_id: currentUser.id,
+                                        activity_type: 'गांव सूची डाउनलोड',
+                                        description: `${districtName} जिले की गांव सूची डाउनलोड की गई`,
+                                        status: 'success'
+                                    });
+                            } else {
+                                alert('गांव सूची डाउनलोड करने के लिए जिला आवश्यक है।');
+                            }
+                        } catch (error) {
+                            console.error('Village list download error:', error);
+                            alert('गांव सूची डाउनलोड करने में त्रुटि हुई।');
+                        }
+                    });
+                }
+                
+                // Link from upload section
+                const downloadTemplateFromUpload = document.getElementById('downloadTemplateFromUpload');
+                if (downloadTemplateFromUpload) {
+                    downloadTemplateFromUpload.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        showSection('downloadTemplate');
+                    });
+                }
+            }
+            
+            // Set up event listeners
+            function setupEventListeners() {
+                console.log('Setting up event listeners');
+                
+                // Sidebar menu items
+                Object.entries(menuItems).forEach(([sectionId, menuItem]) => {
+                    if (menuItem) {
+                        console.log(`Adding click listener to ${sectionId} menu item`);
+                        menuItem.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            console.log(`Clicked ${sectionId} menu item`);
+                            showSection(sectionId);
+                        });
+                    }
+                });
+                
+                // Profile link in dropdown
+                const profileLink = document.getElementById('profileLink');
+                if (profileLink) {
+                    profileLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Clicked profile link');
+                        showSection('profile');
+                    });
+                }
+                
+                // Change password link in dropdown
+                const changePasswordLink = document.getElementById('changePasswordLink');
+                if (changePasswordLink) {
+                    changePasswordLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Clicked change password link');
+                        const changePasswordModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+                        changePasswordModal.show();
+                    });
+                }
+                
+                // Logout link
+                const logoutLink = document.getElementById('logoutLink');
+                if (logoutLink) {
+                    logoutLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        console.log('Clicked logout link');
+                        
+                        // Clear user data from storage
+                        localStorage.removeItem('user');
+                        sessionStorage.removeItem('user');
+                        
+                        // Redirect to login page
+                        window.location.href = 'index.html';
+                    });
+                }
+                
+                // Help link
+                const helpLink = document.getElementById('helpLink');
+                if (helpLink) {
+                    helpLink.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        alert('सहायता के लिए कृपया संपर्क करें: diagri-cg@cg.gov.in या 9399207068 पर कॉल करें।');
+                    });
+                }
+                
+                // District dropdown change events
+                const uploadDistrict = document.getElementById('uploadDistrict');
+                if (uploadDistrict) {
+                    uploadDistrict.addEventListener('change', function() {
+                        loadBlocks(this.value, 'uploadBlock');
+                    });
+                }
+                
+                const templateDistrict = document.getElementById('templateDistrict');
+                if (templateDistrict) {
+                    templateDistrict.addEventListener('change', function() {
+                        loadBlocks(this.value, 'templateBlock');
+                    });
+                }
+                
+                const filterDistrict = document.getElementById('filterDistrict');
+                if (filterDistrict) {
+                    filterDistrict.addEventListener('change', function() {
+                        loadBlocks(this.value, 'filterBlock');
+                    });
+                }
+                
+                // Edit profile button
+                const editProfileBtn = document.getElementById('editProfileBtn');
+                if (editProfileBtn) {
+                    editProfileBtn.addEventListener('click', () => {
+                        alert('प्रोफ़ाइल संपादन सुविधा अभी उपलब्ध नहीं है।');
+                    });
+                }
+                
+                // Export data button
+                const exportDataBtn = document.getElementById('exportDataBtn');
+                if (exportDataBtn) {
+                    exportDataBtn.addEventListener('click', () => {
+                        alert('डेटा एक्सेल में निर्यात किया जा रहा है...');
+                    });
+                }
+                
+                // Refresh data button
+                const refreshDataBtn = document.getElementById('refreshDataBtn');
+                if (refreshDataBtn) {
+                    refreshDataBtn.addEventListener('click', () => {
+                        alert('डेटा रिफ्रेश किया जा रहा है...');
+                    });
+                }
+                
+                // Refresh activities button
+                const refreshActivitiesBtn = document.getElementById('refreshActivitiesBtn');
+                if (refreshActivitiesBtn) {
+                    refreshActivitiesBtn.addEventListener('click', async () => {
+                        if (currentUser && currentUser.districtId) {
+                            await loadActivities(currentUser.districtId);
+                        }
+                    });
+                }
+                
+                // Toggle sidebar on mobile
+                const sidebarToggle = document.getElementById('sidebarToggle');
+                const sidebar = document.getElementById('sidebar');
+                if (sidebarToggle && sidebar) {
+                    sidebarToggle.addEventListener('click', () => {
+                        sidebar.classList.toggle('show');
+                    });
+                }
+            }
             
             // Initialize the application
-            loadUserData();
-            navigateTo('dashboard');
+            async function initApp() {
+                console.log('Initializing application');
+                
+                // Load user data
+                await loadUserData();
+                
+                // Initialize survey data table
+                initSurveyDataTable();
+                
+                // Handle file upload
+                handleFileUpload();
+                
+                // Handle password change
+                handlePasswordChange();
+                
+                // Setup template download
+                setupTemplateDownload();
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Show dashboard section by default
+                showSection('dashboard');
+            }
+            
+            // Start the application
+            initApp();
         });
     </script>
 </body>
 </html>
+
+
