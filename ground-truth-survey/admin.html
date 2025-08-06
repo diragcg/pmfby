@@ -1,0 +1,3092 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>संचालनालय कृषि छत्तीसगढ़ - Admin Dashboard</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- Mukta Devanagari Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            /* Forest Green & Cream Theme */
+            --primary-color: #1B5E20;     /* Dark Forest Green */
+            --secondary-color: #388E3C;   /* Medium Green */
+            --accent-color: #8BC34A;      /* Light Green */
+            --text-dark: #263238;
+            --text-medium: #455A64;
+            --text-light: #FFF8E1;        /* Cream */
+            --background-light: #FFF8E1;  /* Cream */
+            --background-medium: #F1F8E9; /* Light Green-Cream */
+            --border-color: #C8E6C9;      /* Light Green Border */
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 6px 12px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 8px 24px rgba(27, 94, 32, 0.2);
+            --admin-primary: #1B5E20;
+            --admin-secondary: #388E3C;
+            --admin-accent: #8BC34A;
+            --admin-danger: #d32f2f;
+            --admin-warning: #ff9800;
+            --admin-info: #0288d1;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Mukta', sans-serif;
+            background-color: var(--background-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Hindi text styling */
+        .hindi {
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            line-height: 1.5;
+        }
+        
+        /* Header and Navbar Styles */
+        .header {
+            background-color: var(--admin-primary);
+            box-shadow: var(--shadow);
+            position: relative;
+            z-index: 100;
+        }
+        
+        .navbar {
+            padding: 12px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand img {
+            height: 45px;
+            margin-right: 15px;
+            filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.2));
+        }
+        
+        .nav-link {
+            font-family: 'Mukta', sans-serif;
+            color: rgba(255, 248, 225, 0.9) !important;
+            font-weight: 600;
+            padding: 12px 20px !important;
+            margin: 0 5px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 248, 225, 0.1);
+        }
+        
+        .nav-link.active {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 248, 225, 0.2);
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            background-color: #FFFFFF;
+            height: calc(100vh - 76px);
+            width: 280px;
+            position: fixed;
+            top: 76px;
+            left: 0;
+            overflow-y: auto;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            z-index: 99;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            background-color: var(--background-medium);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .sidebar-header h5 {
+            margin-bottom: 5px;
+            color: var(--admin-primary);
+            font-weight: 700;
+        }
+        
+        .sidebar-header p {
+            margin-bottom: 0;
+            color: var(--text-medium);
+            font-size: 0.9rem;
+        }
+        
+        .sidebar-menu {
+            padding: 15px 0;
+        }
+        
+        .menu-item {
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            color: var(--text-medium);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+        }
+        
+        .menu-item:hover {
+            background-color: var(--background-medium);
+            color: var(--admin-primary);
+            border-left-color: var(--accent-color);
+        }
+        
+        .menu-item.active {
+            background-color: var(--background-medium);
+            color: var(--admin-primary);
+            border-left-color: var(--admin-primary);
+            font-weight: 600;
+        }
+        
+        .menu-item i {
+            margin-right: 15px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 280px;
+            padding: 30px;
+            min-height: calc(100vh - 76px);
+            transition: all 0.3s ease;
+        }
+        
+        .page-title {
+            margin-bottom: 25px;
+            color: var(--admin-primary);
+            font-weight: 700;
+        }
+        
+        /* Card Styles */
+        .card {
+            border-radius: 12px;
+            border: none;
+            box-shadow: var(--shadow);
+            margin-bottom: 25px;
+            overflow: hidden;
+            background-color: #FFFFFF;
+        }
+        
+        .card-header {
+            background-color: var(--background-medium);
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+        }
+        
+        .card-header h5 {
+            margin-bottom: 0;
+            color: var(--admin-primary);
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Form Styles */
+        .form-label {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 10px 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(56, 142, 60, 0.15);
+        }
+        
+        /* Button Styles */
+        .btn-primary {
+            background-color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--admin-secondary);
+            border-color: var(--admin-secondary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn-outline-primary {
+            color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--admin-primary);
+            color: var(--text-light);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+        
+        /* Table Styles */
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table th {
+            background-color: var(--background-medium);
+            color: var(--admin-primary);
+            font-weight: 600;
+            border-bottom-width: 1px;
+        }
+        
+        .table td {
+            vertical-align: middle;
+        }
+        
+        /* Admin specific styles */
+        .admin-badge {
+            background-color: var(--admin-primary);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        
+        .stats-card {
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .stats-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .stats-primary {
+            background-color: rgba(27, 94, 32, 0.1);
+            color: var(--admin-primary);
+        }
+        
+        .stats-warning {
+            background-color: rgba(255, 152, 0, 0.1);
+            color: var(--admin-warning);
+        }
+        
+        .stats-info {
+            background-color: rgba(2, 136, 209, 0.1);
+            color: var(--admin-info);
+        }
+        
+        .stats-danger {
+            background-color: rgba(211, 47, 47, 0.1);
+            color: var(--admin-danger);
+        }
+        
+        .stats-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+            color: var(--text-dark);
+        }
+        
+        .stats-label {
+            font-size: 1rem;
+            color: var(--text-medium);
+            margin-bottom: 0;
+        }
+        
+        /* Alert Styles */
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        /* Responsive styles */
+        @media (max-width: 992px) {
+            .sidebar {
+                width: 240px;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+        }
+        
+        /* Toggle sidebar button */
+        .sidebar-toggle {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            z-index: 1000;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--admin-primary);
+            color: var(--text-light);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-md);
+            border: none;
+            cursor: pointer;
+        }
+        
+        /* DataTables customization */
+        .dataTables_wrapper .dataTables_length, 
+        .dataTables_wrapper .dataTables_filter {
+            margin-bottom: 15px;
+        }
+        
+        .dataTables_wrapper .dataTables_info, 
+        .dataTables_wrapper .dataTables_paginate {
+            margin-top: 15px;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+            background: var(--background-medium);
+            border-color: var(--border-color);
+            color: var(--admin-primary) !important;
+        }
+        
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: var(--background-medium);
+            border-color: var(--border-color);
+            color: var(--admin-primary) !important;
+        }
+        
+        /* User roles */
+        .role-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .role-admin {
+            background-color: rgba(27, 94, 32, 0.1);
+            color: var(--admin-primary);
+        }
+        
+        .role-manager {
+            background-color: rgba(2, 136, 209, 0.1);
+            color: var(--admin-info);
+        }
+        
+        .role-user {
+            background-color: rgba(56, 142, 60, 0.1);
+            color: var(--secondary-color);
+        }
+
+        /* Input group text */
+        .input-group-text {
+            border-radius: 0 8px 8px 0;
+            background-color: var(--background-medium);
+            border-color: var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            justify-content: center;
+            color: var(--admin-primary);
+        }
+        
+        .input-group-text:hover {
+            background-color: var(--border-color);
+        }
+        
+        .input-group .form-control {
+            border-radius: 8px 0 0 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with Interactive Navbar -->
+    <header class="header">
+        <div class="container-fluid">
+            <nav class="navbar navbar-expand-lg navbar-dark">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" alt="भारत सरकार">
+                        <span class="hindi">संचालनालय कृषि छत्तीसगढ़ - Admin Panel</span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="false">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <a class="nav-link hindi" href="gts.html">
+                                    <i class="fas fa-home me-1"></i> मुख्य एप्लिकेशन
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link hindi" href="#" id="helpLink">
+                                    <i class="fas fa-question-circle me-1"></i> सहायता
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle hindi" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user-circle me-1"></i> <span id="userNameDisplay">Admin</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item hindi" href="#" id="profileLink"><i class="fas fa-id-card me-2"></i> प्रोफ़ाइल</a></li>
+                                    <li><a class="dropdown-item hindi" href="#" id="changePasswordLink"><i class="fas fa-key me-2"></i> पासवर्ड बदलें</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item hindi" href="#" id="logoutLink"><i class="fas fa-sign-out-alt me-2"></i> लॉगआउट</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h5 class="hindi">Admin Dashboard</h5>
+            <p class="hindi" id="adminRoleDisplay">System Administrator</p>
+        </div>
+        <div class="sidebar-menu">
+            <a href="#admin-dashboard" class="menu-item active" id="adminDashboardLink">
+                <i class="fas fa-tachometer-alt"></i> <span class="hindi">Admin Dashboard</span>
+            </a>
+            <a href="#manage-users" class="menu-item" id="manageUsersLink">
+                <i class="fas fa-users"></i> <span class="hindi">Manage Users</span>
+            </a>
+            <a href="#manage-districts" class="menu-item" id="manageDistrictsLink">
+                <i class="fas fa-map-marker-alt"></i> <span class="hindi">Manage Districts</span>
+            </a>
+            <a href="#manage-crops" class="menu-item" id="manageCropsLink">
+                <i class="fas fa-seedling"></i> <span class="hindi">Manage Crops</span>
+            </a>
+            <a href="#system-settings" class="menu-item" id="systemSettingsLink">
+                <i class="fas fa-cogs"></i> <span class="hindi">System Settings</span>
+            </a>
+            <a href="#reports-admin" class="menu-item" id="reportsAdminLink">
+                <i class="fas fa-chart-bar"></i> <span class="hindi">Advanced Reports</span>
+            </a>
+            <a href="#activity-logs" class="menu-item" id="activityLogsLink">
+                <i class="fas fa-history"></i> <span class="hindi">Activity Logs</span>
+            </a>
+            <hr>
+            <a href="gts.html" class="menu-item">
+                <i class="fas fa-arrow-left"></i> <span class="hindi">Return to Main App</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content" id="mainContent">
+        <!-- Admin Dashboard Section -->
+        <div id="admin-dashboard-section" class="content-section">
+            <h4 class="page-title hindi">Admin Dashboard</h4>
+            
+            <!-- Quick Stats Cards -->
+            <div class="row">
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-primary mx-auto">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3 class="stats-value" id="totalUsers">0</h3>
+                            <p class="stats-label hindi">Total Users</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-info mx-auto">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <h3 class="stats-value" id="totalDistricts">0</h3>
+                            <p class="stats-label hindi">Total Districts</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-warning mx-auto">
+                                <i class="fas fa-seedling"></i>
+                            </div>
+                            <h3 class="stats-value" id="totalCrops">0</h3>
+                            <p class="stats-label hindi">Total Crops</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <div class="card stats-card">
+                        <div class="card-body text-center">
+                            <div class="stats-icon stats-danger mx-auto">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <h3 class="stats-value" id="pendingIssues">0</h3>
+                            <p class="stats-label hindi">Pending Issues</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- System Overview -->
+            <div class="row">
+                <div class="col-lg-8 mb-4">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">System Overview</h5>
+                            <button class="btn btn-sm btn-outline-primary" id="refreshOverviewBtn">
+                                <i class="fas fa-sync-alt me-1"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="systemOverviewChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="hindi">Recent Activities</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="list-group list-group-flush" id="recentActivitiesList">
+                                <!-- Activities will be populated dynamically -->
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">Loading activities...</h6>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="hindi">Quick Actions</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="addUserBtn">
+                                        <i class="fas fa-user-plus mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Add New User</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="addDistrictBtn">
+                                        <i class="fas fa-plus-circle mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Add District</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="addCropBtn">
+                                        <i class="fas fa-leaf mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Add Crop</span>
+                                    </button>
+                                </div>
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <button class="btn btn-outline-primary w-100 p-3" id="generateReportBtn">
+                                        <i class="fas fa-file-alt mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                        <span class="hindi">Generate Report</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manage Users Section -->
+        <div id="manage-users-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Manage Users</h4>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="hindi">All Users</h5>
+                    <button class="btn btn-primary" id="addNewUserBtn">
+                        <i class="fas fa-plus me-1"></i> Add New User
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Full Name</th>
+                                    <th>Role</th>
+                                    <th>District</th>
+                                    <th>Status</th>
+                                    <th>Last Login</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Users will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manage Districts Section -->
+        <div id="manage-districts-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Manage Districts</h4>
+            
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">All Districts</h5>
+                            <button class="btn btn-primary" id="addNewDistrictBtn">
+                                <i class="fas fa-plus me-1"></i> Add New District
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="districtsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Total Villages</th>
+                                            <th>Total Users</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Districts will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">District Distribution</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="districtChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Manage Crops Section -->
+        <div id="manage-crops-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Manage Crops</h4>
+            
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card mb-4">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">All Crops</h5>
+                            <button class="btn btn-primary" id="addNewCropBtn">
+                                <i class="fas fa-plus me-1"></i> Add New Crop
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="cropsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Code</th>
+                                            <th>Created At</th>
+                                            <th>Updated At</th>
+                                            <th>Actions </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Crops will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">Crop Categories</h5>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="cropCategoriesChart" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- System Settings Section -->
+        <div id="system-settings-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">System Settings</h4>
+            
+            <div class="row">
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">General Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="generalSettingsForm">
+                                <div class="mb-3">
+                                    <label for="systemName" class="form-label hindi">System Name</label>
+                                    <input type="text" class="form-control" id="systemName" value="संचालनालय कृषि छत्तीसगढ़ - ग्राउंड ट्रुथिंग सिस्टम">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="systemLogo" class="form-label hindi">System Logo URL</label>
+                                    <input type="text" class="form-control" id="systemLogo" value="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="defaultLanguage" class="form-label hindi">Default Language</label>
+                                    <select class="form-select" id="defaultLanguage">
+                                        <option value="hi" selected>Hindi</option>
+                                        <option value="en">English</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="sessionTimeout" class="form-label hindi">Session Timeout (minutes)</label>
+                                    <input type="number" class="form-control" id="sessionTimeout" value="30">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i> Save Settings
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">Email Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="emailSettingsForm">
+                                <div class="mb-3">
+                                    <label for="smtpServer" class="form-label hindi">SMTP Server</label>
+                                    <input type="text" class="form-control" id="smtpServer" placeholder="smtp.example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="smtpPort" class="form-label hindi">SMTP Port</label>
+                                    <input type="number" class="form-control" id="smtpPort" placeholder="587">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="smtpUsername" class="form-label hindi">SMTP Username</label>
+                                    <input type="text" class="form-control" id="smtpUsername" placeholder="username@example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="smtpPassword" class="form-label hindi">SMTP Password</label>
+                                    <input type="password" class="form-control" id="smtpPassword">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="senderEmail" class="form-label hindi">Sender Email</label>
+                                    <input type="email" class="form-control" id="senderEmail" placeholder="noreply@example.com">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i> Save Email Settings
+                                </button>
+                                <button type="button" class="btn btn-outline-primary ms-2" id="testEmailBtn">
+                                    <i class="fas fa-paper-plane me-2"></i> Send Test Email
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">Security Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="securitySettingsForm">
+                                <div class="mb-3">
+                                    <label class="form-label hindi">Password Policy</label>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="requireUppercase" checked>
+                                        <label class="form-check-label" for="requireUppercase">
+                                            Require uppercase letters
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="requireLowercase" checked>
+                                        <label class="form-check-label" for="requireLowercase">
+                                            Require lowercase letters
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="requireNumbers" checked>
+                                        <label class="form-check-label" for="requireNumbers">
+                                            Require numbers
+                                        </label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" id="requireSpecialChars">
+                                        <label class="form-check-label" for="requireSpecialChars">
+                                            Require special characters
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="minPasswordLength" class="form-label hindi">Minimum Password Length</label>
+                                    <input type="number" class="form-control" id="minPasswordLength" value="8">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="passwordExpiryDays" class="form-label hindi">Password Expiry (days)</label>
+                                    <input type="number" class="form-control" id="passwordExpiryDays" value="90">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="maxLoginAttempts" class="form-label hindi">Max Failed Login Attempts</label>
+                                    <input type="number" class="form-control" id="maxLoginAttempts" value="5">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i> Save Security Settings
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">Backup & Restore</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6 class="hindi mb-3">Database Backup</h6>
+                                <button type="button" class="btn btn-primary" id="backupDatabaseBtn">
+                                    <i class="fas fa-database me-2"></i> Backup Database
+                                </button>
+                                <button type="button" class="btn btn-outline-primary ms-2" id="scheduleBackupBtn">
+                                    <i class="fas fa-calendar-alt me-2"></i> Schedule Backups
+                                </button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="hindi mb-3">Restore Database</h6>
+                                <div class="input-group mb-3">
+                                    <input type="file" class="form-control" id="restoreFile" accept=".sql,.dump">
+                                    <button class="btn btn-outline-primary" type="button" id="restoreDatabaseBtn">
+                                        <i class="fas fa-upload me-2"></i> Restore
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> Restoring a database will overwrite all current data. Make sure to backup before restoring.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Advanced Reports Section -->
+        <div id="reports-admin-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Advanced Reports</h4>
+            
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="hindi">Generate Reports</h5>
+                            <div>
+                                <button class="btn btn-outline-primary me-2" id="exportReportExcelBtn">
+                                    <i class="fas fa-file-excel me-1"></i> Export to Excel
+                                </button>
+                                <button class="btn btn-outline-primary" id="exportReportPdfBtn">
+                                    <i class="fas fa-file-pdf me-1"></i> Export to PDF
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-4">
+                                <div class="col-md-3">
+                                    <label for="reportType" class="form-label hindi">Report Type</label>
+                                    <select class="form-select" id="reportType">
+                                        <option value="user">User Report</option>
+                                        <option value="district">District Report</option>
+                                        <option value="crop">Crop Report</option>
+                                        <option value="progress">Progress Report</option>
+                                        <option value="survey">Survey Data Report</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="reportDistrict" class="form-label hindi">District</label>
+                                    <select class="form-select" id="reportDistrict">
+                                        <option value="">All Districts</option>
+                                        <!-- Districts will be populated dynamically -->
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="reportDateFrom" class="form-label hindi">Date From</label>
+                                    <input type="date" class="form-control" id="reportDateFrom">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="reportDateTo" class="form-label hindi">Date To</label>
+                                    <input type="date" class="form-control" id="reportDateTo">
+                                </div>
+                            </div>
+                            <div class="d-grid">
+                                <button class="btn btn-primary" id="generateReportBtnAdv">
+                                    <i class="fas fa-chart-bar me-2"></i> Generate Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="hindi">Report Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="reportResults">
+                        <p class="text-center text-muted">Select report type and click "Generate Report" to view results.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Logs Section -->
+        <div id="activity-logs-section" class="content-section" style="display: none;">
+            <h4 class="page-title hindi">Activity Logs</h4>
+            
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="hindi">System Activity Logs</h5>
+                    <div>
+                        <button class="btn btn-outline-primary me-2" id="exportLogsBtn">
+                            <i class="fas fa-file-export me-1"></i> Export Logs
+                        </button>
+                        <button class="btn btn-outline-danger" id="clearLogsBtn">
+                            <i class="fas fa-trash me-1"></i> Clear Logs
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label for="logType" class="form-label hindi">Log Type</label>
+                            <select class="form-select" id="logType">
+                                <option value="">All Types</option>
+                                <option value="login">Login/Logout</option>
+                                <option value="user">User Management</option>
+                                <option value="data">Data Changes</option>
+                                <option value="system">System Changes</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="logUser" class="form-label hindi">User</label>
+                            <select class="form-select" id="logUser">
+                                <option value="">All Users</option>
+                                <!-- Users will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="logDateFrom" class="form-label hindi">Date From</label>
+                            <input type="date" class="form-control" id="logDateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="logDateTo" class="form-label hindi">Date To</label>
+                            <input type="date" class="form-control" id="logDateTo">
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="activityLogsTable">
+                            <thead>
+                                <tr>
+                                    <th>Date & Time</th>
+                                    <th>User</th>
+                                    <th>Activity Type</th>
+                                    <th>Description</th>
+                                    <th>IP Address</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Logs will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Sidebar Button for Mobile -->
+    <button class="sidebar-toggle" id="sidebarToggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="addUserModalLabel">Add New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addUserForm">
+                        <div class="mb-3">
+                            <label for="fullName" class="form-label hindi">पूरा नाम <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="fullName" placeholder="अपना पूरा नाम दर्ज करें" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="username" class="form-label hindi">यूजरनेम <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="username" placeholder="अपना यूजरनेम दर्ज करें" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label hindi">पासवर्ड <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" placeholder="अपना पासवर्ड दर्ज करें" required>
+                                <span class="input-group-text" id="togglePassword">
+                                    <i class="fas fa-eye-slash"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="confirmPassword" class="form-label hindi">पासवर्ड की पुष्टि करें <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="confirmPassword" placeholder="पासवर्ड पुन: दर्ज करें" required>
+                                <span class="input-group-text" id="toggleConfirmPassword">
+                                    <i class="fas fa-eye-slash"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label hindi">भूमिका <span class="text-danger">*</span></label>
+                            <select class="form-select" id="role" required>
+                                <option value="" selected disabled>भूमिका चुनें</option>
+                                <option value="admin">एडमिन</option>
+                                <option value="manager">मैनेजर</option>
+                                <option value="user">यूजर</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="district" class="form-label hindi">जिला <span class="text-danger">*</span></label>
+                            <select class="form-select" id="district" required>
+                                <option value="">-- जिला चुनें --</option>
+                                <!-- Districts will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="mobileNumber" class="form-label hindi">मोबाइल नंबर (वैकल्पिक)</label>
+                            <input type="tel" class="form-control" id="mobileNumber" placeholder="अपना मोबाइल नंबर दर्ज करें">
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label hindi">ईमेल (वैकल्पिक)</label>
+                            <input type="email" class="form-control" id="email" placeholder="अपना ईमेल दर्ज करें">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="isActive" checked>
+                            <label class="form-check-label hindi" for="isActive">Active Account</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">Save User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="editUserModalLabel">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        <div class="mb-3">
+                            <label for="editFullName" class="form-label hindi">पूरा नाम <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editFullName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUsername" class="form-label hindi">यूजरनेम <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editUsername" required readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRole" class="form-label hindi">भूमिका <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editRole" required>
+                                <option value="" disabled>भूमिका चुनें</option>
+                                <option value="admin">एडमिन</option>
+                                <option value="manager">मैनेजर</option>
+                                <option value="user">यूजर</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDistrict" class="form-label hindi">जिला <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editDistrict" required>
+                                <option value="">-- जिला चुनें --</option>
+                                <!-- Districts will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMobileNumber" class="form-label hindi">मोबाइल नंबर (वैकल्पिक)</label>
+                            <input type="tel" class="form-control" id="editMobileNumber">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label hindi">ईमेल (वैकल्पिक)</label>
+                            <input type="email" class="form-control" id="editEmail">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="editIsActive">
+                            <label class="form-check-label hindi" for="editIsActive">Active Account</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateUserBtn">Update User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Crop Modal -->
+    <div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="cropModalLabel">Add New Crop</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="cropForm">
+                        <input type="hidden" id="cropId">
+                        <div class="mb-3">
+                            <label for="cropName" class="form-label hindi">Crop Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="cropName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cropCode" class="form-label hindi">Crop Code <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="cropCode" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveCropBtn">Save Crop</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add District Modal -->
+    <div class="modal fade" id="districtModal" tabindex="-1" aria-labelledby="districtModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="districtModalLabel">Add New District</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="districtForm">
+                        <input type="hidden" id="districtId">
+                        <div class="mb-3">
+                            <label for="districtName" class="form-label hindi">District Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="districtName" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveDistrictBtn">Save District</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Supabase configuration
+            const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+            const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+            
+            // Initialize Supabase client
+            const { createClient } = supabase;
+            const supabaseClient = createClient(supabaseUrl, supabaseKey);
+            
+            // Current user data
+            let currentUser = null;
+            
+            // DOM elements for sections (cached for performance)
+            const sections = {
+                adminDashboard: document.getElementById('admin-dashboard-section'),
+                manageUsers: document.getElementById('manage-users-section'),
+                manageDistricts: document.getElementById('manage-districts-section'),
+                manageCrops: document.getElementById('manage-crops-section'),
+                systemSettings: document.getElementById('system-settings-section'),
+                reportsAdmin: document.getElementById('reports-admin-section'),
+                activityLogs: document.getElementById('activity-logs-section')
+            };
+            
+            // Menu items (cached for performance)
+            const menuItems = {
+                adminDashboard: document.getElementById('adminDashboardLink'),
+                manageUsers: document.getElementById('manageUsersLink'),
+                manageDistricts: document.getElementById('manageDistrictsLink'),
+                manageCrops: document.getElementById('manageCropsLink'),
+                systemSettings: document.getElementById('systemSettingsLink'),
+                reportsAdmin: document.getElementById('reportsAdminLink'),
+                activityLogs: document.getElementById('activityLogsLink')
+            };
+            
+            // Function to show/hide sections and manage active menu items
+            function showSection(sectionId) {
+                console.log(`Navigating to section: \${sectionId}`);
+                
+                // Hide all sections
+                Object.values(sections).forEach(section => {
+                    if (section) section.style.display = 'none';
+                });
+                
+                // Remove active class from all menu items
+                Object.values(menuItems).forEach(item => {
+                    if (item) item.classList.remove('active');
+                });
+                
+                // Show selected section and mark menu item as active
+                if (sections[sectionId]) {
+                    sections[sectionId].style.display = 'block';
+                }
+                if (menuItems[sectionId]) {
+                    menuItems[sectionId].classList.add('active');
+                }
+                // Load section-specific data
+                switch(sectionId) {
+                    case 'adminDashboard':
+                        loadDashboardData();
+                        break;
+                    case 'manageUsers':
+                        loadUsers();
+                        break;
+                    case 'manageDistricts':
+                        loadDistricts();
+                        break;
+                    case 'manageCrops':
+                        loadCrops();
+                        break;
+                    case 'activityLogs':
+                        loadActivityLogs();
+                        break;
+                    case 'reportsAdmin':
+                        setupReportForm();
+                        break;
+                }
+            }
+            
+            // Load user data from storage and update UI
+            async function loadUserData() {
+                try {
+                    const storedUserData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user'));
+                    
+                    if (!storedUserData) {
+                        console.log('No user data found in storage. Redirecting to login.');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    
+                    currentUser = storedUserData;
+                    console.log("Current user loaded:", currentUser);
+                    
+                    // Check if user is admin
+                    if (currentUser.role !== 'admin') {
+                        console.log('User is not an admin. Redirecting to main app.');
+                        window.location.href = 'gts.html';
+                        return;
+                    }
+                    
+                    // Update UI elements
+                    document.getElementById('userNameDisplay').textContent = currentUser.fullName || currentUser.username;
+                    document.getElementById('adminRoleDisplay').textContent = 'System Administrator';
+                    
+                } catch (error) {
+                    console.error('Failed to load user data or initialize app:', error);
+                    // Critical error, redirect to login
+                    window.location.href = 'login.html';
+                }
+            }
+            
+            // Load data for the Admin Dashboard
+            async function loadDashboardData() {
+                try {
+                    // Fetch total users count
+                    const { count: userCount, error: userError } = await supabaseClient
+                        .from('test_users')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (userError) throw userError;
+                    document.getElementById('totalUsers').textContent = userCount || '0';
+                    
+                    // Fetch total districts count
+                    const { count: districtCount, error: districtError } = await supabaseClient
+                        .from('districts')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (districtError) throw districtError;
+                    document.getElementById('totalDistricts').textContent = districtCount || '0';
+                    
+                    // Fetch total crops count
+                    const { count: cropCount, error: cropError } = await supabaseClient
+                        .from('crops')
+                        .select('*', { count: 'exact', head: true });
+                    
+                    if (cropError) throw cropError;
+                    document.getElementById('totalCrops').textContent = cropCount || '0';
+                    
+                    // For demonstration, set pending issues to a random number
+                    document.getElementById('pendingIssues').textContent = Math.floor(Math.random() * 10);
+                    
+                    // Initialize system overview chart
+                    initSystemOverviewChart();
+                    
+                    // Load recent activities
+                    loadRecentActivities();
+                    
+                } catch (error) {
+                    console.error('Error loading dashboard data:', error);
+                }
+            }
+            
+            // Initialize system overview chart
+            function initSystemOverviewChart() {
+                const ctx = document.getElementById('systemOverviewChart').getContext('2d');
+                
+                // Sample data for the chart
+                const data = {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [
+                        {
+                            label: 'Users',
+                            data: [12, 19, 25, 31, 42, 47, 50],
+                            borderColor: '#1B5E20',
+                            backgroundColor: 'rgba(27, 94, 32, 0.1)',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Survey Data',
+                            data: [5, 15, 30, 50, 65, 80, 120],
+                            borderColor: '#0288D1',
+                            backgroundColor: 'rgba(2, 136, 209, 0.1)',
+                            tension: 0.4
+                        }
+                    ]
+                };
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: false,
+                                text: 'System Overview'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Load recent activities
+            async function loadRecentActivities() {
+                try {
+                    const { data: activities, error } = await supabaseClient
+                        .from('activity_logs')
+                        .select(`created_at, activity_type, description, status, user_id, test_users(full_name)`)
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+                    
+                    if (error) throw error;
+                    
+                    const activitiesList = document.getElementById('recentActivitiesList');
+                    activitiesList.innerHTML = '';
+                    
+                    if (activities && activities.length > 0) {
+                        activities.forEach(activity => {
+                            const date = activity.created_at ? new Date(activity.created_at).toLocaleString() : 'N/A';
+                            const userName = activity.test_users ? activity.test_users.full_name : 'N/A';
+                            
+                            let statusClass = '';
+                            if (activity.status === 'success') statusClass = 'text-success';
+                            else if (activity.status === 'pending') statusClass = 'text-warning';
+                            else if (activity.status === 'failed') statusClass = 'text-danger';
+                            
+                            const activityItem = document.createElement('div');
+                            activityItem.className = 'list-group-item';
+                            activityItem.innerHTML = `
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">\${activity.activity_type}</h6>
+                                    <small>\${date}</small>
+                                </div>
+                                <p class="mb-1">\${activity.description}</p>
+                                <div class="d-flex justify-content-between">
+                                    <small>By: \${userName}</small>
+                                    <small class="${statusClass}">${activity.status}</small>
+                                </div>
+                            `;
+                            
+                            activitiesList.appendChild(activityItem);
+                        });
+                    } else {
+                        activitiesList.innerHTML = `
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">No recent activities found</h6>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('Error loading recent activities:', error);
+                    document.getElementById('recentActivitiesList').innerHTML = `
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Error loading activities</h6>
+                            </div>
+                            <p class="mb-1 text-danger">Failed to load recent activities</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Load users for the Manage Users section
+            let usersTableInstance = null;
+            async function loadUsers() {
+                try {
+                    const tableElement = document.getElementById('usersTable');
+                    if (!tableElement) {
+                        console.warn('Users table element not found.');
+                        return;
+                    }
+                    
+                    if (usersTableInstance) {
+                        usersTableInstance.destroy();
+                        usersTableInstance = null;
+                    }
+                    
+                    const { data: users, error } = await supabaseClient
+                        .from('test_users')
+                        .select(`
+                            id, username, full_name, role, district_id, 
+                            is_active, last_login, districts(name)
+                        `)
+                        .order('full_name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    const tableData = [];
+                    (users || []).forEach(user => {
+                        const roleBadge = getRoleBadge(user.role);
+                        const statusBadge = user.is_active ? 
+                            '<span class="badge bg-success">Active</span>' : 
+                            '<span class="badge bg-danger">Inactive</span>';
+                        
+                        const lastLogin = user.last_login ? 
+                            new Date(user.last_login).toLocaleString() : 'Never';
+                        
+                        tableData.push([
+                            user.id,
+                            user.username,
+                            user.full_name,
+                            roleBadge,
+                            user.districts?.name || 'N/A',
+                            statusBadge,
+                            lastLogin,
+                            `<div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-user-btn" data-id="\${user.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-user-btn" data-id="\${user.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`
+                        ]);
+                    });
+                    
+                    usersTableInstance = $(tableElement).DataTable({
+                        data: tableData,
+                        columns: [
+                            { title: "ID" },
+                            { title: "Username" },
+                            { title: "Full Name" },
+                            { title: "Role" },
+                            { title: "District" },
+                            { title: "Status" },
+                            { title: "Last Login" },
+                            { title: "Actions" }
+                        ],
+                        responsive: true,
+                        language: {
+                            search: "Search:",
+                            paginate: { next: 'Next', previous: 'Previous' },
+                            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                            infoEmpty: "Showing 0 to 0 of 0 entries",
+                            infoFiltered: "(filtered from _MAX_ total entries)",
+                            lengthMenu: "Show _MENU_ entries"
+                        }
+                    });
+                    
+                    // Add event listeners for edit and delete buttons
+                    $(tableElement).off('click', '.edit-user-btn').on('click', '.edit-user-btn', function() {
+                        const userId = $(this).data('id');
+                        editUser(userId);
+                    });
+                    
+                    $(tableElement).off('click', '.delete-user-btn').on('click', '.delete-user-btn', function() {
+                        const userId = $(this).data('id');
+                        deleteUser(userId);
+                    });
+                    
+                } catch (error) {
+                    console.error('Error loading users:', error);
+                }
+            }
+            
+            // Helper function to get role badge HTML
+            function getRoleBadge(role) {
+                switch(role) {
+                    case 'admin':
+                        return '<span class="role-badge role-admin">Admin</span>';
+                    case 'manager':
+                        return '<span class="role-badge role-manager">Manager</span>';
+                    case 'user':
+                        return '<span class="role-badge role-user">User</span>';
+                    default:
+                        return '<span class="role-badge">Unknown</span>';
+                }
+            }
+            
+            // Edit user function
+            async function editUser(userId) {
+                try {
+                    const { data: user, error } = await supabaseClient
+                        .from('test_users')
+                        .select(`
+                            id, username, full_name, role, district_id, 
+                            is_active, mobile_number, email
+                        `)
+                        .eq('id', userId)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (user) {
+                        // Populate edit user form
+                        document.getElementById('editUserId').value = user.id;
+                        document.getElementById('editFullName').value = user.full_name || '';
+                        document.getElementById('editUsername').value = user.username || '';
+                        document.getElementById('editRole').value = user.role || '';
+                        document.getElementById('editDistrict').value = user.district_id || '';
+                        document.getElementById('editMobileNumber').value = user.mobile_number || '';
+                        document.getElementById('editEmail').value = user.email || '';
+                        document.getElementById('editIsActive').checked = user.is_active;
+                        
+                        // Show the modal
+                        const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+                        editUserModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error fetching user data for editing:', error);
+                    alert('Failed to load user data for editing. Please try again.');
+                }
+            }
+            
+            // Delete user function
+            function deleteUser(userId) {
+                if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                    supabaseClient
+                        .from('test_users')
+                        .update({ is_active: false })
+                        .eq('id', userId)
+                        .then(({ error }) => {
+                            if (error) {
+                                console.error('Error deactivating user:', error);
+                                alert('Failed to deactivate user. Please try again.');
+                            } else {
+                                alert('User deactivated successfully!');
+                                loadUsers(); // Reload the users table
+                                
+                                // Log activity
+                                supabaseClient.from('activity_logs').insert({
+                                    user_id: currentUser.id,
+                                    activity_type: 'User Management',
+                                    description: `User with ID \${userId} was deactivated`,
+                                    status: 'success'
+                                });
+                            }
+                        });
+                }
+            }
+            
+            // Load districts for the Manage Districts section
+            let districtsTableInstance = null;
+            async function loadDistricts() {
+                try {
+                    const tableElement = document.getElementById('districtsTable');
+                    if (!tableElement) {
+                        console.warn('Districts table element not found.');
+                        return;
+                    }
+                    
+                    if (districtsTableInstance) {
+                        districtsTableInstance.destroy();
+                        districtsTableInstance = null;
+                    }
+                    
+                    const { data: districts, error } = await supabaseClient
+                        .from('districts')
+                        .select('id, name')
+                        .order('name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    // Get village counts for each district
+                    const districtData = [];
+                    
+                    for (const district of districts || []) {
+                        // Get village count
+                        const { count: villageCount, error: villageError } = await supabaseClient
+                            .from('villages')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('district_id', district.id);
+                            
+                        if (villageError) throw villageError;
+                        
+                        // Get user count
+                        const { count: userCount, error: userError } = await supabaseClient
+                            .from('test_users')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('district_id', district.id);
+                            
+                        if (userError) throw userError;
+                        
+                        districtData.push([
+                            district.id,
+                            district.name,
+                            villageCount || 0,
+                            userCount || 0,
+                            '<span class="badge bg-success">Active</span>',
+                            `<div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-district-btn" data-id="\${district.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-district-btn" data-id="\${district.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`
+                        ]);
+                    }
+                    
+                    districtsTableInstance = $(tableElement).DataTable({
+                        data: districtData,
+                        columns: [
+                            { title: "ID" },
+                            { title: "Name" },
+                            { title: "Total Villages" },
+                            { title: "Total Users" },
+                            { title: "Status" },
+                            { title: "Actions" }
+                        ],
+                        responsive: true
+                    });
+                    
+                    // Add event listeners for edit and delete buttons
+                    $(tableElement).off('click', '.edit-district-btn').on('click', '.edit-district-btn', function() {
+                        const districtId = $(this).data('id');
+                        editDistrict(districtId);
+                    });
+                    
+                    $(tableElement).off('click', '.delete-district-btn').on('click', '.delete-district-btn', function() {
+                        const districtId = $(this).data('id');
+                        deleteDistrict(districtId);
+                    });
+                    
+                    // Initialize district chart
+                    initDistrictChart(districts);
+                    
+                } catch (error) {
+                    console.error('Error loading districts:', error);
+                }
+            }
+            
+            // Initialize district chart
+            function initDistrictChart(districts) {
+                const ctx = document.getElementById('districtChart').getContext('2d');
+                
+                // Extract district names and generate random data for demonstration
+                const labels = districts.map(district => district.name);
+                const data = districts.map(() => Math.floor(Math.random() * 100) + 10);
+                
+                new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: [
+                                '#1B5E20', '#388E3C', '#4CAF50', '#8BC34A', '#CDDC39',
+                                '#0288D1', '#03A9F4', '#00BCD4', '#009688', '#4DB6AC'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Edit district function
+            async function editDistrict(districtId) {
+                try {
+                    const { data: district, error } = await supabaseClient
+                        .from('districts')
+                        .select('id, name')
+                        .eq('id', districtId)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (district) {
+                        // Populate district form
+                        document.getElementById('districtId').value = district.id;
+                        document.getElementById('districtName').value = district.name;
+                        document.getElementById('districtModalLabel').textContent = 'Edit District';
+                        
+                        // Show the modal
+                        const districtModal = new bootstrap.Modal(document.getElementById('districtModal'));
+                        districtModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error fetching district data for editing:', error);
+                    alert('Failed to load district data for editing. Please try again.');
+                }
+            }
+            
+            // Delete district function
+            function deleteDistrict(districtId) {
+                alert(`Delete district functionality is disabled for safety reasons.`);
+                // In a real system, this would require careful handling of dependencies
+            }
+            
+            // Load crops for the Manage Crops section
+            let cropsTableInstance = null;
+            async function loadCrops() {
+                try {
+                    const tableElement = document.getElementById('cropsTable');
+                    if (!tableElement) {
+                        console.warn('Crops table element not found.');
+                        return;
+                    }
+                    
+                    if (cropsTableInstance) {
+                        cropsTableInstance.destroy();
+                        cropsTableInstance = null;
+                    }
+                    
+                    const { data: crops, error } = await supabaseClient
+                        .from('crops')
+                        .select('id, name, code, created_at, updated_at')
+                        .order('name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    const cropData = [];
+                    (crops || []).forEach(crop => {
+                        const createdAt = crop.created_at ? new Date(crop.created_at).toLocaleString() : 'N/A';
+                        const updatedAt = crop.updated_at ? new Date(crop.updated_at).toLocaleString() : 'N/A';
+                        
+                        cropData.push([
+                            crop.id,
+                            crop.name,
+                            crop.code,
+                            createdAt,
+                            updatedAt,
+                            `<div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary edit-crop-btn" data-id="\${crop.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger delete-crop-btn" data-id="\${crop.id}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`
+                        ]);
+                    });
+                    
+                    cropsTableInstance = $(tableElement).DataTable({
+                        data: cropData,
+                        columns: [
+                            { title: "ID" },
+                            { title: "Name" },
+                            { title: "Code" },
+                            { title: "Created At" },
+                            { title: "Updated At" },
+                            { title: "Actions" }
+                        ],
+                        responsive: true
+                    });
+                    
+                    // Add event listeners for edit and delete buttons
+                    $(tableElement).off('click', '.edit-crop-btn').on('click', '.edit-crop-btn', function() {
+                        const cropId = $(this).data('id');
+                        editCrop(cropId);
+                    });
+                    
+                    $(tableElement).off('click', '.delete-crop-btn').on('click', '.delete-crop-btn', function() {
+                        const cropId = $(this).data('id');
+                        deleteCrop(cropId);
+                    });
+                    
+                    // Initialize crop categories chart
+                    initCropCategoriesChart();
+                    
+                } catch (error) {
+                    console.error('Error loading crops:', error);
+                }
+            }
+            
+            // Initialize crop categories chart
+            function initCropCategoriesChart() {
+                const ctx = document.getElementById('cropCategoriesChart').getContext('2d');
+                
+                // Sample data for demonstration
+                const data = {
+                    labels: ['Cereals', 'Pulses', 'Oilseeds', 'Vegetables', 'Fruits'],
+                    datasets: [{
+                        data: [30, 15, 20, 25, 10],
+                        backgroundColor: [
+                            '#1B5E20', '#388E3C', '#4CAF50', '#8BC34A', '#CDDC39'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+                
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: data,
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Edit crop function
+            async function editCrop(cropId) {
+                try {
+                    const { data: crop, error } = await supabaseClient
+                        .from('crops')
+                        .select('id, name, code')
+                        .eq('id', cropId)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (crop) {
+                        // Populate crop form
+                        document.getElementById('cropId').value = crop.id;
+                        document.getElementById('cropName').value = crop.name;
+                        document.getElementById('cropCode').value = crop.code;
+                        document.getElementById('cropModalLabel').textContent = 'Edit Crop';
+                        
+                        // Show the modal
+                        const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
+                        cropModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error fetching crop data for editing:', error);
+                    alert('Failed to load crop data for editing. Please try again.');
+                }
+            }
+            
+            // Delete crop function
+            function deleteCrop(cropId) {
+                if (confirm('Are you sure you want to delete this crop? This action cannot be undone.')) {
+                    // Check if crop is used in district_crop_progress table first
+                    supabaseClient
+                        .from('district_crop_progress')
+                        .select('id')
+                        .eq('crop_id', cropId)
+                        .then(({ data, error }) => {
+                            if (error) {
+                                console.error('Error checking crop usage:', error);
+                                alert('Error checking if crop can be deleted. Please try again.');
+                                return;
+                            }
+                            
+                            if (data && data.length > 0) {
+                                alert('This crop cannot be deleted because it is being used in progress data. Deactivate it instead.');
+                                return;
+                            }
+                            
+                            // If crop is not used, proceed with deletion
+                            supabaseClient
+                                .from('crops')
+                                .delete()
+                                .eq('id', cropId)
+                                .then(({ error: deleteError }) => {
+                                    if (deleteError) {
+                                        console.error('Error deleting crop:', deleteError);
+                                        alert('Failed to delete crop. Please try again.');
+                                    } else {
+                                        alert('Crop deleted successfully!');
+                                        loadCrops(); // Reload the crops table
+                                        
+                                        // Log activity
+                                        supabaseClient.from('activity_logs').insert({
+                                            user_id: currentUser.id,
+                                            activity_type: 'Crop Management',
+                                            description: `Crop with ID \${cropId} was deleted`,
+                                            status: 'success'
+                                        });
+                                    }
+                                });
+                        });
+                }
+            }
+            
+            // Load activity logs
+            let activityLogsTableInstance = null;
+            async function loadActivityLogs() {
+                try {
+                    const tableElement = document.getElementById('activityLogsTable');
+                    if (!tableElement) {
+                        console.warn('Activity logs table element not found.');
+                        return;
+                    }
+                    
+                    if (activityLogsTableInstance) {
+                        activityLogsTableInstance.destroy();
+                        activityLogsTableInstance = null;
+                    }
+                    
+                    const { data: logs, error } = await supabaseClient
+                        .from('activity_logs')
+                        .select(`
+                            created_at, activity_type, description, status, 
+                            user_id, test_users(username, full_name)
+                        `)
+                        .order('created_at', { ascending: false })
+                        .limit(100);
+                    
+                    if (error) throw error;
+                    
+                    const logsData = [];
+                    (logs || []).forEach(log => {
+                        const datetime = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
+                        const userName = log.test_users ? log.test_users.full_name : 'N/A';
+                        
+                        let statusBadge = '';
+                        if (log.status === 'success') {
+                            statusBadge = '<span class="badge bg-success">Success</span>';
+                        } else if (log.status === 'pending') {
+                            statusBadge = '<span class="badge bg-warning">Pending</span>';
+                        } else if (log.status === 'failed') {
+                            statusBadge = '<span class="badge bg-danger">Failed</span>';
+                        } else {
+                            statusBadge = '<span class="badge bg-secondary">Unknown</span>';
+                        }
+                        
+                        logsData.push([
+                            datetime,
+                            userName,
+                            log.activity_type,
+                            log.description,
+                            '192.168.1.1', // Placeholder IP address
+                            statusBadge
+                        ]);
+                    });
+                    
+                    activityLogsTableInstance = \$(tableElement).DataTable({
+                        data: logsData,
+                        columns: [
+                            { title: "Date & Time" },
+                            { title: "User" },
+                            { title: "Activity Type" },
+                            { title: "Description" },
+                            { title: "IP Address" },
+                            { title: "Status" }
+                        ],
+                        order: [[0, 'desc']],
+                        responsive: true
+                    });
+                    
+                    // Populate users dropdown for filtering
+                    loadUsersForLogsFilter();
+                    
+                } catch (error) {
+                    console.error('Error loading activity logs:', error);
+                }
+            }
+            
+            // Load users for logs filter
+            async function loadUsersForLogsFilter() {
+                try {
+                    const { data: users, error } = await supabaseClient
+                        .from('test_users')
+                        .select('id, full_name')
+                        .order('full_name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    const userSelect = document.getElementById('logUser');
+                    if (userSelect) {
+                        // Clear existing options except the first one
+                        while (userSelect.options.length > 1) {
+                            userSelect.remove(1);
+                        }
+                        
+                        // Add users to dropdown
+                        (users || []).forEach(user => {
+                            const option = document.createElement('option');
+                            option.value = user.id;
+                            option.textContent = user.full_name;
+                            userSelect.appendChild(option);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading users for logs filter:', error);
+                }
+            }
+            
+            // Setup report form
+            async function setupReportForm() {
+                try {
+                    // Load districts for report form
+                    const { data: districts, error } = await supabaseClient
+                        .from('districts')
+                        .select('id, name')
+                        .order('name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    const districtSelect = document.getElementById('reportDistrict');
+                    if (districtSelect) {
+                        // Clear existing options except the first one
+                        while (districtSelect.options.length > 1) {
+                            districtSelect.remove(1);
+                        }
+                        
+                        // Add districts to dropdown
+                        (districts || []).forEach(district => {
+                            const option = document.createElement('option');
+                            option.value = district.id;
+                            option.textContent = district.name;
+                            districtSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Set default dates for report
+                    const today = new Date();
+                    const oneMonthAgo = new Date();
+                    oneMonthAgo.setMonth(today.getMonth() - 1);
+                    
+                    const dateFrom = document.getElementById('reportDateFrom');
+                    const dateTo = document.getElementById('reportDateTo');
+                    
+                    if (dateFrom) {
+                        dateFrom.valueAsDate = oneMonthAgo;
+                    }
+                    if (dateTo) {
+                        dateTo.valueAsDate = today;
+                    }
+                } catch (error) {
+                    console.error('Error setting up report form:', error);
+                }
+            }
+            
+            // Generate Report
+            async function generateReport() {
+                const reportType = document.getElementById('reportType').value;
+                const districtId = document.getElementById('reportDistrict').value;
+                const dateFrom = document.getElementById('reportDateFrom').value;
+                const dateTo = document.getElementById('reportDateTo').value;
+                
+                const reportResults = document.getElementById('reportResults');
+                reportResults.innerHTML = '<p class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading report data...</p>';
+                
+                try {
+                    let data, error, tableHtml;
+                    
+                    switch (reportType) {
+                        case 'user':
+                            // User report
+                            const userQuery = supabaseClient
+                                .from('test_users')
+                                .select(`
+                                    id, username, full_name, role, 
+                                    districts(name), is_active, last_login
+                                `)
+                                .order('full_name', { ascending: true });
+                            
+                            if (districtId) {
+                                userQuery.eq('district_id', districtId);
+                            }
+                            
+                            const { data: userData, error: userError } = await userQuery;
+                            data = userData;
+                            error = userError;
+                            
+                            if (error) throw error;
+                            
+                            tableHtml = `
+                                <table class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Username</th>
+                                            <th>Full Name</th>
+                                            <th>Role</th>
+                                            <th>District</th>
+                                            <th>Status</th>
+                                            <th>Last Login</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            `;
+                            
+                            if (data && data.length > 0) {
+                                data.forEach(user => {
+                                    tableHtml += `
+                                        <tr>
+                                            <td>\${user.username}</td>
+                                            <td>\${user.full_name}</td>
+                                            <td>\${user.role}</td>
+                                            <td>\${user.districts?.name || 'N/A'}</td>
+                                            <td>\${user.is_active ? 'Active' : 'Inactive'}</td>
+                                            <td>\${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</td>
+                                        </tr>
+                                    `;
+                                });
+                            } else {
+                                tableHtml += `
+                                    <tr>
+                                        <td colspan="6" class="text-center">No user data found</td>
+                                    </tr>
+                                `;
+                            }
+                            
+                            tableHtml += `
+                                    </tbody>
+                                </table>
+                            `;
+                            break;
+                            
+                        case 'crop':
+                            // Crop report
+                            const { data: cropData, error: cropError } = await supabaseClient
+                                .from('crops')
+                                .select('id, name, code, created_at, updated_at')
+                                .order('name', { ascending: true });
+                            
+                            data = cropData;
+                            error = cropError;
+                            
+                            if (error) throw error;
+                            
+                            tableHtml = `
+                                <table class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Code</th>
+                                            <th>Created At</th>
+                                            <th>Updated At</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            `;
+                            
+                            if (data && data.length > 0) {
+                                data.forEach(crop => {
+                                    tableHtml += `
+                                        <tr>
+                                            <td>\${crop.name}</td>
+                                            <td>\${crop.code}</td>
+                                            <td>\${crop.created_at ? new Date(crop.created_at).toLocaleString() : 'N/A'}</td>
+                                            <td>\${crop.updated_at ? new Date(crop.updated_at).toLocaleString() : 'N/A'}</td>
+                                        </tr>
+                                    `;
+                                });
+                            } else {
+                                tableHtml += `
+                                    <tr>
+                                        <td colspan="4" class="text-center">No crop data found</td>
+                                    </tr>
+                                `;
+                            }
+                            
+                            tableHtml += `
+                                    </tbody>
+                                </table>
+                            `;
+                            break;
+                            
+                        case 'progress':
+                            // Progress report
+                            const progressQuery = supabaseClient
+                                .from('district_crop_progress')
+                                .select(`
+                                    id, target_gts, achieved_gts, updated_at,
+                                    districts(name), crops(name, code)
+                                `)
+                                .order('updated_at', { ascending: false });
+                            
+                            if (districtId) {
+                                progressQuery.eq('district_id', districtId);
+                            }
+                            
+                            const { data: progressData, error: progressError } = await progressQuery;
+                            data = progressData;
+                            error = progressError;
+                            
+                            if (error) throw error;
+                            
+                            tableHtml = `
+                                <table class="table table-striped table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>District</th>
+                                            <th>Crop</th>
+                                            <th>Crop Code</th>
+                                            <th>Target GTS</th>
+                                            <th>Achieved GTS</th>
+                                            <th>Progress %</th>
+                                            <th>Last Updated</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                            `;
+                            
+                            if (data && data.length > 0) {
+                                data.forEach(progress => {
+                                    const progressPercent = progress.target_gts > 0 
+                                        ? Math.round((progress.achieved_gts / progress.target_gts) * 100) 
+                                        : 0;
+                                    
+                                    tableHtml += `
+                                        <tr>
+                                            <td>\${progress.districts?.name || 'N/A'}</td>
+                                            <td>\${progress.crops?.name || 'N/A'}</td>
+                                            <td>\${progress.crops?.code || 'N/A'}</td>
+                                            <td>\${progress.target_gts}</td>
+                                            <td>\${progress.achieved_gts}</td>
+                                            <td>\${progressPercent}%</td>
+                                            <td>\${progress.updated_at ? new Date(progress.updated_at).toLocaleString() : 'N/A'}</td>
+                                        </tr>
+                                    `;
+                                });
+                            } else {
+                                tableHtml += `
+                                    <tr>
+                                        <td colspan="7" class="text-center">No progress data found</td>
+                                    </tr>
+                                `;
+                            }
+                            
+                            tableHtml += `
+                                    </tbody>
+                                </table>
+                            `;
+                            break;
+                            
+                        default:
+                            tableHtml = `<p class="text-center">Please select a valid report type</p>`;
+                    }
+                    
+                    // Add report header
+                    const reportHeader = `
+                        <div class="mb-4">
+                            <h5 class="text-center mb-3">\${getReportTitle(reportType)}</h5>
+                            <div class="d-flex justify-content-between mb-3">
+                                <p><strong>Generated:</strong> \${new Date().toLocaleString()}</p>
+                                <p><strong>Generated By:</strong> \${currentUser.fullName || currentUser.username}</p>
+                            </div>
+                            \${districtId ? `<p><strong>District:</strong> ${document.getElementById('reportDistrict').options[document.getElementById('reportDistrict').selectedIndex].text}</p>` : ''}
+                            \${dateFrom ? `<p><strong>Date Range:</strong> ${new Date(dateFrom).toLocaleDateString()} to ${new Date(dateTo).toLocaleDateString()}</p>` : ''}
+                        </div>
+                    `;
+                    
+                    reportResults.innerHTML = reportHeader + tableHtml;
+                    
+                    // Log activity
+                    await supabaseClient.from('activity_logs').insert({
+                        user_id: currentUser.id,
+                        activity_type: 'Report Generation',
+                        description: `Generated \${reportType} report`,
+                        status: 'success'
+                    });
+                    
+                } catch (error) {
+                    console.error('Error generating report:', error);
+                    reportResults.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error generating report. Please try again.
+                        </div>
+                    `;
+                }
+            }
+            
+            // Get report title based on report type
+            function getReportTitle(reportType) {
+                switch (reportType) {
+                    case 'user':
+                        return 'User Report';
+                    case 'district':
+                        return 'District Report';
+                    case 'crop':
+                        return 'Crop Report';
+                    case 'progress':
+                        return 'Progress Report';
+                    case 'survey':
+                        return 'Survey Data Report';
+                    default:
+                        return 'Report';
+                }
+            }
+            
+            // Export report to Excel
+            function exportReportToExcel() {
+                const reportResults = document.getElementById('reportResults');
+                const reportType = document.getElementById('reportType').value;
+                
+                if (!reportResults.querySelector('table')) {
+                    alert('Please generate a report first');
+                    return;
+                }
+                
+                // Get table data
+                const table = reportResults.querySelector('table');
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.table_to_sheet(table);
+                
+                // Add title and metadata
+                const title = getReportTitle(reportType);
+                const dateGenerated = new Date().toLocaleString();
+                
+                // Add header rows (A1, A2, etc.)
+                XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: 'A1' });
+                XLSX.utils.sheet_add_aoa(ws, [[`Generated: ${dateGenerated}`]], { origin: 'A2' });
+                XLSX.utils.sheet_add_aoa(ws, [[`Generated By: ${currentUser.fullName || currentUser.username}`]], { origin: 'A3' });
+                
+                // Style header cells (make them bold, etc.)
+                if (!ws['!cols']) ws['!cols'] = [];
+                for (let i = 0; i < 10; i++) {
+                    ws['!cols'][i] = { wch: 20 }; // Set column width
+                }
+                
+                // Add the worksheet to the workbook
+                XLSX.utils.book_append_sheet(wb, ws, title);
+                
+                // Generate Excel file
+                const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // Log activity
+                supabaseClient.from('activity_logs').insert({
+                    user_id: currentUser.id,
+                    activity_type: 'Report Export',
+                    description: `Exported ${reportType} report to Excel`,
+                    status: 'success'
+                });
+            }
+            
+            // Export report to PDF
+            function exportReportToPdf() {
+                const reportResults = document.getElementById('reportResults');
+                const reportType = document.getElementById('reportType').value;
+                
+                if (!reportResults.querySelector('table')) {
+                    alert('Please generate a report first');
+                    return;
+                }
+                
+                // Get table data
+                const table = reportResults.querySelector('table');
+                
+                // Initialize jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape');
+                
+                // Add title and metadata
+                const title = getReportTitle(reportType);
+                const dateGenerated = new Date().toLocaleString();
+                
+                doc.setFontSize(18);
+                doc.text(title, 14, 22);
+                
+                doc.setFontSize(12);
+                doc.text(`Generated: ${dateGenerated}`, 14, 30);
+                doc.text(`Generated By: ${currentUser.fullName || currentUser.username}`, 14, 38);
+                
+                // Add district and date range if applicable
+                const districtId = document.getElementById('reportDistrict').value;
+                if (districtId) {
+                    const districtName = document.getElementById('reportDistrict').options[document.getElementById('reportDistrict').selectedIndex].text;
+                    doc.text(`District: ${districtName}`, 14, 46);
+                }
+                
+                const dateFrom = document.getElementById('reportDateFrom').value;
+                const dateTo = document.getElementById('reportDateTo').value;
+                if (dateFrom && dateTo) {
+                    doc.text(`Date Range: ${new Date(dateFrom).toLocaleDateString()} to ${new Date(dateTo).toLocaleDateString()}`, 14, districtId ? 54 : 46);
+                }
+                
+                // Convert table to jsPDF autoTable
+                doc.autoTable({
+                    html: table,
+                    startY: districtId ? (dateFrom ? 60 : 52) : (dateFrom ? 52 : 44),
+                    styles: {
+                        halign: 'center',
+                        fontSize: 10
+                    },
+                    headStyles: {
+                        fillColor: [27, 94, 32],
+                        textColor: [255, 255, 255],
+                        fontStyle: 'bold'
+                    },
+                    alternateRowStyles: {
+                        fillColor: [241, 248, 233]
+                    },
+                    margin: { top: 60, right: 14, bottom: 20, left: 14 }
+                });
+                
+                // Generate PDF file
+                const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
+                
+                // Log activity
+                supabaseClient.from('activity_logs').insert({
+                    user_id: currentUser.id,
+                    activity_type: 'Report Export',
+                    description: `Exported ${reportType} report to PDF`,
+                    status: 'success'
+                });
+            }
+            
+            // Hash password with SHA-256
+            async function hashPassword(password) {
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+            
+            // Toggle password visibility
+            function setupPasswordToggles() {
+                const togglePassword = document.getElementById('togglePassword');
+                if (togglePassword) {
+                    togglePassword.addEventListener('click', function() {
+                        const passwordInput = document.getElementById('password');
+                        const icon = this.querySelector('i');
+                        
+                        if (passwordInput.type === 'password') {
+                            passwordInput.type = 'text';
+                            icon.classList.remove('fa-eye-slash');
+                            icon.classList.add('fa-eye');
+                        } else {
+                            passwordInput.type = 'password';
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                        }
+                    });
+                }
+                
+                const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+                if (toggleConfirmPassword) {
+                    toggleConfirmPassword.addEventListener('click', function() {
+                        const passwordInput = document.getElementById('confirmPassword');
+                        const icon = this.querySelector('i');
+                        
+                        if (passwordInput.type === 'password') {
+                            passwordInput.type = 'text';
+                            icon.classList.remove('fa-eye-slash');
+                            icon.classList.add('fa-eye');
+                        } else {
+                            passwordInput.type = 'password';
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                        }
+                    });
+                }
+            }
+            
+            // Set up event listeners
+            function setupEventListeners() {
+                // Menu item clicks
+                Object.entries(menuItems).forEach(([sectionId, menuItem]) => {
+                    if (menuItem) {
+                        menuItem.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            showSection(sectionId);
+                        });
+                    }
+                });
+                
+                // Profile link
+                document.getElementById('profileLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Typically would open a profile modal or navigate to profile page
+                    alert('Profile functionality is under development');
+                });
+                
+                // Change password link
+                document.getElementById('changePasswordLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Would typically open a change password modal
+                    alert('Change password functionality is under development');
+                });
+                
+                // Logout link
+                document.getElementById('logoutLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    // Clear user data from storage
+                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
+                    
+                    // Log activity
+                    supabaseClient.from('activity_logs').insert({
+                        user_id: currentUser ? currentUser.id : null,
+                        activity_type: 'Logout',
+                        description: 'User logged out',
+                        status: 'success'
+                    }).then(() => {
+                        window.location.href = 'login.html'; // Redirect after logging
+                    }).catch(error => {
+                        console.error('Error logging logout activity:', error);
+                        window.location.href = 'login.html'; // Redirect anyway
+                    });
+                });
+                
+                // Help link
+                document.getElementById('helpLink').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    alert('Admin help documentation is under development.');
+                });
+                
+                // Add new user button
+                document.getElementById('addNewUserBtn').addEventListener('click', () => {
+                    // Reset form
+                    document.getElementById('addUserForm').reset();
+                    
+                    // Show modal
+                    const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
+                    addUserModal.show();
+                });
+                
+                // Save user button
+                document.getElementById('saveUserBtn').addEventListener('click', async () => {
+                    // Get form values
+                    const fullName = document.getElementById('fullName').value;
+                    const username = document.getElementById('username').value;
+                    const password = document.getElementById('password').value;
+                    const confirmPassword = document.getElementById('confirmPassword').value;
+                    const role = document.getElementById('role').value;
+                    const districtId = document.getElementById('district').value;
+                    const mobileNumber = document.getElementById('mobileNumber').value;
+                    const email = document.getElementById('email').value;
+                    const isActive = document.getElementById('isActive').checked;
+                    
+                    // Validate form
+                    if (!fullName || !username || !password || !confirmPassword || !role) {
+                        alert('Please fill in all required fields');
+                        return;
+                    }
+                    
+                    if (password !== confirmPassword) {
+                        alert('Passwords do not match');
+                        return;
+                    }
+                    
+                    try {
+                        // Check if username already exists
+                        const { data: existingUser, error: checkError } = await supabaseClient
+                            .from('test_users')
+                            .select('username')
+                            .eq('username', username)
+                            .single();
+                        
+                        if (existingUser) {
+                            alert('Username already exists. Please choose another one.');
+                            return;
+                        }
+                        
+                        // Hash password
+                        const hashedPassword = await hashPassword(password);
+                        
+                        // Insert new user
+                        const { data, error } = await supabaseClient
+                            .from('test_users')
+                            .insert({
+                                username: username,
+                                full_name: fullName,
+                                password_hash: hashedPassword,
+                                role: role,
+                                district_id: districtId || null,
+                                mobile_number: mobileNumber || null,
+                                email: email || null,
+                                is_active: isActive,
+                                created_at: new Date().toISOString()
+                            });
+                        
+                        if (error) throw error;
+                        
+                        // Log activity
+                        await supabaseClient.from('activity_logs').insert({
+                            user_id: currentUser.id,
+                            activity_type: 'User Management',
+                            description: `New user '${username}' was created`,
+                            status: 'success'
+                        });
+                        
+                        // Close modal and reload users
+                        const addUserModal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                        addUserModal.hide();
+                        
+                        alert('User added successfully!');
+                        loadUsers();
+                        
+                    } catch (error) {
+                        console.error('Error adding user:', error);
+                        alert('Failed to add user. Please try again.');
+                    }
+                });
+                
+                // Update user button
+                document.getElementById('updateUserBtn').addEventListener('click', async () => {
+                    // Get form values
+                    const userId = document.getElementById('editUserId').value;
+                    const fullName = document.getElementById('editFullName').value;
+                    const role = document.getElementById('editRole').value;
+                    const districtId = document.getElementById('editDistrict').value;
+                    const mobileNumber = document.getElementById('editMobileNumber').value;
+                    const email = document.getElementById('editEmail').value;
+                    const isActive = document.getElementById('editIsActive').checked;
+                    
+                    // Validate form
+                    if (!fullName || !role) {
+                        alert('Please fill in all required fields');
+                        return;
+                    }
+                    
+                    try {
+                        // Update user
+                        const { error } = await supabaseClient
+                            .from('test_users')
+                            .update({
+                                full_name: fullName,
+                                role: role,
+                                district_id: districtId || null,
+                                mobile_number: mobileNumber || null,
+                                email: email || null,
+                                is_active: isActive,
+                                updated_at: new Date().toISOString()
+                            })
+                            .eq('id', userId);
+                        
+                        if (error) throw error;
+                        
+                        // Log activity
+                        await supabaseClient.from('activity_logs').insert({
+                            user_id: currentUser.id,
+                            activity_type: 'User Management',
+                            description: `User with ID ${userId} was updated`,
+                            status: 'success'
+                        });
+                        
+                        // Close modal and reload users
+                        const editUserModal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                        editUserModal.hide();
+                        
+                        alert('User updated successfully!');
+                        loadUsers();
+                        
+                    } catch (error) {
+                        console.error('Error updating user:', error);
+                        alert('Failed to update user. Please try again.');
+                    }
+                });
+                
+                // Add new district button
+                document.getElementById('addNewDistrictBtn').addEventListener('click', () => {
+                    // Reset form
+                    document.getElementById('districtForm').reset();
+                    document.getElementById('districtId').value = '';
+                    document.getElementById('districtModalLabel').textContent = 'Add New District';
+                    
+                    // Show modal
+                    const districtModal = new bootstrap.Modal(document.getElementById('districtModal'));
+                    districtModal.show();
+                });
+                
+                // Save district button
+                document.getElementById('saveDistrictBtn').addEventListener('click', async () => {
+                    // Get form values
+                    const districtId = document.getElementById('districtId').value;
+                    const districtName = document.getElementById('districtName').value;
+                    
+                    // Validate form
+                    if (!districtName) {
+                        alert('Please enter district name');
+                        return;
+                    }
+                    
+                    try {
+                        let result;
+                        
+                        if (districtId) {
+                            // Update existing district
+                            result = await supabaseClient
+                                .from('districts')
+                                .update({
+                                    name: districtName,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', districtId);
+                                
+                            // Log activity
+                            await supabaseClient.from('activity_logs').insert({
+                                user_id: currentUser.id,
+                                activity_type: 'District Management',
+                                description: `District '${districtName}' was updated`,
+                                status: 'success'
+                            });
+                        } else {
+                            // Insert new district
+                            result = await supabaseClient
+                                .from('districts')
+                                .insert({
+                                    name: districtName,
+                                    created_at: new Date().toISOString()
+                                });
+                                
+                            // Log activity
+                            await supabaseClient.from('activity_logs').insert({
+                                user_id: currentUser.id,
+                                activity_type: 'District Management',
+                                description: `New district '${districtName}' was created`,
+                                status: 'success'
+                            });
+                        }
+                        
+                        if (result.error) throw result.error;
+                        
+                        // Close modal and reload districts
+                        const districtModal = bootstrap.Modal.getInstance(document.getElementById('districtModal'));
+                        districtModal.hide();
+                        
+                        alert(districtId ? 'District updated successfully!' : 'District added successfully!');
+                        loadDistricts();
+                        
+                    } catch (error) {
+                        console.error('Error saving district:', error);
+                        alert('Failed to save district. Please try again.');
+                    }
+                });
+                
+                // Add new crop button
+                document.getElementById('addNewCropBtn').addEventListener('click', () => {
+                    // Reset form
+                    document.getElementById('cropForm').reset();
+                    document.getElementById('cropId').value = '';
+                    document.getElementById('cropModalLabel').textContent = 'Add New Crop';
+                    
+                    // Show modal
+                    const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
+                    cropModal.show();
+                });
+                
+                // Save crop button
+                document.getElementById('saveCropBtn').addEventListener('click', async () => {
+                    // Get form values
+                    const cropId = document.getElementById('cropId').value;
+                    const cropName = document.getElementById('cropName').value;
+                    const cropCode = document.getElementById('cropCode').value;
+                    
+                    // Validate form
+                    if (!cropName || !cropCode) {
+                        alert('Please fill in all required fields');
+                        return;
+                    }
+                    
+                    try {
+                        let result;
+                        
+                        if (cropId) {
+                            // Update existing crop
+                            result = await supabaseClient
+                                .from('crops')
+                                .update({
+                                    name: cropName,
+                                    code: cropCode,
+                                    updated_at: new Date().toISOString()
+                                })
+                                .eq('id', cropId);
+                                
+                            // Log activity
+                            await supabaseClient.from('activity_logs').insert({
+                                user_id: currentUser.id,
+                                activity_type: 'Crop Management',
+                                description: `Crop '${cropName}' was updated`,
+                                status: 'success'
+                            });
+                        } else {
+                            // Insert new crop
+                            result = await supabaseClient
+                                .from('crops')
+                                .insert({
+                                    name: cropName,
+                                    code: cropCode,
+                                    created_at: new Date().toISOString(),
+                                    updated_at: new Date().toISOString()
+                                });
+                                
+                            // Log activity
+                            await supabaseClient.from('activity_logs').insert({
+                                user_id: currentUser.id,
+                                activity_type: 'Crop Management',
+                                description: `New crop '\${cropName}' was created`,
+                                status: 'success'
+                            });
+                        }
+                        
+                        if (result.error) throw result.error;
+                        
+                        // Close modal and reload crops
+                        const cropModal = bootstrap.Modal.getInstance(document.getElementById('cropModal'));
+                        cropModal.hide();
+                        
+                        alert(cropId ? 'Crop updated successfully!' : 'Crop added successfully!');
+                        loadCrops();
+                        
+                    } catch (error) {
+                        console.error('Error saving crop:', error);
+                        alert('Failed to save crop. Please try again.');
+                    }
+                });
+                
+                // Generate report button
+                document.getElementById('generateReportBtnAdv').addEventListener('click', () => {
+                    generateReport();
+                });
+                
+                // Export report to Excel button
+                document.getElementById('exportReportExcelBtn').addEventListener('click', () => {
+                    exportReportToExcel();
+                });
+                
+                // Export report to PDF button
+                document.getElementById('exportReportPdfBtn').addEventListener('click', () => {
+                    exportReportToPdf();
+                });
+                
+                // Quick action buttons
+                document.getElementById('addUserBtn').addEventListener('click', () => {
+                    showSection('manageUsers');
+                    setTimeout(() => {
+                        document.getElementById('addNewUserBtn').click();
+                    }, 500);
+                });
+                
+                document.getElementById('addDistrictBtn').addEventListener('click', () => {
+                    showSection('manageDistricts');
+                    setTimeout(() => {
+                        document.getElementById('addNewDistrictBtn').click();
+                    }, 500);
+                });
+                
+                document.getElementById('addCropBtn').addEventListener('click', () => {
+                    showSection('manageCrops');
+                    setTimeout(() => {
+                        document.getElementById('addNewCropBtn').click();
+                    }, 500);
+                });
+                
+                document.getElementById('generateReportBtn').addEventListener('click', () => {
+                    showSection('reportsAdmin');
+                });
+                
+                // Mobile sidebar toggle
+                const sidebarToggle = document.getElementById('sidebarToggle');
+                const sidebar = document.getElementById('sidebar');
+                if (sidebarToggle && sidebar) {
+                    sidebarToggle.addEventListener('click', () => {
+                        sidebar.classList.toggle('show');
+                    });
+                }
+                
+                // Setup password toggles
+                setupPasswordToggles();
+                
+                // Load districts for forms
+                loadAllDistricts();
+            }
+            
+            // Load districts for all forms
+            async function loadAllDistricts() {
+                try {
+                    const { data: districts, error } = await supabaseClient
+                        .from('districts')
+                        .select('id, name')
+                        .order('name', { ascending: true });
+                    
+                    if (error) throw error;
+                    
+                    const districtSelects = [
+                        document.getElementById('district'),
+                        document.getElementById('editDistrict')
+                    ];
+                    
+                    districtSelects.forEach(select => {
+                        if (select) {
+                            // Clear existing options except the first one
+                            while (select.options.length > 1) {
+                                select.remove(1);
+                            }
+                            
+                            // Add districts to dropdown
+                            (districts || []).forEach(district => {
+                                const option = document.createElement('option');
+                                option.value = district.id;
+                                option.textContent = district.name;
+                                select.appendChild(option);
+                            });
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error loading districts for forms:', error);
+                }
+            }
+            
+            // Main initialization function
+            async function initApp() {
+                await loadUserData();
+                setupEventListeners();
+                showSection('adminDashboard');
+            }
+            
+            // Start the application
+            initApp();
+        });
+    </script>
+</body>
+</html>
+
+
+
