@@ -12,6 +12,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- DataTables CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
             /* Forest Green & Cream Theme */
@@ -834,7 +839,44 @@
                             </form>
                         </div>
                     </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">Email Settings</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="emailSettingsForm">
+                                <div class="mb-3">
+                                    <label for="smtpServer" class="form-label hindi">SMTP Server</label>
+                                    <input type="text" class="form-control" id="smtpServer" placeholder="smtp.example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="smtpPort" class="form-label hindi">SMTP Port</label>
+                                    <input type="number" class="form-control" id="smtpPort" placeholder="587">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="smtpUsername" class="form-label hindi">SMTP Username</label>
+                                    <input type="text" class="form-control" id="smtpUsername" placeholder="username@example.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="smtpPassword" class="form-label hindi">SMTP Password</label>
+                                    <input type="password" class="form-control" id="smtpPassword">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="senderEmail" class="form-label hindi">Sender Email</label>
+                                    <input type="email" class="form-control" id="senderEmail" placeholder="noreply@example.com">
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i> Save Email Settings
+                                </button>
+                                <button type="button" class="btn btn-outline-primary ms-2" id="testEmailBtn">
+                                    <i class="fas fa-paper-plane me-2"></i> Send Test Email
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
+                
                 <div class="col-lg-6">
                     <div class="card mb-4">
                         <div class="card-header">
@@ -873,10 +915,50 @@
                                     <label for="minPasswordLength" class="form-label hindi">Minimum Password Length</label>
                                     <input type="number" class="form-control" id="minPasswordLength" value="8">
                                 </div>
+                                <div class="mb-3">
+                                    <label for="passwordExpiryDays" class="form-label hindi">Password Expiry (days)</label>
+                                    <input type="number" class="form-control" id="passwordExpiryDays" value="90">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="maxLoginAttempts" class="form-label hindi">Max Failed Login Attempts</label>
+                                    <input type="number" class="form-control" id="maxLoginAttempts" value="5">
+                                </div>
                                 <button type="submit" class="btn btn-primary">
                                     <i class="fas fa-save me-2"></i> Save Security Settings
                                 </button>
                             </form>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="hindi">Backup & Restore</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-4">
+                                <h6 class="hindi mb-3">Database Backup</h6>
+                                <button type="button" class="btn btn-primary" id="backupDatabaseBtn">
+                                    <i class="fas fa-database me-2"></i> Backup Database
+                                </button>
+                                <button type="button" class="btn btn-outline-primary ms-2" id="scheduleBackupBtn">
+                                    <i class="fas fa-calendar-alt me-2"></i> Schedule Backups
+                                </button>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h6 class="hindi mb-3">Restore Database</h6>
+                                <div class="input-group mb-3">
+                                    <input type="file" class="form-control" id="restoreFile" accept=".sql,.dump">
+                                    <button class="btn btn-outline-primary" type="button" id="restoreDatabaseBtn">
+                                        <i class="fas fa-upload me-2"></i> Restore
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Warning:</strong> Restoring a database will overwrite all current data. Make sure to backup before restoring.
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1068,6 +1150,63 @@
         </div>
     </div>
 
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="editUserModalLabel">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserId">
+                        <div class="mb-3">
+                            <label for="editFullName" class="form-label hindi">पूरा नाम <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editFullName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editUsername" class="form-label hindi">यूजरनेम <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editUsername" required readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editRole" class="form-label hindi">भूमिका <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editRole" required>
+                                <option value="" disabled>भूमिका चुनें</option>
+                                <option value="admin">एडमिन</option>
+                                <option value="manager">मैनेजर</option>
+                                <option value="user">यूजर</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editDistrict" class="form-label hindi">जिला <span class="text-danger">*</span></label>
+                            <select class="form-select" id="editDistrict" required>
+                                <option value="">-- जिला चुनें --</option>
+                                <!-- Districts will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMobileNumber" class="form-label hindi">मोबाइल नंबर (वैकल्पिक)</label>
+                            <input type="tel" class="form-control" id="editMobileNumber">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editEmail" class="form-label hindi">ईमेल (वैकल्पिक)</label>
+                            <input type="email" class="form-control" id="editEmail">
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="editIsActive">
+                            <label class="form-check-label hindi" for="editIsActive">Active Account</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateUserBtn">Update User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Add/Edit Crop Modal -->
     <div class="modal fade" id="cropModal" tabindex="-1" aria-labelledby="cropModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -1147,20 +1286,25 @@
         let currentUser = null;
         
         document.addEventListener('DOMContentLoaded', function() {
-            // Load user data
+            // Load user data and check admin status
             loadUserData();
             
-            // Load dashboard data
+            // Load initial dashboard data
             loadDashboardData();
             
-            // Set up menu item click events
-            setupMenuItems();
+            // Setup navigation and quick action buttons
+            setupNavigationAndQuickActions();
             
-            // Set up modal handlers
-            setupModalHandlers();
+            // Setup all modal-related event handlers
+            setupModalEventHandlers();
+
+            // Load initial data for sections if they are active by default (e.g., admin dashboard)
+            // The first section is often active by default, so ensure its data loads.
+            // For other sections, data loading is triggered by `loadSectionData` when navigating.
+            loadSectionData('admin-dashboard'); 
         });
         
-        // Load user data from storage
+        // Load user data from storage and check admin status
         function loadUserData() {
             try {
                 const storedUserData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user'));
@@ -1180,15 +1324,16 @@
                     return;
                 }
                 
-                // Update UI elements
+                // Update UI elements for admin
                 document.getElementById('userNameDisplay').textContent = currentUser.fullName || currentUser.username;
+                document.getElementById('adminRoleDisplay').textContent = 'System Administrator';
             } catch (error) {
-                console.error('Failed to load user data:', error);
-                window.location.href = 'login.html';
+                console.error('Failed to load user data or check admin status:', error);
+                window.location.href = 'login.html'; // Redirect on critical error
             }
         }
         
-        // Load dashboard data
+        // Load data for the Admin Dashboard
         async function loadDashboardData() {
             try {
                 // Fetch total users count
@@ -1226,14 +1371,25 @@
                 
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
+                // Set counts to 0 on error
+                document.getElementById('totalUsers').textContent = '0';
+                document.getElementById('totalDistricts').textContent = '0';
+                document.getElementById('totalCrops').textContent = '0';
+                document.getElementById('pendingIssues').textContent = '0';
             }
         }
         
         // Initialize system overview chart
+        let systemOverviewChartInstance = null; // To store chart instance for destruction
         function initSystemOverviewChart() {
             const ctx = document.getElementById('systemOverviewChart').getContext('2d');
             
-            // Sample data for the chart
+            // Destroy existing chart if it exists
+            if (systemOverviewChartInstance) {
+                systemOverviewChartInstance.destroy();
+            }
+
+            // Sample data for the chart (replace with real data if available)
             const data = {
                 labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
                 datasets: [
@@ -1242,26 +1398,33 @@
                         data: [12, 19, 25, 31, 42, 47, 50],
                         borderColor: '#1B5E20',
                         backgroundColor: 'rgba(27, 94, 32, 0.1)',
-                        tension: 0.4
+                        tension: 0.4,
+                        fill: true
                     },
                     {
                         label: 'Survey Data',
                         data: [5, 15, 30, 50, 65, 80, 120],
                         borderColor: '#0288D1',
                         backgroundColor: 'rgba(2, 136, 209, 0.1)',
-                        tension: 0.4
+                        tension: 0.4,
+                        fill: true
                     }
                 ]
             };
             
-            new Chart(ctx, {
+            systemOverviewChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: data,
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             position: 'top',
+                        },
+                        title: {
+                            display: false,
+                            text: 'System Overview'
                         }
                     },
                     scales: {
@@ -1280,7 +1443,7 @@
                     .from('activity_logs')
                     .select(`created_at, activity_type, description, status, user_id, test_users(full_name)`)
                     .order('created_at', { ascending: false })
-                    .limit(5);
+                    .limit(5); // Limit to 5 recent activities
                 
                 if (error) throw error;
                 
@@ -1301,12 +1464,12 @@
                         activityItem.className = 'list-group-item';
                         activityItem.innerHTML = `
                             <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">\${activity.activity_type}</h6>
-                                <small>\${date}</small>
+                                <h6 class="mb-1">${activity.activity_type}</h6>
+                                <small>${date}</small>
                             </div>
-                            <p class="mb-1">\${activity.description}</p>
+                            <p class="mb-1">${activity.description}</p>
                             <div class="d-flex justify-content-between">
-                                <small>By: \${userName}</small>
+                                <small>By: ${userName}</small>
                                 <small class="${statusClass}">${activity.status}</small>
                             </div>
                         `;
@@ -1324,26 +1487,29 @@
                 }
             } catch (error) {
                 console.error('Error loading recent activities:', error);
-                document.getElementById('recentActivitiesList').innerHTML = `
+                activitiesList.innerHTML = `
                     <div class="list-group-item">
                         <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">Error loading activities</h6>
+                            <h6 class="mb-1 text-danger">Error loading activities</h6>
                         </div>
                     </div>
                 `;
             }
         }
         
-        // Set up menu item click events
-        function setupMenuItems() {
+        // Setup navigation and quick action buttons
+        function setupNavigationAndQuickActions() {
             const menuItems = document.querySelectorAll('.sidebar-menu .menu-item');
             const contentSections = document.querySelectorAll('.content-section');
             
             menuItems.forEach(item => {
                 item.addEventListener('click', function(e) {
-                    if (this.getAttribute('href') === 'gts.html') return; // Allow normal navigation for this link
+                    // Allow normal navigation for external links (like "Return to Main App")
+                    if (this.getAttribute('href') === 'gts.html') {
+                        return; 
+                    }
                     
-                    e.preventDefault();
+                    e.preventDefault(); // Prevent default anchor behavior for internal links
                     
                     // Remove active class from all menu items
                     menuItems.forEach(mi => mi.classList.remove('active'));
@@ -1351,20 +1517,20 @@
                     // Add active class to clicked menu item
                     this.classList.add('active');
                     
-                    // Get the target section ID
+                    // Get the target section ID (e.g., 'admin-dashboard' from '#admin-dashboard')
                     const targetId = this.getAttribute('href').substring(1);
                     
-                    // Hide all content sections
+                    // Hide all content sections and remove active class
                     contentSections.forEach(section => {
                         section.classList.remove('active');
-                        section.style.display = 'none';
+                        section.style.display = 'none'; // Ensure it's hidden
                     });
                     
-                    // Show the target section
-                    const targetSection = document.getElementById(`\${targetId}-section`);
+                    // Show the target section and add active class
+                    const targetSection = document.getElementById(targetId + '-section');
                     if (targetSection) {
                         targetSection.classList.add('active');
-                        targetSection.style.display = 'block';
+                        targetSection.style.display = 'block'; // Ensure it's visible
                         
                         // Load section-specific data
                         loadSectionData(targetId);
@@ -1372,58 +1538,76 @@
                 });
             });
             
-            // Quick action buttons
+            // Quick action buttons (navigate to section and open relevant modal)
             document.getElementById('addUserBtn').addEventListener('click', function() {
-                // Navigate to manage users section
-                document.querySelector(`a[href="#manage-users"]`).click();
-                
-                // Open the add user modal after a short delay
-                setTimeout(() => {
-                    document.getElementById('addNewUserBtn').click();
-                }, 300);
+                document.querySelector(`a[href="#manage-users"]`).click(); // Navigate to section
+                setTimeout(() => { // Small delay to allow section to load
+                    document.getElementById('addNewUserBtn').click(); // Open modal
+                }, 100);
             });
             
             document.getElementById('addDistrictBtn').addEventListener('click', function() {
-                // Navigate to manage districts section
                 document.querySelector(`a[href="#manage-districts"]`).click();
-                
-                // Open the add district modal after a short delay
                 setTimeout(() => {
                     document.getElementById('addNewDistrictBtn').click();
-                }, 300);
+                }, 100);
             });
             
             document.getElementById('addCropBtn').addEventListener('click', function() {
-                // Navigate to manage crops section
                 document.querySelector(`a[href="#manage-crops"]`).click();
-                
-                // Open the add crop modal after a short delay
                 setTimeout(() => {
                     document.getElementById('addNewCropBtn').click();
-                }, 300);
+                }, 100);
             });
             
             document.getElementById('generateReportBtn').addEventListener('click', function() {
-                // Navigate to reports section
                 document.querySelector(`a[href="#reports-admin"]`).click();
             });
-            
-            // Logout link
-            document.getElementById('logoutLink').addEventListener('click', function(e) {
+
+            // General dropdowns and buttons (profile, logout, help)
+            document.getElementById('profileLink').addEventListener('click', (e) => {
                 e.preventDefault();
-                
+                alert('Profile functionality is under development.');
+            });
+            
+            document.getElementById('changePasswordLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('Change password functionality is under development.');
+            });
+            
+            document.getElementById('logoutLink').addEventListener('click', (e) => {
+                e.preventDefault();
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
-                
                 window.location.href = 'login.html';
             });
+            
+            document.getElementById('helpLink').addEventListener('click', (e) => {
+                e.preventDefault();
+                alert('Admin help documentation is under development.');
+            });
+
+            // Mobile sidebar toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', () => {
+                    sidebar.classList.toggle('show');
+                });
+            }
         }
         
-        // Load section-specific data
+        // Load data for specific sections when activated
         function loadSectionData(sectionId) {
             switch(sectionId) {
+                case 'admin-dashboard':
+                    loadDashboardData(); // Already called on DOMContentLoaded, but good to re-call on explicit navigation if needed
+                    break;
                 case 'manage-users':
                     loadUsers();
+                    // Also populate districts for the 'Add User' and 'Edit User' modals
+                    loadDistrictsForDropdown('district');
+                    loadDistrictsForDropdown('editDistrict');
                     break;
                 case 'manage-districts':
                     loadDistricts();
@@ -1432,48 +1616,42 @@
                     loadCrops();
                     break;
                 case 'reports-admin':
-                    loadReportData();
+                    setupReportForm();
                     break;
                 case 'activity-logs':
                     loadActivityLogs();
                     break;
+                case 'system-settings':
+                    // No specific data loading needed for settings forms, they are static or
+                    // assumed to be populated by a backend system not covered here.
+                    break;
             }
         }
         
-        // Set up modal handlers
-        function setupModalHandlers() {
-            // Add New User button
+        // Setup all modal-related event handlers
+        function setupModalEventHandlers() {
+            // Add New User button (opens modal)
             document.getElementById('addNewUserBtn').addEventListener('click', function() {
                 document.getElementById('addUserForm').reset();
-                
-                // Load districts into dropdown
-                loadDistrictsForDropdown('district');
-                
+                document.getElementById('addUserModalLabel').textContent = 'Add New User';
+                // Ensure password fields are visible and required for new user
+                document.getElementById('password').closest('.mb-3').style.display = 'block';
+                document.getElementById('confirmPassword').closest('.mb-3').style.display = 'block';
+                document.getElementById('password').setAttribute('required', 'true');
+                document.getElementById('confirmPassword').setAttribute('required', 'true');
+
+                // Reset password toggle icons
+                document.getElementById('togglePassword').querySelector('i').className = 'fas fa-eye-slash';
+                document.getElementById('toggleConfirmPassword').querySelector('i').className = 'fas fa-eye-slash';
+                document.getElementById('password').type = 'password';
+                document.getElementById('confirmPassword').type = 'password';
+
+                loadDistrictsForDropdown('district'); // Populate district dropdown in Add User modal
                 const addUserModal = new bootstrap.Modal(document.getElementById('addUserModal'));
                 addUserModal.show();
             });
             
-            // Add New Crop button
-            document.getElementById('addNewCropBtn').addEventListener('click', function() {
-                document.getElementById('cropForm').reset();
-                document.getElementById('cropId').value = '';
-                document.getElementById('cropModalLabel').textContent = 'Add New Crop';
-                
-                const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
-                cropModal.show();
-            });
-            
-            // Add New District button
-            document.getElementById('addNewDistrictBtn').addEventListener('click', function() {
-                document.getElementById('districtForm').reset();
-                document.getElementById('districtId').value = '';
-                document.getElementById('districtModalLabel').textContent = 'Add New District';
-                
-                const districtModal = new bootstrap.Modal(document.getElementById('districtModal'));
-                districtModal.show();
-            });
-            
-            // Save User button
+            // Save User button (for adding new user)
             document.getElementById('saveUserBtn').addEventListener('click', async function() {
                 const fullName = document.getElementById('fullName').value;
                 const username = document.getElementById('username').value;
@@ -1485,22 +1663,35 @@
                 const email = document.getElementById('email').value;
                 const isActive = document.getElementById('isActive').checked;
                 
-                // Validate form
-                if (!fullName || !username || !password || !confirmPassword || !role) {
-                    alert('Please fill in all required fields');
+                // Basic validation
+                if (!fullName || !username || !password || !confirmPassword || !role || !districtId) {
+                    alert('Please fill in all required fields (Full Name, Username, Password, Confirm Password, Role, District).');
                     return;
                 }
-                
                 if (password !== confirmPassword) {
-                    alert('Passwords do not match');
+                    alert('Passwords do not match. Please re-enter.');
+                    return;
+                }
+                if (password.length < 8) {
+                    alert('Password must be at least 8 characters long.');
                     return;
                 }
                 
                 try {
-                    // Hash the password (simplified for demo)
+                    // Check if username already exists
+                    const { data: existingUser, error: checkError } = await supabaseClient
+                        .from('test_users')
+                        .select('username')
+                        .eq('username', username)
+                        .single();
+                    
+                    if (existingUser) {
+                        alert('This username already exists. Please choose a different one.');
+                        return;
+                    }
+
                     const hashedPassword = await hashPassword(password);
                     
-                    // Insert new user
                     const { data, error } = await supabaseClient
                         .from('test_users')
                         .insert({
@@ -1508,7 +1699,7 @@
                             password_hash: hashedPassword,
                             full_name: fullName,
                             role: role,
-                            district_id: districtId || null,
+                            district_id: districtId,
                             mobile_number: mobileNumber || null,
                             email: email || null,
                             is_active: isActive,
@@ -1517,29 +1708,133 @@
                     
                     if (error) throw error;
                     
-                    // Log activity
-                    await logActivity('User Management', `New user '${username}' was created`, 'success');
+                    await logActivity('User Management', `New user '${username}' added`, 'success');
                     
-                    // Close modal and reload users
                     bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
                     alert('User added successfully!');
-                    loadUsers();
+                    loadUsers(); // Reload user table
                     
                 } catch (error) {
                     console.error('Error adding user:', error);
-                    alert('Failed to add user. Please try again.');
+                    alert(`Failed to add user: ${error.message || 'Unknown error'}`);
                 }
             });
-            
-            // Save Crop button
+
+            // Edit User Modal (populates and shows)
+            // This function is called from the 'edit-user-btn' in loadUsers()
+            async function editUser(userId) {
+                try {
+                    const { data: user, error } = await supabaseClient
+                        .from('test_users')
+                        .select(`id, username, full_name, role, district_id, is_active, mobile_number, email`)
+                        .eq('id', userId)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (user) {
+                        document.getElementById('editUserId').value = user.id;
+                        document.getElementById('editFullName').value = user.full_name || '';
+                        document.getElementById('editUsername').value = user.username || ''; // Username is readonly
+                        document.getElementById('editRole').value = user.role || '';
+                        document.getElementById('editMobileNumber').value = user.mobile_number || '';
+                        document.getElementById('editEmail').value = user.email || '';
+                        document.getElementById('editIsActive').checked = user.is_active;
+                        
+                        // Populate district dropdown for edit modal
+                        await loadDistrictsForDropdown('editDistrict');
+                        document.getElementById('editDistrict').value = user.district_id || '';
+
+                        document.getElementById('editUserModalLabel').textContent = 'Edit User';
+                        const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+                        editUserModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error fetching user data for editing:', error);
+                    alert('Failed to load user data for editing. Please try again.');
+                }
+            }
+
+            // Update User button (for saving edited user)
+            document.getElementById('updateUserBtn').addEventListener('click', async function() {
+                const userId = document.getElementById('editUserId').value;
+                const fullName = document.getElementById('editFullName').value;
+                const role = document.getElementById('editRole').value;
+                const districtId = document.getElementById('editDistrict').value;
+                const mobileNumber = document.getElementById('editMobileNumber').value;
+                const email = document.getElementById('editEmail').value;
+                const isActive = document.getElementById('editIsActive').checked;
+                
+                // Basic validation
+                if (!fullName || !role || !districtId) {
+                    alert('Please fill in all required fields (Full Name, Role, District).');
+                    return;
+                }
+                
+                try {
+                    const { error } = await supabaseClient
+                        .from('test_users')
+                        .update({
+                            full_name: fullName,
+                            role: role,
+                            district_id: districtId,
+                            mobile_number: mobileNumber || null,
+                            email: email || null,
+                            is_active: isActive,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', userId);
+                    
+                    if (error) throw error;
+                    
+                    await logActivity('User Management', `User ID ${userId} updated`, 'success');
+                    
+                    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                    alert('User updated successfully!');
+                    loadUsers(); // Reload user table
+                    
+                } catch (error) {
+                    console.error('Error updating user:', error);
+                    alert(`Failed to update user: ${error.message || 'Unknown error'}`);
+                }
+            });
+
+            // Add/Edit Crop Modal (populates and shows)
+            // This function is called from the 'edit-crop-btn' in loadCrops()
+            async function editCrop(cropId) {
+                try {
+                    const { data: crop, error } = await supabaseClient
+                        .from('crops')
+                        .select('id, name, code')
+                        .eq('id', cropId)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (crop) {
+                        document.getElementById('cropId').value = crop.id;
+                        document.getElementById('cropName').value = crop.name;
+                        document.getElementById('cropCode').value = crop.code;
+                        document.getElementById('cropModalLabel').textContent = 'Edit Crop';
+                        
+                        const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
+                        cropModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error fetching crop data for editing:', error);
+                    alert('Failed to load crop data for editing. Please try again.');
+                }
+            }
+
+            // Save Crop button (for adding/editing crop)
             document.getElementById('saveCropBtn').addEventListener('click', async function() {
                 const cropId = document.getElementById('cropId').value;
                 const cropName = document.getElementById('cropName').value;
                 const cropCode = document.getElementById('cropCode').value;
                 
-                // Validate form
+                // Basic validation
                 if (!cropName || !cropCode) {
-                    alert('Please fill in all required fields');
+                    alert('Please fill in both Crop Name and Crop Code.');
                     return;
                 }
                 
@@ -1557,7 +1852,7 @@
                             })
                             .eq('id', cropId);
                         
-                        await logActivity('Crop Management', `Crop '${cropName}' was updated`, 'success');
+                        await logActivity('Crop Management', `Crop '${cropName}' updated`, 'success');
                     } else {
                         // Insert new crop
                         result = await supabaseClient
@@ -1569,30 +1864,55 @@
                                 updated_at: new Date().toISOString()
                             });
                         
-                        await logActivity('Crop Management', `New crop '${cropName}' was created`, 'success');
+                        await logActivity('Crop Management', `New crop '${cropName}' added`, 'success');
                     }
                     
                     if (result.error) throw result.error;
                     
-                    // Close modal and reload crops
                     bootstrap.Modal.getInstance(document.getElementById('cropModal')).hide();
                     alert(cropId ? 'Crop updated successfully!' : 'Crop added successfully!');
-                    loadCrops();
+                    loadCrops(); // Reload crop table
                     
                 } catch (error) {
                     console.error('Error saving crop:', error);
-                    alert('Failed to save crop. Please try again.');
+                    alert(`Failed to save crop: ${error.message || 'Unknown error'}`);
                 }
             });
-            
-            // Save District button
+
+            // Add/Edit District Modal (populates and shows)
+            // This function is called from the 'edit-district-btn' in loadDistricts()
+            async function editDistrict(districtId) {
+                try {
+                    const { data: district, error } = await supabaseClient
+                        .from('districts')
+                        .select('id, name')
+                        .eq('id', districtId)
+                        .single();
+                    
+                    if (error) throw error;
+                    
+                    if (district) {
+                        document.getElementById('districtId').value = district.id;
+                        document.getElementById('districtName').value = district.name;
+                        document.getElementById('districtModalLabel').textContent = 'Edit District';
+                        
+                        const districtModal = new bootstrap.Modal(document.getElementById('districtModal'));
+                        districtModal.show();
+                    }
+                } catch (error) {
+                    console.error('Error fetching district data for editing:', error);
+                    alert('Failed to load district data for editing. Please try again.');
+                }
+            }
+
+            // Save District button (for adding/editing district)
             document.getElementById('saveDistrictBtn').addEventListener('click', async function() {
                 const districtId = document.getElementById('districtId').value;
                 const districtName = document.getElementById('districtName').value;
                 
-                // Validate form
+                // Basic validation
                 if (!districtName) {
-                    alert('Please enter district name');
+                    alert('Please enter district name.');
                     return;
                 }
                 
@@ -1609,7 +1929,7 @@
                             })
                             .eq('id', districtId);
                         
-                        await logActivity('District Management', `District '${districtName}' was updated`, 'success');
+                        await logActivity('District Management', `District '${districtName}' updated`, 'success');
                     } else {
                         // Insert new district
                         result = await supabaseClient
@@ -1619,27 +1939,25 @@
                                 created_at: new Date().toISOString()
                             });
                         
-                        await logActivity('District Management', `New district '\${districtName}' was created`, 'success');
+                        await logActivity('District Management', `New district '${districtName}' added`, 'success');
                     }
                     
                     if (result.error) throw result.error;
                     
-                    // Close modal and reload districts
                     bootstrap.Modal.getInstance(document.getElementById('districtModal')).hide();
                     alert(districtId ? 'District updated successfully!' : 'District added successfully!');
-                    loadDistricts();
+                    loadDistricts(); // Reload district table
                     
                 } catch (error) {
                     console.error('Error saving district:', error);
-                    alert('Failed to save district. Please try again.');
+                    alert(`Failed to save district: ${error.message || 'Unknown error'}`);
                 }
             });
-            
-            // Toggle password visibility
+
+            // Password visibility toggles for Add User modal
             document.getElementById('togglePassword').addEventListener('click', function() {
                 const passwordInput = document.getElementById('password');
                 const icon = this.querySelector('i');
-                
                 if (passwordInput.type === 'password') {
                     passwordInput.type = 'text';
                     icon.classList.remove('fa-eye-slash');
@@ -1654,7 +1972,6 @@
             document.getElementById('toggleConfirmPassword').addEventListener('click', function() {
                 const passwordInput = document.getElementById('confirmPassword');
                 const icon = this.querySelector('i');
-                
                 if (passwordInput.type === 'password') {
                     passwordInput.type = 'text';
                     icon.classList.remove('fa-eye-slash');
@@ -1665,18 +1982,38 @@
                     icon.classList.add('fa-eye-slash');
                 }
             });
-            
-            // Generate Report button
+
+            // Report generation and export buttons
             document.getElementById('generateReportBtnAdv').addEventListener('click', generateReport);
-            
-            // Export Report buttons
             document.getElementById('exportReportExcelBtn').addEventListener('click', exportReportToExcel);
             document.getElementById('exportReportPdfBtn').addEventListener('click', exportReportToPdf);
+
+            // Other general buttons (System Settings, Backup/Restore)
+            document.getElementById('generalSettingsForm').addEventListener('submit', function(e) { e.preventDefault(); alert('General settings saved! (Not implemented to backend)'); });
+            document.getElementById('emailSettingsForm').addEventListener('submit', function(e) { e.preventDefault(); alert('Email settings saved! (Not implemented to backend)'); });
+            document.getElementById('testEmailBtn').addEventListener('click', function() { alert('Test email sent! (Not implemented to backend)'); });
+            document.getElementById('securitySettingsForm').addEventListener('submit', function(e) { e.preventDefault(); alert('Security settings saved! (Not implemented to backend)'); });
+            document.getElementById('backupDatabaseBtn').addEventListener('click', function() { alert('Database backup initiated! (Not implemented to backend)'); });
+            document.getElementById('scheduleBackupBtn').addEventListener('click', function() { alert('Schedule backup functionality is under development.'); });
+            document.getElementById('restoreDatabaseBtn').addEventListener('click', function() { alert('Database restore functionality is under development.'); });
+            document.getElementById('exportLogsBtn').addEventListener('click', function() { alert('Export logs functionality is under development.'); });
+            document.getElementById('clearLogsBtn').addEventListener('click', function() { alert('Clear logs functionality is under development.'); });
         }
         
-        // Load users data
+        // Load users for the Manage Users section
         async function loadUsers() {
             try {
+                const tableElement = document.getElementById('usersTable');
+                if (!tableElement) {
+                    console.warn('Users table element not found.');
+                    return;
+                }
+                
+                // Destroy existing DataTable instance if it exists
+                if ($.fn.DataTable.isDataTable('#usersTable')) {
+                    $('#usersTable').DataTable().destroy();
+                }
+
                 const { data: users, error } = await supabaseClient
                     .from('test_users')
                     .select(`
@@ -1687,90 +2024,100 @@
                 
                 if (error) throw error;
                 
-                const tableBody = document.querySelector('#usersTable tbody');
-                tableBody.innerHTML = '';
+                const tableData = [];
+                (users || []).forEach(user => {
+                    const roleBadge = getRoleBadge(user.role);
+                    const statusBadge = user.is_active ? 
+                        '<span class="badge bg-success">Active</span>' : 
+                        '<span class="badge bg-danger">Inactive</span>';
+                    
+                    const lastLogin = user.last_login ? 
+                        new Date(user.last_login).toLocaleString() : 'Never';
+                    
+                    tableData.push([
+                        user.id,
+                        user.username,
+                        user.full_name,
+                        roleBadge,
+                        user.districts?.name || 'N/A',
+                        statusBadge,
+                        lastLogin,
+                        `<div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary edit-user-btn" data-id="${user.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger delete-user-btn" data-id="${user.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>`
+                    ]);
+                });
                 
-                if (users && users.length > 0) {
-                    users.forEach(user => {
-                        const roleBadge = getRoleBadge(user.role);
-                        const statusBadge = user.is_active ? 
-                            '<span class="badge bg-success">Active</span>' : 
-                            '<span class="badge bg-danger">Inactive</span>';
-                        
-                        const lastLogin = user.last_login ? 
-                            new Date(user.last_login).toLocaleString() : 'Never';
-                        
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>\${user.id}</td>
-                            <td>\${user.username}</td>
-                            <td>\${user.full_name}</td>
-                            <td>\${roleBadge}</td>
-                            <td>\${user.districts?.name || 'N/A'}</td>
-                            <td>\${statusBadge}</td>
-                            <td>\${lastLogin}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-primary edit-user-btn" data-id="\${user.id}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger delete-user-btn" data-id="\${user.id}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        `;
-                        
-                        tableBody.appendChild(row);
-                    });
-                    
-                    // Initialize DataTable
-                    if ($.fn.DataTable.isDataTable('#usersTable')) {
-                        $('#usersTable').DataTable().destroy();
+                // Initialize DataTable with new data
+                $('#usersTable').DataTable({
+                    data: tableData,
+                    columns: [
+                        { title: "ID" },
+                        { title: "Username" },
+                        { title: "Full Name" },
+                        { title: "Role" },
+                        { title: "District" },
+                        { title: "Status" },
+                        { title: "Last Login" },
+                        { title: "Actions" }
+                    ],
+                    responsive: true,
+                    language: {
+                        search: "Search:",
+                        paginate: { next: 'Next', previous: 'Previous' },
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        infoEmpty: "Showing 0 to 0 of 0 entries",
+                        infoFiltered: "(filtered from _MAX_ total entries)",
+                        lengthMenu: "Show _MENU_ entries"
                     }
-                    
-                    $('#usersTable').DataTable({
-                        responsive: true,
-                        language: {
-                            search: "Search:",
-                            paginate: { next: 'Next', previous: 'Previous' }
-                        }
+                });
+                
+                // Re-attach event listeners for edit and delete buttons (DataTables rebuilds HTML)
+                document.querySelectorAll('#usersTable .edit-user-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-id');
+                        editUser(userId);
                     });
-                    
-                    // Add event listeners for edit and delete buttons
-                    document.querySelectorAll('.edit-user-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const userId = this.getAttribute('data-id');
-                            editUser(userId);
-                        });
+                });
+                
+                document.querySelectorAll('#usersTable .delete-user-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const userId = this.getAttribute('data-id');
+                        deleteUser(userId);
                     });
-                    
-                    document.querySelectorAll('.delete-user-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const userId = this.getAttribute('data-id');
-                            deleteUser(userId);
-                        });
-                    });
-                } else {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="8" class="text-center">No users found</td>
-                        </tr>
-                    `;
-                }
+                });
+                
             } catch (error) {
                 console.error('Error loading users:', error);
                 document.querySelector('#usersTable tbody').innerHTML = `
                     <tr>
-                        <td colspan="8" class="text-center text-danger">Error loading users</td>
+                        <td colspan="8" class="text-center text-danger">Error loading users.</td>
                     </tr>
                 `;
             }
         }
         
-        // Load districts data
+        // Load districts for the Manage Districts section
+        let districtsTableInstance = null;
         async function loadDistricts() {
             try {
+                const tableElement = document.getElementById('districtsTable');
+                if (!tableElement) {
+                    console.warn('Districts table element not found.');
+                    return;
+                }
+                
+                // Destroy existing DataTable instance if it exists
+                if (districtsTableInstance) {
+                    districtsTableInstance.destroy();
+                    districtsTableInstance = null;
+                }
+
                 const { data: districts, error } = await supabaseClient
                     .from('districts')
                     .select('id, name')
@@ -1778,91 +2125,101 @@
                 
                 if (error) throw error;
                 
-                const tableBody = document.querySelector('#districtsTable tbody');
-                tableBody.innerHTML = '';
-                
-                if (districts && districts.length > 0) {
-                    for (const district of districts) {
-                        // Get village count
-                        const { count: villageCount } = await supabaseClient
-                            .from('villages')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('district_id', district.id);
+                const tableData = [];
+                for (const district of districts || []) {
+                    // Get associated counts
+                    const { count: villageCount, error: villageError } = await supabaseClient
+                        .from('villages')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('district_id', district.id);
                         
-                        // Get user count
-                        const { count: userCount } = await supabaseClient
-                            .from('test_users')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('district_id', district.id);
+                    if (villageError) throw villageError;
+                    
+                    const { count: userCount, error: userError } = await supabaseClient
+                        .from('test_users')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('district_id', district.id);
                         
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>\${district.id}</td>
-                            <td>\${district.name}</td>
-                            <td>\${villageCount || 0}</td>
-                            <td>\${userCount || 0}</td>
-                            <td><span class="badge bg-success">Active</span></td>
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-primary edit-district-btn" data-id="\${district.id}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger delete-district-btn" data-id="\${district.id}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        `;
-                        
-                        tableBody.appendChild(row);
-                    }
+                    if (userError) throw userError;
                     
-                    // Initialize DataTable
-                    if ($.fn.DataTable.isDataTable('#districtsTable')) {
-                        $('#districtsTable').DataTable().destroy();
-                    }
-                    
-                    $('#districtsTable').DataTable({
-                        responsive: true
-                    });
-                    
-                    // Initialize district chart
-                    initDistrictChart(districts);
-                    
-                    // Add event listeners for edit and delete buttons
-                    document.querySelectorAll('.edit-district-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const districtId = this.getAttribute('data-id');
-                            editDistrict(districtId);
-                        });
-                    });
-                    
-                    document.querySelectorAll('.delete-district-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const districtId = this.getAttribute('data-id');
-                            deleteDistrict(districtId);
-                        });
-                    });
-                } else {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="text-center">No districts found</td>
-                        </tr>
-                    `;
+                    tableData.push([
+                        district.id,
+                        district.name,
+                        villageCount || 0,
+                        userCount || 0,
+                        '<span class="badge bg-success">Active</span>', // Assuming districts are always active
+                        `<div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary edit-district-btn" data-id="${district.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger delete-district-btn" data-id="${district.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>`
+                    ]);
                 }
+                
+                districtsTableInstance = $('#districtsTable').DataTable({
+                    data: tableData,
+                    columns: [
+                        { title: "ID" },
+                        { title: "Name" },
+                        { title: "Total Villages" },
+                        { title: "Total Users" },
+                        { title: "Status" },
+                        { title: "Actions" }
+                    ],
+                    responsive: true,
+                    language: {
+                        search: "Search:",
+                        paginate: { next: 'Next', previous: 'Previous' }
+                    }
+                });
+                
+                // Re-attach event listeners for edit and delete buttons
+                document.querySelectorAll('#districtsTable .edit-district-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const districtId = this.getAttribute('data-id');
+                        editDistrict(districtId);
+                    });
+                });
+                
+                document.querySelectorAll('#districtsTable .delete-district-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const districtId = this.getAttribute('data-id');
+                        deleteDistrict(districtId);
+                    });
+                });
+                
+                // Initialize district chart
+                initDistrictChart(districts);
+                
             } catch (error) {
                 console.error('Error loading districts:', error);
                 document.querySelector('#districtsTable tbody').innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center text-danger">Error loading districts</td>
+                        <td colspan="6" class="text-center text-danger">Error loading districts.</td>
                     </tr>
                 `;
             }
         }
         
-        // Load crops data
+        // Load crops for the Manage Crops section
+        let cropsTableInstance = null;
         async function loadCrops() {
             try {
+                const tableElement = document.getElementById('cropsTable');
+                if (!tableElement) {
+                    console.warn('Crops table element not found.');
+                    return;
+                }
+                
+                // Destroy existing DataTable instance if it exists
+                if (cropsTableInstance) {
+                    cropsTableInstance.destroy();
+                    cropsTableInstance = null;
+                }
+
                 const { data: crops, error } = await supabaseClient
                     .from('crops')
                     .select('id, name, code, created_at, updated_at')
@@ -1870,82 +2227,89 @@
                 
                 if (error) throw error;
                 
-                const tableBody = document.querySelector('#cropsTable tbody');
-                tableBody.innerHTML = '';
+                const tableData = [];
+                (crops || []).forEach(crop => {
+                    const createdAt = crop.created_at ? new Date(crop.created_at).toLocaleString() : 'N/A';
+                    const updatedAt = crop.updated_at ? new Date(crop.updated_at).toLocaleString() : 'N/A';
+                    
+                    tableData.push([
+                        crop.id,
+                        crop.name,
+                        crop.code,
+                        createdAt,
+                        updatedAt,
+                        `<div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary edit-crop-btn" data-id="${crop.id}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-danger delete-crop-btn" data-id="${crop.id}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>`
+                    ]);
+                });
                 
-                if (crops && crops.length > 0) {
-                    crops.forEach(crop => {
-                        const createdAt = crop.created_at ? new Date(crop.created_at).toLocaleString() : 'N/A';
-                        const updatedAt = crop.updated_at ? new Date(crop.updated_at).toLocaleString() : 'N/A';
-                        
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>\${crop.id}</td>
-                            <td>\${crop.name}</td>
-                            <td>\${crop.code}</td>
-                            <td>\${createdAt}</td>
-                            <td>\${updatedAt}</td>
-                            <td>
-                                <div class="btn-group btn-group-sm" role="group">
-                                    <button type="button" class="btn btn-outline-primary edit-crop-btn" data-id="\${crop.id}">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger delete-crop-btn" data-id="\${crop.id}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        `;
-                        
-                        tableBody.appendChild(row);
-                    });
-                    
-                    // Initialize DataTable
-                    if ($.fn.DataTable.isDataTable('#cropsTable')) {
-                        $('#cropsTable').DataTable().destroy();
+                cropsTableInstance = $('#cropsTable').DataTable({
+                    data: tableData,
+                    columns: [
+                        { title: "ID" },
+                        { title: "Name" },
+                        { title: "Code" },
+                        { title: "Created At" },
+                        { title: "Updated At" },
+                        { title: "Actions" }
+                    ],
+                    responsive: true,
+                    language: {
+                        search: "Search:",
+                        paginate: { next: 'Next', previous: 'Previous' }
                     }
-                    
-                    $('#cropsTable').DataTable({
-                        responsive: true
+                });
+                
+                // Re-attach event listeners for edit and delete buttons
+                document.querySelectorAll('#cropsTable .edit-crop-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const cropId = this.getAttribute('data-id');
+                        editCrop(cropId);
                     });
-                    
-                    // Initialize crop categories chart
-                    initCropCategoriesChart();
-                    
-                    // Add event listeners for edit and delete buttons
-                    document.querySelectorAll('.edit-crop-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const cropId = this.getAttribute('data-id');
-                            editCrop(cropId);
-                        });
+                });
+                
+                document.querySelectorAll('#cropsTable .delete-crop-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const cropId = this.getAttribute('data-id');
+                        deleteCrop(cropId);
                     });
-                    
-                    document.querySelectorAll('.delete-crop-btn').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            const cropId = this.getAttribute('data-id');
-                            deleteCrop(cropId);
-                        });
-                    });
-                } else {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="6" class="text-center">No crops found</td>
-                        </tr>
-                    `;
-                }
+                });
+                
+                // Initialize crop categories chart
+                initCropCategoriesChart();
+                
             } catch (error) {
                 console.error('Error loading crops:', error);
                 document.querySelector('#cropsTable tbody').innerHTML = `
                     <tr>
-                        <td colspan="6" class="text-center text-danger">Error loading crops</td>
+                        <td colspan="6" class="text-center text-danger">Error loading crops.</td>
                     </tr>
                 `;
             }
         }
         
         // Load activity logs
+        let activityLogsTableInstance = null;
         async function loadActivityLogs() {
             try {
+                const tableElement = document.getElementById('activityLogsTable');
+                if (!tableElement) {
+                    console.warn('Activity logs table element not found.');
+                    return;
+                }
+                
+                // Destroy existing DataTable instance if it exists
+                if (activityLogsTableInstance) {
+                    activityLogsTableInstance.destroy();
+                    activityLogsTableInstance = null;
+                }
+
                 const { data: logs, error } = await supabaseClient
                     .from('activity_logs')
                     .select(`
@@ -1953,82 +2317,81 @@
                         user_id, test_users(username, full_name)
                     `)
                     .order('created_at', { ascending: false })
-                    .limit(100);
+                    .limit(100); // Limit to 100 recent logs
                 
                 if (error) throw error;
                 
-                const tableBody = document.querySelector('#activityLogsTable tbody');
-                tableBody.innerHTML = '';
-                
-                if (logs && logs.length > 0) {
-                    logs.forEach(log => {
-                        const datetime = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
-                        const userName = log.test_users ? log.test_users.full_name : 'N/A';
-                        
-                        let statusBadge = '';
-                        if (log.status === 'success') {
-                            statusBadge = '<span class="badge bg-success">Success</span>';
-                        } else if (log.status === 'pending') {
-                            statusBadge = '<span class="badge bg-warning">Pending</span>';
-                        } else if (log.status === 'failed') {
-                            statusBadge = '<span class="badge bg-danger">Failed</span>';
-                        } else {
-                            statusBadge = '<span class="badge bg-secondary">Unknown</span>';
-                        }
-                        
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>\${datetime}</td>
-                            <td>\${userName}</td>
-                            <td>\${log.activity_type}</td>
-                            <td>\${log.description}</td>
-                            <td>\${statusBadge}</td>
-                        `;
-                        
-                        tableBody.appendChild(row);
-                    });
+                const tableData = [];
+                (logs || []).forEach(log => {
+                    const datetime = log.created_at ? new Date(log.created_at).toLocaleString() : 'N/A';
+                    const userName = log.test_users ? log.test_users.full_name : 'N/A';
                     
-                    // Initialize DataTable
-                    if ($.fn.DataTable.isDataTable('#activityLogsTable')) {
-                        $('#activityLogsTable').DataTable().destroy();
+                    let statusBadge = '';
+                    if (log.status === 'success') {
+                        statusBadge = '<span class="badge bg-success">Success</span>';
+                    } else if (log.status === 'pending') {
+                        statusBadge = '<span class="badge bg-warning">Pending</span>';
+                    } else if (log.status === 'failed') {
+                        statusBadge = '<span class="badge bg-danger">Failed</span>';
+                    } else {
+                        statusBadge = '<span class="badge bg-secondary">Unknown</span>';
                     }
                     
-                    $('#activityLogsTable').DataTable({
-                        responsive: true,
-                        order: [[0, 'desc']]
-                    });
-                } else {
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" class="text-center">No activity logs found</td>
-                        </tr>
-                    `;
-                }
+                    tableData.push([
+                        datetime,
+                        userName,
+                        log.activity_type,
+                        log.description,
+                        statusBadge // IP address removed as it's not in the DB schema
+                    ]);
+                });
+                
+                activityLogsTableInstance = $('#activityLogsTable').DataTable({
+                    data: tableData,
+                    columns: [
+                        { title: "Date & Time" },
+                        { title: "User" },
+                        { title: "Activity Type" },
+                        { title: "Description" },
+                        { title: "Status" }
+                    ],
+                    order: [[0, 'desc']], // Order by date & time descending
+                    responsive: true,
+                    language: {
+                        search: "Search:",
+                        paginate: { next: 'Next', previous: 'Previous' }
+                    }
+                });
+                
             } catch (error) {
                 console.error('Error loading activity logs:', error);
                 document.querySelector('#activityLogsTable tbody').innerHTML = `
                     <tr>
-                        <td colspan="5" class="text-center text-danger">Error loading activity logs</td>
+                        <td colspan="5" class="text-center text-danger">Error loading activity logs.</td>
                     </tr>
                 `;
             }
         }
         
-        // Load report data
-        function loadReportData() {
-            // Load districts for report dropdown
-            loadDistrictsForDropdown('reportDistrict');
-            
-            // Set default dates
-            const today = new Date();
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(today.getMonth() - 1);
-            
-            document.getElementById('reportDateFrom').valueAsDate = oneMonthAgo;
-            document.getElementById('reportDateTo').valueAsDate = today;
+        // Setup report form: populate dropdowns and set default dates
+        async function setupReportForm() {
+            try {
+                // Populate districts for report form
+                await loadDistrictsForDropdown('reportDistrict');
+                
+                // Set default dates for report
+                const today = new Date();
+                const oneMonthAgo = new Date();
+                oneMonthAgo.setMonth(today.getMonth() - 1);
+                
+                document.getElementById('reportDateFrom').valueAsDate = oneMonthAgo;
+                document.getElementById('reportDateTo').valueAsDate = today;
+            } catch (error) {
+                console.error('Error setting up report form:', error);
+            }
         }
         
-        // Generate report
+        // Generate Report (displays HTML table)
         async function generateReport() {
             const reportType = document.getElementById('reportType').value;
             const districtId = document.getElementById('reportDistrict').value;
@@ -2043,250 +2406,311 @@
                 
                 switch (reportType) {
                     case 'user':
-                        // User report
                         const userQuery = supabaseClient
                             .from('test_users')
-                            .select(`
-                                id, username, full_name, role, 
-                                districts(name), is_active, last_login
-                            `)
+                            .select(`id, username, full_name, role, districts(name), is_active, last_login`)
                             .order('full_name', { ascending: true });
                         
-                        if (districtId) {
-                            userQuery.eq('district_id', districtId);
+                        if (districtId) { userQuery.eq('district_id', districtId); }
+                        // Add date filters if needed for user last_login
+                        if (dateFrom && dateTo) {
+                            userQuery.gte('last_login', dateFrom + 'T00:00:00Z').lte('last_login', dateTo + 'T23:59:59Z');
                         }
-                        
-                        const { data: userData, error: userError } = await userQuery;
-                        data = userData;
-                        error = userError;
-                        
+
+                        ({ data, error } = await userQuery);
                         if (error) throw error;
                         
                         tableHtml = `
                             <table class="table table-striped table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Username</th>
-                                        <th>Full Name</th>
-                                        <th>Role</th>
-                                        <th>District</th>
-                                        <th>Status</th>
-                                        <th>Last Login</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>District</th><th>Status</th><th>Last Login</th></tr></thead>
                                 <tbody>
                         `;
-                        
                         if (data && data.length > 0) {
-                            data.forEach(user => {
-                                tableHtml += `
-                                    <tr>
-                                        <td>\${user.username}</td>
-                                        <td>\${user.full_name}</td>
-                                        <td>\${user.role}</td>
-                                        <td>\${user.districts?.name || 'N/A'}</td>
-                                        <td>\${user.is_active ? 'Active' : 'Inactive'}</td>
-                                        <td>\${user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'}</td>
-                                    </tr>
-                                `;
+                            data.forEach(item => {
+                                tableHtml += `<tr>
+                                    <td>${item.username}</td><td>${item.full_name}</td><td>${item.role}</td>
+                                    <td>${item.districts?.name || 'N/A'}</td><td>${item.is_active ? 'Active' : 'Inactive'}</td>
+                                    <td>${item.last_login ? new Date(item.last_login).toLocaleString() : 'Never'}</td>
+                                </tr>`;
                             });
-                        } else {
-                            tableHtml += `
-                                <tr>
-                                    <td colspan="6" class="text-center">No user data found</td>
-                                </tr>
-                            `;
-                        }
-                        
-                        tableHtml += `
-                                </tbody>
-                            </table>
-                        `;
+                        } else { tableHtml += `<tr><td colspan="6" class="text-center">No user data found</td></tr>`; }
+                        tableHtml += `</tbody></table>`;
                         break;
                         
+                    case 'district':
+                        const districtReportQuery = supabaseClient
+                            .from('districts')
+                            .select('id, name'); // Add more fields if needed
+                        
+                        ({ data, error } = await districtReportQuery);
+                        if (error) throw error;
+
+                        tableHtml = `
+                            <table class="table table-striped table-bordered">
+                                <thead><tr><th>District Name</th><th>Total Villages</th><th>Total Users</th></tr></thead>
+                                <tbody>
+                        `;
+                        if (data && data.length > 0) {
+                            for (const item of data) {
+                                // Fetch counts for each district
+                                const { count: villageCount } = await supabaseClient.from('villages').select('*', { count: 'exact', head: true }).eq('district_id', item.id);
+                                const { count: userCount } = await supabaseClient.from('test_users').select('*', { count: 'exact', head: true }).eq('district_id', item.id);
+                                tableHtml += `<tr>
+                                    <td>${item.name}</td><td>${villageCount || 0}</td><td>${userCount || 0}</td>
+                                </tr>`;
+                            }
+                        } else { tableHtml += `<tr><td colspan="3" class="text-center">No district data found</td></tr>`; }
+                        tableHtml += `</tbody></table>`;
+                        break;
+
                     case 'crop':
-                        // Crop report
-                        const { data: cropData, error: cropError } = await supabaseClient
+                        const cropReportQuery = supabaseClient
                             .from('crops')
                             .select('id, name, code, created_at, updated_at')
                             .order('name', { ascending: true });
-                        
-                        data = cropData;
-                        error = cropError;
-                        
+
+                        ({ data, error } = await cropReportQuery);
                         if (error) throw error;
-                        
+
                         tableHtml = `
                             <table class="table table-striped table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Code</th>
-                                        <th>Created At</th>
-                                        <th>Updated At</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th>Name</th><th>Code</th><th>Created At</th><th>Updated At</th></tr></thead>
                                 <tbody>
                         `;
-                        
                         if (data && data.length > 0) {
-                            data.forEach(crop => {
-                                tableHtml += `
-                                    <tr>
-                                        <td>\${crop.name}</td>
-                                        <td>\${crop.code}</td>
-                                        <td>\${crop.created_at ? new Date(crop.created_at).toLocaleString() : 'N/A'}</td>
-                                        <td>\${crop.updated_at ? new Date(crop.updated_at).toLocaleString() : 'N/A'}</td>
-                                    </tr>
-                                `;
+                            data.forEach(item => {
+                                tableHtml += `<tr>
+                                    <td>${item.name}</td><td>${item.code}</td>
+                                    <td>${item.created_at ? new Date(item.created_at).toLocaleString() : 'N/A'}</td>
+                                    <td>${item.updated_at ? new Date(item.updated_at).toLocaleString() : 'N/A'}</td>
+                                </tr>`;
                             });
-                        } else {
-                            tableHtml += `
-                                <tr>
-                                    <td colspan="4" class="text-center">No crop data found</td>
-                                </tr>
-                            `;
-                        }
-                        
-                        tableHtml += `
-                                </tbody>
-                            </table>
-                        `;
+                        } else { tableHtml += `<tr><td colspan="4" class="text-center">No crop data found</td></tr>`; }
+                        tableHtml += `</tbody></table>`;
                         break;
-                        
+
                     case 'progress':
-                        // Progress report
                         const progressQuery = supabaseClient
                             .from('district_crop_progress')
-                            .select(`
-                                id, target_gts, achieved_gts, updated_at,
-                                districts(name), crops(name, code)
-                            `)
+                            .select(`id, target_gts, achieved_gts, updated_at, districts(name), crops(name, code)`)
                             .order('updated_at', { ascending: false });
                         
-                        if (districtId) {
-                            progressQuery.eq('district_id', districtId);
+                        if (districtId) { progressQuery.eq('district_id', districtId); }
+                        if (dateFrom && dateTo) {
+                            progressQuery.gte('updated_at', dateFrom + 'T00:00:00Z').lte('updated_at', dateTo + 'T23:59:59Z');
                         }
-                        
-                        const { data: progressData, error: progressError } = await progressQuery;
-                        data = progressData;
-                        error = progressError;
-                        
+
+                        ({ data, error } = await progressQuery);
                         if (error) throw error;
-                        
+
                         tableHtml = `
                             <table class="table table-striped table-bordered">
-                                <thead>
-                                    <tr>
-                                        <th>District</th>
-                                        <th>Crop</th>
-                                        <th>Crop Code</th>
-                                        <th>Target GTS</th>
-                                        <th>Achieved GTS</th>
-                                        <th>Progress %</th>
-                                        <th>Last Updated</th>
-                                    </tr>
-                                </thead>
+                                <thead><tr><th>District</th><th>Crop</th><th>Code</th><th>Target GTS</th><th>Achieved GTS</th><th>Progress %</th><th>Last Updated</th></tr></thead>
                                 <tbody>
                         `;
-                        
                         if (data && data.length > 0) {
-                            data.forEach(progress => {
-                                const progressPercent = progress.target_gts > 0 
-                                    ? Math.round((progress.achieved_gts / progress.target_gts) * 100) 
-                                    : 0;
-                                
-                                tableHtml += `
-                                    <tr>
-                                        <td>\${progress.districts?.name || 'N/A'}</td>
-                                        <td>\${progress.crops?.name || 'N/A'}</td>
-                                        <td>\${progress.crops?.code || 'N/A'}</td>
-                                        <td>\${progress.target_gts}</td>
-                                        <td>\${progress.achieved_gts}</td>
-                                        <td>\${progressPercent}%</td>
-                                        <td>\${progress.updated_at ? new Date(progress.updated_at).toLocaleString() : 'N/A'}</td>
-                                    </tr>
-                                `;
+                            data.forEach(item => {
+                                const progressPercent = item.target_gts > 0 ? Math.round((item.achieved_gts / item.target_gts) * 100) : 0;
+                                tableHtml += `<tr>
+                                    <td>${item.districts?.name || 'N/A'}</td><td>${item.crops?.name || 'N/A'}</td>
+                                    <td>${item.crops?.code || 'N/A'}</td><td>${item.target_gts}</td>
+                                    <td>${item.achieved_gts}</td><td>${progressPercent}%</td>
+                                    <td>${item.updated_at ? new Date(item.updated_at).toLocaleString() : 'N/A'}</td>
+                                </tr>`;
                             });
-                        } else {
-                            tableHtml += `
-                                <tr>
-                                    <td colspan="7" class="text-center">No progress data found</td>
-                                </tr>
-                            `;
+                        } else { tableHtml += `<tr><td colspan="7" class="text-center">No progress data found</td></tr>`; }
+                        tableHtml += `</tbody></table>`;
+                        break;
+
+                    case 'survey':
+                        // Assuming you have a 'survey_data' table with relevant fields
+                        const surveyQuery = supabaseClient
+                            .from('survey_data')
+                            .select(`id, districts(name), blocks(name), villages(name, code), crops(name), status, updated_at`)
+                            .order('updated_at', { ascending: false });
+                        
+                        if (districtId) { surveyQuery.eq('district_id', districtId); }
+                        if (dateFrom && dateTo) {
+                            surveyQuery.gte('updated_at', dateFrom + 'T00:00:00Z').lte('updated_at', dateTo + 'T23:59:59Z');
                         }
                         
-                        tableHtml += `
-                                </tbody>
-                            </table>
+                        ({ data, error } = await surveyQuery);
+                        if (error) throw error;
+
+                        tableHtml = `
+                            <table class="table table-striped table-bordered">
+                                <thead><tr><th>District</th><th>Block</th><th>Village</th><th>Crop</th><th>Status</th><th>Updated At</th></tr></thead>
+                                <tbody>
                         `;
+                        if (data && data.length > 0) {
+                            data.forEach(item => {
+                                tableHtml += `<tr>
+                                    <td>${item.districts?.name || 'N/A'}</td><td>${item.blocks?.name || 'N/A'}</td>
+                                    <td>${item.villages?.name || 'N/A'}</td><td>${item.crops?.name || 'N/A'}</td>
+                                    <td>${item.status}</td><td>${item.updated_at ? new Date(item.updated_at).toLocaleString() : 'N/A'}</td>
+                                </tr>`;
+                            });
+                        } else { tableHtml += `<tr><td colspan="6" class="text-center">No survey data found</td></tr>`; }
+                        tableHtml += `</tbody></table>`;
                         break;
                         
                     default:
-                        tableHtml = `<p class="text-center">Please select a valid report type</p>`;
+                        tableHtml = `<p class="text-center text-muted">Please select a valid report type.</p>`;
                 }
                 
-                // Add report header
-                const reportHeader = `
-                    <div class="mb-4">
-                        <h5 class="text-center mb-3">\${getReportTitle(reportType)}</h5>
-                        <div class="d-flex justify-content-between mb-3">
-                            <p><strong>Generated:</strong> \${new Date().toLocaleString()}</p>
-                            <p><strong>Generated By:</strong> \${currentUser.fullName || currentUser.username}</p>
-                        </div>
-                        \${districtId ? `<p><strong>District:</strong> ${document.getElementById('reportDistrict').options[document.getElementById('reportDistrict').selectedIndex].text}</p>` : ''}
-                        \${dateFrom ? `<p><strong>Date Range:</strong> ${new Date(dateFrom).toLocaleDateString()} to ${new Date(dateTo).toLocaleDateString()}</p>` : ''}
+                // Construct full report HTML with header
+                const reportHeaderHtml = `
+                    <div class="mb-4 text-center">
+                        <h5 class="mb-2">${getReportTitle(reportType)}</h5>
+                        <p class="mb-1">Generated: ${new Date().toLocaleString()}</p>
+                        <p class="mb-1">Generated By: ${currentUser.fullName || currentUser.username}</p>
+                        ${districtId ? `<p class="mb-1">District: ${document.getElementById('reportDistrict').options[document.getElementById('reportDistrict').selectedIndex].text}</p>` : ''}
+                        ${dateFrom && dateTo ? `<p class="mb-1">Date Range: ${new Date(dateFrom).toLocaleDateString()} to ${new Date(dateTo).toLocaleDateString()}</p>` : ''}
                     </div>
                 `;
                 
-                reportResults.innerHTML = reportHeader + tableHtml;
+                reportResults.innerHTML = reportHeaderHtml + tableHtml;
                 
-                // Log activity
-                await logActivity('Report Generation', `Generated \${reportType} report`, 'success');
+                await logActivity('Report Generation', `Generated ${reportType} report`, 'success');
                 
             } catch (error) {
                 console.error('Error generating report:', error);
                 reportResults.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error generating report. Please try again.
+                        Error generating report: ${error.message || 'Unknown error'}. Please try again.
                     </div>
                 `;
+                await logActivity('Report Generation', `Failed to generate ${reportType} report`, 'failed');
             }
         }
         
         // Export report to Excel
         function exportReportToExcel() {
-            const reportResults = document.getElementById('reportResults');
+            const reportResultsDiv = document.getElementById('reportResults');
+            const table = reportResultsDiv.querySelector('table');
             const reportType = document.getElementById('reportType').value;
             
-            if (!reportResults.querySelector('table')) {
-                alert('Please generate a report first');
+            if (!table) {
+                alert('Please generate a report first to export.');
                 return;
             }
             
-            // Get table data
-            const table = reportResults.querySelector('table');
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.table_to_sheet(table);
             
-            // Add title and metadata
+            // Add custom header information to the worksheet
             const title = getReportTitle(reportType);
+            const generatedDate = `Generated: ${new Date().toLocaleString()}`;
+            const generatedBy = `Generated By: ${currentUser.fullName || currentUser.username}`;
+            const districtInfo = document.getElementById('reportDistrict').value ? `District: ${document.getElementById('reportDistrict').options[document.getElementById('reportDistrict').selectedIndex].text}` : '';
+            const dateRangeInfo = (document.getElementById('reportDateFrom').value && document.getElementById('reportDateTo').value) ? `Date Range: ${new Date(document.getElementById('reportDateFrom').value).toLocaleDateString()} to ${new Date(document.getElementById('reportDateTo').value).toLocaleDateString()}` : '';
+
+            // Insert header rows at the top
+            XLSX.utils.sheet_add_aoa(ws, [[title]], { origin: 'A1' });
+            XLSX.utils.sheet_add_aoa(ws, [[generatedDate]], { origin: 'A2' });
+            XLSX.utils.sheet_add_aoa(ws, [[generatedBy]], { origin: 'A3' });
+            if (districtInfo) { XLSX.utils.sheet_add_aoa(ws, [[districtInfo]], { origin: 'A4' }); }
+            if (dateRangeInfo) { XLSX.utils.sheet_add_aoa(ws, [[dateRangeInfo]], { origin: districtInfo ? 'A5' : 'A4' }); }
+
+            // Adjust table data origin based on added header rows
+            const headerRowsCount = 3 + (districtInfo ? 1 : 0) + (dateRangeInfo ? 1 : 0);
+            const originalTableRange = XLSX.utils.decode_range(ws['!ref']);
+            const newTableRange = {
+                s: { r: originalTableRange.s.r + headerRowsCount, c: originalTableRange.s.c },
+                e: { r: originalTableRange.e.r + headerRowsCount, c: originalTableRange.e.c }
+            };
+            ws['!ref'] = XLSX.utils.encode_range(newTableRange);
+
+            // Merge cells for title if desired (optional)
+            if (!ws['!merges']) ws['!merges'] = [];
+            ws['!merges'].push(XLSX.utils.decode_range('A1:F1')); // Merge A1 to F1 for title (adjust F based on max columns)
+
+            // Auto-width columns (optional, can be performance intensive for large tables)
+            const max_width = Array.from(table.querySelectorAll('thead th')).map((th, i) =>
+                Array.from(table.querySelectorAll('tr')).reduce((w, tr) => Math.max(w, (tr.children[i] && tr.children[i].textContent.length || 0)), 10)
+            );
+            ws['!cols'] = max_width.map(w => ({ wch: w }));
             
-            // Add the worksheet to the workbook
             XLSX.utils.book_append_sheet(wb, ws, title);
             
-            // Generate Excel file
             const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
             XLSX.writeFile(wb, fileName);
             
-            // Log activity
-            logActivity('Report Export', `Exported \${reportType} report to Excel`, 'success');
+            logActivity('Report Export', `Exported ${reportType} report to Excel`, 'success');
         }
         
         // Export report to PDF
         function exportReportToPdf() {
-            alert('PDF export functionality is under development');
+            const reportResultsDiv = document.getElementById('reportResults');
+            const table = reportResultsDiv.querySelector('table');
+            const reportType = document.getElementById('reportType').value;
+
+            if (!table) {
+                alert('Please generate a report first to export.');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'pt', 'a4'); // Landscape A4 size
+
+            const title = getReportTitle(reportType);
+            const generatedDate = `Generated: ${new Date().toLocaleString()}`;
+            const generatedBy = `Generated By: ${currentUser.fullName || currentUser.username}`;
+            const districtInfo = document.getElementById('reportDistrict').value ? `District: ${document.getElementById('reportDistrict').options[document.getElementById('reportDistrict').selectedIndex].text}` : '';
+            const dateRangeInfo = (document.getElementById('reportDateFrom').value && document.getElementById('reportDateTo').value) ? `Date Range: ${new Date(document.getElementById('reportDateFrom').value).toLocaleDateString()} to ${new Date(document.getElementById('reportDateTo').value).toLocaleDateString()}` : '';
+
+            // Header content
+            let yOffset = 40;
+            doc.setFontSize(16);
+            doc.text(title, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+            yOffset += 20;
+            doc.setFontSize(10);
+            doc.text(generatedDate, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+            yOffset += 12;
+            doc.text(generatedBy, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+            yOffset += 12;
+            if (districtInfo) {
+                doc.text(districtInfo, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                yOffset += 12;
+            }
+            if (dateRangeInfo) {
+                doc.text(dateRangeInfo, doc.internal.pageSize.getWidth() / 2, yOffset, { align: 'center' });
+                yOffset += 12;
+            }
+            yOffset += 10; // Space before table
+
+            doc.autoTable({
+                html: table,
+                startY: yOffset,
+                theme: 'striped',
+                headStyles: {
+                    fillColor: [27, 94, 32], // Primary color for header
+                    textColor: [255, 255, 255],
+                    fontStyle: 'bold',
+                    halign: 'center' // Center align header text
+                },
+                styles: {
+                    fontSize: 9,
+                    cellPadding: 6,
+                    halign: 'center' // Center align all cell text
+                },
+                alternateRowStyles: {
+                    fillColor: [241, 248, 233] // Light green-cream for alternate rows
+                },
+                margin: { top: 30, right: 30, bottom: 30, left: 30 }, // Proper margins
+                didDrawPage: function (data) {
+                    // Footer
+                    doc.setFontSize(8);
+                    doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.getWidth() - 30, doc.internal.pageSize.getHeight() - 20, { align: 'right' });
+                    doc.text('Generated by Ground Truthing System Admin Panel', 30, doc.internal.pageSize.getHeight() - 20, { align: 'left' });
+                }
+            });
+
+            const fileName = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+            doc.save(fileName);
+
+            logActivity('Report Export', `Exported ${reportType} report to PDF`, 'success');
         }
         
         // Helper Functions
@@ -2323,7 +2747,7 @@
             }
         }
         
-        // Load districts for dropdown
+        // Load districts for dropdowns (e.g., in modals, report filters)
         async function loadDistrictsForDropdown(dropdownId) {
             try {
                 const { data: districts, error } = await supabaseClient
@@ -2335,9 +2759,12 @@
                 
                 const dropdown = document.getElementById(dropdownId);
                 if (dropdown) {
-                    // Clear existing options except the first one
-                    while (dropdown.options.length > 1) {
-                        dropdown.remove(1);
+                    // Store current selected value to re-select after refresh
+                    const currentValue = dropdown.value; 
+
+                    // Clear existing options except the first one (which is "-- Select/All --")
+                    while (dropdown.options.length > (dropdown.options[0]?.value === "" ? 1 : 0)) {
+                        dropdown.remove(dropdown.options[0]?.value === "" ? 1 : 0);
                     }
                     
                     // Add districts to dropdown
@@ -2349,23 +2776,25 @@
                             dropdown.appendChild(option);
                         });
                     }
+                    // Attempt to restore previous selection
+                    if (currentValue && dropdown.querySelector(`option[value="${currentValue}"]`)) {
+                        dropdown.value = currentValue;
+                    } else if (dropdown.options.length > 0 && dropdown.options[0].value !== "") {
+                        // If no previous value or not found, select the first valid option
+                        dropdown.value = dropdown.options[0].value;
+                    }
                 }
             } catch (error) {
                 console.error(`Error loading districts for dropdown ${dropdownId}:`, error);
             }
         }
         
-        // Edit user function
-        async function editUser(userId) {
-            alert(`Edit user functionality is under development for user ID: ${userId}`);
-        }
-        
-        // Delete user function
+        // Delete user function (deactivates user)
         function deleteUser(userId) {
-            if (confirm('Are you sure you want to deactivate this user?')) {
+            if (confirm('Are you sure you want to deactivate this user? This will prevent them from logging in.')) {
                 supabaseClient
                     .from('test_users')
-                    .update({ is_active: false })
+                    .update({ is_active: false, updated_at: new Date().toISOString() })
                     .eq('id', userId)
                     .then(({ error }) => {
                         if (error) {
@@ -2373,74 +2802,21 @@
                             alert('Failed to deactivate user. Please try again.');
                         } else {
                             alert('User deactivated successfully!');
-                            loadUsers();
-                            
-                            // Log activity
-                            logActivity('User Management', `User with ID ${userId} was deactivated`, 'success');
+                            loadUsers(); // Reload the users table
+                            logActivity('User Management', `User ID ${userId} deactivated`, 'success');
                         }
                     });
             }
         }
         
-        // Edit district function
-        async function editDistrict(districtId) {
-            try {
-                const { data: district, error } = await supabaseClient
-                    .from('districts')
-                    .select('id, name')
-                    .eq('id', districtId)
-                    .single();
-                
-                if (error) throw error;
-                
-                if (district) {
-                    document.getElementById('districtId').value = district.id;
-                    document.getElementById('districtName').value = district.name;
-                    document.getElementById('districtModalLabel').textContent = 'Edit District';
-                    
-                    const districtModal = new bootstrap.Modal(document.getElementById('districtModal'));
-                    districtModal.show();
-                }
-            } catch (error) {
-                console.error('Error fetching district data:', error);
-                alert('Failed to load district data for editing.');
-            }
-        }
-        
-        // Delete district function
+        // Delete district function (disabled for data integrity)
         function deleteDistrict(districtId) {
-            alert('District deletion is not allowed for data integrity reasons.');
+            alert('District deletion is not allowed directly due to data integrity. Please contact system administrator for manual deletion if absolutely necessary.');
         }
         
-        // Edit crop function
-        async function editCrop(cropId) {
-            try {
-                const { data: crop, error } = await supabaseClient
-                    .from('crops')
-                    .select('id, name, code')
-                    .eq('id', cropId)
-                    .single();
-                
-                if (error) throw error;
-                
-                if (crop) {
-                    document.getElementById('cropId').value = crop.id;
-                    document.getElementById('cropName').value = crop.name;
-                    document.getElementById('cropCode').value = crop.code;
-                    document.getElementById('cropModalLabel').textContent = 'Edit Crop';
-                    
-                    const cropModal = new bootstrap.Modal(document.getElementById('cropModal'));
-                    cropModal.show();
-                }
-            } catch (error) {
-                console.error('Error fetching crop data:', error);
-                alert('Failed to load crop data for editing.');
-            }
-        }
-        
-        // Delete crop function
+        // Delete crop function (checks for dependencies before deleting)
         function deleteCrop(cropId) {
-            if (confirm('Are you sure you want to delete this crop?')) {
+            if (confirm('Are you sure you want to delete this crop? This action cannot be undone if not used elsewhere.')) {
                 // First check if crop is used in district_crop_progress
                 supabaseClient
                     .from('district_crop_progress')
@@ -2449,12 +2825,12 @@
                     .then(({ data, error }) => {
                         if (error) {
                             console.error('Error checking crop usage:', error);
-                            alert('Error checking if crop can be deleted.');
+                            alert('Error checking if crop can be deleted. Please try again.');
                             return;
                         }
                         
                         if (data && data.length > 0) {
-                            alert('This crop cannot be deleted because it is being used in progress data.');
+                            alert('This crop cannot be deleted because it is being used in district crop progress data. Please remove associated progress records first.');
                             return;
                         }
                         
@@ -2466,13 +2842,11 @@
                             .then(({ error: deleteError }) => {
                                 if (deleteError) {
                                     console.error('Error deleting crop:', deleteError);
-                                    alert('Failed to delete crop.');
+                                    alert('Failed to delete crop. Please try again.');
                                 } else {
                                     alert('Crop deleted successfully!');
-                                    loadCrops();
-                                    
-                                    // Log activity
-                                    logActivity('Crop Management', `Crop with ID ${cropId} was deleted`, 'success');
+                                    loadCrops(); // Reload the crops table
+                                    logActivity('Crop Management', `Crop ID ${cropId} deleted`, 'success');
                                 }
                             });
                     });
@@ -2480,18 +2854,19 @@
         }
         
         // Initialize district chart
+        let districtChartInstance = null;
         function initDistrictChart(districts) {
             const ctx = document.getElementById('districtChart').getContext('2d');
             
-            // Extract district names and generate random data for demonstration
-            const labels = districts.map(district => district.name);
-            const data = districts.map(() => Math.floor(Math.random() * 100) + 10);
-            
-            if (window.districtChart) {
-                window.districtChart.destroy();
+            if (districtChartInstance) {
+                districtChartInstance.destroy();
             }
+
+            const labels = districts.map(district => district.name);
+            // Fetch real data for district distribution if available, otherwise use sample
+            const data = districts.map(() => Math.floor(Math.random() * 100) + 10); // Sample data
             
-            window.districtChart = new Chart(ctx, {
+            districtChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
                     labels: labels,
@@ -2506,6 +2881,7 @@
                 },
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             position: 'bottom',
@@ -2516,10 +2892,15 @@
         }
         
         // Initialize crop categories chart
+        let cropCategoriesChartInstance = null;
         function initCropCategoriesChart() {
             const ctx = document.getElementById('cropCategoriesChart').getContext('2d');
             
-            // Sample data for demonstration
+            if (cropCategoriesChartInstance) {
+                cropCategoriesChartInstance.destroy();
+            }
+
+            // Sample data for demonstration (replace with real crop category data if available)
             const data = {
                 labels: ['Cereals', 'Pulses', 'Oilseeds', 'Vegetables', 'Fruits'],
                 datasets: [{
@@ -2531,15 +2912,12 @@
                 }]
             };
             
-            if (window.cropChart) {
-                window.cropChart.destroy();
-            }
-            
-            window.cropChart = new Chart(ctx, {
+            cropCategoriesChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: data,
                 options: {
                     responsive: true,
+                    maintainAspectRatio: false,
                     plugins: {
                         legend: {
                             position: 'bottom',
@@ -2549,21 +2927,27 @@
             });
         }
         
-        // Log activity
+        // Log activity (centralized function)
         async function logActivity(activityType, description, status) {
             try {
-                await supabaseClient.from('activity_logs').insert({
-                    user_id: currentUser.id,
-                    activity_type: activityType,
-                    description: description,
-                    status: status
-                });
+                // Ensure currentUser and its ID are available before logging
+                if (currentUser && currentUser.id) {
+                    await supabaseClient.from('activity_logs').insert({
+                        user_id: currentUser.id,
+                        activity_type: activityType,
+                        description: description,
+                        status: status,
+                        created_at: new Date().toISOString()
+                    });
+                } else {
+                    console.warn('Cannot log activity: currentUser or currentUser.id is missing.');
+                }
             } catch (error) {
                 console.error('Error logging activity:', error);
             }
         }
         
-        // Hash password
+        // Hash password with SHA-256
         async function hashPassword(password) {
             const encoder = new TextEncoder();
             const data = encoder.encode(password);
@@ -2574,6 +2958,3 @@
     </script>
 </body>
 </html>
-
-
-                
