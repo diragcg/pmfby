@@ -495,6 +495,9 @@
             <a href="#view-data" class="menu-item" id="viewDataLink">
                 <i class="fas fa-table"></i> <span class="hindi">डेटा देखें</span>
             </a>
+            <a href="#update-progress" class="menu-item" id="updateProgressLink">
+                <i class="fas fa-edit"></i> <span class="hindi">प्रगति अपडेट करें</span>
+            </a>
             <a href="#upload-data" class="menu-item" id="uploadDataLink">
                 <i class="fas fa-upload"></i> <span class="hindi">डेटा अपलोड करें</span>
             </a>
@@ -536,11 +539,11 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted mb-1">कुल सर्वेक्षण</h6>
-                                    <h3 class="mb-0" id="totalSurveys">0</h3>
+                                    <h6 class="text-muted mb-1">कुल लक्ष्य (GTS)</h6>
+                                    <h3 class="mb-0" id="totalTargetGTS">0</h3>
                                 </div>
                                 <div class="bg-light p-3 rounded">
-                                    <i class="fas fa-clipboard-list text-success"></i>
+                                    <i class="fas fa-bullseye text-success"></i>
                                 </div>
                             </div>
                         </div>
@@ -551,11 +554,11 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center">
                                 <div>
-                                    <h6 class="text-muted mb-1">पूर्ण सर्वेक्षण</h6>
-                                    <h3 class="mb-0" id="completedSurveys">0</h3>
+                                    <h6 class="text-muted mb-1">पूर्ण लक्ष्य (GTS)</h6>
+                                    <h3 class="mb-0" id="achievedGTS">0</h3>
                                 </div>
                                 <div class="bg-light p-3 rounded">
-                                    <i class="fas fa-check-circle text-info"></i>
+                                    <i class="fas fa-check-double text-info"></i>
                                 </div>
                             </div>
                         </div>
@@ -579,30 +582,22 @@
             </div>
 
             <div class="row">
-                <div class="col-lg-8 mb-4">
+                <div class="col-12 mb-4">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="hindi">ब्लॉक अनुसार प्रगति</h5>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-filter me-1"></i> फ़िल्टर
-                                </button>
-                                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton">
-                                    <li><a class="dropdown-item" href="#">सभी फसलें</a></li>
-                                    <li><a class="dropdown-item" href="#">धान</a></li>
-                                    <li><a class="dropdown-item" href="#">गेहूं</a></li>
-                                    <li><a class="dropdown-item" href="#">मक्का</a></li>
-                                </ul>
-                            </div>
+                            <h5 class="hindi">फसल अनुसार लक्ष्य प्रगति</h5>
+                            <button class="btn btn-sm btn-outline-primary" id="refreshCropProgressBtn">
+                                <i class="fas fa-sync-alt me-1"></i> रिफ्रेश
+                            </button>
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
-                                <table class="table table-hover" id="blockProgressTable">
+                                <table class="table table-hover" id="cropProgressTable">
                                     <thead>
                                         <tr>
-                                            <th>ब्लॉक</th>
-                                            <th>कुल गांव</th>
-                                            <th>पूर्ण सर्वेक्षण</th>
+                                            <th>फसल</th>
+                                            <th>लक्ष्य GTS</th>
+                                            <th>पूर्ण GTS</th>
                                             <th>प्रगति</th>
                                             <th>स्थिति</th>
                                         </tr>
@@ -615,22 +610,19 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4 mb-4">
+                <div class="col-lg-6 mb-4">
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="hindi">फसल अनुसार सर्वेक्षण</h5>
+                            <h5 class="hindi">फसल अनुसार लक्ष्य वितरण</h5>
                         </div>
                         <div class="card-body">
-                            <canvas id="cropChart"></canvas>
+                            <canvas id="cropTargetChart"></canvas>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="row">
-                <div class="col-12">
+                <div class="col-lg-6 mb-4">
                     <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="card-header">
                             <h5 class="hindi">हाल की गतिविधियां</h5>
                             <button class="btn btn-sm btn-outline-primary" id="refreshActivitiesBtn">
                                 <i class="fas fa-sync-alt me-1"></i> रिफ्रेश
@@ -774,7 +766,7 @@
                             <label for="filterDistrict" class="form-label hindi">जिला</label>
                             <select class="form-control" id="filterDistrict">
                                 <option value="">-- सभी जिले --</option>
-                                <!-- Districts will be populated dynamically --><option value="">-- जिला चुनें --</option>
+                                <!-- Districts will be populated dynamically -->
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -826,6 +818,45 @@
             </div>
         </div>
 
+        <!-- Update Progress Section (NEW) -->
+        <div id="update-progress-section" class="content-section" style="display: none;">
+            <h2 class="page-title hindi">प्रगति अपडेट करें</h2>
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="hindi">फसल अनुसार लक्ष्य और उपलब्धि</h5>
+                </div>
+                <div class="card-body">
+                    <div id="progressUpdateAlert" class="alert" style="display: none;"></div>
+                    <form id="progressUpdateForm">
+                        <div class="mb-3">
+                            <label for="currentDistrictName" class="form-label hindi">जिला</label>
+                            <input type="text" class="form-control" id="currentDistrictName" disabled>
+                        </div>
+                        <div class="mb-3">
+                            <label for="progressCropSelect" class="form-label hindi">फसल चुनें</label>
+                            <select class="form-control" id="progressCropSelect" required>
+                                <option value="">-- फसल चुनें --</option>
+                                <!-- Crops will be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="targetGTSInput" class="form-label hindi">लक्ष्य GTS</label>
+                            <input type="number" class="form-control" id="targetGTSInput" min="0" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="achievedGTSInput" class="form-label hindi">पूर्ण GTS (संचयी)</label>
+                            <input type="number" class="form-control" id="achievedGTSInput" min="0" required>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary hindi" id="saveProgressBtn">
+                                <i class="fas fa-save me-2"></i> प्रगति सहेजें
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Upload Data Section -->
         <div id="upload-data-section" class="content-section" style="display: none;">
             <h2 class="page-title hindi">डेटा अपलोड करें</h2>
@@ -870,7 +901,7 @@
                             </div>
                             <h5 class="hindi mb-3">फाइल अपलोड करें</h5>
                             <p class="hindi mb-2">फाइल खींचें और यहां छोड़ें या क्लिक करें</p>
-                            <p class="text-muted small">केवल .xlsx या .xls फाइलें (अधिकतर 10MB)</p>
+                            <p class="text-muted small">केवल .xlsx या .xls फाइलें (अधिकतम 10MB)</p>
                             <button type="button" class="btn btn-outline-primary hindi mt-2" id="browseButton">
                                 <i class="fas fa-folder-open me-2"></i> फाइल चुनें
                             </button>
@@ -1069,6 +1100,7 @@
                 dashboard: document.getElementById('dashboard-section'),
                 profile: document.getElementById('profile-section'),
                 viewData: document.getElementById('view-data-section'),
+                updateProgress: document.getElementById('update-progress-section'), // NEW
                 uploadData: document.getElementById('upload-data-section'),
                 downloadTemplate: document.getElementById('download-template-section')
             };
@@ -1078,6 +1110,7 @@
                 dashboard: document.getElementById('dashboardLink'),
                 profile: document.getElementById('profileMenuLink'),
                 viewData: document.getElementById('viewDataLink'),
+                updateProgress: document.getElementById('updateProgressLink'), // NEW
                 uploadData: document.getElementById('uploadDataLink'),
                 downloadTemplate: document.getElementById('downloadTemplateLink')
             };
@@ -1130,9 +1163,11 @@
                     menuItems[sectionId].classList.add('active');
                 }
 
-                // Special handling for "View Data" to load its table
+                // Special handling for data loading based on section
                 if (sectionId === 'viewData') {
                     loadSurveyData();
+                } else if (sectionId === 'updateProgress') { // NEW
+                    loadProgressUpdateForm();
                 }
             }
             
@@ -1196,7 +1231,7 @@
                     // Load data for all sections that need it
                     await loadDashboardData();
                     await loadDistricts(); // For dropdowns
-                    await loadCrops(); // For dropdowns
+                    await loadCrops(); // For dropdowns (also for new update progress form)
                 } catch (error) {
                     console.error('Failed to load user data or initialize app:', error);
                     // Critical error, redirect to login
@@ -1213,7 +1248,7 @@
                 }
 
                 try {
-                    // Fetch total villages in the district
+                    // Fetch total villages in the district (remains from villages table)
                     const { count: totalVillagesCount, error: villagesError } = await supabaseClient
                         .from('villages')
                         .select('*', { count: 'exact', head: true })
@@ -1221,93 +1256,90 @@
                     
                     if (villagesError) throw villagesError;
                     document.getElementById('totalVillages').textContent = totalVillagesCount || '0';
-                    console.log('Total villages:', totalVillagesCount);
+                    console.log('Dashboard - Total villages:', totalVillagesCount);
 
-                    // Fetch total surveys in the district
-                    const { count: totalSurveysCount, error: surveysError } = await supabaseClient
-                        .from('survey_data')
-                        .select('*', { count: 'exact', head: true })
+                    // Fetch aggregated target and achieved GTS from district_crop_progress
+                    const { data: aggregatedProgress, error: progressError } = await supabaseClient
+                        .from('district_crop_progress')
+                        .select('target_gts, achieved_gts')
                         .eq('district_id', currentUser.districtId);
                     
-                    if (surveysError) throw surveysError;
-                    document.getElementById('totalSurveys').textContent = totalSurveysCount || '0';
-                    console.log('Total surveys:', totalSurveysCount);
+                    if (progressError) throw progressError;
+                    console.log('Dashboard - Aggregated progress:', aggregatedProgress);
 
-                    // Fetch completed surveys in the district
-                    const { count: completedSurveysCount, error: completedError } = await supabaseClient
-                        .from('survey_data')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('district_id', currentUser.districtId)
-                        .eq('status', 'completed');
-                    
-                    if (completedError) throw completedError;
-                    document.getElementById('completedSurveys').textContent = completedSurveysCount || '0';
-                    console.log('Completed surveys:', completedSurveysCount);
+                    let totalTargetGTS = 0;
+                    let totalAchievedGTS = 0;
 
-                    // Calculate and display progress percentage
-                    const progressPercentage = (totalSurveysCount > 0) ? Math.round((completedSurveysCount / totalSurveysCount) * 100) : 0;
-                    document.getElementById('progressPercentage').textContent = `${progressPercentage}%`;
-                    console.log('Progress percentage:', progressPercentage);
+                    if (aggregatedProgress && aggregatedProgress.length > 0) {
+                        aggregatedProgress.forEach(item => {
+                            totalTargetGTS += item.target_gts;
+                            totalAchievedGTS += item.achieved_gts;
+                        });
+                    }
 
-                    // Load sub-tables and charts for dashboard
-                    await loadBlockProgress(currentUser.districtId);
-                    await loadActivities(); // Activities might not be district-specific, or join needed
-                    await initCropChart(currentUser.districtId);
+                    document.getElementById('totalTargetGTS').textContent = totalTargetGTS || '0';
+                    document.getElementById('achievedGTS').textContent = totalAchievedGTS || '0';
+
+                    // Calculate and display overall progress percentage
+                    const overallProgressPercentage = (totalTargetGTS > 0) ? Math.round((totalAchievedGTS / totalTargetGTS) * 100) : 0;
+                    document.getElementById('progressPercentage').textContent = `${overallProgressPercentage}%`;
+                    console.log('Dashboard - Overall Progress:', overallProgressPercentage);
+
+                    // Load crop-wise progress table (NEW TABLE FOR DASHBOARD)
+                    await loadCropProgressTable(currentUser.districtId);
+                    // Load crop target chart (NEW CHART FOR DASHBOARD)
+                    await initCropTargetChart(currentUser.districtId);
+                    // Load activities (remains the same)
+                    await loadActivities(); 
 
                 } catch (error) {
                     console.error('Error loading dashboard data:', error);
                     // Set counts to 0 on error
                     document.getElementById('totalVillages').textContent = '0';
-                    document.getElementById('totalSurveys').textContent = '0';
-                    document.getElementById('completedSurveys').textContent = '0';
+                    document.getElementById('totalTargetGTS').textContent = '0';
+                    document.getElementById('achievedGTS').textContent = '0';
                     document.getElementById('progressPercentage').textContent = '0%';
                 }
             }
             
-            // Load data for Block Progress Table
-            async function loadBlockProgress(districtId) {
-                console.log(`Loading block progress for district: ${districtId}`);
+            // Load data for Crop Progress Table on Dashboard (NEW)
+            let cropProgressTableInstance = null;
+            async function loadCropProgressTable(districtId) {
+                console.log(`Loading crop progress table for district: ${districtId}`);
                 try {
-                    const blockTableElement = document.getElementById('blockProgressTable');
-                    if (!blockTableElement) {
-                        console.warn('Block progress table element not found.');
+                    const tableElement = document.getElementById('cropProgressTable');
+                    if (!tableElement) {
+                        console.warn('Crop progress table element not found.');
                         return;
                     }
                     
                     // Destroy existing DataTable instance if any
-                    if ($.fn.DataTable.isDataTable(blockTableElement)) {
-                        $(blockTableElement).DataTable().destroy();
+                    if (cropProgressTableInstance) {
+                        cropProgressTableInstance.destroy();
+                        cropProgressTableInstance = null;
                     }
 
-                    // Fetch blocks for the current district
-                    const { data: blocks, error: blockError } = await supabaseClient
-                        .from('blocks')
-                        .select('id, name')
+                    // Fetch crop-wise progress for the current district
+                    const { data: cropProgressRecords, error } = await supabaseClient
+                        .from('district_crop_progress')
+                        .select(`
+                            crop_id,
+                            crops(name),
+                            target_gts,
+                            achieved_gts
+                        `)
                         .eq('district_id', districtId)
-                        .order('name', { ascending: true });
+                        .order('crops.name', { ascending: true });
                         
-                    if (blockError) throw blockError;
-                    console.log('Fetched blocks:', blocks);
+                    if (error) throw error;
+                    console.log('Fetched crop progress records:', cropProgressRecords);
 
-                    const blockDataForTable = [];
-
-                    for (const block of blocks || []) {
-                        // Get total villages in this block
-                        const { count: villageCount, error: villageCountError } = await supabaseClient
-                            .from('villages')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('block_id', block.id);
-                        if (villageCountError) console.error(`Error fetching village count for block ${block.name}:`, villageCountError);
-
-                        // Get completed surveys for this block
-                        const { count: completedCount, error: completedCountError } = await supabaseClient
-                            .from('survey_data')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('block_id', block.id)
-                            .eq('status', 'completed');
-                        if (completedCountError) console.error(`Error fetching completed survey count for block ${block.name}:`, completedCountError);
-                        
-                        const progress = (villageCount > 0) ? Math.round((completedCount / villageCount) * 100) : 0;
+                    const tableData = [];
+                    (cropProgressRecords || []).forEach(record => {
+                        const cropName = record.crops?.name || 'N/A';
+                        const target = record.target_gts || 0;
+                        const achieved = record.achieved_gts || 0;
+                        const progress = (target > 0) ? Math.round((achieved / target) * 100) : 0;
                         
                         let statusBadge = '';
                         if (progress >= 75) {
@@ -1318,18 +1350,18 @@
                             statusBadge = '<span class="badge bg-danger">कम</span>';
                         }
                         
-                        blockDataForTable.push([
-                            block.name,
-                            villageCount || '0',
-                            completedCount || '0',
+                        tableData.push([
+                            cropName,
+                            target,
+                            achieved,
                             `${progress}%`,
                             statusBadge
                         ]);
-                    }
+                    });
 
                     // Initialize DataTable with fetched data
-                    $(blockTableElement).DataTable({
-                        data: blockDataForTable,
+                    cropProgressTableInstance = $(tableElement).DataTable({
+                        data: tableData,
                         paging: true,
                         searching: false,
                         info: false,
@@ -1337,29 +1369,129 @@
                             paginate: { next: 'अगला', previous: 'पिछला' }
                         }
                     });
-                    console.log('Block progress table loaded successfully.');
+                    console.log('Crop progress table loaded successfully.');
 
                 } catch (error) {
-                    console.error('Error loading block progress:', error);
+                    console.error('Error loading crop progress table:', error);
                     // Reinitialize an empty DataTable on error
-                    const blockTableElement = document.getElementById('blockProgressTable');
-                    if ($.fn.DataTable.isDataTable(blockTableElement)) {
-                        $(blockTableElement).DataTable().destroy();
+                    const tableElement = document.getElementById('cropProgressTable');
+                    if (cropProgressTableInstance) {
+                        cropProgressTableInstance.destroy();
                     }
-                    $(blockTableElement).DataTable({
-                        data: [], // No data on error
-                        paging: true,
-                        searching: false,
-                        info: false,
-                        language: {
-                            paginate: { next: 'अगला', previous: 'पिछला' }
-                        }
+                    cropProgressTableInstance = $(tableElement).DataTable({
+                        data: [],
+                        paging: true, searching: false, info: false,
+                        language: { paginate: { next: 'अगला', previous: 'पिछला' } }
                     });
                 }
             }
-            
-            // Load data for Recent Activities Table
-            async function loadActivities() { // No districtId needed here if activity_logs is global or joined
+
+            // Initialize Crop Target Chart (NEW)
+            let cropTargetChartInstance = null;
+            async function initCropTargetChart(districtId) {
+                console.log(`Initializing crop target chart for district: ${districtId}`);
+                try {
+                    const chartElement = document.getElementById('cropTargetChart');
+                    if (!chartElement) {
+                        console.warn('Crop target chart element not found.');
+                        return;
+                    }
+
+                    // Destroy existing chart instance if any
+                    if (cropTargetChartInstance) {
+                        cropTargetChartInstance.destroy();
+                    }
+
+                    // Get crop-wise targets for the current district
+                    const { data: progressRecords, error } = await supabaseClient
+                        .from('district_crop_progress')
+                        .select(`
+                            crop_id,
+                            crops(name),
+                            target_gts,
+                            achieved_gts
+                        `)
+                        .eq('district_id', districtId);
+                        
+                    if (error) throw error;
+                    console.log('Fetched progress records for crop target chart:', progressRecords);
+
+                    const labels = [];
+                    const targets = [];
+                    const achieved = [];
+
+                    if (progressRecords && progressRecords.length > 0) {
+                        progressRecords.forEach(record => {
+                            labels.push(record.crops?.name || 'N/A');
+                            targets.push(record.target_gts || 0);
+                            achieved.push(record.achieved_gts || 0);
+                        });
+                    } else {
+                        console.log('No crop progress data for chart, displaying empty chart.');
+                    }
+                    
+                    const ctx = chartElement.getContext('2d');
+                    if (!ctx) {
+                        console.error('Could not get 2D context for crop target chart canvas.');
+                        return;
+                    }
+
+                    cropTargetChartInstance = new Chart(ctx, {
+                        type: 'bar', // Bar chart is better for comparison
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                {
+                                    label: 'लक्ष्य GTS',
+                                    data: targets,
+                                    backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                    borderWidth: 1
+                                },
+                                {
+                                    label: 'पूर्ण GTS',
+                                    data: achieved,
+                                    backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                                    borderColor: 'rgba(153, 102, 255, 1)',
+                                    borderWidth: 1
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: 'GTS संख्या'
+                                    }
+                                }
+                            },
+                            plugins: {
+                                legend: { position: 'top' },
+                                title: {
+                                    display: false,
+                                    text: 'फसल अनुसार लक्ष्य और पूर्ण GTS'
+                                }
+                            }
+                        }
+                    });
+                    console.log('Crop target chart initialized successfully.');
+
+                } catch (error) {
+                    console.error('Error initializing crop target chart:', error);
+                    const chartElement = document.getElementById('cropTargetChart');
+                    if (chartElement) {
+                        const ctx = chartElement.getContext('2d');
+                        if (ctx) ctx.clearRect(0, 0, chartElement.width, chartElement.height);
+                    }
+                }
+            }
+
+            // Load data for Recent Activities Table (logic remains the same)
+            let recentActivitiesTableInstance = null;
+            async function loadActivities() {
                 console.log('Loading recent activities...');
                 try {
                     const activitiesTableElement = document.getElementById('recentActivitiesTable');
@@ -1368,22 +1500,14 @@
                         return;
                     }
 
-                    // Destroy existing DataTable instance if any
-                    if ($.fn.DataTable.isDataTable(activitiesTableElement)) {
-                        $(activitiesTableElement).DataTable().destroy();
+                    if (recentActivitiesTableInstance) {
+                        recentActivitiesTableInstance.destroy();
+                        recentActivitiesTableInstance = null;
                     }
 
-                    // Fetch recent activities with user full_name
                     const { data: activities, error } = await supabaseClient
                         .from('activity_logs')
-                        .select(`
-                            created_at, 
-                            activity_type, 
-                            description, 
-                            status, 
-                            user_id, 
-                            test_users(full_name)
-                        `)
+                        .select(`created_at, activity_type, description, status, user_id, test_users(full_name)`)
                         .order('created_at', { ascending: false })
                         .limit(10);
                         
@@ -1392,7 +1516,7 @@
 
                     const activitiesDataForTable = [];
                     (activities || []).forEach(activity => {
-                        const date = activity.created_at ? new Date(activity.created_at).toLocaleDateString('hi-IN') : 'N/A'; // Format date for Hindi
+                        const date = activity.created_at ? new Date(activity.created_at).toLocaleDateString('hi-IN') : 'N/A';
                         const userName = activity.test_users ? activity.test_users.full_name : 'N/A';
                         
                         let statusBadge = '';
@@ -1415,132 +1539,27 @@
                         ]);
                     });
 
-                    // Initialize DataTable with fetched data
-                    $(activitiesTableElement).DataTable({
+                    recentActivitiesTableInstance = $(activitiesTableElement).DataTable({
                         data: activitiesDataForTable,
-                        paging: true,
-                        searching: false,
-                        info: false,
-                        language: {
-                            paginate: { next: 'अगला', previous: 'पिछला' }
-                        }
+                        paging: true, searching: false, info: false,
+                        language: { paginate: { next: 'अगला', previous: 'पिछला' } }
                     });
                     console.log('Recent activities table loaded successfully.');
 
-                }
-                catch (error) {
-                    console.error('Error loading recent activities:', error);
-                    // Reinitialize an empty DataTable on error
-                    const activitiesTableElement = document.getElementById('recentActivitiesTable');
-                    if ($.fn.DataTable.isDataTable(activitiesTableElement)) {
-                        $(activitiesTableElement).DataTable().destroy();
-                    }
-                    $(activitiesTableElement).DataTable({
-                        data: [], // No data on error
-                        paging: true,
-                        searching: false,
-                        info: false,
-                        language: {
-                            paginate: { next: 'अगला', previous: 'पिछला' }
-                        }
-                    });
-                }
-            }
-            
-            // Initialize Crop Chart
-            let cropChartInstance = null; // To hold the Chart.js instance
-            async function initCropChart(districtId) {
-                console.log(`Initializing crop chart for district: ${districtId}`);
-                try {
-                    const chartElement = document.getElementById('cropChart');
-                    if (!chartElement) {
-                        console.warn('Crop chart element not found.');
-                        return;
-                    }
-
-                    // Destroy existing chart instance if any
-                    if (cropChartInstance) {
-                        cropChartInstance.destroy();
-                    }
-
-                    // Get crop distribution data
-                    const { data: surveyData, error } = await supabaseClient
-                        .from('survey_data')
-                        .select(`
-                            crop_id,
-                            crops(name)
-                        `)
-                        .eq('district_id', districtId);
-                        
-                    if (error) throw error;
-                    console.log('Fetched survey data for crop chart:', surveyData);
-
-                    // Count by crop
-                    const cropCounts = {};
-                    if (surveyData && surveyData.length > 0) {
-                        surveyData.forEach(item => {
-                            const cropName = item.crops ? item.crops.name : 'अज्ञात';
-                            cropCounts[cropName] = (cropCounts[cropName] || 0) + 1;
-                        });
-                    } else {
-                        // If no real data, the chart will simply be empty.
-                        console.log('No survey data for crop chart, chart will be empty.');
-                    }
-                    
-                    const ctx = chartElement.getContext('2d');
-                    if (!ctx) {
-                        console.error('Could not get 2D context for crop chart canvas.');
-                        return;
-                    }
-
-                    cropChartInstance = new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: Object.keys(cropCounts),
-                            datasets: [{
-                                data: Object.values(cropCounts),
-                                backgroundColor: [
-                                    'rgba(75, 192, 192, 0.7)',
-                                    'rgba(255, 205, 86, 0.7)',
-                                    'rgba(54, 162, 235, 0.7)',
-                                    'rgba(201, 203, 207, 0.7)',
-                                    'rgba(255, 99, 132, 0.7)',
-                                    'rgba(153, 102, 255, 0.7)',
-                                    'rgba(255, 159, 64, 0.7)'
-                                ],
-                                borderColor: [
-                                    'rgba(75, 192, 192, 1)',
-                                    'rgba(255, 205, 86, 1)',
-                                    'rgba(54, 162, 235, 1)',
-                                    'rgba(201, 203, 207, 1)',
-                                    'rgba(255, 99, 132, 1)',
-                                    'rgba(153, 102, 255, 1)',
-                                    'rgba(255, 159, 64, 1)'
-                                ],
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            plugins: {
-                                legend: { position: 'bottom' }
-                            }
-                        }
-                    });
-                    console.log('Crop chart initialized successfully.');
-
                 } catch (error) {
-                    console.error('Error initializing crop chart:', error);
-                    // Clear canvas on error
-                    const chartElement = document.getElementById('cropChart');
-                    if (chartElement) {
-                        const ctx = chartElement.getContext('2d');
-                        if (ctx) ctx.clearRect(0, 0, chartElement.width, chartElement.height);
+                    console.error('Error loading recent activities:', error);
+                    if (recentActivitiesTableInstance) {
+                        recentActivitiesTableInstance.destroy();
                     }
+                    recentActivitiesTableInstance = $(activitiesTableElement).DataTable({
+                        data: [],
+                        paging: true, searching: false, info: false,
+                        language: { paginate: { next: 'अगला', previous: 'पिछला' } }
+                    });
                 }
             }
             
-            // Load districts into dropdowns
+            // Load districts into dropdowns (logic remains the same)
             async function loadDistricts() {
                 console.log('Loading districts for dropdowns...');
                 try {
@@ -1556,21 +1575,15 @@
                     districtDropdownIds.forEach(id => {
                         const dropdown = document.getElementById(id);
                         if (dropdown) {
-                            // Clear existing options except the first one
-                            while (dropdown.options.length > 1) {
-                                dropdown.remove(1);
-                            }
-                            // Add new options
+                            while (dropdown.options.length > 1) { dropdown.remove(1); }
                             (data || []).forEach(district => {
                                 const option = document.createElement('option');
                                 option.value = district.id;
                                 option.textContent = district.name;
                                 dropdown.appendChild(option);
                             });
-                            // Pre-select user's district if available
                             if (currentUser && currentUser.districtId && dropdown.id !== 'filterDistrict') {
                                 dropdown.value = currentUser.districtId;
-                                // Trigger change event to load blocks automatically
                                 const event = new Event('change');
                                 dropdown.dispatchEvent(event);
                             }
@@ -1585,7 +1598,7 @@
                 }
             }
             
-            // Load blocks into dropdowns based on selected district
+            // Load blocks into dropdowns based on selected district (logic remains the same)
             async function loadBlocks(districtId, blockDropdownId) {
                 console.log(`Loading blocks for dropdown '${blockDropdownId}' with districtId: ${districtId}`);
                 const blockDropdown = document.getElementById(blockDropdownId);
@@ -1594,15 +1607,8 @@
                     return;
                 }
 
-                // Clear existing options except the first one
-                while (blockDropdown.options.length > 1) {
-                    blockDropdown.remove(1);
-                }
-                
-                if (!districtId) {
-                    console.log('No district selected, clearing blocks.');
-                    return;
-                }
+                while (blockDropdown.options.length > 1) { blockDropdown.remove(1); }
+                if (!districtId) { console.log('No district selected, clearing blocks.'); return; }
 
                 try {
                     const { data, error } = await supabaseClient
@@ -1627,7 +1633,7 @@
                 }
             }
             
-            // Load crops into dropdowns
+            // Load crops into dropdowns (updated to also populate progressCropSelect)
             async function loadCrops() {
                 console.log('Loading crops for dropdowns...');
                 try {
@@ -1639,15 +1645,11 @@
                     if (error) throw error;
                     console.log('Fetched crops for dropdowns:', data);
 
-                    const cropDropdownIds = ['filterCrop', 'uploadCrop', 'templateCrop'];
+                    const cropDropdownIds = ['filterCrop', 'uploadCrop', 'templateCrop', 'progressCropSelect']; // Added progressCropSelect
                     cropDropdownIds.forEach(id => {
                         const dropdown = document.getElementById(id);
                         if (dropdown) {
-                            // Clear existing options except the first one
-                            while (dropdown.options.length > 1) {
-                                dropdown.remove(1);
-                            }
-                            // Add new options
+                            while (dropdown.options.length > 1) { dropdown.remove(1); }
                             (data || []).forEach(crop => {
                                 const option = document.createElement('option');
                                 option.value = crop.id;
@@ -1666,6 +1668,7 @@
             }
 
             // Load data for the "View Data" section (Survey Data Table)
+            let surveyDataTableInstance = null;
             async function loadSurveyData() {
                 console.log('Loading survey data for "View Data" section...');
                 const surveyDataTableElement = document.getElementById('surveyDataTable');
@@ -1674,15 +1677,14 @@
                     return;
                 }
 
-                // Destroy existing DataTable instance if any
-                if ($.fn.DataTable.isDataTable(surveyDataTableElement)) {
-                    $(surveyDataTableElement).DataTable().destroy();
+                if (surveyDataTableInstance) {
+                    surveyDataTableInstance.destroy();
+                    surveyDataTableInstance = null;
                 }
 
                 if (!currentUser || !currentUser.districtId) {
                     console.warn('Cannot load survey data: currentUser or districtId is missing.');
-                    // Initialize empty DataTable if no user context
-                    $(surveyDataTableElement).DataTable({ data: [], language: { search: "खोजें:", paginate: { next: 'अगला', previous: 'पिछला' }, info: "कोई प्रविष्टि नहीं मिली", infoEmpty: "कोई प्रविष्टि नहीं मिली", infoFiltered: "(कुल _MAX_ प्रविष्टियों से फ़िल्टर किया गया)", lengthMenu: "_MENU_ प्रविष्टियां दिखाएं" } });
+                    surveyDataTableInstance = $(surveyDataTableElement).DataTable({ data: [], language: { search: "खोजें:", paginate: { next: 'अगला', previous: 'पिछला' }, info: "कोई प्रविष्टि नहीं मिली", infoEmpty: "कोई प्रविष्टि नहीं मिली", infoFiltered: "(कुल _MAX_ प्रविष्टियों से फ़िल्टर किया गया)", lengthMenu: "_MENU_ प्रविष्टियां दिखाएं" } });
                     return;
                 }
 
@@ -1729,16 +1731,11 @@
                         ]);
                     });
 
-                    // Initialize DataTable with fetched data
-                    $(surveyDataTableElement).DataTable({
+                    surveyDataTableInstance = $(surveyDataTableElement).DataTable({
                         data: surveyDataForTable,
-                        paging: true,
-                        searching: true,
-                        ordering: true,
-                        info: true,
+                        paging: true, searching: true, ordering: true, info: true,
                         language: {
-                            search: "खोजें:",
-                            paginate: { next: 'अगला', previous: 'पिछला' },
+                            search: "खोजें:", paginate: { next: 'अगला', previous: 'पिछला' },
                             info: "_TOTAL_ में से _START_ से _END_ तक प्रविष्टियां दिखा रही हैं",
                             infoEmpty: "कोई प्रविष्टि नहीं मिली",
                             infoFiltered: "(कुल _MAX_ प्रविष्टियों से फ़िल्टर किया गया)",
@@ -1747,25 +1744,21 @@
                     });
                     console.log('Survey data table loaded successfully.');
 
-                    // Attach event listeners to dynamically created buttons
                     $(surveyDataTableElement).off('click', '.view-btn').on('click', '.view-btn', function() {
                         const id = $(this).data('id');
                         alert(`सर्वेक्षण आईडी ${id} देखा जा रहा है...`);
-                        // Implement view functionality (e.g., open a modal with details)
                     });
                     $(surveyDataTableElement).off('click', '.edit-btn').on('click', '.edit-btn', function() {
                         const id = $(this).data('id');
                         alert(`सर्वेक्षण आईडी ${id} संपादित किया जा रहा है...`);
-                        // Implement edit functionality (e.g., open a modal with form)
                     });
 
                 } catch (error) {
                     console.error('Error loading survey data:', error);
-                    // Reinitialize an empty DataTable on error
-                    if ($.fn.DataTable.isDataTable(surveyDataTableElement)) {
-                        $(surveyDataTableElement).DataTable().destroy();
+                    if (surveyDataTableInstance) {
+                        surveyDataTableInstance.destroy();
                     }
-                    $(surveyDataTableElement).DataTable({
+                    surveyDataTableInstance = $(surveyDataTableElement).DataTable({
                         data: [],
                         language: { search: "खोजें:", paginate: { next: 'अगला', previous: 'पिछला' }, info: "कोई प्रविष्टि नहीं मिली", infoEmpty: "कोई प्रविष्टि नहीं मिली", infoFiltered: "(कुल _MAX_ प्रविष्टियों से फ़िल्टर किया गया)", lengthMenu: "_MENU_ प्रविष्टियां दिखाएं" }
                     });
@@ -1782,7 +1775,155 @@
                 }
             }
             
-            // Handle file upload (Logic remains largely the same, but ensure it's called)
+            // Load data for the Update Progress form (NEW)
+            async function loadProgressUpdateForm() {
+                console.log('Loading progress update form...');
+                if (!currentUser || !currentUser.districtId) {
+                    console.warn('Cannot load progress update form: currentUser or districtId is missing.');
+                    document.getElementById('currentDistrictName').value = 'N/A';
+                    document.getElementById('progressUpdateAlert').textContent = 'लॉगिन जानकारी उपलब्ध नहीं है। कृपया पुनः लॉगिन करें।';
+                    document.getElementById('progressUpdateAlert').className = 'alert alert-danger hindi';
+                    document.getElementById('progressUpdateAlert').style.display = 'block';
+                    document.getElementById('progressCropSelect').disabled = true;
+                    document.getElementById('targetGTSInput').disabled = true;
+                    document.getElementById('achievedGTSInput').disabled = true;
+                    document.getElementById('saveProgressBtn').disabled = true;
+                    return;
+                }
+
+                document.getElementById('currentDistrictName').value = currentUser.districtName || 'N/A';
+                document.getElementById('progressUpdateAlert').style.display = 'none';
+                document.getElementById('progressCropSelect').disabled = false;
+                document.getElementById('targetGTSInput').disabled = false;
+                document.getElementById('achievedGTSInput').disabled = false;
+                document.getElementById('saveProgressBtn').disabled = true; // Disabled until crop selected
+
+                // Populate crop dropdown for the form
+                await loadCrops(); // Ensures progressCropSelect is populated
+
+                // Add event listener for crop selection change
+                document.getElementById('progressCropSelect').addEventListener('change', populateProgressFields);
+            }
+
+            // Populate Target and Achieved fields based on selected crop (NEW)
+            async function populateProgressFields() {
+                const districtId = currentUser.districtId;
+                const cropId = document.getElementById('progressCropSelect').value;
+                const targetInput = document.getElementById('targetGTSInput');
+                const achievedInput = document.getElementById('achievedGTSInput');
+                const saveBtn = document.getElementById('saveProgressBtn');
+
+                if (!districtId || !cropId) {
+                    targetInput.value = '';
+                    achievedInput.value = '';
+                    saveBtn.disabled = true;
+                    return;
+                }
+
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('district_crop_progress')
+                        .select('target_gts, achieved_gts')
+                        .eq('district_id', districtId)
+                        .eq('crop_id', cropId)
+                        .single();
+
+                    if (error && error.code !== 'PGRST116') { // PGRST116 means "no rows found", which is expected for new entries
+                        throw error;
+                    }
+
+                    targetInput.value = data ? data.target_gts : 0;
+                    achievedInput.value = data ? data.achieved_gts : 0;
+                    saveBtn.disabled = false; // Enable save button once data is loaded/defaulted
+
+                    console.log(`Loaded progress for crop ${cropId}: Target=${targetInput.value}, Achieved=${achievedInput.value}`);
+
+                } catch (error) {
+                    console.error('Error loading progress for selected crop:', error);
+                    showAlert('progressUpdateAlert', 'फसल प्रगति लोड करने में त्रुटि हुई।', 'danger');
+                    targetInput.value = 0;
+                    achievedInput.value = 0;
+                    saveBtn.disabled = true;
+                }
+            }
+
+            // Handle submission of the Update Progress form (NEW)
+            async function submitProgressUpdateForm(event) {
+                event.preventDefault();
+                console.log('Progress update form submitted.');
+
+                const districtId = currentUser.districtId;
+                const cropId = document.getElementById('progressCropSelect').value;
+                const targetGTS = parseInt(document.getElementById('targetGTSInput').value, 10);
+                const achievedGTS = parseInt(document.getElementById('achievedGTSInput').value, 10);
+                const saveBtn = document.getElementById('saveProgressBtn');
+
+                if (!districtId || !cropId || isNaN(targetGTS) || isNaN(achievedGTS)) {
+                    showAlert('progressUpdateAlert', 'कृपया सभी फ़ील्ड सही ढंग से भरें।', 'danger');
+                    return;
+                }
+                if (!currentUser || !currentUser.id) {
+                    showAlert('progressUpdateAlert', 'लॉगिन जानकारी उपलब्ध नहीं है। कृपया पुनः लॉगिन करें।', 'danger');
+                    return;
+                }
+
+                saveBtn.disabled = true;
+
+                try {
+                    // Check if record exists to decide between insert or update
+                    const { data: existingRecord, error: fetchError } = await supabaseClient
+                        .from('district_crop_progress')
+                        .select('id')
+                        .eq('district_id', districtId)
+                        .eq('crop_id', cropId)
+                        .single();
+
+                    if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 means no rows found
+                        throw fetchError;
+                    }
+
+                    let updateError;
+                    if (existingRecord) {
+                        // Update existing record
+                        const { error } = await supabaseClient
+                            .from('district_crop_progress')
+                            .update({ target_gts: targetGTS, achieved_gts: achievedGTS, updated_at: new Date().toISOString() })
+                            .eq('id', existingRecord.id);
+                        updateError = error;
+                    } else {
+                        // Insert new record
+                        const { error } = await supabaseClient
+                            .from('district_crop_progress')
+                            .insert({ district_id: districtId, crop_id: cropId, target_gts: targetGTS, achieved_gts: achievedGTS });
+                        updateError = error;
+                    }
+
+                    if (updateError) throw updateError;
+
+                    showAlert('progressUpdateAlert', 'प्रगति सफलतापूर्वक सहेजी गई!', 'success');
+                    console.log('Progress updated successfully.');
+
+                    // Log activity
+                    const cropName = document.getElementById('progressCropSelect').options[document.getElementById('progressCropSelect').selectedIndex].text;
+                    await supabaseClient.from('activity_logs').insert({
+                        user_id: currentUser.id,
+                        activity_type: 'प्रगति अपडेट',
+                        description: `${cropName} फसल के लिए प्रगति (${targetGTS} लक्ष्य, ${achievedGTS} पूर्ण) अपडेट की गई।`,
+                        status: 'success'
+                    });
+
+                    // Refresh dashboard data after successful update
+                    await loadDashboardData();
+
+                } catch (error) {
+                    console.error('Error saving progress:', error);
+                    showAlert('progressUpdateAlert', 'प्रगति सहेजने में त्रुटि हुई। कृपया पुनः प्रयास करें।', 'danger');
+                } finally {
+                    saveBtn.disabled = false;
+                }
+            }
+
+            // Handle file upload (Logic remains the same, ensure it's called)
             function setupFileUpload() {
                 const fileInput = document.getElementById('fileInput');
                 const dropZone = document.getElementById('dropZone');
@@ -1799,7 +1940,6 @@
                     return;
                 }
 
-                // Enable upload button only when a file is selected and dropdowns are filled
                 function updateUploadButtonState() {
                     const uploadDistrictSelected = document.getElementById('uploadDistrict').value !== '';
                     const uploadBlockSelected = document.getElementById('uploadBlock').value !== '';
@@ -1939,7 +2079,7 @@
                 });
             }
             
-            // Handle Password Change (Logic remains the same, ensure it's called)
+            // Handle Password Change (Logic remains the same)
             async function handlePasswordChange() {
                 const passwordForm = document.getElementById('passwordChangeForm');
                 if (passwordForm) {
@@ -1992,7 +2132,6 @@
                     });
                 }
 
-                // Modal password change handler
                 const savePasswordBtn = document.getElementById('savePasswordBtn');
                 if (savePasswordBtn) {
                     savePasswordBtn.addEventListener('click', async () => {
@@ -2049,7 +2188,7 @@
                 }
             }
             
-            // Handle Template Downloads (Logic remains the same, ensure it's called)
+            // Handle Template Downloads (logic remains the same)
             function setupTemplateDownload() {
                 const templateForm = document.getElementById('templateForm');
                 if (templateForm) {
@@ -2108,7 +2247,7 @@
                 });
                 
                 document.getElementById('downloadReportTemplate').addEventListener('click', async () => {
-                    if (!currentUser || !currentUser.id) { alert('लogin जानकारी उपलब्ध नहीं है। कृपया पुनः लॉगिन करें।'); return; }
+                    if (!currentUser || !currentUser.id) { alert('लॉगिन जानकारी उपलब्ध नहीं है। कृपया पुनः लॉगिन करें।'); return; }
                     try {
                         const wb = createReportTemplate();
                         const fileName = 'Report_Template.xlsx';
@@ -2165,7 +2304,7 @@
                 });
             }
 
-            // Excel utility functions (unchanged)
+            // Excel utility functions (unchanged, but moved inside script for self-containment)
             function createSurveyTemplate(districtName, blockName, cropName) {
                 const wb = XLSX.utils.book_new();
                 const instructionsData = [
@@ -2297,6 +2436,10 @@
                 document.getElementById('exportDataBtn').addEventListener('click', () => alert('डेटा एक्सेल में निर्यात किया जा रहा है...'));
                 document.getElementById('refreshDataBtn').addEventListener('click', () => loadSurveyData()); // Reload survey data table
                 document.getElementById('refreshActivitiesBtn').addEventListener('click', () => loadActivities()); // Reload recent activities table
+                document.getElementById('refreshCropProgressBtn').addEventListener('click', () => loadCropProgressTable(currentUser.districtId)); // Reload crop progress table
+
+                // NEW: Event listener for progress update form submission
+                document.getElementById('progressUpdateForm').addEventListener('submit', submitProgressUpdateForm);
                 
                 // Mobile sidebar toggle
                 const sidebarToggle = document.getElementById('sidebarToggle');
