@@ -620,7 +620,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="lg-6 mb-4">
+                <div class="col-lg-6 mb-4">
                     <div class="card">
                         <div class="card-header">
                             <h5 class="hindi">हाल की गतिविधियां</h5>
@@ -879,6 +879,7 @@
                             <select class="form-select" id="reportType">
                                 <option value="progress">प्रगति रिपोर्ट</option>
                                 <option value="survey">सर्वेक्षण डेटा रिपोर्ट</option>
+                                <!-- Add other report types if needed, e.g., 'user', 'crop' if they are relevant for regular users -->
                             </select>
                         </div>
                         <div class="col-md-3">
@@ -1049,10 +1050,7 @@
                 
                 // Hide all sections
                 Object.values(sections).forEach(section => {
-                    if (section) {
-                        section.style.display = 'none';
-                        section.classList.remove('active'); // Ensure active class is removed
-                    }
+                    if (section) section.style.display = 'none';
                 });
                 
                 // Remove active class from all menu items
@@ -1061,14 +1059,11 @@
                 });
                 
                 // Show selected section and mark menu item as active
-                const targetSection = document.getElementById(sectionId + '-section');
-                if (targetSection) {
-                    targetSection.style.display = 'block';
-                    targetSection.classList.add('active');
+                if (sections[sectionId]) {
+                    sections[sectionId].style.display = 'block';
                 }
-                const targetMenuItem = document.getElementById(sectionId + 'Link');
-                if (targetMenuItem) {
-                    targetMenuItem.classList.add('active');
+                if (menuItems[sectionId]) {
+                    menuItems[sectionId].classList.add('active');
                 }
 
                 // Special handling for data loading based on section
@@ -1087,7 +1082,6 @@
                         break;
                     case 'reports':
                         setupReportForm(); // Setup filters and default dates for reports
-                        generateReport(); // Generate report on section load
                         break;
                     case 'settings':
                         // No specific data loading for settings in GTS.html, it's a placeholder
@@ -1152,13 +1146,10 @@
                     document.getElementById('districtInput').value = currentUser.districtName || '';
                     document.getElementById('roleInput').value = currentUser.role || '';
                     
-                    // Load data for sections that need it initially (e.g., dropdowns)
+                    // Load data for sections that need it initially
+                    await loadDashboardData();
                     await loadDistrictsForDropdown('filterDistrict'); // For dropdowns in view-data
-                    // Only load blocks if a district is already selected in filterDistrict
-                    const initialFilterDistrict = document.getElementById('filterDistrict').value;
-                    if (initialFilterDistrict) {
-                        await loadBlocks(initialFilterDistrict, 'filterBlock'); 
-                    }
+                    await loadBlocks(document.getElementById('filterDistrict').value, 'filterBlock'); // Load blocks based on initial district
                     await loadCropsForDropdowns(); // For dropdowns (e.g., progress, filter)
                 } catch (error) {
                     console.error('Failed to load user data or initialize app:', error);
@@ -1168,11 +1159,6 @@
             }
             
             // Load data for the Dashboard section
-            let systemOverviewChartInstance = null; // To store chart instance for destruction
-            let cropTargetChartInstance = null; // To store chart instance for destruction
-            let cropProgressTableInstance = null; // To store DataTable instance for destruction
-            let recentActivitiesTableInstance = null; // To store DataTable instance for destruction
-
             async function loadDashboardData() {
                 console.log('Loading dashboard data...');
                 if (!currentUser || !currentUser.districtId) {
@@ -1182,12 +1168,6 @@
                     document.getElementById('totalTargetGTS').textContent = '0';
                     document.getElementById('achievedGTS').textContent = '0';
                     document.getElementById('progressPercentage').textContent = '0%';
-                    // Clear charts/tables
-                    if (systemOverviewChartInstance) systemOverviewChartInstance.destroy();
-                    if (cropTargetChartInstance) cropTargetChartInstance.destroy();
-                    if (cropProgressTableInstance) cropProgressTableInstance.destroy();
-                    if (recentActivitiesTableInstance) recentActivitiesTableInstance.destroy();
-                    document.getElementById('recentActivitiesList').innerHTML = '<div class="list-group-item"><div class="d-flex w-100 justify-content-between"><h6 class="mb-1">No data available.</h6></div></div>';
                     return;
                 }
 
@@ -1247,6 +1227,7 @@
             }
             
             // Load data for Crop Progress Table on Dashboard
+            let cropProgressTableInstance = null;
             async function loadCropProgressTable(districtId) {
                 console.log(`Loading crop progress table for district: ${districtId}`);
                 try {
@@ -1330,6 +1311,7 @@
             }
 
             // Initialize Crop Target Chart
+            let cropTargetChartInstance = null;
             async function initCropTargetChart(districtId) {
                 console.log(`Initializing crop target chart for district: ${districtId}`);
                 try {
@@ -1432,6 +1414,7 @@
             }
 
             // Load data for Recent Activities Table
+            let recentActivitiesTableInstance = null;
             async function loadActivities() {
                 console.log('Loading recent activities...');
                 try {
@@ -1605,6 +1588,7 @@
 
                     // List all relevant crop dropdown IDs
                     const cropDropdownIds = ['filterCrop', 'progressCropSelect', 'reportCrop']; 
+                    // 'uploadCrop' and 'templateCrop' are removed as per new requirements
 
                     cropDropdownIds.forEach(id => {
                         const dropdown = document.getElementById(id);
@@ -1804,21 +1788,17 @@
 
             // Populate Target and Achieved fields based on selected crop
             async function populateProgressFields() {
-                console.log("Populating progress fields...");
                 const districtId = currentUser.districtId;
                 const cropId = document.getElementById('progressCropSelect').value;
                 const targetInput = document.getElementById('targetGTSInput');
                 const achievedInput = document.getElementById('achievedGTSInput');
                 const saveBtn = document.getElementById('saveProgressBtn');
 
-                // Reset state
-                targetInput.value = '';
-                targetInput.readOnly = true; // Default to read-only
-                achievedInput.value = '';
-                saveBtn.disabled = true;
-
                 if (!districtId || !cropId) {
-                    console.log("District or crop not selected.");
+                    targetInput.value = '';
+                    targetInput.readOnly = true; // Keep readonly by default when no crop selected
+                    achievedInput.value = '';
+                    saveBtn.disabled = true;
                     return;
                 }
 
@@ -1831,17 +1811,17 @@
                         .single();
 
                     if (error && error.code === 'PGRST116') { // No rows found - means target not set yet
-                        console.log("No existing target found. Making target editable.");
                         targetInput.value = 0; // Default to 0 for new target
                         targetInput.readOnly = false; // Make editable
                         achievedInput.value = 0;
+                        console.log('No existing target found. Making target editable.');
                     } else if (error) { // Other error
                         throw error;
                     } else { // Record found
-                        console.log("Existing target found. Keeping target as readonly.");
                         targetInput.value = data.target_gts;
                         targetInput.readOnly = true; // Keep as readonly
                         achievedInput.value = data.achieved_gts;
+                        console.log('Existing target found. Keeping target as readonly.');
                     }
                     saveBtn.disabled = false; // Enable save button once data is loaded/defaulted
 
@@ -1894,7 +1874,7 @@
 
                     let updateError;
                     if (existingRecord) {
-                        // If record exists, update only achieved_gts. Keep existing target_gts from DB.
+                        // If record exists, update only achieved_gts. Keep existing target_gts.
                         const { error } = await supabaseClient
                             .from('district_crop_progress')
                             .update({ 
@@ -1922,9 +1902,14 @@
                     showAlert('progressUpdateAlert', 'प्रगति सफलतापूर्वक सहेजी गई!', 'success');
                     console.log('Progress updated successfully.');
 
-                    // Log activity (assuming you have a logActivity function)
-                    // You might want to implement a logActivity function if it's not global
-                    // await logActivity('प्रगति अपडेट', `${cropName} फसल के लिए प्रगति (${targetGTS} लक्ष्य, ${achievedGTS} पूर्ण) अपडेट की गई।`, 'success');
+                    // Log activity
+                    const cropName = document.getElementById('progressCropSelect').options[document.getElementById('progressCropSelect').selectedIndex].text;
+                    await supabaseClient.from('activity_logs').insert({
+                        user_id: currentUser.id,
+                        activity_type: 'प्रगति अपडेट',
+                        description: `${cropName} फसल के लिए प्रगति (${targetGTS} लक्ष्य, ${achievedGTS} पूर्ण) अपडेट की गई।`,
+                        status: 'success'
+                    });
 
                     // Refresh dashboard data after successful update
                     await loadDashboardData();
@@ -2051,11 +2036,10 @@
                 console.log('Setting up all event listeners...');
                 
                 // Sidebar menu items
-                Object.values(menuItems).forEach(menuItem => {
+                Object.entries(menuItems).forEach(([sectionId, menuItem]) => {
                     if (menuItem) {
                         menuItem.addEventListener('click', (e) => {
                             e.preventDefault();
-                            const sectionId = menuItem.getAttribute('href').substring(1); // e.g., 'dashboard' from '#dashboard'
                             showSection(sectionId);
                         });
                     }
@@ -2079,8 +2063,17 @@
                     localStorage.removeItem('user');
                     sessionStorage.removeItem('user');
                     // Log activity (assuming logging is desired even if user is null)
-                    // supabaseClient.from('activity_logs').insert({ user_id: currentUser ? currentUser.id : null, activity_type: 'लॉगआउट', description: 'उपयोगकर्ता लॉगआउट हो गया', status: 'success' });
-                    window.location.href = 'login.html'; // Redirect after logging
+                    supabaseClient.from('activity_logs').insert({
+                        user_id: currentUser ? currentUser.id : null, // Use currentUser.id if available
+                        activity_type: 'लॉगआउट',
+                        description: 'उपयोगकर्ता लॉगआउट हो गया',
+                        status: 'success'
+                    }).then(() => {
+                        window.location.href = 'login.html'; // Redirect after logging
+                    }).catch(error => {
+                        console.error('Error logging logout activity:', error);
+                        window.location.href = 'login.html'; // Redirect anyway
+                    });
                 });
                 
                 // Help link
