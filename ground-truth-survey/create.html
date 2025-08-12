@@ -3,433 +3,388 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Excel → Supabase — Admin / District (Single File)</title>
+  <title>Excel → Supabase — Admin / District App</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <style>
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Mukta", Arial; background:#f7fafc; }
-    .app-shell { max-width:1100px; margin:72px auto; }
+    body { font-family: "Mukta", system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f7fafc; }
+    .topbar { position:fixed; top:0; left:0; right:0; height:56px; background:#0d6efd; color:#fff; display:flex; align-items:center; gap:12px; padding:0 16px; z-index:30; }
+    .app { max-width:1100px; margin:80px auto 48px; }
     .hidden { display:none !important; }
-    .sidebar { min-width:220px; }
-    .topbar { position:fixed; top:0; left:0; right:0; height:56px; background:#0d6efd; color:#fff; display:flex; align-items:center; padding:0 16px; z-index:30; }
-    .topbar .brand { font-weight:700; margin-left:8px; }
-    .badge-muted { background:#eef2ff; color:#1e3a8a; border-radius:6px; padding:6px 8px; font-weight:600; }
-    .card-sm { border-radius:10px; box-shadow:0 6px 20px rgba(2,6,23,0.06); }
+    .card-sm { border-radius:10px; box-shadow:0 6px 20px rgba(2,6,23,0.06); background:#fff; padding:16px; }
+    .sidebar { min-width:240px; }
     .list-hit { cursor:pointer; }
-    footer { text-align:center; margin-top:28px; color:#6b7280; font-size:13px; }
+    footer.note { text-align:center; color:#6b7280; margin-top:20px; font-size:13px; }
   </style>
 </head>
 <body>
   <div class="topbar">
     <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="28" height="28" alt="">
-    <div class="brand ms-2">Excel → Supabase (Single-file)</div>
-    <div class="ms-auto d-flex gap-2">
-      <button id="nav-home" class="btn btn-sm btn-light">Home</button>
-      <button id="nav-dashboard" class="btn btn-sm btn-light">Dashboard</button>
+    <div class="fw-bold">डेटा पोर्टल</div>
+    <div class="ms-auto d-flex gap-2 align-items-center">
+      <button id="homeBtn" class="btn btn-sm btn-light">Home</button>
+      <button id="dashboardBtn" class="btn btn-sm btn-light">Dashboard</button>
       <button id="logoutBtn" class="btn btn-sm btn-outline-light">Logout</button>
     </div>
   </div>
-
-  <div class="app-shell container-fluid">
-    <!-- LOGIN VIEW -->
-    <div id="view-login" class="card-sm p-4 bg-white">
-      <h4>लॉगिन</h4>
-      <div id="alertBox" class="alert d-none"></div>
-      <form id="loginForm" class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label">यूजरनेम</label>
-          <input id="username" class="form-control" required>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">पासवर्ड</label>
-          <div class="input-group">
-            <input id="password" type="password" class="form-control" required>
-            <button id="togglePassword" type="button" class="btn btn-outline-secondary">👁</button>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">जिला (ऐच्छिक)</label>
-          <select id="district" class="form-select"><option value="">-- जिला चुनें --</option></select>
-        </div>
-        <div class="col-12 d-flex gap-2">
-          <div class="form-check">
-            <input id="rememberMe" class="form-check-input" type="checkbox">
-            <label class="form-check-label">रीमेम्बर</label>
-          </div>
-          <div class="ms-auto">
-            <button class="btn btn-primary" type="submit">लॉगिन</button>
-          </div>
-        </div>
-      </form>
-      <footer>प्रोडक्शन: use Supabase Auth & server-side DDL. See comments in code.</footer>
-    </div>
-
-    <!-- APP SHELL AFTER LOGIN -->
-    <div id="app" class="row mt-4 hidden">
-      <div class="col-md-3 sidebar">
-        <div class="card-sm p-3 mb-3">
-          <div class="d-flex align-items-center">
-            <div>
-              <div id="userName" class="fw-semibold"></div>
-              <div id="userRole" class="text-muted small"></div>
-            </div>
-          </div>
-        </div>
-
-        <div id="adminPanel" class="card-sm p-3 mb-3 hidden">
-          <h6>Admin — Create Forms</h6>
-          <div class="mb-2">
-            <label class="form-label small">Excel (.xlsx/.xls)</label>
-            <input id="excelFile" type="file" accept=".xlsx,.xls" class="form-control form-control-sm">
-          </div>
-          <div class="mb-2">
-            <label class="form-label small">Table name (optional)</label>
-            <input id="tableNameInput" class="form-control form-control-sm" placeholder="optional table name">
-          </div>
-          <div class="d-grid">
-            <button id="processExcelBtn" class="btn btn-sm btn-primary">Process & Create Table</button>
-          </div>
-          <small class="text-muted d-block mt-2">Only admin can create tables/forms. File rows will NOT be inserted — blank fillable forms are generated.</small>
-        </div>
-
-        <div class="card-sm p-3 mb-3">
-          <h6>Forms</h6>
-          <div id="formsList" class="list-group"></div>
-        </div>
-
-        <div class="card-sm p-3 mb-3">
-          <h6>Tables (admin)</h6>
-          <div id="tablesList" class="list-group"></div>
-        </div>
-      </div>
-
-      <div class="col-md-9">
-        <div id="homeView" class="card-sm p-4 mb-3">
-          <h5>Home</h5>
-          <p class="text-muted">Admin designs forms from Excel. District users enter data into forms created by admin. District users cannot create or change forms/tables.</p>
-        </div>
-
-        <div id="dashboardView" class="card-sm p-4 mb-3 hidden">
-          <h5>Dashboard</h5>
-          <div id="dashboardContent" class="mt-2"></div>
-        </div>
-
-        <div id="formEditor" class="card-sm p-4 mb-3 hidden">
-          <h5 id="formTitle">Form</h5>
-          <form id="entryForm"></form>
-          <div class="mt-3 text-end">
-            <button id="saveRecordBtn" class="btn btn-success">Save Record</button>
-          </div>
-        </div>
+  <main class="app container-fluid">
+    <div id="unauth" class="card-sm">
+      <h5 class="mb-2">Unauthorized</h5>
+      <p class="text-muted">You should be redirected here from login.html after authentication. This page requires a logged-in user stored in localStorage/sessionStorage under key "user".</p>
+      <div>
+        <button id="goLogin" class="btn btn-primary">Go to Login</button>
       </div>
     </div>
-  </div>
+Text
+<div id="appShell" class="row hidden">
+  <aside class="col-md-3 sidebar">
+    <div class="card-sm mb-3">
+      <div><strong id="userName"></strong></div>
+      <div class="text-muted small" id="userRole"></div>
+      <div class="text-muted small" id="userDistrict"></div>
+    </div>
 
+    <div id="adminControls" class="card-sm mb-3 hidden">
+      <h6>Admin — Create Forms</h6>
+      <div class="mb-2">
+        <label class="form-label small">Excel (.xlsx/.xls)</label>
+        <input id="excelFile" type="file" accept=".xlsx,.xls" class="form-control form-control-sm" />
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">Table name (optional)</label>
+        <input id="tableNameInput" class="form-control form-control-sm" placeholder="optional table name" />
+      </div>
+      <div class="d-grid">
+        <button id="processExcelBtn" class="btn btn-sm btn-primary">Process & Create Table</button>
+      </div>
+      <small class="text-muted d-block mt-2">Admin only. This will create a table and store a form definition. No file rows are inserted.</small>
+    </div>
+
+    <div class="card-sm mb-3">
+      <h6>Available Forms</h6>
+      <div id="formsList" class="list-group"></div>
+    </div>
+
+    <div class="card-sm">
+      <h6>Tables (admin)</h6>
+      <div id="tablesList" class="list-group"></div>
+    </div>
+  </aside>
+
+  <section class="col-md-9">
+    <div id="homeView" class="card-sm mb-3">
+      <h5>Home</h5>
+      <p class="text-muted">Admin creates form designs from Excel. District users use these forms for manual data entry. District users cannot create or modify forms/tables.</p>
+    </div>
+
+    <div id="dashboardView" class="card-sm mb-3 hidden">
+      <h5>Dashboard</h5>
+      <div id="dashboardContent"></div>
+    </div>
+
+    <div id="formView" class="card-sm mb-3 hidden">
+      <h5 id="formTitle"></h5>
+      <form id="entryForm"></form>
+      <div class="mt-3 text-end">
+        <button id="saveRecordBtn" class="btn btn-success">Save Record</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<footer class="note">Important: For production use Supabase Auth + server-side DDL. See in-file notes.</footer>
+  </main>
 <script>
-/* ---------------- Configuration - REPLACE KEYS BEFORE PRODUCTION ---------------- */
+/* ---------------- CONFIG: replace keys before production ---------------- */
 const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGci...'; // replace with appropriate anon key for dev. For production use proper auth and server-side DDL.
+const SUPABASE_KEY = 'eyJhbGci...'; // REPLACE with environment-appropriate key (anon for dev). For production use server-side for DDL.
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-/* ---------------- Helper utils ---------------- */
-const $ = id => document.getElementById(id);
-function showAlert(msg, type='danger') {
-  const box = $('alertBox');
-  box.className = `alert alert-${type}`;
-  box.textContent = msg;
-  box.classList.remove('d-none');
-  setTimeout(()=> box.classList.add('d-none'), 4000);
-}
+/* ---------------- Utilities ---------------- */
+const \$ = id => document.getElementById(id);
+const showAlert = (msg, t='danger') => { alert(msg); }; // simple alert for this single-file
 function sanitizeIdentifier(str) {
-  return String(str||'').replace(/\.[^/.]+$/, '').trim().replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'').toLowerCase() || `table_${Date.now()}`;
+  return String(str||'').replace(/\.[^/.]+\$/, '').trim().replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'').toLowerCase() || `table_${Date.now()}`;
 }
 function sanitizeColName(str, idx) {
   let s = String(str||`column_${idx+1}`).trim().replace(/[^a-zA-Z0-9_]/g,'');
   if (!s) s = `column_${idx+1}`; return s;
 }
 function safeId(str) { return String(str||'').replace(/[^a-zA-Z0-9_-]/g,'_'); }
-async function hashPassword(password) {
-  const enc = new TextEncoder();
-  const buf = await crypto.subtle.digest('SHA-256', enc.encode(password));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
 
 /* ---------------- State ---------------- */
 let currentUser = null;
-let currentDefinition = null; // loaded form_definitions record
-let definitionsCache = []; // list of form_definitions
+let definitions = []; // cached form_definitions
+let currentDefinition = null;
 
-/* ---------------- DOM refs ---------------- */
-const viewLogin = $('view-login');
-const appShell = $('app');
-const navHome = $('nav-home'), navDashboard = $('nav-dashboard'), logoutBtn = $('logoutBtn');
-const adminPanel = $('adminPanel'), formsList = $('formsList'), tablesList = $('tablesList');
-const homeView = $('homeView'), dashboardView = $('dashboardView'), formEditor = $('formEditor');
-const formTitle = $('formTitle'), entryForm = $('entryForm'), saveRecordBtn = $('saveRecordBtn');
-const processExcelBtn = $('processExcelBtn'), excelFile = $('excelFile'), tableNameInput = $('tableNameInput');
-const formsListEl = $('formsList'), tablesListEl = $('tablesList'), dashboardContent = $('dashboardContent');
-const userNameEl = $('userName'), userRoleEl = $('userRole');
-
-/* ---------------- Initial load ---------------- */
-document.addEventListener('DOMContentLoaded', async ()=> {
-  // load districts for login dropdown
-  loadDistricts();
-  restoreSessionAndRoute();
-});
-
-/* ---------------- LOGIN FLOW ---------------- */
-$('togglePassword').addEventListener('click', ()=> {
-  const p = $('password'); p.type = p.type === 'password' ? 'text' : 'password';
-});
-
-$('loginForm').addEventListener('submit', async (ev) => {
-  ev.preventDefault();
-  try {
-    const btn = ev.target.querySelector('button[type="submit"]');
-    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'प्रवेश...';
-    const username = $('username').value.trim();
-    const password = $('password').value;
-    const districtId = $('district').value || null;
-    const remember = $('rememberMe').checked;
-
-    if (!username || !password) { showAlert('Username and password required'); btn.disabled=false; btn.innerHTML=orig; return; }
-    const hashed = await hashPassword(password);
-
-    const { data, error } = await supabase.from('test_users')
-      .select('id,username,full_name,role,district_id,mobile_number,email,is_active').eq('username', username)
-      .eq('password_hash', hashed).eq('is_active', true).single();
-
-    if (error || !data) throw new Error('अमान्य यूजरनेम या पासवर्ड');
-
-    if (districtId && data.district_id && String(data.district_id) !== String(districtId)) {
-      throw new Error('चुना गया जिला आपके खाते से मेल नहीं खाता');
-    }
-
-    // update last_login and optionally district
-    await supabase.from('test_users').update({ last_login: new Date().toISOString(), district_id: districtId || data.district_id }).eq('id', data.id);
-
-    currentUser = {
-      id: data.id, username: data.username, fullName: data.full_name,
-      role: data.role, districtId: districtId || data.district_id, email: data.email
-    };
-
-    if (remember) localStorage.setItem('user', JSON.stringify(currentUser)); else sessionStorage.setItem('user', JSON.stringify(currentUser));
-
-    bootToApp();
-  } catch(err) {
-    console.error(err);
-    showAlert(err.message || 'Login failed', 'danger');
-  } finally {
-    const btn = ev.target.querySelector('button[type="submit"]'); btn.disabled=false; btn.innerHTML='लॉगिन';
-  }
-});
-
-/* ---------------- Session & Routing helpers ---------------- */
-function restoreSessionAndRoute() {
+/* ---------------- Init & session check ---------------- */
+document.addEventListener('DOMContentLoaded', async () => {
+  // Expect login.html to set 'user' in localStorage or sessionStorage as JSON with at least {id, username, role, districtId}
   const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
-  if (stored) {
-    currentUser = JSON.parse(stored);
-    bootToApp();
+  if (!stored) {
+    // show message and allow redirect to login
+    \$('unauth').classList.remove('hidden');
+    \$('goLogin').addEventListener('click', ()=> location.href = 'login.html');
+    return;
   }
-}
-function bootToApp() {
-  viewLogin.classList.add('hidden');
-  appShell.classList.remove('hidden');
-  userNameEl.textContent = currentUser.fullName || currentUser.username;
-  userRoleEl.textContent = `Role: ${currentUser.role} ${currentUser.districtId?('• District: '+currentUser.districtId):''}`;
-  // show admin panel only for admins
-  if (currentUser.role === 'admin') adminPanel.classList.remove('hidden'); else adminPanel.classList.add('hidden');
-  loadDefinitions();
-  navHome.click();
-}
-
-/* ---------------- NAV ---------------- */
-navHome.addEventListener('click', ()=> { homeView.classList.remove('hidden'); dashboardView.classList.add('hidden'); formEditor.classList.add('hidden'); });
-navDashboard.addEventListener('click', ()=> { homeView.classList.add('hidden'); dashboardView.classList.remove('hidden'); formEditor.classList.add('hidden'); refreshDashboard(); });
-logoutBtn.addEventListener('click', ()=> { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.reload(); });
-
-/* ---------------- Load districts ---------------- */
-async function loadDistricts(){
-  try {
-    const sel = $('district');
-    sel.disabled = true;
-    const { data, error } = await supabase.from('districts').select('id,name').order('name');
-    sel.disabled = false;
-    if (error) { console.error(error); return; }
-    data.forEach(d => { const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.name; sel.appendChild(opt); });
-  } catch(e) { console.error(e); }
-}
-
-/* ---------------- Admin: Process Excel and create table + save form_definitions ---------------- */
-processExcelBtn.addEventListener('click', async () => {
-  try {
-    if (currentUser?.role !== 'admin') return showAlert('Admin access required', 'danger');
-    const f = excelFile.files[0]; if (!f) return showAlert('Select an Excel file');
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      try {
-        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
-        if (!rows || !rows.length || !rows[0].length) return showAlert('File has no headers');
-        const headers = rows[0].map(h => String(h||'').trim());
-        const proposed = sanitizeIdentifier(tableNameInput.value || f.name);
-        if (!confirm(`Create table "${proposed}" with ${headers.length} columns? No file rows will be inserted.`)) return;
-        // Build sanitized column list w/ uniqueness
-        const seen = new Set();
-        const cols = headers.map((h,i)=>{
-          let col = sanitizeColName(h, i);
-          const base = col; let s = 1;
-          while (seen.has(col.toLowerCase())) col = `${base}_${s++}`;
-          seen.add(col.toLowerCase());
-          return `"${col}" TEXT`;
-        }).join(', ');
-        const ddl = `CREATE TABLE IF NOT EXISTS public."${proposed}" (${cols});`;
-        // Execute DDL via RPC execute_sql_script (must exist). WARNING: RPC is powerful — DO NOT expose in prod anonymously.
-        const { data, error } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
-        if (error) throw error;
-        // Save form definition metadata (fields as json)
-        const fields = headers.map((h,i)=>({ name: sanitizeColName(h,i), label: String(h||`Column ${i+1}`), position: i }));
-        const def = { table_name: proposed, label: proposed, created_by: currentUser.id, created_at: new Date().toISOString(), fields };
-        const { error: err2 } = await supabase.from('form_definitions').insert([def]);
-        if (err2) throw err2;
-        showAlert(`Table & form created: ${proposed}`, 'success');
-        tableNameInput.value = ''; excelFile.value = '';
-        loadDefinitions();
-      } catch(err) { console.error(err); showAlert(err.message||'Create failed'); }
-    };
-    reader.readAsArrayBuffer(f);
-  } catch(err) { console.error(err); showAlert('Processing failed'); }
+  currentUser = JSON.parse(stored);
+  bootApp();
 });
 
-/* ---------------- Load existing form_definitions (all users) ---------------- */
-async function loadDefinitions(){
+/* ---------------- Boot app for logged-in user ---------------- */
+function bootApp() {
+  // show app shell
+  \$('unauth').classList.add('hidden');
+  \$('appShell').classList.remove('hidden');
+
+  // populate header info
+  \$('userName').textContent = currentUser.fullName || currentUser.username || currentUser.id;
+  \$('userRole').textContent = `Role: ${currentUser.role || 'user'}`;
+  \$('userDistrict').textContent = currentUser.districtId ? `District: ${currentUser.districtId}` : '';
+
+  // show admin controls to admins only
+  if (currentUser.role === 'admin') $('adminControls').classList.remove('hidden'); else $('adminControls').classList.add('hidden');
+
+  // wire nav
+  \$('homeBtn').addEventListener('click', ()=> { showHome(); });
+  \$('dashboardBtn').addEventListener('click', ()=> { showDashboard(); });
+  \$('logoutBtn').addEventListener('click', ()=> { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href='login.html'; });
+
+  // load definitions and UI
+  loadDefinitions();
+}
+
+/* ---------------- Load form_definitions from DB ----------------
+   form_definitions table schema (expected):
+   - id (uuid)
+   - table_name text unique
+   - label text
+   - created_by uuid
+   - created_at timestamptz
+   - fields jsonb  -- array [{ "name": "colname", "label": "Label", "position": 0 }, ...]
+*/
+async function loadDefinitions() {
   try {
     const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending:false });
     if (error) throw error;
-    definitionsCache = data || [];
-    renderDefinitions();
-    renderTables();
-  } catch(err){ console.error(err); }
+    definitions = data || [];
+    renderDefinitionsList();
+    renderTablesList();
+  } catch (err) {
+    console.error('loadDefinitions', err);
+    showAlert('Failed to load definitions: ' + (err.message || err));
+  }
 }
-function renderDefinitions(){
-  formsListEl.innerHTML = definitionsCache.length ? definitionsCache.map(d=>{
-    return `<div class="list-group-item list-hit" data-table="${d.table_name}">${d.table_name} <small class="text-muted d-block">${(d.fields||[]).length} fields</small></div>`;
-  }).join('') : '<div class="text-muted">No forms</div>';
-  // attach handlers
-  formsListEl.querySelectorAll('.list-hit').forEach(el => {
-    el.addEventListener('click', ()=> selectDefinition(el.getAttribute('data-table')));
-  });
-}
-function renderTables(){
-  tablesListEl.innerHTML = definitionsCache.length ? definitionsCache.map(d=>{
-    // admin-only actions shown via dashboard
-    return `<div class="list-group-item d-flex justify-content-between align-items-center">
-      <div>
-        <div class="fw-medium">${d.table_name}</div>
-        <small class="text-muted">${(d.fields||[]).length} fields</small>
-      </div>
-      <div>
-        ${currentUser?.role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" data-drop="${d.table_name}">Drop</button>` : ''}
-      </div>
-    </div>`;
-  }).join('') : '<div class="text-muted">No tables</div>';
-  tablesListEl.querySelectorAll('button[data-drop]').forEach(btn=>{
-    btn.addEventListener('click', ()=> dropTable(btn.getAttribute('data-drop')));
+
+function renderDefinitionsList() {
+  const el = \$('formsList'); el.innerHTML = '';
+  if (!definitions.length) { el.innerHTML = '<div class="text-muted">No forms</div>'; return; }
+  definitions.forEach(def => {
+    const div = document.createElement('div');
+    div.className = 'list-group-item list-hit';
+    div.textContent = `${def.table_name} (${(def.fields||[]).length} fields)`;
+    div.dataset.table = def.table_name;
+    div.addEventListener('click', () => openForm(def.table_name));
+    el.appendChild(div);
   });
 }
 
-/* ---------------- Select a form definition and render empty form for entry ---------------- */
-async function selectDefinition(tableName){
-  try {
-    const def = definitionsCache.find(d => d.table_name === tableName);
-    if (!def) { showAlert('Definition not found'); return; }
-    currentDefinition = def;
-    // render form
-    formTitle.textContent = def.label || def.table_name;
-    entryForm.innerHTML = '';
-    (def.fields || []).forEach((f, idx) => {
-      const lbl = document.createElement('label'); lbl.className='form-label'; lbl.textContent = f.label || f.name;
-      const inp = document.createElement('input'); inp.className='form-control mb-2'; inp.name = f.name; inp.type = 'text';
-      entryForm.appendChild(lbl); entryForm.appendChild(inp);
-    });
-    // ensure district_id is present/injected if column exists
-    formEditor.classList.remove('hidden'); homeView.classList.add('hidden'); dashboardView.classList.add('hidden');
-  } catch(err){ console.error(err); showAlert('Unable to open form'); }
+function renderTablesList() {
+  const el = \$('tablesList'); el.innerHTML = '';
+  if (!definitions.length) { el.innerHTML = '<div class="text-muted">No tables</div>'; return; }
+  definitions.forEach(def => {
+    const container = document.createElement('div');
+    container.className = 'list-group-item d-flex justify-content-between align-items-center';
+    const left = document.createElement('div');
+    left.innerHTML = `<div class="fw-medium">${def.table_name}</div><small class="text-muted">${(def.fields||[]).length} fields</small>`;
+    const right = document.createElement('div');
+    if (currentUser.role === 'admin') {
+      const dropBtn = document.createElement('button');
+      dropBtn.className = 'btn btn-sm btn-outline-danger';
+      dropBtn.textContent = 'Drop';
+      dropBtn.addEventListener('click', () => dropTable(def.table_name));
+      right.appendChild(dropBtn);
+    }
+    container.appendChild(left); container.appendChild(right);
+    el.appendChild(container);
+  });
 }
 
-/* ---------------- Save manual record (district user or admin) ---------------- */
-saveRecordBtn.addEventListener('click', async () => {
-  if (!currentDefinition) return showAlert('No form selected');
-  const data = {};
-  entryForm.querySelectorAll('input').forEach(i => data[i.name] = i.value === '' ? null : i.value);
-  // If user has districtId, automatically add district_id if the column exists in the table
-  if (currentUser?.districtId && Object.keys(data).includes('district_id')) data['district_id'] = currentUser.districtId;
-  try {
-    const { error } = await supabase.from(currentDefinition.table_name).insert([data]);
-    if (error) throw error;
-    showAlert('Record saved', 'success');
-    entryForm.querySelectorAll('input').forEach(i => i.value='');
-  } catch(err){ console.error(err); showAlert(err.message||'Save failed'); }
+/* ---------------- Admin: Process Excel and create table + save definition -------------
+   IMPORTANT: This code calls an RPC public.execute_sql_script(sql_text) to run DDL.
+   - Create that RPC in Supabase SQL editor (only for dev/testing).
+   - In production, run DDL server-side with a service-role key and do not expose RPC to anon.
+*/
+\$('processExcelBtn').addEventListener('click', async () => {
+  if (currentUser.role !== 'admin') return showAlert('Admin only', 'danger');
+  const f = \$('excelFile').files[0];
+  if (!f) return showAlert('Select an Excel file');
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const wb = XLSX.read(new Uint8Array(e.target.result), { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+      if (!rows || !rows.length || !rows[0].length) return showAlert('File has no headers');
+      const headers = rows[0].map(h => String(h||'').trim());
+      const tableName = sanitizeIdentifier(\$('tableNameInput').value || f.name);
+      if (!confirm(`Create table "${tableName}" with ${headers.length} columns? (No file rows will be inserted)`)) return;
+
+      // build columns + uniqueness
+      const seen = new Set();
+      const cols = headers.map((h,i) => {
+        let col = sanitizeColName(h,i);
+        const base = col; let s = 1;
+        while (seen.has(col.toLowerCase())) col = `${base}_${s++}`;
+        seen.add(col.toLowerCase());
+        return `"${col}" TEXT`;
+      }).join(', ');
+      const ddl = `CREATE TABLE IF NOT EXISTS public."${tableName}" (${cols});`;
+
+      // Execute DDL via RPC (must exist and be secured)
+      const { error } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
+      if (error) throw error;
+
+      // Save form definition
+      const fields = headers.map((h,i) => ({ name: sanitizeColName(h,i), label: String(h||`Column ${i+1}`), position: i }));
+      const def = {
+        table_name: tableName,
+        label: tableName,
+        created_by: currentUser.id,
+        created_at: new Date().toISOString(),
+        fields
+      };
+      const { error: err2 } = await supabase.from('form_definitions').insert([def]);
+      if (err2) throw err2;
+
+      $('tableNameInput').value = ''; $('excelFile').value = '';
+      showAlert(`Table & definition created: ${tableName}`, 'success');
+      await loadDefinitions();
+    } catch (err) {
+      console.error('create', err);
+      showAlert('Create failed: ' + (err.message || err));
+    }
+  };
+  reader.readAsArrayBuffer(f);
 });
 
-/* ---------------- Drop table (admin only) ---------------- */
-async function dropTable(tableName){
+/* ---------------- Open a form (render blank fillable form) ---------------- */
+async function openForm(tableName) {
+  const def = definitions.find(d => d.table_name === tableName);
+  if (!def) { showAlert('Definition not found'); return; }
+  currentDefinition = def;
+  // render blank form
+  \$('formTitle').textContent = def.label || def.table_name;
+  const form = \$('entryForm'); form.innerHTML = '';
+  (def.fields || []).forEach(f => {
+    const wrapper = document.createElement('div'); wrapper.className = 'mb-2';
+    const label = document.createElement('label'); label.className = 'form-label'; label.textContent = f.label || f.name;
+    const input = document.createElement('input'); input.className = 'form-control'; input.name = f.name;
+    wrapper.appendChild(label); wrapper.appendChild(input);
+    form.appendChild(wrapper);
+  });
+  \$('formView').classList.remove('hidden');
+  \$('homeView').classList.add('hidden');
+  \$('dashboardView').classList.add('hidden');
+}
+
+/* ---------------- Save record (only manual entry) ---------------- */
+\$('saveRecordBtn').addEventListener('click', async () => {
+  if (!currentDefinition) return showAlert('No form selected');
+  const payload = {};
+  \$('entryForm').querySelectorAll('input').forEach(i => { payload[i.name] = i.value === '' ? null : i.value; });
+  // If user has districtId and the table has district_id column, set it
+  if (currentUser?.districtId && Object.keys(payload).includes('district_id')) payload['district_id'] = currentUser.districtId;
+  try {
+    const { error } = await supabase.from(currentDefinition.table_name).insert([payload]);
+    if (error) throw error;
+    showAlert('Record saved', 'success');
+    // clear form
+    \$('entryForm').querySelectorAll('input').forEach(i => i.value = '');
+  } catch (err) {
+    console.error('save', err);
+    showAlert('Save failed: ' + (err.message || err));
+  }
+});
+
+/* ---------------- Drop table (admin) ---------------- */
+async function dropTable(tableName) {
+  if (currentUser.role !== 'admin') return showAlert('Admin only');
   if (!confirm(`Drop table "${tableName}"? This will delete all data.`)) return;
   try {
     const ddl = `DROP TABLE IF EXISTS public."${tableName}" CASCADE;`;
     const { error } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
     if (error) throw error;
-    // remove definition
-    await supabase.from('form_definitions').delete().eq('table_name', tableName);
-    showAlert('Dropped', 'success');
-    loadDefinitions();
-  } catch(err){ console.error(err); showAlert(err.message||'Drop failed'); }
-}
-
-/* ---------------- Dashboard summary ---------------- */
-function refreshDashboard(){
-  if (!definitionsCache.length) dashboardContent.innerHTML = '<div class="text-muted">No tables</div>';
-  else {
-    dashboardContent.innerHTML = definitionsCache.map(d => {
-      return `<div class="p-3 border rounded mb-2">
-        <div class="d-flex justify-content-between">
-          <div><strong>${d.table_name}</strong><div class="text-muted small">${(d.fields||[]).length} fields</div></div>
-          <div>
-            <button class="btn btn-sm btn-primary" data-view="${d.table_name}">Open</button>
-            ${currentUser?.role==='admin'?`<button class="btn btn-sm btn-danger" data-drop="${d.table_name}">Drop</button>`:''}
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-    // attach handlers
-    dashboardContent.querySelectorAll('button[data-view]').forEach(b => b.addEventListener('click', ()=> selectDefinition(b.getAttribute('data-view'))));
-    dashboardContent.querySelectorAll('button[data-drop]').forEach(b => b.addEventListener('click', ()=> dropTable(b.getAttribute('data-drop'))));
+    // delete definition row
+    const { error: err2 } = await supabase.from('form_definitions').delete().eq('table_name', tableName);
+    if (err2) throw err2;
+    showAlert('Table dropped', 'success');
+    await loadDefinitions();
+  } catch (err) {
+    console.error('drop', err);
+    showAlert('Drop failed: ' + (err.message || err));
   }
 }
 
-/* ---------------- Misc: keyboard shortcuts and safety ---------------- */
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { if (!viewLogin.classList.contains('hidden')) return; homeView.classList.remove('hidden'); dashboardView.classList.add('hidden'); formEditor.classList.add('hidden'); }
-});
+/* ---------------- Dashboard ---------------- */
+function showHome() {
+  \$('homeView').classList.remove('hidden');
+  \$('dashboardView').classList.add('hidden');
+  \$('formView').classList.add('hidden');
+}
+function showDashboard() {
+  \$('homeView').classList.add('hidden');
+  \$('dashboardView').classList.remove('hidden');
+  \$('formView').classList.add('hidden');
+  renderDashboard();
+}
+function renderDashboard() {
+  const el = \$('dashboardContent'); el.innerHTML = '';
+  if (!definitions.length) { el.innerHTML = '<div class="text-muted">No definitions</div>'; return; }
+  definitions.forEach(d => {
+    const card = document.createElement('div'); card.className = 'border rounded p-3 mb-2';
+    card.innerHTML = `<div class="d-flex justify-content-between align-items-start">
+      <div><strong>${d.table_name}</strong><div class="text-muted small">${(d.fields||[]).length} fields</div></div>
+      <div>
+        <button class="btn btn-sm btn-primary me-1" data-open="${d.table_name}">Open</button>
+        ${currentUser.role === 'admin' ? `<button class="btn btn-sm btn-danger" data-drop="\${d.table_name}">Drop</button>` : ''}
+      </div>
+    </div>`;
+    el.appendChild(card);
+  });
+  el.querySelectorAll('button[data-open]').forEach(b => b.addEventListener('click', ev => openForm(ev.target.dataset.open)));
+  el.querySelectorAll('button[data-drop]').forEach(b => b.addEventListener('click', ev => dropTable(ev.target.dataset.drop)));
+}
 
-/* ---------------- End of single-file app ---------------- */
-/*
-  Deployment & Security Notes (IMPORTANT):
-  - This single-file app uses an RPC named public.execute_sql_script(sql_text) to execute DDL. Create it only in dev/test and protect it in production.
-    Example RPC:
-      create or replace function public.execute_sql_script(sql_text text) returns text language plpgsql security definer as $$ begin execute sql_text; return 'OK'; exception when others then return sqlerrm; end; $$;
-  - In production:
-    - Do NOT expose this RPC to anon keys. Run DDL from a trusted backend (service role key) after authentication & authorization.
-    - Use Supabase Auth for user authentication instead of client-side password hashing and checking.
-    - Add RLS policies on data tables so district users can only read/insert rows for their district_id.
-    - Enforce that only admins can insert into form_definitions (DB-level policy).
-  - Required DB tables (simple schema):
-    - test_users (id, username, password_hash, role, district_id, is_active, last_login, full_name, mobile_number, email)
-    - districts (id, name)
-    - form_definitions (id uuid default gen_random_uuid(), table_name text unique, label text, created_by uuid, created_at timestamptz, fields jsonb)
-*/
+/* ---------------- Utility: keep UI lists updated when definitions change ---------------- */
+async function loadDefinitionsAndRefresh() { await loadDefinitions(); renderDefinitionsList(); renderTablesList(); renderDashboard(); }
+function refreshUIAfterChange(){ loadDefinitions(); }
+
+/* ---------------- End of script ---------------- */
 </script>
+<!-- NOTES: 
+  - Required DB objects:
+    1) test_users (id, username, password_hash, role, district_id, is_active, full_name, email, last_login)
+    2) districts (id, name)
+    3) form_definitions (id uuid, table_name text unique, label text, created_by uuid, created_at timestamptz, fields jsonb)
+    4) RPC (dev only): public.execute_sql_script(sql_text text) RETURNS text LANGUAGE plpgsql SECURITY DEFINER ...
+       Example:
+         create or replace function public.execute_sql_script(sql_text text) returns text language plpgsql security definer as $$
+         begin
+           execute sql_text;
+           return 'OK';
+         exception when others then
+           return sqlerrm;
+         end;
+         $$;
+  - Security:
+    -> This single-file app assumes login.html stores a user object in localStorage/sessionStorage with role info.
+    -> Do not expose an RPC that runs arbitrary SQL to untrusted clients in production.
+    -> Use Supabase Auth server-side flows and server-side DDL with the service-role key for production.
+    -> Add Row Level Security (RLS) to created tables so district users can only insert/read rows for their district.
+-->
 </body>
 </html>
+
+Insert
