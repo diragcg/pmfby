@@ -1,302 +1,435 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hi">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Excel to Supabase Data Portal</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body { font-family: 'Poppins', sans-serif; background-color: #f0f2f5; color: #333; }
-        .header-bg { background-color: #007bff; color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .container-main { padding-top: 2rem; padding-bottom: 2rem; max-width: 900px; }
-        .card { border-radius: 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: none; }
-        .card-header { background-color: #f8f9fa; border-bottom: 1px solid #e9ecef; }
-        .form-section { display: none; }
-        .form-row { margin-bottom: 1rem; }
-        .save-btn-container { margin-top: 1.5rem; }
-        .header-list-item { font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; background-color: #e9ecef; border-radius: 5px; padding: 8px 12px; margin-bottom: 5px; }
-        .modal-footer .btn { min-width: 120px; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Excel → Supabase — Admin / District (Single File)</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Mukta", Arial; background:#f7fafc; }
+    .app-shell { max-width:1100px; margin:72px auto; }
+    .hidden { display:none !important; }
+    .sidebar { min-width:220px; }
+    .topbar { position:fixed; top:0; left:0; right:0; height:56px; background:#0d6efd; color:#fff; display:flex; align-items:center; padding:0 16px; z-index:30; }
+    .topbar .brand { font-weight:700; margin-left:8px; }
+    .badge-muted { background:#eef2ff; color:#1e3a8a; border-radius:6px; padding:6px 8px; font-weight:600; }
+    .card-sm { border-radius:10px; box-shadow:0 6px 20px rgba(2,6,23,0.06); }
+    .list-hit { cursor:pointer; }
+    footer { text-align:center; margin-top:28px; color:#6b7280; font-size:13px; }
+  </style>
 </head>
 <body>
-
-<nav class="navbar navbar-expand-lg header-bg fixed-top">
-    <div class="container container-main">
-        <a class="navbar-brand text-white fw-bold" href="#">
-            <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" alt="Supabase Logo" width="28" height="28" class="d-inline-block align-text-top">
-            Excel Data Portal
-        </a>
-        <div class="ms-auto">
-            <button class="btn btn-outline-light d-none d-md-inline-block" type="button">Dashboard</button>
-            <button class="btn btn-outline-light d-none d-md-inline-block" type="button">Profile</button>
-        </div>
+  <div class="topbar">
+    <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="28" height="28" alt="">
+    <div class="brand ms-2">Excel → Supabase (Single-file)</div>
+    <div class="ms-auto d-flex gap-2">
+      <button id="nav-home" class="btn btn-sm btn-light">Home</button>
+      <button id="nav-dashboard" class="btn btn-sm btn-light">Dashboard</button>
+      <button id="logoutBtn" class="btn btn-sm btn-outline-light">Logout</button>
     </div>
-</nav>
+  </div>
 
-<div class="container container-main" style="margin-top: 80px;">
-    <div class="row justify-content-center">
-        <div class="col-12">
-            <div class="card p-4">
-                <h2 class="text-center mb-4 text-primary fw-bold">Data Import & Entry Workflow</h2>
-
-                <div class="mb-4">
-                    <div class="card-header bg-light rounded-top p-3">
-                        <h5 class="mb-0 fw-semibold">Step 1: Upload & Confirm Data Headers</h5>
-                    </div>
-                    <div class="card-body">
-                        <p class="text-muted">Select your Excel file (.xlsx or .xls) to begin. The first row will be used as the column headers. No data rows from the file will be inserted into the table — only blank fillable forms will be generated for manual entry.</p>
-                        <div class="input-group">
-                            <input type="file" class="form-control" id="excel-file-input" accept=".xlsx, .xls">
-                            <button class="btn btn-primary fw-semibold" type="button" id="process-file-btn">
-                                Process File
-                                <span id="loading-spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display:none;"></span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="form-container" class="form-section">
-                    <div class="card-header bg-light rounded-top p-3">
-                        <h5 class="mb-0 fw-semibold">Step 3: Data Entry Forms</h5>
-                    </div>
-                    <div class="card-body" id="forms-body">
-                        <p class="text-muted">Editable blank forms based on the file headers will appear here after you create the Supabase table.</p>
-                    </div>
-                </div>
-
-            </div>
+  <div class="app-shell container-fluid">
+    <!-- LOGIN VIEW -->
+    <div id="view-login" class="card-sm p-4 bg-white">
+      <h4>लॉगिन</h4>
+      <div id="alertBox" class="alert d-none"></div>
+      <form id="loginForm" class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label">यूजरनेम</label>
+          <input id="username" class="form-control" required>
         </div>
-    </div>
-</div>
-
-<div class="modal fade" id="supabaseModal" tabindex="-1" aria-labelledby="supabaseModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title fw-bold" id="supabaseModalLabel">Step 2: Confirm Headers & Create Table</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="mb-3">We've detected the following columns in your Excel file. Please review them carefully.</p>
-                <div class="list-group" id="header-list"></div>
-                <div class="alert alert-warning mt-4" role="alert">
-                    <strong>Security Warning:</strong> This operation creates a new table. For production, run this on a secure backend.
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success fw-semibold" id="run-script-btn">Create Supabase Table</button>
-            </div>
+        <div class="col-md-4">
+          <label class="form-label">पासवर्ड</label>
+          <div class="input-group">
+            <input id="password" type="password" class="form-control" required>
+            <button id="togglePassword" type="button" class="btn btn-outline-secondary">👁</button>
+          </div>
         </div>
+        <div class="col-md-4">
+          <label class="form-label">जिला (ऐच्छिक)</label>
+          <select id="district" class="form-select"><option value="">-- जिला चुनें --</option></select>
+        </div>
+        <div class="col-12 d-flex gap-2">
+          <div class="form-check">
+            <input id="rememberMe" class="form-check-input" type="checkbox">
+            <label class="form-check-label">रीमेम्बर</label>
+          </div>
+          <div class="ms-auto">
+            <button class="btn btn-primary" type="submit">लॉगिन</button>
+          </div>
+        </div>
+      </form>
+      <footer>प्रोडक्शन: use Supabase Auth & server-side DDL. See comments in code.</footer>
     </div>
-</div>
 
-<!-- Libraries -->
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
-<script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <!-- APP SHELL AFTER LOGIN -->
+    <div id="app" class="row mt-4 hidden">
+      <div class="col-md-3 sidebar">
+        <div class="card-sm p-3 mb-3">
+          <div class="d-flex align-items-center">
+            <div>
+              <div id="userName" class="fw-semibold"></div>
+              <div id="userRole" class="text-muted small"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="adminPanel" class="card-sm p-3 mb-3 hidden">
+          <h6>Admin — Create Forms</h6>
+          <div class="mb-2">
+            <label class="form-label small">Excel (.xlsx/.xls)</label>
+            <input id="excelFile" type="file" accept=".xlsx,.xls" class="form-control form-control-sm">
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Table name (optional)</label>
+            <input id="tableNameInput" class="form-control form-control-sm" placeholder="optional table name">
+          </div>
+          <div class="d-grid">
+            <button id="processExcelBtn" class="btn btn-sm btn-primary">Process & Create Table</button>
+          </div>
+          <small class="text-muted d-block mt-2">Only admin can create tables/forms. File rows will NOT be inserted — blank fillable forms are generated.</small>
+        </div>
+
+        <div class="card-sm p-3 mb-3">
+          <h6>Forms</h6>
+          <div id="formsList" class="list-group"></div>
+        </div>
+
+        <div class="card-sm p-3 mb-3">
+          <h6>Tables (admin)</h6>
+          <div id="tablesList" class="list-group"></div>
+        </div>
+      </div>
+
+      <div class="col-md-9">
+        <div id="homeView" class="card-sm p-4 mb-3">
+          <h5>Home</h5>
+          <p class="text-muted">Admin designs forms from Excel. District users enter data into forms created by admin. District users cannot create or change forms/tables.</p>
+        </div>
+
+        <div id="dashboardView" class="card-sm p-4 mb-3 hidden">
+          <h5>Dashboard</h5>
+          <div id="dashboardContent" class="mt-2"></div>
+        </div>
+
+        <div id="formEditor" class="card-sm p-4 mb-3 hidden">
+          <h5 id="formTitle">Form</h5>
+          <form id="entryForm"></form>
+          <div class="mt-3 text-end">
+            <button id="saveRecordBtn" class="btn btn-success">Save Record</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
 <script>
-    // Use a local client variable to avoid shadowing the global 'supabase' name
-    const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+/* ---------------- Configuration - REPLACE KEYS BEFORE PRODUCTION ---------------- */
+const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGci...'; // replace with appropriate anon key for dev. For production use proper auth and server-side DDL.
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Global storage
-    let currentTableName = '';
-    let currentHeaders = [];
+/* ---------------- Helper utils ---------------- */
+const $ = id => document.getElementById(id);
+function showAlert(msg, type='danger') {
+  const box = $('alertBox');
+  box.className = `alert alert-${type}`;
+  box.textContent = msg;
+  box.classList.remove('d-none');
+  setTimeout(()=> box.classList.add('d-none'), 4000);
+}
+function sanitizeIdentifier(str) {
+  return String(str||'').replace(/\.[^/.]+$/, '').trim().replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'').toLowerCase() || `table_${Date.now()}`;
+}
+function sanitizeColName(str, idx) {
+  let s = String(str||`column_${idx+1}`).trim().replace(/[^a-zA-Z0-9_]/g,'');
+  if (!s) s = `column_${idx+1}`; return s;
+}
+function safeId(str) { return String(str||'').replace(/[^a-zA-Z0-9_-]/g,'_'); }
+async function hashPassword(password) {
+  const enc = new TextEncoder();
+  const buf = await crypto.subtle.digest('SHA-256', enc.encode(password));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 
-    // UI elements
-    const excelFileInput = document.getElementById('excel-file-input');
-    const processFileBtn = document.getElementById('process-file-btn');
-    const loadingSpinner = document.getElementById('loading-spinner');
-    const supabaseModal = new bootstrap.Modal(document.getElementById('supabaseModal'));
-    const runScriptBtn = document.getElementById('run-script-btn');
-    const formContainer = document.getElementById('form-container');
-    const formsBody = document.getElementById('forms-body');
-    const headerList = document.getElementById('header-list');
+/* ---------------- State ---------------- */
+let currentUser = null;
+let currentDefinition = null; // loaded form_definitions record
+let definitionsCache = []; // list of form_definitions
 
-    function resetUI() {
-        loadingSpinner.style.display = 'none';
-        processFileBtn.disabled = false;
+/* ---------------- DOM refs ---------------- */
+const viewLogin = $('view-login');
+const appShell = $('app');
+const navHome = $('nav-home'), navDashboard = $('nav-dashboard'), logoutBtn = $('logoutBtn');
+const adminPanel = $('adminPanel'), formsList = $('formsList'), tablesList = $('tablesList');
+const homeView = $('homeView'), dashboardView = $('dashboardView'), formEditor = $('formEditor');
+const formTitle = $('formTitle'), entryForm = $('entryForm'), saveRecordBtn = $('saveRecordBtn');
+const processExcelBtn = $('processExcelBtn'), excelFile = $('excelFile'), tableNameInput = $('tableNameInput');
+const formsListEl = $('formsList'), tablesListEl = $('tablesList'), dashboardContent = $('dashboardContent');
+const userNameEl = $('userName'), userRoleEl = $('userRole');
+
+/* ---------------- Initial load ---------------- */
+document.addEventListener('DOMContentLoaded', async ()=> {
+  // load districts for login dropdown
+  loadDistricts();
+  restoreSessionAndRoute();
+});
+
+/* ---------------- LOGIN FLOW ---------------- */
+$('togglePassword').addEventListener('click', ()=> {
+  const p = $('password'); p.type = p.type === 'password' ? 'text' : 'password';
+});
+
+$('loginForm').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  try {
+    const btn = ev.target.querySelector('button[type="submit"]');
+    const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'प्रवेश...';
+    const username = $('username').value.trim();
+    const password = $('password').value;
+    const districtId = $('district').value || null;
+    const remember = $('rememberMe').checked;
+
+    if (!username || !password) { showAlert('Username and password required'); btn.disabled=false; btn.innerHTML=orig; return; }
+    const hashed = await hashPassword(password);
+
+    const { data, error } = await supabase.from('test_users')
+      .select('id,username,full_name,role,district_id,mobile_number,email,is_active').eq('username', username)
+      .eq('password_hash', hashed).eq('is_active', true).single();
+
+    if (error || !data) throw new Error('अमान्य यूजरनेम या पासवर्ड');
+
+    if (districtId && data.district_id && String(data.district_id) !== String(districtId)) {
+      throw new Error('चुना गया जिला आपके खाते से मेल नहीं खाता');
     }
 
-    // Helper: sanitize string to valid postgres identifier (letters, numbers, underscore), lowercased
-    function sanitizeIdentifier(str) {
-        return String(str || '')
-            .trim()
-            .replace(/\.[^/.]+$/, '') // remove extension if present
-            .replace(/\s+/g, '_')
-            .replace(/[^a-zA-Z0-9_]/g, '')
-            .toLowerCase();
-    }
+    // update last_login and optionally district
+    await supabase.from('test_users').update({ last_login: new Date().toISOString(), district_id: districtId || data.district_id }).eq('id', data.id);
 
-    // PROCESS FILE: read headers and set table name from file name (sanitized)
-    processFileBtn.addEventListener('click', () => {
-        const file = excelFileInput.files[0];
-        if (!file) {
-            alert('Please select an Excel file first.');
-            return;
-        }
+    currentUser = {
+      id: data.id, username: data.username, fullName: data.full_name,
+      role: data.role, districtId: districtId || data.district_id, email: data.email
+    };
 
-        loadingSpinner.style.display = 'inline-block';
-        processFileBtn.disabled = true;
+    if (remember) localStorage.setItem('user', JSON.stringify(currentUser)); else sessionStorage.setItem('user', JSON.stringify(currentUser));
 
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+    bootToApp();
+  } catch(err) {
+    console.error(err);
+    showAlert(err.message || 'Login failed', 'danger');
+  } finally {
+    const btn = ev.target.querySelector('button[type="submit"]'); btn.disabled=false; btn.innerHTML='लॉगिन';
+  }
+});
 
-                if (jsonData.length === 0 || jsonData[0].length === 0) {
-                    alert('The Excel file is empty or has no headers.');
-                    resetUI();
-                    return;
-                }
+/* ---------------- Session & Routing helpers ---------------- */
+function restoreSessionAndRoute() {
+  const stored = localStorage.getItem('user') || sessionStorage.getItem('user');
+  if (stored) {
+    currentUser = JSON.parse(stored);
+    bootToApp();
+  }
+}
+function bootToApp() {
+  viewLogin.classList.add('hidden');
+  appShell.classList.remove('hidden');
+  userNameEl.textContent = currentUser.fullName || currentUser.username;
+  userRoleEl.textContent = `Role: ${currentUser.role} ${currentUser.districtId?('• District: '+currentUser.districtId):''}`;
+  // show admin panel only for admins
+  if (currentUser.role === 'admin') adminPanel.classList.remove('hidden'); else adminPanel.classList.add('hidden');
+  loadDefinitions();
+  navHome.click();
+}
 
-                // Use first row as headers
-                currentHeaders = jsonData[0].map(h => String(h || '').trim());
+/* ---------------- NAV ---------------- */
+navHome.addEventListener('click', ()=> { homeView.classList.remove('hidden'); dashboardView.classList.add('hidden'); formEditor.classList.add('hidden'); });
+navDashboard.addEventListener('click', ()=> { homeView.classList.add('hidden'); dashboardView.classList.remove('hidden'); formEditor.classList.add('hidden'); refreshDashboard(); });
+logoutBtn.addEventListener('click', ()=> { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.reload(); });
 
-                // Table name derived from file name (without extension), sanitized
-                currentTableName = sanitizeIdentifier(file.name);
-                if (!currentTableName) {
-                    // fallback if name becomes empty after sanitization
-                    currentTableName = `excel_import_${Date.now()}`;
-                }
+/* ---------------- Load districts ---------------- */
+async function loadDistricts(){
+  try {
+    const sel = $('district');
+    sel.disabled = true;
+    const { data, error } = await supabase.from('districts').select('id,name').order('name');
+    sel.disabled = false;
+    if (error) { console.error(error); return; }
+    data.forEach(d => { const opt = document.createElement('option'); opt.value = d.id; opt.textContent = d.name; sel.appendChild(opt); });
+  } catch(e) { console.error(e); }
+}
 
-                headerList.innerHTML = currentHeaders.map(header =>
-                    `<div class="list-group-item header-list-item">${header}</div>`
-                ).join('');
-
-                // show modal to confirm
-                supabaseModal.show();
-            } catch (error) {
-                console.error('Error processing Excel file:', error);
-                alert('Could not process the Excel file. Please ensure it is a valid .xlsx or .xls file.');
-            } finally {
-                resetUI();
-            }
-        };
-
-        reader.onerror = () => {
-            alert('An error occurred while reading the file.');
-            resetUI();
-        };
-
-        reader.readAsArrayBuffer(file);
-    });
-
-    // CREATE TABLE: create table with columns from headers; do NOT insert any file rows
-    runScriptBtn.addEventListener('click', async () => {
-        runScriptBtn.disabled = true;
-        try {
-            const createTableScript = generateCreateTableScript(currentTableName, currentHeaders);
-
-            // Call your RPC that executes SQL; ensure it's present and secured as discussed previously.
-            const { data, error } = await supabaseClient.rpc('execute_sql_script', { sql_text: createTableScript });
-
-            if (error) throw error;
-
-            alert(`Table "${currentTableName}" created successfully! Now generating blank forms.`);
-            supabaseModal.hide();
-            generateBlankForms(currentTableName, currentHeaders);
-            formContainer.style.display = 'block';
-        } catch (error) {
-            console.error('Error executing script:', error);
-            alert(`Failed to create table. Error: ${error.message || error}`);
-            supabaseModal.hide();
-        } finally {
-            runScriptBtn.disabled = false;
-        }
-    });
-
-    function generateCreateTableScript(tableName, headers) {
-        // Ensure column names are sanitized and unique
+/* ---------------- Admin: Process Excel and create table + save form_definitions ---------------- */
+processExcelBtn.addEventListener('click', async () => {
+  try {
+    if (currentUser?.role !== 'admin') return showAlert('Admin access required', 'danger');
+    const f = excelFile.files[0]; if (!f) return showAlert('Select an Excel file');
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+        if (!rows || !rows.length || !rows[0].length) return showAlert('File has no headers');
+        const headers = rows[0].map(h => String(h||'').trim());
+        const proposed = sanitizeIdentifier(tableNameInput.value || f.name);
+        if (!confirm(`Create table "${proposed}" with ${headers.length} columns? No file rows will be inserted.`)) return;
+        // Build sanitized column list w/ uniqueness
         const seen = new Set();
-        const columns = headers.map((header, i) => {
-            let col = String(header || `column_${i+1}`).trim();
-            col = col.replace(/[^a-zA-Z0-9_]/g, '');
-            if (!col) col = `column_${i+1}`;
-            // avoid duplicates
-            let base = col;
-            let suffix = 1;
-            while (seen.has(col.toLowerCase())) {
-                col = `${base}_${suffix++}`;
-            }
-            seen.add(col.toLowerCase());
-            return `"${col}" TEXT`;
-        });
-        const columnsDefinition = columns.join(', ');
-        return `CREATE TABLE IF NOT EXISTS public."${tableName}" (${columnsDefinition});`;
-    }
+        const cols = headers.map((h,i)=>{
+          let col = sanitizeColName(h, i);
+          const base = col; let s = 1;
+          while (seen.has(col.toLowerCase())) col = `${base}_${s++}`;
+          seen.add(col.toLowerCase());
+          return `"${col}" TEXT`;
+        }).join(', ');
+        const ddl = `CREATE TABLE IF NOT EXISTS public."${proposed}" (${cols});`;
+        // Execute DDL via RPC execute_sql_script (must exist). WARNING: RPC is powerful — DO NOT expose in prod anonymously.
+        const { data, error } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
+        if (error) throw error;
+        // Save form definition metadata (fields as json)
+        const fields = headers.map((h,i)=>({ name: sanitizeColName(h,i), label: String(h||`Column ${i+1}`), position: i }));
+        const def = { table_name: proposed, label: proposed, created_by: currentUser.id, created_at: new Date().toISOString(), fields };
+        const { error: err2 } = await supabase.from('form_definitions').insert([def]);
+        if (err2) throw err2;
+        showAlert(`Table & form created: ${proposed}`, 'success');
+        tableNameInput.value = ''; excelFile.value = '';
+        loadDefinitions();
+      } catch(err) { console.error(err); showAlert(err.message||'Create failed'); }
+    };
+    reader.readAsArrayBuffer(f);
+  } catch(err) { console.error(err); showAlert('Processing failed'); }
+});
 
-    // Generate blank, fillable forms based on headers only (do NOT pre-fill from file data)
-    function generateBlankForms(tableName, headers) {
-        formsBody.innerHTML = '';
-        // create a single form for manual entry, or create one empty form per header set as user prefers.
-        // We'll create one blank form where user can enter values and save — can be extended to multiple records.
-        const formWrapper = document.createElement('div');
-        formWrapper.className = 'card mb-3';
-        formWrapper.innerHTML = `
-            <div class="card-body">
-                <h6 class="card-title text-success fw-semibold">New Record (Table: ${tableName})</h6>
-                <form id="data-form-blank"></form>
-                <div class="save-btn-container text-end">
-                    <button type="button" class="btn btn-success btn-sm" id="save-record-blank-btn">Save Record</button>
-                </div>
-            </div>
-        `;
-        formsBody.appendChild(formWrapper);
+/* ---------------- Load existing form_definitions (all users) ---------------- */
+async function loadDefinitions(){
+  try {
+    const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending:false });
+    if (error) throw error;
+    definitionsCache = data || [];
+    renderDefinitions();
+    renderTables();
+  } catch(err){ console.error(err); }
+}
+function renderDefinitions(){
+  formsListEl.innerHTML = definitionsCache.length ? definitionsCache.map(d=>{
+    return `<div class="list-group-item list-hit" data-table="${d.table_name}">${d.table_name} <small class="text-muted d-block">${(d.fields||[]).length} fields</small></div>`;
+  }).join('') : '<div class="text-muted">No forms</div>';
+  // attach handlers
+  formsListEl.querySelectorAll('.list-hit').forEach(el => {
+    el.addEventListener('click', ()=> selectDefinition(el.getAttribute('data-table')));
+  });
+}
+function renderTables(){
+  tablesListEl.innerHTML = definitionsCache.length ? definitionsCache.map(d=>{
+    // admin-only actions shown via dashboard
+    return `<div class="list-group-item d-flex justify-content-between align-items-center">
+      <div>
+        <div class="fw-medium">${d.table_name}</div>
+        <small class="text-muted">${(d.fields||[]).length} fields</small>
+      </div>
+      <div>
+        ${currentUser?.role === 'admin' ? `<button class="btn btn-sm btn-outline-danger" data-drop="${d.table_name}">Drop</button>` : ''}
+      </div>
+    </div>`;
+  }).join('') : '<div class="text-muted">No tables</div>';
+  tablesListEl.querySelectorAll('button[data-drop]').forEach(btn=>{
+    btn.addEventListener('click', ()=> dropTable(btn.getAttribute('data-drop')));
+  });
+}
 
-        const formEl = document.getElementById('data-form-blank');
-        headers.forEach((header, colIndex) => {
-            const formRow = document.createElement('div');
-            formRow.className = 'form-row';
-            const label = document.createElement('label');
-            label.textContent = `${header || `Column ${colIndex+1}`}:`;
-            label.className = 'form-label text-muted';
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'form-control';
-            // use sanitized column name as input name to match DB column
-            let colName = String(header || `column_${colIndex+1}`).trim().replace(/[^a-zA-Z0-9_]/g, '');
-            if (!colName) colName = `column_${colIndex+1}`;
-            input.name = colName;
-            input.value = ''; // intentionally blank (no file data inserted)
-            formRow.appendChild(label);
-            formRow.appendChild(input);
-            formEl.appendChild(formRow);
-        });
+/* ---------------- Select a form definition and render empty form for entry ---------------- */
+async function selectDefinition(tableName){
+  try {
+    const def = definitionsCache.find(d => d.table_name === tableName);
+    if (!def) { showAlert('Definition not found'); return; }
+    currentDefinition = def;
+    // render form
+    formTitle.textContent = def.label || def.table_name;
+    entryForm.innerHTML = '';
+    (def.fields || []).forEach((f, idx) => {
+      const lbl = document.createElement('label'); lbl.className='form-label'; lbl.textContent = f.label || f.name;
+      const inp = document.createElement('input'); inp.className='form-control mb-2'; inp.name = f.name; inp.type = 'text';
+      entryForm.appendChild(lbl); entryForm.appendChild(inp);
+    });
+    // ensure district_id is present/injected if column exists
+    formEditor.classList.remove('hidden'); homeView.classList.add('hidden'); dashboardView.classList.add('hidden');
+  } catch(err){ console.error(err); showAlert('Unable to open form'); }
+}
 
-        // Save button handler: insert the manually-entered record into the created table
-        document.getElementById('save-record-blank-btn').addEventListener('click', async () => {
-            const form = document.getElementById('data-form-blank');
-            const recordData = {};
-            form.querySelectorAll('input').forEach(input => {
-                // send empty strings as null? keep as-is — user choice. Here keep as entered.
-                recordData[input.name] = input.value;
-            });
+/* ---------------- Save manual record (district user or admin) ---------------- */
+saveRecordBtn.addEventListener('click', async () => {
+  if (!currentDefinition) return showAlert('No form selected');
+  const data = {};
+  entryForm.querySelectorAll('input').forEach(i => data[i.name] = i.value === '' ? null : i.value);
+  // If user has districtId, automatically add district_id if the column exists in the table
+  if (currentUser?.districtId && Object.keys(data).includes('district_id')) data['district_id'] = currentUser.districtId;
+  try {
+    const { error } = await supabase.from(currentDefinition.table_name).insert([data]);
+    if (error) throw error;
+    showAlert('Record saved', 'success');
+    entryForm.querySelectorAll('input').forEach(i => i.value='');
+  } catch(err){ console.error(err); showAlert(err.message||'Save failed'); }
+});
 
-            try {
-                const { data, error } = await supabaseClient.from(tableName).insert([recordData]);
-                if (error) throw error;
-                alert('Record saved successfully!');
-                // Optionally clear form after successful save:
-                form.querySelectorAll('input').forEach(i => i.value = '');
-            } catch (error) {
-                console.error('Error saving record:', error);
-                alert(`Failed to save record. Error: ${error.message || error}`);
-            }
-        });
-    }
+/* ---------------- Drop table (admin only) ---------------- */
+async function dropTable(tableName){
+  if (!confirm(`Drop table "${tableName}"? This will delete all data.`)) return;
+  try {
+    const ddl = `DROP TABLE IF EXISTS public."${tableName}" CASCADE;`;
+    const { error } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
+    if (error) throw error;
+    // remove definition
+    await supabase.from('form_definitions').delete().eq('table_name', tableName);
+    showAlert('Dropped', 'success');
+    loadDefinitions();
+  } catch(err){ console.error(err); showAlert(err.message||'Drop failed'); }
+}
 
+/* ---------------- Dashboard summary ---------------- */
+function refreshDashboard(){
+  if (!definitionsCache.length) dashboardContent.innerHTML = '<div class="text-muted">No tables</div>';
+  else {
+    dashboardContent.innerHTML = definitionsCache.map(d => {
+      return `<div class="p-3 border rounded mb-2">
+        <div class="d-flex justify-content-between">
+          <div><strong>${d.table_name}</strong><div class="text-muted small">${(d.fields||[]).length} fields</div></div>
+          <div>
+            <button class="btn btn-sm btn-primary" data-view="${d.table_name}">Open</button>
+            ${currentUser?.role==='admin'?`<button class="btn btn-sm btn-danger" data-drop="${d.table_name}">Drop</button>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    // attach handlers
+    dashboardContent.querySelectorAll('button[data-view]').forEach(b => b.addEventListener('click', ()=> selectDefinition(b.getAttribute('data-view'))));
+    dashboardContent.querySelectorAll('button[data-drop]').forEach(b => b.addEventListener('click', ()=> dropTable(b.getAttribute('data-drop'))));
+  }
+}
+
+/* ---------------- Misc: keyboard shortcuts and safety ---------------- */
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { if (!viewLogin.classList.contains('hidden')) return; homeView.classList.remove('hidden'); dashboardView.classList.add('hidden'); formEditor.classList.add('hidden'); }
+});
+
+/* ---------------- End of single-file app ---------------- */
+/*
+  Deployment & Security Notes (IMPORTANT):
+  - This single-file app uses an RPC named public.execute_sql_script(sql_text) to execute DDL. Create it only in dev/test and protect it in production.
+    Example RPC:
+      create or replace function public.execute_sql_script(sql_text text) returns text language plpgsql security definer as $$ begin execute sql_text; return 'OK'; exception when others then return sqlerrm; end; $$;
+  - In production:
+    - Do NOT expose this RPC to anon keys. Run DDL from a trusted backend (service role key) after authentication & authorization.
+    - Use Supabase Auth for user authentication instead of client-side password hashing and checking.
+    - Add RLS policies on data tables so district users can only read/insert rows for their district_id.
+    - Enforce that only admins can insert into form_definitions (DB-level policy).
+  - Required DB tables (simple schema):
+    - test_users (id, username, password_hash, role, district_id, is_active, last_login, full_name, mobile_number, email)
+    - districts (id, name)
+    - form_definitions (id uuid default gen_random_uuid(), table_name text unique, label text, created_by uuid, created_at timestamptz, fields jsonb)
+*/
 </script>
 </body>
 </html>
