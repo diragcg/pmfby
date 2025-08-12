@@ -159,6 +159,12 @@
         const formsBody = document.getElementById('forms-body');
         const headerList = document.getElementById('header-list');
 
+        // Helper function to reset UI state
+        function resetUI() {
+            loadingSpinner.style.display = 'none';
+            processFileBtn.disabled = false;
+        }
+
         // Step 1: Process Excel File
         processFileBtn.addEventListener('click', () => {
             const file = excelFileInput.files[0];
@@ -179,8 +185,9 @@
                     const worksheet = workbook.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                    if (jsonData.length === 0) {
-                        alert('The Excel file is empty.');
+                    if (jsonData.length === 0 || jsonData[0].length === 0) {
+                        alert('The Excel file is empty or has no headers.');
+                        resetUI();
                         return;
                     }
 
@@ -197,10 +204,15 @@
                     console.error('Error processing Excel file:', error);
                     alert('Could not process the Excel file. Please ensure it is a valid .xlsx or .xls file.');
                 } finally {
-                    loadingSpinner.style.display = 'none';
-                    processFileBtn.disabled = false;
+                    resetUI();
                 }
             };
+            
+            reader.onerror = () => {
+                alert('An error occurred while reading the file.');
+                resetUI();
+            };
+
             reader.readAsArrayBuffer(file);
         });
 
