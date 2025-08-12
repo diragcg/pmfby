@@ -3,47 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel to Supabase Data Entry Portal</title>
+    <title>Excel to Supabase Data Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; }
-        .header-bg { background-color: #007bff; color: white; }
-        .container-main { padding-top: 2rem; padding-bottom: 2rem; }
-        .card { border-radius: 1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        .form-section { display: none; }
-        .loading-spinner { display: none; }
-        .form-row { margin-bottom: 1rem; }
-        .save-btn-container { margin-top: 1.5rem; }
-        .header-list-item { font-family: monospace; font-size: 1.1rem; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .header-bg {
+            background-color: #007bff;
+            color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .navbar-brand img {
+            margin-right: 8px;
+        }
+        .container-main {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+            max-width: 900px;
+        }
+        .card {
+            border-radius: 1rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        .card-header {
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .form-section {
+            display: none;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .form-row {
+            margin-bottom: 1rem;
+        }
+        .save-btn-container {
+            margin-top: 1.5rem;
+        }
+        .header-list-item {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 1.1rem;
+            background-color: #e9ecef;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin-bottom: 5px;
+        }
+        .modal-footer .btn {
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
 
-    <nav class="navbar navbar-expand-lg header-bg">
-        <div class="container-fluid">
-            <a class="navbar-brand text-white" href="#">
-                <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" alt="Supabase Logo" width="30" height="24" class="d-inline-block align-text-top">
-                Excel to Supabase Portal
+    <nav class="navbar navbar-expand-lg header-bg fixed-top">
+        <div class="container container-main">
+            <a class="navbar-brand text-white fw-bold" href="#">
+                <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" alt="Supabase Logo" width="28" height="28" class="d-inline-block align-text-top">
+                Excel Data Portal
             </a>
+            <div class="ms-auto">
+                <button class="btn btn-outline-light d-none d-md-inline-block" type="button">Dashboard</button>
+                <button class="btn btn-outline-light d-none d-md-inline-block" type="button">Profile</button>
+            </div>
         </div>
     </nav>
 
-    <div class="container container-main">
+    <div class="container container-main" style="margin-top: 80px;">
         <div class="row justify-content-center">
-            <div class="col-lg-8">
+            <div class="col-12">
                 <div class="card p-4">
-                    <h2 class="text-center mb-4 text-primary">Data Import & Entry Workflow</h2>
+                    <h2 class="text-center mb-4 text-primary fw-bold">Data Import & Entry Workflow</h2>
 
                     <div class="mb-4">
                         <div class="card-header bg-light rounded-top p-3">
-                            <h5 class="mb-0">Step 1: Upload & Confirm Data Headers</h5>
+                            <h5 class="mb-0 fw-semibold">Step 1: Upload & Confirm Data Headers</h5>
                         </div>
                         <div class="card-body">
-                            <p>Select your Excel file (.xlsx or .xls) to begin the process. The first row will be used as your table's column headers.</p>
+                            <p class="text-muted">Select your Excel file (.xlsx or .xls) to begin the process. The first row will be used as your table's column headers.</p>
                             <div class="input-group">
                                 <input type="file" class="form-control" id="excel-file-input" accept=".xlsx, .xls">
-                                <button class="btn btn-primary" type="button" id="process-file-btn">
-                                    Process Excel File
+                                <button class="btn btn-primary fw-semibold" type="button" id="process-file-btn">
+                                    Process File
                                     <span id="loading-spinner" class="spinner-border spinner-border-sm ms-2" role="status" aria-hidden="true" style="display:none;"></span>
                                 </button>
                             </div>
@@ -52,7 +100,7 @@
 
                     <div id="form-container" class="form-section">
                         <div class="card-header bg-light rounded-top p-3">
-                            <h5 class="mb-0">Step 3: Data Entry Forms</h5>
+                            <h5 class="mb-0 fw-semibold">Step 3: Data Entry Forms</h5>
                         </div>
                         <div class="card-body" id="forms-body">
                             <p class="text-muted">Editable forms will be generated here once you successfully create the Supabase table.</p>
@@ -64,22 +112,22 @@
     </div>
 
     <div class="modal fade" id="supabaseModal" tabindex="-1" aria-labelledby="supabaseModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="supabaseModalLabel">Step 2: Confirm Headers & Create Table</h5>
+                    <h5 class="modal-title fw-bold" id="supabaseModalLabel">Step 2: Confirm Headers & Create Table</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>We've detected the following columns in your Excel file. Please review them before creating the table in Supabase.</p>
-                    <ul class="list-group list-group-flush mb-4" id="header-list"></ul>
-                    <div class="alert alert-warning mt-3" role="alert">
-                        <strong>Security Warning:</strong> For production, it's safer to use a backend API to handle table creation. The method here is for demonstration.
+                    <p class="mb-3">We've detected the following columns in your Excel file. Please review them carefully.</p>
+                    <div class="list-group" id="header-list"></div>
+                    <div class="alert alert-warning mt-4" role="alert">
+                        <strong>Security Warning:</strong> This operation creates a new table. For a production environment, this should be handled by a secure backend API.
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" id="run-script-btn">Create Supabase Table</button>
+                    <button type="button" class="btn btn-success fw-semibold" id="run-script-btn">Create Supabase Table</button>
                 </div>
             </div>
         </div>
@@ -136,17 +184,14 @@
                         return;
                     }
 
-                    // Store headers and rows globally
                     currentHeaders = jsonData[0];
                     currentRows = jsonData.slice(1);
                     currentTableName = `excel_import_${Date.now()}`;
 
-                    // Populate the modal with headers
                     headerList.innerHTML = currentHeaders.map(header => 
-                        `<li class="list-group-item header-list-item">${header}</li>`
+                        `<div class="list-group-item header-list-item">${header}</div>`
                     ).join('');
 
-                    // Show the Bootstrap modal for confirmation
                     supabaseModal.show();
                 } catch (error) {
                     console.error('Error processing Excel file:', error);
@@ -164,16 +209,14 @@
             runScriptBtn.disabled = true;
             try {
                 const createTableScript = generateCreateTableScript(currentTableName, currentHeaders);
-
-                // This RPC call requires a custom `execute_sql_script` function in Supabase.
                 const { error } = await supabase.rpc('execute_sql_script', { sql_text: createTableScript });
-
+                
                 if (error) throw error;
                 
                 alert(`Table "${currentTableName}" created successfully! Now generating forms.`);
                 supabaseModal.hide();
                 generateForms(currentTableName, currentHeaders, currentRows);
-                formContainer.style.display = 'block'; // Show the form section
+                formContainer.style.display = 'block';
 
             } catch (error) {
                 console.error('Error executing script:', error);
@@ -184,23 +227,20 @@
             }
         });
 
-        // Helper function to generate the SQL script
         function generateCreateTableScript(tableName, headers) {
             const sanitizedHeaders = headers.map(header => `"${header.replace(/[^a-zA-Z0-9_]/g, '')}" TEXT`);
             const columnsDefinition = sanitizedHeaders.join(', ');
             return `CREATE TABLE public."${tableName}" (${columnsDefinition});`;
         }
 
-        // Step 3: Generate the Data Entry Forms
         function generateForms(tableName, headers, rows) {
-            formsBody.innerHTML = ''; // Clear previous forms
-
+            formsBody.innerHTML = '';
             rows.forEach((rowData, index) => {
                 const formWrapper = document.createElement('div');
                 formWrapper.className = 'card mb-3';
                 formWrapper.innerHTML = `
                     <div class="card-body">
-                        <h6 class="card-title text-success">Record #${index + 1}</h6>
+                        <h6 class="card-title text-success fw-semibold">Record #${index + 1}</h6>
                         <form id="data-form-${index}"></form>
                         <div class="save-btn-container text-end">
                             <button type="button" class="btn btn-success btn-sm save-record-btn" data-index="${index}">Save Record</button>
@@ -215,7 +255,7 @@
                     formRow.className = 'form-row';
                     const label = document.createElement('label');
                     label.textContent = `${header}:`;
-                    label.className = 'form-label';
+                    label.className = 'form-label text-muted';
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.className = 'form-control';
@@ -228,7 +268,6 @@
                 });
             });
 
-            // Attach save event listeners to all new buttons
             document.querySelectorAll('.save-record-btn').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const index = e.target.getAttribute('data-index');
