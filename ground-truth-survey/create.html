@@ -136,13 +136,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.min.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Load the Supabase browser bundle BEFORE your inline script -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
     <script>
         // Supabase client initialization
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-        const supabase = supabase_js.createClient(supabaseUrl, supabaseKey);
+        // Correct global provided by the CDN bundle:
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
         // Global variables to store data after file processing
         let currentTableName = '';
@@ -191,7 +193,7 @@
                         return;
                     }
 
-                    currentHeaders = jsonData[0];
+                    currentHeaders = jsonData[0].map(h => String(h).trim());
                     currentRows = jsonData.slice(1);
                     currentTableName = `excel_import_${Date.now()}`;
 
@@ -221,10 +223,12 @@
             runScriptBtn.disabled = true;
             try {
                 const createTableScript = generateCreateTableScript(currentTableName, currentHeaders);
-                const { error } = await supabase.rpc('execute_sql_script', { sql_text: createTableScript });
-                
+
+                // Use rpc to execute server-side function - ensure you have this function in your DB
+                const { data, error } = await supabase.rpc('execute_sql_script', { sql_text: createTableScript });
+
                 if (error) throw error;
-                
+
                 alert(`Table "${currentTableName}" created successfully! Now generating forms.`);
                 supabaseModal.hide();
                 generateForms(currentTableName, currentHeaders, currentRows);
@@ -232,7 +236,7 @@
 
             } catch (error) {
                 console.error('Error executing script:', error);
-                alert(`Failed to create table. Error: ${error.message}`);
+                alert(`Failed to create table. Error: ${error.message || error}`);
                 supabaseModal.hide();
             } finally {
                 runScriptBtn.disabled = false;
@@ -240,7 +244,7 @@
         });
 
         function generateCreateTableScript(tableName, headers) {
-            const sanitizedHeaders = headers.map(header => `"${header.replace(/[^a-zA-Z0-9_]/g, '')}" TEXT`);
+            const sanitizedHeaders = headers.map(header => `"${String(header).replace(/[^a-zA-Z0-9_]/g, '')}" TEXT`);
             const columnsDefinition = sanitizedHeaders.join(', ');
             return `CREATE TABLE public."${tableName}" (${columnsDefinition});`;
         }
@@ -273,7 +277,7 @@
                     input.className = 'form-control';
                     input.name = header;
                     input.value = rowData[colIndex] !== undefined ? rowData[colIndex] : '';
-                    
+
                     formRow.appendChild(label);
                     formRow.appendChild(input);
                     formEl.appendChild(formRow);
@@ -295,12 +299,12 @@
 
         async function saveRecordToSupabase(tableName, recordData, recordIndex) {
             try {
-                const { error } = await supabase.from(tableName).insert([recordData]);
+                const { data, error } = await supabase.from(tableName).insert([recordData]);
                 if (error) throw error;
                 alert(`Record #${parseInt(recordIndex) + 1} saved successfully!`);
             } catch (error) {
                 console.error(`Error saving record #${parseInt(recordIndex) + 1}:`, error);
-                alert(`Failed to save record #${parseInt(recordIndex) + 1}. Error: ${error.message}`);
+                alert(`Failed to save record #${parseInt(recordIndex) + 1}. Error: ${error.message || error}`);
             }
         }
     </script>
