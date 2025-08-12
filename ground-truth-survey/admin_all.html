@@ -26,6 +26,7 @@
     .table-list .list-group-item { cursor:pointer; }
     .designer-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
     .designer-row .col-label { flex:1; }
+    .small-muted { font-size:12px; color:#6b7280; }
   </style>
 </head>
 <body>
@@ -59,7 +60,7 @@
           </div>
 
           <div class="mb-3 form-actions">
-            <button id="btnProcess" class="btn btn-success btn-sm">Process & Create</button>
+            <button id="btnProcess" class="btn btn-success btn-sm">Process</button>
             <button id="btnPreviewDesigner" class="btn btn-outline-secondary btn-sm">Preview Designer</button>
           </div>
 
@@ -113,7 +114,7 @@
   <div id="alertToast" style="position:fixed; right:20px; bottom:20px; z-index:9999;"></div>
 
 <script>
-/* ---------------- Supabase configuration (you provided) ---------------- */
+/* ---------------- Supabase configuration (as provided) ---------------- */
 const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
@@ -123,7 +124,7 @@ const $ = id => document.getElementById(id);
 function toast(msg, type='info') {
   const div = document.createElement('div');
   div.className = `alert alert-${type} shadow`;
-  div.style.minWidth = '220px';
+  div.style.minWidth = '240px';
   div.textContent = msg;
   $('alertToast').appendChild(div);
   setTimeout(()=> div.remove(), 5000);
@@ -148,7 +149,6 @@ let definitionsCache = [];
 
 /* ---------------- Init ---------------- */
 document.addEventListener('DOMContentLoaded', async () => {
-  // Ensure admin
   currentUser = getCurrentUser();
   if (!currentUser || currentUser.role !== 'admin') {
     alert('Admin access required. Redirecting to login.');
@@ -216,7 +216,7 @@ function showDesignerPreview(tableName, headers) {
   $('previewArea').classList.remove('hidden');
 }
 
-/* ---------------- Create table & save definition ---------------- */
+/* ---------------- Create table & save definition (with verbose logging) ---------------- */
 async function createTableAndSaveDef() {
   try {
     const container = $('designerFields');
@@ -243,8 +243,11 @@ async function createTableAndSaveDef() {
 
     const ddl = `CREATE TABLE IF NOT EXISTS public."${tableName}" (${columns});`;
 
-    // Call RPC to execute DDL (RPC must exist). Handle invalid API key explicitly.
-    const { error: rpcErr } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
+    console.log('DDL to execute:', ddl);
+    console.log('Calling RPC execute_sql_script...');
+
+    const { error: rpcErr, data: rpcData } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
+    console.log('RPC result:', { rpcErr, rpcData });
     if (rpcErr) {
       console.error('RPC error', rpcErr);
       if (rpcErr.message && rpcErr.message.toLowerCase().includes('invalid api key')) {
@@ -255,7 +258,7 @@ async function createTableAndSaveDef() {
       return;
     }
 
-    // Save form_definitions row
+    // Prepare definition payload
     const def = {
       table_name: tableName,
       label: tableName,
@@ -263,10 +266,15 @@ async function createTableAndSaveDef() {
       created_at: new Date().toISOString(),
       fields
     };
-    const { error: insErr } = await supabase.from('form_definitions').insert([def]);
-    if (insErr) {
-      console.error('Insert def err', insErr);
-      toast('Failed to save definition: ' + (insErr.message || JSON.stringify(insErr)), 'danger');
+
+    // DEBUG: show payload
+    console.log('Saving form_definitions payload:', def);
+
+    const resp = await supabase.from('form_definitions').insert([def]);
+    console.log('Insert response:', resp);
+    if (resp.error) {
+      console.error('Insert def error object:', resp.error, 'full response:', resp);
+      toast('Failed to save definition: ' + (resp.error.message || JSON.stringify(resp.error)), 'danger');
       return;
     }
 
@@ -276,7 +284,7 @@ async function createTableAndSaveDef() {
     loadDefinitions();
   } catch (err) {
     console.error(err);
-    toast('Create failed: ' + (err.message || err), 'danger');
+    toast('Create failed: ' + (err.message || JSON.stringify(err)), 'danger');
   }
 }
 
@@ -290,7 +298,7 @@ async function loadDefinitions() {
     renderDefinitionsArea();
   } catch (err) {
     console.error('loadDefinitions', err);
-    toast('Failed to load definitions: ' + (err.message || err), 'danger');
+    toast('Failed to load definitions: ' + (err.message || JSON.stringify(err)), 'danger');
   }
 }
 
@@ -334,7 +342,7 @@ async function viewDefinition(tableName) {
     alert(`Definition: ${def.table_name}\n\nFields:\n${(def.fields||[]).map(f => `${f.position+1}. ${f.label} (${f.name})`).join('\n')}`);
   } catch (err) {
     console.error(err);
-    toast('View failed: ' + (err.message || err), 'danger');
+    toast('View failed: ' + (err.message || JSON.stringify(err)), 'danger');
   }
 }
 
@@ -350,7 +358,7 @@ async function dropTable(tableName) {
     loadDefinitions();
   } catch (err) {
     console.error('drop err', err);
-    toast('Drop failed: ' + (err.message || err), 'danger');
+    toast('Drop failed: ' + (err.message || JSON.stringify(err)), 'danger');
   }
 }
 </script>
