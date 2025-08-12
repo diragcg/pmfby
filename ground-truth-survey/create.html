@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to Supabase Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #2c3e50;
+        }
+        input[type="file"] {
+            display: block;
+            margin-bottom: 15px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #form-container {
+            margin-top: 20px;
+        }
+        form {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            background-color: #fafafa;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        /* Modal Styles */
+        #supabase-modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 8px;
+        }
+        #script-textarea {
+            width: 100%;
+            height: 200px;
+            margin-bottom: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #eee;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Import Excel and Create Dynamic Form</h1>
+        <p>1. Upload an Excel file (.xlsx or .xls).</p>
+        <p>2. A popup will show a script to create a new table in Supabase based on your file's columns.</p>
+        <p>3. After running the script, a form will be generated for each row of data. You can edit and save each record.</p>
+
+        <input type="file" id="excel-file-input" accept=".xlsx, .xls">
+        <button id="process-file-btn">Process File</button>
+
+        <div id="form-container">
+            </div>
+    </div>
+
+    <div id="supabase-modal">
+        <div class="modal-content">
+            <h2>Supabase Table Script Confirmation</h2>
+            <p>Review the generated script. Clicking "Run Script" will attempt to create a new table in your Supabase database.</p>
+            <textarea id="script-textarea" readonly></textarea>
+            <button id="run-script-btn">Run Script on Supabase</button>
+            <button id="cancel-script-btn">Cancel</button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+        let currentTableName;
+
+        document.getElementById('process-file-btn').addEventListener('click', () => {
+            const fileInput = document.getElementById('excel-file-input');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('Please select an Excel file.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const excelData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+                const headers = excelData[0];
+                const rows = excelData.slice(1);
+                
+                // Create a table name using a timestamp
+                currentTableName = 'excel_data_' + new Date().getTime();
+                
+                const createTableScript = generateCreateTableScript(currentTableName, headers);
+                
+                document.getElementById('script-textarea').value = createTableScript;
+                document.getElementById('supabase-modal').style.display = 'block';
+
+                // Store the parsed data for later use
+                document.getElementById('supabase-modal').dataset.headers = JSON.stringify(headers);
+                document.getElementById('supabase-modal').dataset.rows = JSON.stringify(rows);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        document.getElementById('run-script-btn').addEventListener('click', async () => {
+            const createTableScript = document.getElementById('script-textarea').value;
+            const headers = JSON.parse(document.getElementById('supabase-modal').dataset.headers);
+            const rows = JSON.parse(document.getElementById('supabase-modal').dataset.rows);
+            
+            try {
+                // This RPC call requires a function in Supabase. A better way is to use the dashboard or direct API.
+                // For a simple demo, a function that executes SQL is a workaround.
+                const { error } = await supabase.from('rpc_execute_sql').rpc('execute', { p_sql: createTableScript });
+                if (error) throw error;
+                
+                alert('Table created successfully! Now generating form.');
+                document.getElementById('supabase-modal').style.display = 'none';
+                generateForms(currentTableName, headers, rows);
+                
+            } catch (error) {
+                console.error('Error creating table:', error);
+                alert('Failed to create table. Please check the console for details and ensure you have a "rpc_execute_sql" function in Supabase with appropriate permissions.');
+                document.getElementById('supabase-modal').style.display = 'none';
+            }
+        });
+
+        document.getElementById('cancel-script-btn').addEventListener('click', () => {
+            document.getElementById('supabase-modal').style.display = 'none';
+        });
+
+        function generateCreateTableScript(tableName, headers) {
+            const columns = headers.map(header => `"${header}" TEXT`).join(', ');
+            return `CREATE TABLE public.${tableName} (${columns});`;
+        }
+
+        function generateForms(tableName, headers, rows) {
+            const formContainer = document.getElementById('form-container');
+            formContainer.innerHTML = '';
+            
+            rows.forEach((rowData, index) => {
+                const form = document.createElement('form');
+                form.id = `data-form-${index}`;
+                form.innerHTML = `<h3>Record ${index + 1}</h3>`;
+                
+                headers.forEach((header, colIndex) => {
+                    const label = document.createElement('label');
+                    label.textContent = header;
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.name = header;
+                    input.value = rowData[colIndex] || '';
+                    form.appendChild(label);
+                    form.appendChild(input);
+                });
+
+                const saveButton = document.createElement('button');
+                saveButton.textContent = 'Save Record to Supabase';
+                saveButton.type = 'button';
+                saveButton.onclick = () => saveRecord(tableName, headers, form);
+                form.appendChild(saveButton);
+                
+                formContainer.appendChild(form);
+            });
+        }
+
+        async function saveRecord(tableName, headers, form) {
+            const recordData = {};
+            const inputs = form.querySelectorAll('input[type="text"]');
+            inputs.forEach(input => {
+                recordData[input.name] = input.value;
+            });
+            
+            try {
+                const { error } = await supabase.from(tableName).insert([recordData]);
+                if (error) throw error;
+                alert('Record saved successfully!');
+            } catch (error) {
+                console.error('Error saving record:', error);
+                alert('Failed to save record.');
+            }
+        }
+    </script>
+</body>
+</html>
