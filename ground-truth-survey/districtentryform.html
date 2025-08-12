@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>District — Data Entry</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+
+  <style>
+    body { font-family: 'Mukta', system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#FFF8E1; }
+    .topbar { position:fixed; top:0; left:0; right:0; height:64px; background:#1B5E20; color:#fff; display:flex; align-items:center; padding:0 20px; z-index:50; }
+    .topbar .brand { font-weight:700; font-size:18px; margin-left:10px; }
+    .container-app { max-width:1000px; margin:92px auto 48px; }
+    .card-sm { background:#fff; border-radius:10px; padding:18px; box-shadow:0 8px 24px rgba(0,0,0,0.06); }
+    .hidden { display:none !important; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="34" height="34" alt="">
+    <div class="brand ms-2">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
+    <div class="ms-auto d-flex align-items-center gap-2">
+      <button id="btnHome" class="btn btn-sm btn-light">Home</button>
+      <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
+    </div>
+  </div>
+
+  <div class="container-app">
+    <div class="card-sm">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>दिए गए फ़ॉर्म</h4>
+        <div id="userInfo" class="text-muted small"></div>
+      </div>
+
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="mb-3">
+            <label class="form-label">Forms</label>
+            <div id="formsList" class="list-group" style="max-height:420px; overflow:auto;"></div>
+          </div>
+        </div>
+
+        <div class="col-md-8">
+          <div id="formCard" class="hidden">
+            <h5 id="formLabel"></h5>
+            <form id="entryForm"></form>
+            <div class="mt-3 text-end">
+              <button id="saveBtn" class="btn btn-success">Save Entry</button>
+            </div>
+          </div>
+          <div id="noFormNote" class="text-muted">कृपया बाएं से कोई फॉर्म चुनें।</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ---------------- Supabase configuration (as provided) ---------------- */
+const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ---------------- Helpers ---------------- */
+const $ = id => document.getElementById(id);
+function showMessage(msg) { alert(msg); }
+function getCurrentUser() { const s = localStorage.getItem('user') || sessionStorage.getItem('user'); return s ? JSON.parse(s) : null; }
+
+/* ---------------- State ---------------- */
+let currentUser = null;
+let currentDefinition = null;
+
+/* ---------------- Init ---------------- */
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = getCurrentUser();
+  if (!currentUser) { alert('Please login'); location.href = 'login.html'; return; }
+  $('userInfo').textContent = `${currentUser.fullName || currentUser.username} • Role: ${currentUser.role} ${currentUser.districtId ? '• District: ' + currentUser.districtId : ''}`;
+  $('btnLogout').addEventListener('click', ()=> { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
+  $('btnHome').addEventListener('click', ()=> window.scrollTo({ top:0, behavior:'smooth' }));
+
+  loadFormDefinitions();
+});
+
+/* ---------------- Load form_definitions ---------------- */
+async function loadFormDefinitions() {
+  try {
+    const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending: false });
+    if (error) throw error;
+    renderFormsList(data || []);
+  } catch (err) {
+    console.error(err);
+    showMessage('Failed to load forms: ' + (err.message || JSON.stringify(err)));
+  }
+}
+
+function renderFormsList(list) {
+  const el = $('formsList'); el.innerHTML = '';
+  if (!list.length) { el.innerHTML = '<div class="text-muted">No forms available</div>'; return; }
+  list.forEach(def => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'list-group-item list-group-item-action';
+    btn.textContent = `${def.table_name} — ${(def.fields||[]).length} fields`;
+    btn.dataset.table = def.table_name;
+    btn.addEventListener('click', () => openForm(def.table_name));
+    el.appendChild(btn);
+  });
+}
+
+/* ---------------- Open & render blank form ---------------- */
+async function openForm(tableName) {
+  try {
+    const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
+    if (error || !data) throw error || new Error('Definition not found');
+    currentDefinition = data;
+    renderBlankForm(data);
+  } catch (err) {
+    console.error(err);
+    showMessage('Unable to open form: ' + (err.message || JSON.stringify(err)));
+  }
+}
+
+function renderBlankForm(def) {
+  $('formLabel').textContent = def.label || def.table_name;
+  const form = $('entryForm'); form.innerHTML = '';
+  (def.fields || []).forEach((f,i) => {
+    const wrapper = document.createElement('div'); wrapper.className = 'mb-2';
+    const label = document.createElement('label'); label.className = 'form-label'; label.textContent = f.label || f.name;
+    const input = document.createElement('input'); input.className = 'form-control'; input.name = f.name; input.type = (f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text'));
+    wrapper.appendChild(label); wrapper.appendChild(input);
+    form.appendChild(wrapper);
+  });
+  $('formCard').classList.remove('hidden');
+  $('noFormNote').classList.add('hidden');
+}
+
+/* ---------------- Save record (manual only) ---------------- */
+$('saveBtn').addEventListener('click', async () => {
+  if (!currentDefinition) return showMessage('Select a form first');
+  const payload = {};
+  $('entryForm').querySelectorAll('input').forEach(i => payload[i.name] = i.value === '' ? null : i.value);
+
+  // attach district_id automatically if user has one and column exists
+  const user = getCurrentUser();
+  if (user && user.districtId && Object.keys(payload).includes('district_id')) payload['district_id'] = user.districtId;
+
+  try {
+    const { data, error } = await supabase.from(currentDefinition.table_name).insert([payload]);
+    console.log('insert response', { data, error });
+    if (error) throw error;
+    showMessage('Record saved successfully');
+    $('entryForm').querySelectorAll('input').forEach(i => i.value = '');
+  } catch (err) {
+    console.error(err);
+    showMessage('Save failed: ' + (err.message || JSON.stringify(err)));
+  }
+});
+</script>
+</body>
+</html>
