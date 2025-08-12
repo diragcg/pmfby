@@ -1,399 +1,499 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>District — Tables & Records (संचालनालय कृषि छत्तीसगढ़)</title>
-  <!-- Bootstrap CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    :root{
-      --bg: #FFF8E1;
-      --card: #FFFFFF;
-      --pistachio: #e6f4e6;
-      --accent: #1B5E20;
-      --muted: #6b7280;
-      --shadow: 0 8px 24px rgba(2,6,23,0.06);
-      --topbar-h: 64px;
-    }
-    html,body{height:100%; margin:0; font-family:"Mukta", system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:var(--bg);}
-    .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-h);background:var(--accent);color:#fff;display:flex;align-items:center;padding:0 16px;gap:12px;z-index:1200}
-    .brand{font-weight:700}
-    .container-app{max-width:1200px;margin:calc(var(--topbar-h) + 18px) auto;padding:12px}
-    .layout{display:flex;gap:16px;align-items:flex-start}
-    @media(max-width:992px){.layout{flex-direction:column}}
-    .sidebar{width:320px;min-width:220px}
-    .panel{background:var(--card);border-radius:10px;padding:12px;box-shadow:var(--shadow)}
-    .sidebar .panel{position:sticky;top:calc(var(--topbar-h)+12px);max-height:calc(100vh - (var(--topbar-h) + 40px));overflow:auto}
-    .user-badge{background:var(--pistachio);padding:8px 12px;border-radius:8px;font-weight:700;color:var(--accent)}
-    .list-group-item{cursor:pointer}
-    .list-group-item.active{background:#eef6ff;border-left:4px solid var(--accent)}
-    .main{flex:1;min-width:0}
-    .no-wrap{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .muted{color:var(--muted);font-size:13px}
-    .form-control{background:var(--pistachio);border:1px solid #d6ead6;height:44px;border-radius:8px}
-    .form-control:focus{background:#fff;border-color:var(--accent);box-shadow:0 0 0 4px rgba(27,94,32,0.06)}
-    .table-wrap{margin-top:12px;background:#fff;padding:12px;border-radius:10px;box-shadow:var(--shadow);overflow:auto}
-    .hidden{display:none!important}
-    .actions{display:flex;gap:8px;align-items:center}
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>District — Data Entry (संचालनालय कृषि छत्तीसगढ़)</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root{
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --pistachio: #e6f4e6;
+            --accent: #1B5E20;
+            --muted: #6b7280;
+            --shadow: 0 8px 24px rgba(2,6,23,0.06);
+            --topbar-height: 64px;
+        }
+        html,body{height:100%;}
+        body{
+            font-family: "Mukta", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            background: var(--bg);
+            margin:0;
+            -webkit-font-smoothing:antialiased;
+        }
+
+        .topbar{
+            position:fixed; top:0; left:0; right:0; height:var(--topbar-height); background:var(--accent); color:#fff;
+            display:flex; align-items:center; gap:12px; padding:0 18px; z-index:60;
+        }
+        .brand{ font-weight:700; font-size:18px; margin-left:8px; }
+        .topbar .actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
+
+        .container-app{ max-width:1100px; margin: calc(var(--topbar-height) + 28px) auto 48px; padding:0 12px; }
+        .layout{ display:flex; gap:16px; align-items:flex-start; }
+        @media (max-width: 992px){ .layout{ flex-direction:column; } }
+
+        .sidebar { width:300px; min-width:240px; }
+        .sidebar .card-panel{ padding:14px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); position:sticky; top:calc(var(--topbar-height) + 16px); max-height: calc(100vh - (var(--topbar-height) + 56px)); overflow:auto; }
+        .user-badge{ background:var(--pistachio); padding:8px 12px; border-radius:8px; font-weight:700; color:var(--accent); box-shadow:0 2px 6px rgba(0,0,0,0.04); display:inline-block; }
+
+        .forms-list .list-group-item { cursor:pointer; }
+        .forms-list .list-group-item.active { background:#eef6ff; border-left:4px solid var(--accent); }
+
+        .main { flex:1; min-width:0; }
+        .card-panel { background:var(--card); border-radius:10px; padding:16px; box-shadow:var(--shadow); }
+        .user-info { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px; padding:12px; border-radius:10px; background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); }
+        .user-info .meta { color:var(--muted); font-size:13px; }
+
+        .form-card { padding:16px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); }
+        .form-section { margin-bottom:12px; }
+        label.required::after{ content: " *"; color:#d63333; margin-left:3px; font-weight:700; }
+        input.form-control, select.form-control, textarea.form-control {
+            background: var(--pistachio);
+            border:1px solid #d6ead6;
+            height:46px;
+            border-radius:8px;
+        }
+        input.form-control:focus, textarea.form-control:focus, select.form-control:focus {
+            box-shadow: 0 0 0 4px rgba(27,94,32,0.06);
+            outline:none;
+            border-color:var(--accent);
+            background:#fff;
+        }
+
+        .save-row { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; align-items:center; }
+        .small-muted { color:var(--muted); font-size:13px; }
+
+        @media (max-width: 576px) {
+            .save-row { position:sticky; bottom:12px; background:transparent; padding-top:8px; }
+        }
+
+        .muted-box { font-size:13px; color:var(--muted); }
+        .hidden { display: none; }
+
+        /* data viewer specific styles */
+        .data-table-container { max-height: calc(100vh - 300px); overflow-y: auto; margin-top: 1rem; }
+        .data-table th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
+    </style>
 </head>
 <body>
-  <div class="topbar">
-    <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="34" height="34" alt="">
-    <div class="brand">संचालनालय कृषि छत्तीसगढ़</div>
-    <div style="margin-left:auto;display:flex;gap:12px;align-items:center;">
-      <div id="userSummary" class="no-wrap" style="color:#fff;font-weight:600"></div>
-      <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
-    </div>
-  </div>
-  <div class="container-app">
-    <div class="layout">
-      <aside class="sidebar">
-        <div class="panel">
-          <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
-            <div class="user-badge" id="userBadge">user</div>
-            <div>
-              <div id="userRoleLine" style="font-weight:700;color:var(--accent)"></div>
-              <div id="userDistrictLine" class="muted"></div>
-            </div>
-          </div>
-Text
-      <h6 class="mb-2">Created Tables</h6>
-      <div id="tablesList" class="list-group"></div>
 
-      <div class="mt-3">
-        <button id="btnRefresh" class="btn btn-sm btn-outline-primary w-100">Refresh</button>
-      </div>
-
-      <hr class="my-3">
-
-      <h6 class="mb-2">Drafts</h6>
-      <div id="draftsList" class="list-group"></div>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div id="noSelection" class="panel">
-      <div class="muted">बाएँ से एक तालिका चुनें ताकि उसके रिकॉर्ड दिखें और आप नया रिकॉर्ड जोड़ सकें।</div>
-    </div>
-
-    <div id="recordsPanel" class="panel hidden">
-      <div class="d-flex justify-content-between align-items-start mb-2">
-        <div>
-          <h5 id="panelTitle" class="mb-1"></h5>
-          <div id="panelSub" class="muted">Records for selected table (filtered to your district)</div>
-        </div>
-
+    <div class="topbar">
+        <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="34" height="34" alt="">
+        <div class="brand">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
         <div class="actions">
-          <input id="txtSearch" class="form-control form-control-sm" placeholder="Search (client-side)" style="width:220px;">
-          <select id="pageSize" class="form-select form-select-sm" style="width:90px;">
-            <option>10</option><option>25</option><option>50</option>
-          </select>
-          <button id="btnPrev" class="btn btn-sm btn-outline-secondary">Prev</button>
-          <button id="btnNext" class="btn btn-sm btn-outline-secondary">Next</button>
-          <div class="btn-group">
-            <button id="btnExportXlsx" class="btn btn-sm btn-outline-success">XLSX</button>
-            <button id="btnExportTxt" class="btn btn-sm btn-outline-secondary">TXT</button>
-            <button id="btnPrint" class="btn btn-sm btn-outline-dark">Print</button>
-          </div>
+            <button id="btnHome" class="btn btn-sm btn-light">Home</button>
+            <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
         </div>
-      </div>
-
-      <div class="table-wrap">
-        <div id="recordsTableContainer"></div>
-      </div>
-
-      <div class="mt-3 panel">
-        <h6 class="mb-2">Add New Record</h6>
-        <form id="entryForm">
-          <div id="entryFields" class="row g-2"></div>
-          <div class="mt-3 d-flex justify-content-end gap-2">
-            <button id="btnClearDraft" type="button" class="btn btn-outline-secondary btn-sm">Clear Draft</button>
-            <button id="btnSaveRecord" type="button" class="btn btn-success btn-sm">Save</button>
-          </div>
-        </form>
-      </div>
     </div>
-  </main>
-</div>
-  </div>
-  <div id="printArea" style="display:none"></div>
-  <!-- Libraries loaded before main script -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-  <script>
-    // --------------- CONFIG (replace if needed) ---------------
-    const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // --------------- Helpers ----------------
-    const \$ = id => document.getElementById(id);
-    const el = (t,a={},c=[]) => {
-      const e = document.createElement(t);
-      for (const k in a) { if (k === 'class') e.className = a[k]; else e.setAttribute(k, a[k]); }
-      (Array.isArray(c) ? c : [c]).forEach(ch => { if (!ch) return; if (typeof ch === 'string') e.appendChild(document.createTextNode(ch)); else e.appendChild(ch); });
-      return e;
-    };
-    function toast(msg){ alert(msg); }
-    function toastSmall(msg){ const d = el('div',{class:'alert alert-secondary'},[msg]); d.style.position='fixed'; d.style.right='12px'; d.style.bottom='12px'; d.style.zIndex=2000; document.body.appendChild(d); setTimeout(()=>d.remove(), 1400); }
-    function getCurrentUser(){ const s = localStorage.getItem('user') || sessionStorage.getItem('user'); return s ? JSON.parse(s) : null; }
-    function sanitizeName(s){ return String(s||'').replace(/[^a-zA-Z0-9_]/g,'_'); }
+    <div class="container-app">
+        <div class="layout">
+            <aside class="sidebar">
+                <div class="card-panel">
+                    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
+                        <div class="user-badge" id="userBadge">test_district</div>
+                        <div>
+                            <div id="userRoleLine" style="font-weight:700;color:var(--accent);">Role: user</div>
+                            <div id="userDistrictLine" class="muted-box">District: 7b161aeb-4492-4a74-b587-306a4bb00b99</div>
+                        </div>
+                    </div>
 
-    // --------------- State ----------------
-    let currentUser = null;
-    let definitions = [];
-    let selectedTable = null;
-    let currentDefinition = null;
-    let districtsCache = null;
-    let currentRows = [];
-    let currentPage = 1;
-    let pageSize = 10;
+                    <div style="margin-top:8px;">
+                        <div class="small-muted">Available forms</div>
+                        <div id="formsList" class="forms-list list-group mt-2"></div>
+                    </div>
 
-    // --------------- Init ----------------
-    document.addEventListener('DOMContentLoaded', async () => {
-      // restore user (login.html must set)
-      currentUser = getCurrentUser() || { id:null, username:'test_district', fullName:'test_district', role:'user', districtId:'7b161aeb-4492-4a74-b587-306a4bb00b99' };
+                    <div style="margin-top:12px;">
+                        <div class="small-muted">Drafts</div>
+                        <div id="draftsList" class="list-group mt-2"></div>
+                    </div>
 
-      // header info
-      \$('userSummary').textContent = `${currentUser.fullName || currentUser.username} • Role: ${currentUser.role || 'user'} • District: ${currentUser.districtId || ''}`;
-      \$('userBadge').textContent = currentUser.fullName || currentUser.username || 'user';
-      \$('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
-      \$('userDistrictLine').textContent = `District: ${currentUser.districtId || ''}`;
+                    <div style="margin-top:14px;">
+                        <button id="btnRefreshForms" class="btn btn-sm btn-outline-primary w-100">Refresh Forms</button>
+                    </div>
+                </div>
+            </aside>
 
-      // wire controls
-      \$('btnLogout').addEventListener('click', ()=> { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
-      \$('btnRefresh').addEventListener('click', loadDefinitions);
-      \$('txtSearch').addEventListener('input', ()=> { currentPage = 1; renderTablePage(); });
-      $('pageSize').addEventListener('change', ()=> { pageSize = parseInt($('pageSize').value,10)||10; currentPage = 1; renderTablePage(); });
-      \$('btnPrev').addEventListener('click', ()=> { if (currentPage>1) { currentPage--; renderTablePage(); }});
-      \$('btnNext').addEventListener('click', ()=> { currentPage++; renderTablePage(); });
-      \$('btnSaveRecord').addEventListener('click', saveEntry);
-      \$('btnClearDraft').addEventListener('click', ()=> { if(!selectedTable) return; localStorage.removeItem(`draft::${selectedTable}`); toastSmall('Draft cleared'); });
-      \$('btnExportXlsx').addEventListener('click', exportXlsx);
-      \$('btnExportTxt').addEventListener('click', exportTxt);
-      \$('btnPrint').addEventListener('click', printPreview);
+            <main class="main">
+                <div class="user-info card-panel">
+                    <div>
+                        <div style="font-weight:800; font-size:16px;" id="pageTitle">डेटा एंट्री</div>
+                        <div class="muted-box">कृपया नीचे दिए फॉर्म में आवश्यक विवरण भरें और Save पर क्लिक करें।</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="muted-box">Logged in as</div>
+                        <div id="userSummary" style="font-weight:700;">test_district • Role: user • District: 7b161aeb-4492-4a74-b587-306a4bb00b99</div>
+                    </div>
+                </div>
 
-      // initial load
-      await loadDefinitions();
-      renderDraftsList();
-    });
+                <div id="dataEntryPanel" class="form-card hidden">
+                    <h5 id="formTitle" class="mb-3"></h5>
+                    <div class="d-flex justify-content-end mb-3">
+                        <button id="btnViewRecords" class="btn btn-sm btn-outline-secondary">View Records</button>
+                    </div>
+                    <form id="entryForm" autocomplete="off">
+                        </form>
+                    <div class="save-row">
+                        <div class="small-muted me-auto" id="formNote">All fields marked * are required.</div>
+                        <div>
+                            <button id="btnClearDraft" class="btn btn-outline-secondary btn-sm">Clear Draft</button>
+                            <button id="btnSave" class="btn btn-success btn-sm">Save</button>
+                        </div>
+                    </div>
+                </div>
 
-    // --------------- Load definitions ----------------
-    async function loadDefinitions(){
-      try {
-        const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        definitions = data || [];
-        renderTablesList();
-      } catch(err){
-        console.error(err);
-        toast('Failed to load form definitions — check console');
-      }
-    }
+                <div id="dataViewerPanel" class="form-card hidden">
+                    <h5 id="viewerTitle" class="mb-3">View Records</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <button id="btnEnterNewData" class="btn btn-sm btn-outline-secondary">Enter New Data</button>
+                        <div>
+                            <button id="btnExport" class="btn btn-sm btn-outline-success me-2">Export to CSV</button>
+                            <button id="btnRefreshData" class="btn btn-sm btn-outline-primary">Refresh Data</button>
+                        </div>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="table table-striped table-hover data-table">
+                            <thead id="dataTableHeaders"></thead>
+                            <tbody id="dataTableBody"></tbody>
+                        </table>
+                    </div>
+                    <nav aria-label="Page navigation" class="mt-3">
+                        <ul class="pagination justify-content-center" id="pagination"></ul>
+                    </nav>
+                </div>
 
-    function renderTablesList(){
-      const elList = \$('tablesList'); elList.innerHTML = '';
-      if (!definitions.length) { elList.appendChild(el('div',{},['No tables found'])); return; }
-      definitions.forEach(def => {
-        const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[ `${def.table_name} (${(def.fields||[]).length})` ]);
-        btn.addEventListener('click', ()=> selectTable(def.table_name));
-        elList.appendChild(btn);
-      });
-    }
+                <div id="noForm" class="card-panel">
+                    <div class="small-muted">कृपया बाईं पट्टी से कोई फॉर्म चुनें।</div>
+                </div>
+            </main>
+        </div>
+    </div>
 
-    // --------------- Select table ----------------
-    async function selectTable(tableName){
-      selectedTable = tableName;
-      // find definition
-      currentDefinition = definitions.find(d => d.table_name === tableName);
-      if (!currentDefinition) {
-        try {
-          const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
-          if (error) throw error;
-          currentDefinition = data;
-        } catch (err) { console.error(err); toast('Definition not found'); return; }
-      }
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    
+    <script>
+        const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // UI highlight
-      Array.from(\$('tablesList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
-      $('noSelection').classList.add('hidden'); $('recordsPanel').classList.remove('hidden');
-      \$('panelTitle').textContent = tableName;
-
-      // render entry form
-      await renderEntryForm();
-
-      // load initial records
-      currentPage = 1;
-      pageSize = parseInt(\$('pageSize').value,10) || 10;
-      await loadRecordsPage();
-    }
-
-    // --------------- districts cache ----------------
-    async function getDistricts(){
-      if (districtsCache) return districtsCache;
-      try {
-        const { data, error } = await supabase.from('districts').select('id,name').order('name');
-        if (error) throw error;
-        districtsCache = data || [];
-        return districtsCache;
-      } catch(err){ console.error('districts', err); return []; }
-    }
-
-    // --------------- render entry form ----------------
-    async function renderEntryForm(){
-      const container = \$('entryFields'); container.innerHTML = '';
-      const districts = await getDistricts();
-      (currentDefinition.fields || []).forEach(field => {
-        const col = el('div',{class:'col-md-6'});
-        const lbl = el('label',{},[ field.label || field.name ]);
-        if (/district/i.test(field.name)) {
-          const sel = el('select',{class:'form-control', name: sanitizeName(field.name) }, [ el('option',{value:''},['-- जिला चुनें --']) ]);
-          (districts || []).forEach(d => sel.appendChild(el('option',{value:d.id},[d.name])));
-          if (currentUser && currentUser.districtId) { sel.value = currentUser.districtId; if (currentUser.role !== 'admin') sel.disabled = true; }
-          col.appendChild(lbl); col.appendChild(sel);
-        } else {
-          const type = field.type === 'number' ? 'number' : (field.type === 'date' ? 'date' : 'text');
-          const inp = el('input',{class:'form-control', type: type, name: sanitizeName(field.name)});
-          col.appendChild(lbl); col.appendChild(inp);
+        const $ = id => document.getElementById(id);
+        function el(tag, attrs = {}, children = []) {
+            const e = document.createElement(tag);
+            for (const k in attrs) {
+                if (k === 'class') e.className = attrs[k];
+                else e.setAttribute(k, attrs[k]);
+            }
+            children.forEach(c => typeof c === 'string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c));
+            return e;
         }
-        container.appendChild(col);
-      });
+        function toast(msg) { alert(msg); }
+        function getCurrentUser() {
+            const s = localStorage.getItem('user') || sessionStorage.getItem('user');
+            return s ? JSON.parse(s) : null;
+        }
+        function sanitizeForInputName(s) { return String(s || '').replace(/[^a-zA-Z0-9_]/g, '_'); }
+        const draftKeyPrefix = 'draft::';
 
-      // load draft
-      const raw = localStorage.getItem(`draft::${selectedTable}`);
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw); const d = parsed.data || {};
-          \$('entryFields').querySelectorAll('input,select,textarea').forEach(i => { if (d.hasOwnProperty(i.name)) i.value = d[i.name]; });
-        } catch(e){ console.warn(e); }
-      }
+        let currentUser = null;
+        let definitions = [];
+        let currentDefinition = null;
+        let currentPage = 1;
+        const recordsPerPage = 20;
+        let totalRecords = 0;
 
-      // autosave on change
-      \$('entryFields').querySelectorAll('input,select,textarea').forEach(i => i.addEventListener('change', ()=> saveDraft(selectedTable)));
-    }
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = getCurrentUser() || {
+                id: null, username: 'test_district', fullName: 'test_district', role: 'user',
+                districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99'
+            };
 
-    // --------------- draft ----------------
-    function saveDraft(table){
-      if(!table) return;
-      const data = {};
-      \$('entryFields').querySelectorAll('input,select,textarea').forEach(i => data[i.name] = i.value);
-      localStorage.setItem(`draft::${table}`, JSON.stringify({ savedAt: new Date().toISOString(), data }));
-      toastSmall('Draft saved');
-    }
+            $('userBadge').textContent = currentUser.fullName || currentUser.username || 'user';
+            $('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
+            $('userDistrictLine').textContent = `District: ${currentUser.districtId || ''}`;
+            $('userSummary').textContent = `${currentUser.fullName || currentUser.username} • Role: ${currentUser.role || 'user'} • District: ${currentUser.districtId || ''}`;
 
-    // --------------- load records ----------------
-    async function loadRecordsPage(){
-      if (!selectedTable) return;
-      try {
-        const hasDistrict = (currentDefinition.fields || []).some(f => /district/i.test(f.name));
-        const districtField = (currentDefinition.fields || []).find(f => /district/i.test(f.name));
-        let query = supabase.from(selectedTable).select('*');
-        if (hasDistrict && currentUser && currentUser.districtId) query = query.eq(sanitizeName(districtField.name), currentUser.districtId);
-        const offset = (currentPage - 1) * pageSize;
-        const { data, error } = await query.range(offset, offset + pageSize - 1).order('id',{ascending:true});
-        if (error) throw error;
-        currentRows = data || [];
-        renderTablePage();
-      } catch(err){ console.error(err); toast('Failed to load records'); }
-    }
+            $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
+            $('btnHome').addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+            $('btnRefreshForms').addEventListener('click', loadDefinitions);
+            
+            // New event listeners for data entry/viewer
+            $('btnSave').addEventListener('click', saveEntry);
+            $('btnClearDraft').addEventListener('click', clearDraft);
+            $('btnViewRecords').addEventListener('click', showDataViewer);
+            $('btnEnterNewData').addEventListener('click', showDataEntry);
+            $('btnExport').addEventListener('click', exportData);
+            $('btnRefreshData').addEventListener('click', () => fetchAndRenderTableData(currentDefinition.table_name, currentPage));
 
-    function renderTablePage(){
-      const container = \$('recordsTableContainer'); container.innerHTML = '';
-      if (!currentRows.length) { container.innerHTML = '<div class="muted">No records on this page.</div>'; return; }
-      const q = \$('txtSearch').value.trim().toLowerCase();
-      const rows = q ? currentRows.filter(r => Object.values(r).some(v => v!==null && String(v).toLowerCase().includes(q))) : currentRows;
-      const table = el('table',{class:'table table-sm table-bordered table-striped'});
-      const thead = el('thead'); const headerRow = el('tr'); const keys = Object.keys(rows[0]);
-      headerRow.appendChild(el('th',{},['#'])); keys.forEach(k => headerRow.appendChild(el('th',{},[k]))); thead.appendChild(headerRow); table.appendChild(thead);
-      const tbody = el('tbody');
-      rows.forEach((r, idx) => {
-        const tr = el('tr');
-        tr.appendChild(el('td',{},[ ((currentPage-1)*pageSize + idx + 1).toString() ]));
-        keys.forEach(k => tr.appendChild(el('td',{},[ r[k]===null||r[k]===undefined ? '' : String(r[k]) ])));
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody); container.appendChild(table);
-      $('recordsInfo') && ($('recordsInfo').textContent = `Showing ${rows.length} row(s)`);
-      \$('btnPrev').disabled = currentPage <= 1;
-      \$('btnNext').disabled = currentRows.length < pageSize;
-    }
+            await loadDefinitions();
+            renderDraftsList();
+        });
 
-    // --------------- save entry ----------------
-    async function saveEntry(){
-      if (!currentDefinition) { toast('कृपया एक तालिका चुनें'); return; }
-      const payload = {};
-      \$('entryFields').querySelectorAll('input,select,textarea').forEach(i => payload[i.name] = i.value === '' ? null : i.value);
-      // attach district if present and user has one
-      if (currentUser && currentUser.districtId) {
-        const df = (currentDefinition.fields || []).find(f => /district/i.test(f.name));
-        if (df) payload[sanitizeName(df.name)] = currentUser.districtId;
-      }
-      saveDraft(selectedTable);
-      try {
-        const { data, error } = await supabase.from(selectedTable).insert([payload]);
-        console.log('insert', { data, error });
-        if (error) throw error;
-        localStorage.removeItem(`draft::${selectedTable}`);
-        renderDraftsList();
-        toast('Record saved');
-        \$('entryFields').querySelectorAll('input,select,textarea').forEach(i => i.value = '');
-        await loadRecordsPage();
-      } catch(err) { console.error(err); toast('Save failed — see console'); }
-    }
+        async function loadDefinitions() {
+            try {
+                const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                definitions = data || [];
+                renderFormsList();
+            } catch (err) {
+                console.error('Failed loading definitions', err);
+                toast('फॉर्म लोड करने में त्रुटि — कंसोल देखें।');
+            }
+        }
 
-    // --------------- exports ----------------
-    function exportXlsx(){
-      if (!currentRows.length) { toast('No rows to export'); return; }
-      const keys = Object.keys(currentRows[0]);
-      const data = [keys];
-      currentRows.forEach(r => data.push(keys.map(k => r[k]===null||r[k]===undefined ? '' : r[k])));
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.aoa_to_sheet(data);
-      XLSX.utils.book_append_sheet(wb, ws, 'Export');
-      XLSX.writeFile(wb, `${selectedTable}_export.xlsx`);
-    }
-    function exportTxt(){
-      if (!currentRows.length) { toast('No rows to export'); return; }
-      const keys = Object.keys(currentRows[0]);
-      const lines = [ keys.join('\t') ];
-      currentRows.forEach(r => lines.push(keys.map(k => r[k]===null||r[k]===undefined ? '' : String(r[k])).join('\t')));
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = el('a',{href:url,download:`${selectedTable}_export.txt`}); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
-    function printPreview(){
-      if (!currentRows.length) { toast('No rows to print'); return; }
-      const keys = Object.keys(currentRows[0]);
-      let html = `<div style="font-family:monospace;padding:12px"><h3>${selectedTable} — Export</h3><table style="border-collapse:collapse;width:100%"><thead><tr>`;
-      keys.forEach(k => html += `<th style="border:1px solid #000;padding:6px">${escapeHtml(k)}</th>`);
-      html += '</tr></thead><tbody>';
-      currentRows.forEach(r => { html += '<tr>'; keys.forEach(k => html += `<td style="border:1px solid #000;padding:6px">${escapeHtml(r[k]===null||r[k]===undefined?'':r[k])}</td>`); html += '</tr>'; });
-      html += '</tbody></table></div>';
-      const w = window.open('','_blank'); w.document.open(); w.document.write(`<!doctype html><html><head><title>Print</title><style>@page{size:A4;margin:20mm}body{font-family:monospace}</style></head><body>${html}</body></html>`); w.document.close(); w.print();
-Text
-}
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function renderFormsList() {
+            const list = $('formsList');
+            list.innerHTML = '';
+            if (!definitions.length) {
+                list.innerHTML = '<div class="text-muted">No forms available</div>';
+                return;
+            }
+            definitions.forEach(def => {
+                const item = el('button', { type: 'button', class: 'list-group-item list-group-item-action' }, [ `${def.label || def.table_name}` ]);
+                item.addEventListener('click', () => selectDefinition(def.table_name));
+                list.appendChild(item);
+            });
+        }
 
-// --------------- drafts list ----------------
-function renderDraftsList(){
-  const elDraft = \$('draftsList'); elDraft.innerHTML = '';
-  const keys = Object.keys(localStorage).filter(k => k.startsWith('draft::'));
-  if (!keys.length) { elDraft.innerHTML = '<div class="muted">No drafts</div>'; return; }
-  keys.forEach(k => {
-    try {
-      const raw = JSON.parse(localStorage.getItem(k));
-      const name = k.replace('draft::','');
-      const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
-      btn.addEventListener('click', ()=> { selectTable(name); /* loadDraft will be called by renderEntryForm */ });
-      elDraft.appendChild(btn);
-    } catch(e) { console.warn(e); }
-  });
-}
+        async function selectDefinition(tableName) {
+            Array.from($('formsList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
+            try {
+                const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
+                if (error) throw error;
+                currentDefinition = data;
+                showDataEntry();
+                renderForm(currentDefinition);
+                loadDraft(currentDefinition.table_name);
+            } catch (err) {
+                console.error('selectDefinition error', err);
+                toast('Cannot open form. Check console.');
+            }
+        }
 
-// --------------- util small toast ----------------
-function toastSmall(msg){ const d = el('div',{class:'alert alert-secondary'},[msg]); d.style.position='fixed'; d.style.right='12px'; d.style.bottom='12px'; d.style.zIndex=2000; document.body.appendChild(d); setTimeout(()=>d.remove(),1200); }
-  </script>
+        function renderForm(def) {
+            $('formTitle').textContent = def.label || def.table_name;
+            const form = $('entryForm');
+            form.innerHTML = '';
+            (def.fields || []).forEach(field => {
+                const wrapper = el('div', { class: 'form-section' });
+                const label = el('label', { class: field.required ? 'form-label required' : 'form-label' }, [ field.label || field.name ]);
+                let input;
+                const type = field.type || 'text';
+                if (type === 'date') {
+                    input = el('input', { class: 'form-control', type: 'date', name: sanitizeForInputName(field.name) });
+                } else if (type === 'number') {
+                    input = el('input', { class: 'form-control', type: 'number', name: sanitizeForInputName(field.name), step: 'any' });
+                } else if (field.options && field.options.length) {
+                    input = el('select', { class: 'form-control', name: sanitizeForInputName(field.name) });
+                    field.options.forEach(option => {
+                        const optionEl = el('option', { value: option.value }, [option.label]);
+                        input.appendChild(optionEl);
+                    });
+                } else {
+                    input = el('input', { class: 'form-control', type: 'text', name: sanitizeForInputName(field.name) });
+                }
+                input.placeholder = field.placeholder || '';
+                wrapper.appendChild(label);
+                wrapper.appendChild(input);
+                form.appendChild(wrapper);
+            });
+
+            $('dataEntryPanel').classList.remove('hidden');
+            $('noForm').classList.add('hidden');
+        }
+
+        function showDataEntry() {
+            $('dataEntryPanel').classList.remove('hidden');
+            $('dataViewerPanel').classList.add('hidden');
+            $('noForm').classList.add('hidden');
+        }
+
+        async function showDataViewer() {
+            if (!currentDefinition) {
+                toast('Please select a form first.');
+                return;
+            }
+            $('dataEntryPanel').classList.add('hidden');
+            $('dataViewerPanel').classList.remove('hidden');
+            $('noForm').classList.add('hidden');
+            await fetchAndRenderTableData(currentDefinition.table_name);
+        }
+
+        async function fetchAndRenderTableData(tableName, page = 1) {
+            currentPage = page;
+            const start = (currentPage - 1) * recordsPerPage;
+            const end = start + recordsPerPage - 1;
+
+            const { data, count, error } = await supabase
+                .from(tableName)
+                .select('*', { count: 'exact' })
+                .range(start, end);
+
+            if (error) {
+                console.error('Error fetching table data:', error);
+                toast('Failed to fetch data.');
+                return;
+            }
+            totalRecords = count;
+            renderDataTable(data);
+            renderPagination();
+        }
+        
+        function renderDataTable(data) {
+            const headers = $('dataTableHeaders');
+            const body = $('dataTableBody');
+            headers.innerHTML = '';
+            body.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                body.innerHTML = '<tr><td colspan="100%" class="text-center">No records found.</td></tr>';
+                return;
+            }
+
+            const headerKeys = Object.keys(data[0]);
+            const headerRow = el('tr', {}, headerKeys.map(key => el('th', { scope: 'col' }, [key])));
+            headers.appendChild(headerRow);
+
+            data.forEach(row => {
+                const rowEl = el('tr', {}, headerKeys.map(key => el('td', {}, [row[key] !== null ? row[key] : ''])));
+                body.appendChild(rowEl);
+            });
+        }
+
+        function renderPagination() {
+            const paginationEl = $('pagination');
+            paginationEl.innerHTML = '';
+            const totalPages = Math.ceil(totalRecords / recordsPerPage);
+
+            const createPageItem = (text, page, isDisabled) => {
+                const li = el('li', { class: `page-item ${isDisabled ? 'disabled' : ''} ${page === currentPage ? 'active' : ''}` });
+                const a = el('a', { class: 'page-link', href: '#', 'data-page': page }, [text]);
+                li.appendChild(a);
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!isDisabled) {
+                        fetchAndRenderTableData(currentDefinition.table_name, page);
+                    }
+                });
+                return li;
+            };
+
+            paginationEl.appendChild(createPageItem('Previous', currentPage - 1, currentPage === 1));
+
+            for (let i = 1; i <= totalPages; i++) {
+                paginationEl.appendChild(createPageItem(i, i, false));
+            }
+
+            paginationEl.appendChild(createPageItem('Next', currentPage + 1, currentPage === totalPages));
+        }
+
+        function exportData() {
+            if (!currentDefinition) {
+                alert('Please select a form first.');
+                return;
+            }
+
+            const { data, error } = supabase
+                .from(currentDefinition.table_name)
+                .select('*')
+                .limit(1000); // Limit to 1000 records to avoid timeouts on large tables
+
+            if (error) {
+                console.error('Error fetching data for export:', error);
+                alert('Failed to fetch data for export.');
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+            XLSX.writeFile(workbook, `${currentDefinition.table_name}_data.csv`);
+        }
+        
+        function draftStorageKey(tableName) { return draftKeyPrefix + (tableName || 'unknown'); }
+
+        function saveDraft(tableName) {
+            if (!tableName) return;
+            const data = {};
+            $('entryForm').querySelectorAll('input, textarea, select').forEach(i => data[i.name] = i.value);
+            localStorage.setItem(draftStorageKey(tableName), JSON.stringify({ savedAt: new Date().toISOString(), data }));
+            renderDraftsList();
+            toastSmall('Draft saved locally');
+        }
+
+        function loadDraft(tableName) {
+            const k = draftStorageKey(tableName);
+            const raw = localStorage.getItem(k);
+            if (!raw) return;
+            try {
+                const parsed = JSON.parse(raw);
+                const d = parsed.data || {};
+                $('entryForm').querySelectorAll('input, textarea, select').forEach(i => { if (d.hasOwnProperty(i.name)) i.value = d[i.name]; });
+                toastSmall('Draft loaded');
+            } catch (e) { console.error('draft parse', e); }
+        }
+
+        function clearDraft() {
+            if (!currentDefinition) return;
+            const k = draftStorageKey(currentDefinition.table_name);
+            localStorage.removeItem(k);
+            renderDraftsList();
+            toastSmall('Draft cleared');
+        }
+
+        function renderDraftsList() {
+            const el = $('draftsList'); el.innerHTML = '';
+            const keys = Object.keys(localStorage).filter(k => k.startsWith(draftKeyPrefix));
+            if (!keys.length) { el.innerHTML = '<div class="text-muted">No drafts</div>'; return; }
+            keys.forEach(k => {
+                try {
+                    const raw = JSON.parse(localStorage.getItem(k));
+                    const name = k.replace(draftKeyPrefix, '');
+                    const item = el('button', { type: 'button', class: 'list-group-item list-group-item-action' }, [ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
+                    item.addEventListener('click', () => { selectDefinition(name); loadDraft(name); });
+                    el.appendChild(item);
+                } catch (e) { console.warn('bad draft', e); }
+            });
+        }
+
+        function toastSmall(msg){
+            const div = document.createElement('div');
+            div.className = 'alert alert-secondary';
+            div.style.position = 'fixed'; div.style.right = '20px'; div.style.bottom = '20px'; div.style.zIndex = 9999;
+            div.textContent = msg; document.body.appendChild(div);
+            setTimeout(()=> div.remove(), 1600);
+        }
+
+        async function saveEntry() {
+            if (!currentDefinition) { toast('कृपया कोई फॉर्म चुनें'); return; }
+            const payload = {};
+            $('entryForm').querySelectorAll('input, textarea, select').forEach(i => payload[i.name] = i.value === '' ? null : i.value);
+
+            if (currentUser && currentUser.districtId) {
+                const hasDistrictCol = (currentDefinition.fields || []).some(f => sanitizeForInputName(f.name) === 'district_id' || f.name === 'district_id');
+                if (hasDistrictCol) payload['district_id'] = currentUser.districtId;
+            }
+
+            saveDraft(currentDefinition.table_name);
+
+            try {
+                const { data, error } = await supabase.from(currentDefinition.table_name).insert([payload]);
+                console.log('insert response', { data, error });
+                if (error) throw error;
+                localStorage.removeItem(draftStorageKey(currentDefinition.table_name));
+                renderDraftsList();
+                toast('Record saved successfully');
+                $('entryForm').querySelectorAll('input, textarea, select').forEach(i => i.value = '');
+            } catch (err) {
+                console.error('saveEntry error', err);
+                toast('Save failed. Check console for details.');
+            }
+        }
+    </script>
 </body>
 </html>
