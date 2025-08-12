@@ -6,33 +6,15 @@
     <title>Excel to Supabase Data Entry Portal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f8f9fa;
-        }
-        .header-bg {
-            background-color: #007bff;
-            color: white;
-        }
-        .container-main {
-            padding-top: 2rem;
-            padding-bottom: 2rem;
-        }
-        .card {
-            border-radius: 1rem;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .form-section {
-            display: none;
-        }
-        .loading-spinner {
-            display: none;
-        }
-        .form-row {
-            margin-bottom: 1rem;
-        }
-        .save-btn-container {
-            margin-top: 1.5rem;
-        }
+        body { background-color: #f8f9fa; }
+        .header-bg { background-color: #007bff; color: white; }
+        .container-main { padding-top: 2rem; padding-bottom: 2rem; }
+        .card { border-radius: 1rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .form-section { display: none; }
+        .loading-spinner { display: none; }
+        .form-row { margin-bottom: 1rem; }
+        .save-btn-container { margin-top: 1.5rem; }
+        .header-list-item { font-family: monospace; font-size: 1.1rem; }
     </style>
 </head>
 <body>
@@ -54,10 +36,10 @@
 
                     <div class="mb-4">
                         <div class="card-header bg-light rounded-top p-3">
-                            <h5 class="mb-0">Step 1: Upload Excel File</h5>
+                            <h5 class="mb-0">Step 1: Upload & Confirm Data Headers</h5>
                         </div>
                         <div class="card-body">
-                            <p>Select your Excel file (.xlsx or .xls) to begin the process.</p>
+                            <p>Select your Excel file (.xlsx or .xls) to begin the process. The first row will be used as your table's column headers.</p>
                             <div class="input-group">
                                 <input type="file" class="form-control" id="excel-file-input" accept=".xlsx, .xls">
                                 <button class="btn btn-primary" type="button" id="process-file-btn">
@@ -70,13 +52,12 @@
 
                     <div id="form-container" class="form-section">
                         <div class="card-header bg-light rounded-top p-3">
-                            <h5 class="mb-0">Step 2: Data Entry Forms</h5>
+                            <h5 class="mb-0">Step 3: Data Entry Forms</h5>
                         </div>
                         <div class="card-body" id="forms-body">
                             <p class="text-muted">Editable forms will be generated here once you successfully create the Supabase table.</p>
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -86,14 +67,14 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="supabaseModalLabel">Step 2: Create Supabase Table</h5>
+                    <h5 class="modal-title" id="supabaseModalLabel">Step 2: Confirm Headers & Create Table</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Below is the SQL script generated to create a new table based on your Excel file's columns. **Review the column names before proceeding.**</p>
-                    <textarea class="form-control" id="script-textarea" rows="10" readonly></textarea>
+                    <p>We've detected the following columns in your Excel file. Please review them before creating the table in Supabase.</p>
+                    <ul class="list-group list-group-flush mb-4" id="header-list"></ul>
                     <div class="alert alert-warning mt-3" role="alert">
-                        <strong>Security Warning:</strong> This operation requires high privileges. For a production environment, it is highly recommended to use a server-side function or an API to handle this securely, not a direct client-side call.
+                        <strong>Security Warning:</strong> For production, it's safer to use a backend API to handle table creation. The method here is for demonstration.
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -115,6 +96,7 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         const supabase = supabase_js.createClient(supabaseUrl, supabaseKey);
 
+        // Global variables to store data after file processing
         let currentTableName = '';
         let currentHeaders = [];
         let currentRows = [];
@@ -127,6 +109,7 @@
         const runScriptBtn = document.getElementById('run-script-btn');
         const formContainer = document.getElementById('form-container');
         const formsBody = document.getElementById('forms-body');
+        const headerList = document.getElementById('header-list');
 
         // Step 1: Process Excel File
         processFileBtn.addEventListener('click', () => {
@@ -136,7 +119,6 @@
                 return;
             }
 
-            // Show loading spinner and disable button
             loadingSpinner.style.display = 'inline-block';
             processFileBtn.disabled = true;
 
@@ -154,14 +136,17 @@
                         return;
                     }
 
+                    // Store headers and rows globally
                     currentHeaders = jsonData[0];
                     currentRows = jsonData.slice(1);
                     currentTableName = `excel_import_${Date.now()}`;
 
-                    const createTableScript = generateCreateTableScript(currentTableName, currentHeaders);
-                    document.getElementById('script-textarea').value = createTableScript;
+                    // Populate the modal with headers
+                    headerList.innerHTML = currentHeaders.map(header => 
+                        `<li class="list-group-item header-list-item">${header}</li>`
+                    ).join('');
 
-                    // Show the Bootstrap modal
+                    // Show the Bootstrap modal for confirmation
                     supabaseModal.show();
                 } catch (error) {
                     console.error('Error processing Excel file:', error);
@@ -174,13 +159,14 @@
             reader.readAsArrayBuffer(file);
         });
 
-        // Step 2: Run Supabase Script
+        // Step 2: Run Supabase Script from Modal
         runScriptBtn.addEventListener('click', async () => {
             runScriptBtn.disabled = true;
             try {
-                // This call requires a custom `execute_sql_script` RPC function in your Supabase DB.
-                const script = document.getElementById('script-textarea').value;
-                const { error } = await supabase.rpc('execute_sql_script', { sql_text: script });
+                const createTableScript = generateCreateTableScript(currentTableName, currentHeaders);
+
+                // This RPC call requires a custom `execute_sql_script` function in Supabase.
+                const { error } = await supabase.rpc('execute_sql_script', { sql_text: createTableScript });
 
                 if (error) throw error;
                 
@@ -210,9 +196,9 @@
             formsBody.innerHTML = ''; // Clear previous forms
 
             rows.forEach((rowData, index) => {
-                const form = document.createElement('div');
-                form.className = 'card mb-3';
-                form.innerHTML = `
+                const formWrapper = document.createElement('div');
+                formWrapper.className = 'card mb-3';
+                formWrapper.innerHTML = `
                     <div class="card-body">
                         <h6 class="card-title text-success">Record #${index + 1}</h6>
                         <form id="data-form-${index}"></form>
@@ -221,7 +207,7 @@
                         </div>
                     </div>
                 `;
-                formsBody.appendChild(form);
+                formsBody.appendChild(formWrapper);
 
                 const formEl = document.getElementById(`data-form-${index}`);
                 headers.forEach((header, colIndex) => {
