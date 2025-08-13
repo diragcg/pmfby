@@ -126,7 +126,7 @@
                 <div class="user-info card-panel">
                     <div>
                         <div style="font-weight:800; font-size:16px;" id="pageTitle">डेटा एंट्री</div>
-                        <div class="muted-box">कृपया नीचे दिए फॉर्म में आवश्यक विवरण भरें और Save पर क्लिक करें।</div>
+                        <div class="muted-box">कृपया बाईं पट्टी से कोई फॉर्म चुनें।</div>
                     </div>
                     <div style="text-align:right;">
                         <div class="muted-box">Logged in as</div>
@@ -274,6 +274,7 @@
         });
 
         async function loadDefinitions() {
+            setLoadingOverlay($('formsList'), true);
             try {
                 const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending: false });
                 if (error) throw error;
@@ -282,6 +283,8 @@
             } catch (err) {
                 console.error('Failed loading definitions', err);
                 showToast('फॉर्म लोड करने में त्रुटि — कंसोल देखें।', 'danger');
+            } finally {
+                setLoadingOverlay($('formsList'), false);
             }
         }
 
@@ -302,7 +305,7 @@
         async function selectDefinition(tableName) {
             Array.from($('formsList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
 
-            setLoadingOverlay($('dataViewerPanel'), true);
+            setLoadingOverlay($('main'), true);
 
             try {
                 const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
@@ -314,7 +317,7 @@
                 console.error('selectDefinition error', err);
                 showToast('Cannot open form. Check console.', 'danger');
             } finally {
-                setLoadingOverlay($('dataViewerPanel'), false);
+                setLoadingOverlay($('main'), false);
             }
         }
 
@@ -349,7 +352,6 @@
                 form.appendChild(wrapper);
             });
             
-            // Populate form if a record is provided
             if (record) {
                 currentDefinition.fields.forEach(field => {
                     const inputName = sanitizeForInputName(field.name);
@@ -363,6 +365,8 @@
             } else {
                 $('btnSave').classList.remove('hidden');
                 $('btnUpdate').classList.add('hidden');
+                $('entryForm').reset();
+                currentRecordId = null;
             }
             
             $('dataEntryPanel').classList.remove('hidden');
@@ -371,6 +375,10 @@
         }
 
         function enterNewData() {
+            if (!currentDefinition) {
+                showToast('Please select a form first.', 'warning');
+                return;
+            }
             renderForm(currentDefinition);
             currentRecordId = null;
         }
@@ -667,7 +675,7 @@
                     const raw = JSON.parse(localStorage.getItem(k));
                     const name = k.replace(draftKeyPrefix, '');
                     const item = el('button', { type: 'button', class: 'list-group-item list-group-item-action' }, [ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
-                    item.addEventListener('click', () => { selectDefinition(name).then(() => loadDraft(name)).catch(()=>{}); });
+                    item.addEventListener('click', () => { selectDefinition(name); loadDraft(name); });
                     elDrafts.appendChild(item);
                 } catch (e) { console.warn('bad draft', e); }
             });
@@ -683,7 +691,6 @@
                 if (hasDistrictCol) payload['district_id'] = currentUser.districtId;
             }
 
-            saveDraft(currentDefinition.table_name);
             setLoadingOverlay($('dataEntryPanel'), true);
 
             try {
