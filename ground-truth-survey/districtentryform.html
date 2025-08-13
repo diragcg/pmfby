@@ -3,15 +3,17 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>District — Data Entry (Single-file Robust)</title>
+  <title>District — Data Entry (Robust Single File)</title>
+  <!-- CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;700;800&display=swap" rel="stylesheet">
+  <!-- Export & Supabase libs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
   <style>
-    :root{--bg:#F8FAFC;--card:#FFFFFF;--pistachio:#e6f4e6;--accent:#1B5E20;--muted:#6b7280;--shadow:0 8px 24px rgba(2,6,23,0.06);--topbar-height:64px}
+    :root{--bg:#F8FAFC;--card:#FFFFFF;--muted:#6b7280;--accent:#1B5E20;--pistachio:#e6f4e6;--shadow:0 8px 24px rgba(2,6,23,0.06);--topbar-height:64px}
     html,body{height:100%} body{font-family:"Mukta",system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);margin:0}
     .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-height);background:var(--accent);color:#fff;display:flex;align-items:center;gap:12px;padding:0 18px;z-index:60}
     .brand{font-weight:700;font-size:18px;margin-left:8px}
@@ -31,6 +33,20 @@
     .compact { padding:6px 10px; height:auto; }
     .inline-help { font-size:12px; color:var(--muted); margin-top:4px; }
     .busy { opacity:0.6; pointer-events:none; }
+    .spinner-ring {
+      width:28px;height:28px;border-radius:50%;border:4px solid rgba(0,0,0,0.08);border-top-color:transparent;box-sizing:border-box;
+      position:relative; display:inline-block; vertical-align:middle;
+    }
+    .spinner-ring::after{
+      content:''; position:absolute; inset:0; border-radius:50%; border:4px solid rgba(0,0,0,0.08); border-top-color:transparent; transform:rotate(0deg);
+    }
+    .spinner-animate { animation: spin 1s linear infinite; border-top-color: currentColor; }
+    @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+    /* status ring colors */
+    .ring-yellow { color: #f59e0b; } /* yellow */
+    .ring-green  { color: #16a34a; } /* green */
+    .action-indicator { display:inline-flex; align-items:center; gap:8px; }
+    .toast-fixed { position:fixed; right:20px; bottom:20px; z-index:1200; }
     .table-wrap { overflow:auto; }
   </style>
 </head>
@@ -47,7 +63,7 @@
     <div class="layout">
       <aside class="sidebar card-panel">
         <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
-          <div id="userBadge" style="background:#e6f4e6;padding:8px 12px;border-radius:8px;font-weight:700;color:var(--accent)">user</div>
+          <div id="userBadge" style="background:var(--pistachio);padding:8px 12px;border-radius:8px;font-weight:700;color:var(--accent)">user</div>
           <div>
             <div id="userRoleLine" style="font-weight:700;color:var(--accent)">Role: user</div>
             <div id="userDistrictLine" class="small-muted">District: -</div>
@@ -55,7 +71,10 @@
         </div>
 Text
     <div style="margin-top:8px;">
-      <div class="small-muted">Available forms</div>
+      <div class="small-muted d-flex justify-content-between align-items-center">
+        <span>Available forms</span>
+        <span id="formsLoadingIndicator" class="action-indicator hidden"><span class="spinner-ring spinner-animate ring-yellow" id="formsLoadRing"></span><small class="small-muted">Loading</small></span>
+      </div>
       <div id="formsList" class="list-group mt-2"></div>
     </div>
 
@@ -88,13 +107,13 @@ Text
       </div>
     </div>
 
-    <!-- Entry panel -->
     <div id="dataEntryPanel" class="form-card hidden">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h5 id="formTitle" class="mb-0"></h5>
-        <div>
-          <label class="me-2">Entry date</label>
+        <div class="d-flex align-items-center gap-2">
+          <label class="mb-0">Entry date</label>
           <input id="filterEntryDate" type="date" class="form-control compact" />
+          <span id="formLoadIndicator" class="action-indicator hidden"><span class="spinner-ring spinner-animate ring-yellow" id="formLoadRing"></span><small class="small-muted">Loading</small></span>
         </div>
       </div>
 
@@ -108,12 +127,14 @@ Text
         <div class="small-muted me-auto" id="formNote">All fields marked * are required.</div>
         <div>
           <button id="btnClearDraft" type="button" class="btn btn-outline-secondary btn-sm">Clear Draft</button>
-          <button id="btnSave" type="button" class="btn btn-success btn-sm">Save</button>
+          <button id="btnSave" type="button" class="btn btn-success btn-sm">
+            <span id="saveIndicator" class="action-indicator hidden"><span class="spinner-ring spinner-animate ring-green" id="saveRing"></span><small class="small-muted">Saving</small></span>
+            <span id="saveLabel">Save</span>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Viewer with filters, raw & aggregated toggle -->
     <div id="dataViewerPanel" class="form-card hidden">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <div class="d-flex gap-2 align-items-center">
@@ -127,7 +148,7 @@ Text
             <option value="week">Group by Week</option>
             <option value="month">Group by Month</option>
           </select>
-          <select id="aggMetric" class="form-control compact ms-2" style="min-width:140px">
+          <select id="aggMetric" class="form-control compact ms-2" style="min-width:160px">
             <option value="">Aggregation (choose numeric)</option>
           </select>
         </div>
@@ -169,6 +190,7 @@ Text
         <div class="modal-body">
           <form id="editForm"></form>
           <div class="mt-2 small-muted">Change will be audited and recorded.</div>
+          <div id="auditList" class="mt-3"></div>
         </div>
         <div class="modal-footer">
           <button id="btnDeleteRecord" class="btn btn-outline-danger me-auto">Delete (soft)</button>
@@ -178,31 +200,34 @@ Text
       </div>
     </div>
   </div>
-  <!-- libs already loaded above -->
+  <!-- Toast container -->
+  <div id="toastContainer" class="toast-fixed"></div>
+  <!-- JS: main -->
   <script>
 /*
-Single-file robust client:
-- Dynamic forms from form_definitions (fields JSON). Requires each form to include an "entry_date" typed column—enforced client-side and expected server-side.
-- Raw records view + Aggregated view (group by day/week/month) with selectable numeric metric to aggregate.
-- Edit modal with audit retrieval (reads audit_logs for the record).
-- Soft-delete, restore expected via deleted_at server-side; client uses delete action.
-- Exports: .xlsx and paginated PDF (A4) for current filters (raw or aggregated).
-- Drafts (localStorage), autosave (debounced), offline queue for inserts.
-- Inline validation, disable save while in-flight, last-saved draft indicator.
-IMPORTANT: Replace SUPABASE_ANON_KEY with your anon key. Do NOT put service role key here.
+Robust single-file client.
+Replace SUPABASE_ANON_KEY with your anon key.
+Key features:
+- Dynamic forms from form_definitions table
+- Loading rings: yellow when loading form/list, green when saving
+- Drafts autosave, offline queue, pagination, aggregated view, edit modal, soft-delete, exports
+- Defensive checks and safe caps to avoid OOM
+
+If UI unresponsive: open DevTools Console for errors and ensure anon key + table 'form_definitions' exist.
 */
 
-const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co'; // replace
-const SUPABASE_ANON_KEY = 'REPLACE_WITH_ANON_KEY'; // replace
+const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co'; // replace with yours
+const SUPABASE_ANON_KEY = 'REPLACE_WITH_ANON_KEY';                 // <-- MUST replace
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const \$ = id => document.getElementById(id);
-function el(tag, attrs={}, children=[]) { const e = document.createElement(tag); for (const k in attrs) { if(k==='class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } children.forEach(c => typeof c==='string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c)); return e; }
-function toast(msg){ alert(msg); }
-function shortToast(msg){ const d = el('div',{class:'alert alert-secondary'}); d.style.position='fixed'; d.style.right='20px'; d.style.bottom='20px'; d.style.zIndex=9999; d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),1600); }
+function el(tag, attrs={}, children=[]){ const e = document.createElement(tag); for(const k in attrs){ if(k==='class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } children.forEach(c => typeof c==='string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c)); return e; }
+function toast(msg, timeout=2200){ const c = \$('toastContainer'); const d = el('div',{class:'alert alert-secondary'},[msg]); c.appendChild(d); setTimeout(()=> d.remove(), timeout); }
+function shortToast(msg){ toast(msg,1600); }
 
 function sanitizeName(s){ return String(s||'').replace(/[^a-zA-Z0-9_]/g,'_'); }
 
+// state
 let currentUser = null;
 let definitions = [];
 let currentDefinition = null;
@@ -210,16 +235,30 @@ let currentPage = 1, recordsPerPage = 20, totalRecords = 0;
 const draftPrefix = 'draft::';
 const queueKey = 'queue::';
 let autosaveTimer = null;
-const AUTOSAVE_MS = 5000;
+const AUTOSAVE_MS = 4000;
+let editingRecord = null;
 
-// init user (demo/local) — integrate with real auth as needed
-function getCurrentUser() {
+// UI indicators helpers
+function showFormsLoading(show){
+  if(show) $('formsLoadingIndicator').classList.remove('hidden'); else $('formsLoadingIndicator').classList.add('hidden');
+}
+function showFormLoadRing(show){
+  if(show) $('formLoadIndicator').classList.remove('hidden'); else $('formLoadIndicator').classList.add('hidden');
+}
+function showSaveIndicator(show){
+  if(show){ $('saveIndicator').classList.remove('hidden'); $('saveLabel').classList.add('hidden'); } else { $('saveIndicator').classList.add('hidden'); $('saveLabel').classList.remove('hidden'); }
+}
+function setBusy(flag){ document.body.classList.toggle('busy', !!flag); }
+
+// initialization
+function getCurrentUser(){
   const s = localStorage.getItem('user') || sessionStorage.getItem('user');
-  if (s) return JSON.parse(s);
+  if(s) return JSON.parse(s);
   return { id: null, username: 'test_district', fullName: 'test_district', role: 'user', districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99' };
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // wire buttons
   currentUser = getCurrentUser();
   \$('userBadge').textContent = currentUser.fullName || currentUser.username;
   \$('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
@@ -236,31 +275,34 @@ document.addEventListener('DOMContentLoaded', async () => {
   \$('btnExport').addEventListener('click', exportData);
   \$('btnExportPDF').addEventListener('click', exportPDF);
   \$('btnRefreshData').addEventListener('click', refreshViewer);
-
   \$('btnClearAllDrafts').addEventListener('click', ()=>{ if(confirm('Clear all local drafts?')) { Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix)).forEach(k=>localStorage.removeItem(k)); renderDraftsList(); } });
 
-  // edit modal buttons
+  // modal buttons
   document.getElementById('btnSaveEdit').addEventListener('click', saveEdit);
   document.getElementById('btnDeleteRecord').addEventListener('click', softDeleteCurrentRecord);
 
-  window.addEventListener('online', ()=>{ shortToast('Back online — syncing queue'); processQueue(); });
+  window.addEventListener('online', ()=>{ shortToast('Back online — syncing'); processQueue(); });
   window.addEventListener('offline', ()=> shortToast('Offline — entries will be queued'));
 
+  // load forms
   await loadDefinitions();
   renderDraftsList();
   processQueue();
 });
 
-// Load form definitions from DB
+// load form definitions
 async function loadDefinitions(){
   try{
+    showFormsLoading(true);
     const { data, error } = await supabase.from('form_definitions').select('*').order('created_at',{ascending:false});
-    if (error) throw error;
+    showFormsLoading(false);
+    if(error) throw error;
     definitions = data || [];
     renderFormsList();
-  } catch (e) {
+  }catch(e){
+    showFormsLoading(false);
     console.error('loadDefinitions', e);
-    toast('फ़ॉर्म लोड करने में समस्या।');
+    toast('फॉर्म लोड करने में समस्या (कंसोल देखें)');
   }
 }
 
@@ -269,46 +311,48 @@ function renderFormsList(){
   if(!definitions.length){ list.innerHTML = '<div class="text-muted">No forms available</div>'; return; }
   definitions.forEach(def=>{
     const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[def.label || def.table_name]);
-    btn.addEventListener('click', ()=>selectDefinition(def.table_name));
+    btn.addEventListener('click', ()=> selectDefinition(def.table_name));
     list.appendChild(btn);
   });
 }
 
 async function selectDefinition(tableName){
-  Array.from(\$('formsList').children).forEach(ch=>ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
+  Array.from(\$('formsList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
   try{
+    showFormLoadRing(true);
     const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
-    if (error) throw error;
+    showFormLoadRing(false);
+    if(error) throw error;
     currentDefinition = data;
-    // ensure canonical entry_date exists in metadata or warn
-    if(!(currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'entry_date' || f.name === 'entry_date')) {
-      shortToast('Warning: form_definitions should include entry_date field (date) for period reporting.');
+    if(!(currentDefinition.fields||[]).some(f=> sanitizeName(f.name) === 'entry_date' || f.name === 'entry_date')){
+      shortToast('Warning: form should include entry_date for period reporting.');
     }
     renderForm(currentDefinition);
     loadDraft(currentDefinition.table_name);
     showDataEntry();
-  } catch(e){ console.error('selectDefinition', e); toast('Cannot open form'); }
+  }catch(e){
+    showFormLoadRing(false);
+    console.error('selectDefinition', e);
+    toast('Cannot open form. Check console.');
+  }
 }
 
-// Render form inputs dynamically
 function renderForm(def){
   \$('formTitle').textContent = def.label || def.table_name;
   const form = \$('entryForm'); form.innerHTML = '';
-  (def.fields || []).forEach(field=>{
+  (def.fields||[]).forEach(field=>{
     const name = sanitizeName(field.name || field.key || field.id || field.label);
     const wrapper = el('div',{class:'form-section'});
-    const label = el('label',{class: field.required ? 'required' : ''},[field.label || field.name || name]);
+    const label = el('label', { class: field.required ? 'required' : ''}, [ field.label || field.name || name ]);
     let input;
     const type = (field.type || 'text').toLowerCase();
-    if(type==='date') input = el('input',{class:'form-control',type:'date',name});
-    else if(type==='number') input = el('input',{class:'form-control',type:'number',name,step:'any'});
-    else if(field.options && Array.isArray(field.options)) {
+    if(type === 'date') input = el('input',{class:'form-control',type:'date',name});
+    else if(type === 'number') input = el('input',{class:'form-control',type:'number',name,step:'any'});
+    else if(field.options && Array.isArray(field.options)){
       input = el('select',{class:'form-control',name});
       input.appendChild(el('option',{value:''},['-- select --']));
       field.options.forEach(o => input.appendChild(el('option',{value:o.value},[o.label])));
-    } else {
-      input = el('input',{class:'form-control',type:'text',name});
-    }
+    } else input = el('input',{class:'form-control',type:'text',name});
     if(field.placeholder) input.placeholder = field.placeholder;
     input.addEventListener('input', scheduleAutosave);
     wrapper.appendChild(label);
@@ -317,150 +361,145 @@ function renderForm(def){
     form.appendChild(wrapper);
   });
 
-  // populate aggregation metric selector with numeric fields
+  // aggregation metric options
   const agg = \$('aggMetric'); agg.innerHTML = '<option value="">Aggregation (choose numeric)</option>';
   (def.fields||[]).forEach(f => { if((f.type||'').toLowerCase()==='number') agg.appendChild(el('option',{value:sanitizeName(f.name)},[f.label||f.name])); });
 
-  \$('filterEntryDate').value = new Date().toISOString().slice(0,10); // default entry date to today
+  // default entry date = today
+  \$('filterEntryDate').value = new Date().toISOString().slice(0,10);
   \$('dataEntryPanel').classList.remove('hidden');
   \$('noForm').classList.add('hidden');
 }
 
-// Show entry panel
+// show panels
 function showDataEntry(){ $('dataEntryPanel').classList.remove('hidden'); $('dataViewerPanel').classList.add('hidden'); \$('noForm').classList.add('hidden'); }
+async function showDataViewer(){ if(!currentDefinition){ toast('Please select a form first.'); return; } $('dataEntryPanel').classList.add('hidden'); $('dataViewerPanel').classList.remove('hidden'); \$('noForm').classList.add('hidden'); await refreshViewer(); }
+async function refreshViewer(){ if(!currentDefinition) return; currentPage = 1; await fetchAndRenderTableData(currentDefinition.table_name, currentPage); }
 
-// Viewer
-async function showDataViewer(){ if(!currentDefinition){ toast('Select a form first'); return; } $('dataEntryPanel').classList.add('hidden'); $('dataViewerPanel').classList.remove('hidden'); \$('noForm').classList.add('hidden'); await refreshViewer(); }
-
-async function refreshViewer(){
-  if(!currentDefinition) return;
-  currentPage = 1;
-  await fetchAndRenderTableData(currentDefinition.table_name, currentPage);
-}
-
-// Fetch rows with date-range & grouping support
+// fetch and render (raw or aggregated)
 async function fetchAndRenderTableData(tableName, page=1){
   currentPage = page;
-  const from = \$('filterFrom').value;
-  const to = \$('filterTo').value;
+  const fromDate = \$('filterFrom').value;
+  const toDate = \$('filterTo').value;
   const groupBy = \$('groupBy').value;
   const aggField = \$('aggMetric').value;
 
-  // raw records
   if(groupBy === 'none'){
+    // raw records with server-side pagination
     const start = (currentPage - 1) * recordsPerPage;
     const end = start + recordsPerPage - 1;
     try{
-      // build base query with date filter and soft-delete excluded
       let query = supabase.from(tableName).select('*', { count: 'exact' }).range(start, end);
-      if(from) query = query.gte('entry_date', from);
-      if(to) query = query.lte('entry_date', to);
-      // filter by district if form has district_id and user has district
+      if(fromDate) query = query.gte('entry_date', fromDate);
+      if(toDate) query = query.lte('entry_date', toDate);
+      // soft-delete handling assumed deleted_at column
+      query = query.is('deleted_at', null);
+      // district filter if applicable
       if(currentUser && currentUser.districtId) {
         const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
         if(hasDistrict) query = query.eq('district_id', currentUser.districtId);
       }
-      // exclude soft deleted by default (assumes deleted_at column)
-      query = query.is('deleted_at', null);
       const { data, count, error } = await query;
       if(error) throw error;
       totalRecords = count || 0;
       renderDataTable(data || []);
       renderPagination();
-    }catch(e){ console.error('fetch raw', e); toast('Failed to fetch records'); }
-  } else {
-    // aggregated view: use Postgres RPC via supabase.sql() is not available on anon; use stored view/back-end ideally.
-    // We'll fetch raw range (bounded) and aggregate client-side for safety (works for moderate volumes).
-    try{
-      // fetch all rows in date range (with cap to avoid OOM)
-      const pageSize = 5000;
-      let all = [], offset = 0;
-      while(true){
-        const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize - 1).is('deleted_at', null);
-        if(error) throw error;
-        if(!data || data.length===0) break;
-        // apply date/district filters client-side
-        all = all.concat(data);
-        if(data.length < pageSize) break;
-        offset += pageSize;
-        if(all.length > 20000) break; // safety cap
+    }catch(e){
+      console.error('fetch raw', e);
+      toast('Failed to fetch records. See console.');
+    }
+    return;
+  }
+
+  // aggregated view - fetch bounded dataset then aggregate client-side (safe caps)
+  try{
+    const pageSize = 2000; let offset = 0; let all = [];
+    while(true){
+      const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize - 1).is('deleted_at', null);
+      if(error) throw error;
+      if(!data || data.length === 0) break;
+      all = all.concat(data);
+      if(data.length < pageSize) break;
+      offset += pageSize;
+      if(all.length > 30000) break; // safety cap
+    }
+    // apply filters client-side
+    let filtered = all;
+    if(fromDate) filtered = filtered.filter(r => r.entry_date && r.entry_date >= fromDate);
+    if(toDate) filtered = filtered.filter(r => r.entry_date && r.entry_date <= toDate);
+    if(currentUser && currentUser.districtId){
+      const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
+      if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
+    }
+
+    // group
+    const grouped = {};
+    filtered.forEach(r=>{
+      const d = r.entry_date ? new Date(r.entry_date) : (r.created_at ? new Date(r.created_at) : null);
+      if(!d || isNaN(d)) return;
+      let key;
+      if(groupBy === 'day') key = d.toISOString().slice(0,10);
+      else if(groupBy === 'week'){ // week start Mon
+        const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        const day = tmp.getUTCDay() || 7;
+        tmp.setUTCDate(tmp.getUTCDate() - day + 1);
+        key = tmp.toISOString().slice(0,10);
+      } else if(groupBy === 'month') key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      else key = d.toISOString().slice(0,10);
+      if(!grouped[key]) grouped[key] = [];
+      grouped[key].push(r);
+    });
+
+    const rows = Object.keys(grouped).sort((a,b)=> b.localeCompare(a)).map(period=>{
+      const items = grouped[period];
+      const row = { period, count: items.length };
+      if(aggField){
+        const nums = items.map(i => Number(i[aggField]) || 0);
+        row.sum = nums.reduce((s,n)=>s+n,0);
+        row.avg = nums.length ? (row.sum / nums.length) : 0;
       }
-      // filter by date and district
-      let filtered = all;
-      if(from) filtered = filtered.filter(r => r.entry_date && r.entry_date >= from);
-      if(to) filtered = filtered.filter(r => r.entry_date && r.entry_date <= to);
-      if(currentUser && currentUser.districtId) {
-        const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
-        if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
-      }
-      // group by period
-      const grouped = {};
-      filtered.forEach(r => {
-        const d = r.entry_date ? new Date(r.entry_date) : new Date(r.created_at || null);
-        if(!d || isNaN(d)) return;
-        let key;
-        if(groupBy==='day') key = d.toISOString().slice(0,10);
-        else if(groupBy==='week'){ // ISO week start (Mon)
-          const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-          const day = tmp.getUTCDay() || 7;
-          tmp.setUTCDate(tmp.getUTCDate() - day + 1);
-          key = tmp.toISOString().slice(0,10);
-        } else if(groupBy==='month') key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-        else key = d.toISOString().slice(0,10);
-        if(!grouped[key]) grouped[key] = [];
-        grouped[key].push(r);
-      });
-      // build rows
-      const rows = Object.keys(grouped).sort((a,b)=> b.localeCompare(a)).map(period=>{
-        const items = grouped[period];
-        const row = { period, count: items.length };
-        if(aggField){
-          const nums = items.map(i => Number(i[aggField])||0);
-          row.sum = nums.reduce((s,n)=>s+n,0);
-          row.avg = nums.length ? (row.sum / nums.length) : 0;
-        }
-        return row;
-      });
-      renderAggregatedTable(rows, aggField);
-      totalRecords = rows.length;
-      renderPagination(true); // grouped view
-    }catch(e){ console.error('aggregate', e); toast('Failed to compute aggregation'); }
+      return row;
+    });
+
+    renderAggregatedTable(rows, aggField);
+    totalRecords = rows.length;
+    renderPagination(true); // aggregated
+  }catch(e){
+    console.error('aggregate', e);
+    toast('Failed to compute aggregation. See console.');
   }
 }
 
-// Render aggregated table
 function renderAggregatedTable(rows, aggField){
   const headers = $('dataTableHeaders'), body = $('dataTableBody'); headers.innerHTML=''; body.innerHTML='';
-  if(!rows || rows.length===0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No aggregated data</td></tr>'; return; }
+  if(!rows || rows.length === 0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No aggregated data</td></tr>'; return; }
   const headerCells = ['Period','Count'];
   if(aggField) headerCells.push('Sum','Avg');
-  headers.appendChild(el('tr',{}, headerCells.map(h => el('th',{scope:'col'},[h]))));
+  headers.appendChild(el('tr', {}, headerCells.map(h => el('th',{scope:'col'},[h]))));
   rows.forEach(r=>{
-    const tr = el('tr',{}, [
-      el('td',{},[r.period]),
-      el('td',{},[String(r.count)]),
-      ...(aggField ? [el('td',{},[String(r.sum)]), el('td',{},[String(Number(r.avg).toFixed(2))])] : [])
+    const tr = el('tr', {}, [
+      el('td', {}, [r.period]),
+      el('td', {}, [String(r.count)]),
+      ...(aggField ? [el('td', {}, [String(r.sum)]), el('td', {}, [String(Number(r.avg).toFixed(2))])] : [])
     ]);
     body.appendChild(tr);
   });
 }
 
-// Render raw table
 function renderDataTable(data){
   const headers = $('dataTableHeaders'), body = $('dataTableBody'); headers.innerHTML=''; body.innerHTML='';
-  if(!data || data.length===0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No records found.</td></tr>'; return; }
-  // normalize keys and order: id, entry_date, ... others
+  if(!data || data.length === 0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No records found.</td></tr>'; return; }
   const keys = Object.keys(data[0]);
-  const headerRow = el('tr',{}, keys.map(k => el('th',{scope:'col'},[k])));
-  headerRow.appendChild(el('th',{},['Actions']));
+  const headerRow = el('tr', {}, keys.map(k => el('th',{scope:'col'},[k])));
+  headerRow.appendChild(el('th', {}, ['Actions']));
   headers.appendChild(headerRow);
   data.forEach(row=>{
-    const tr = el('tr',{}, keys.map(k=>{
+    const tr = el('tr', {}, keys.map(k=>{
       let v = row[k] != null && row[k] !== undefined ? row[k] : '';
       if(typeof v === 'object') v = JSON.stringify(v);
-      return el('td',{},[String(v)]);
+      return el('td', {}, [String(v)]);
     }));
-    const actions = el('td',{},[]);
+    const actions = el('td', {}, []);
     const btnEdit = el('button',{class:'btn btn-sm btn-outline-primary me-1'},['Edit']);
     btnEdit.addEventListener('click', ()=> openEditModal(row));
     const btnAudit = el('button',{class:'btn btn-sm btn-outline-secondary me-1'},['History']);
@@ -473,53 +512,65 @@ function renderDataTable(data){
   });
 }
 
-// Pagination (raw or grouped)
-function renderPagination(grouped=false){
-  const paginationEl = \$('pagination'); paginationEl.innerHTML='';
-  const totalPages = grouped ? Math.max(1, Math.ceil(totalRecords / recordsPerPage)) : Math.max(1, Math.ceil(totalRecords / recordsPerPage));
+function renderPagination(isGrouped=false){
+  const paginationEl = \$('pagination'); paginationEl.innerHTML = '';
+  const totalPages = Math.max(1, Math.ceil(totalRecords / recordsPerPage));
   const createItem = (text, page, disabled) => {
-    const li = el('li',{class:`page-item ${disabled? 'disabled':''} ${page===currentPage? 'active':''}`});
-    const a = el('a',{class:'page-link',href:'#','data-page':page},[text]);
-    a.addEventListener('click', (e)=>{ e.preventDefault(); if(!disabled) fetchAndRenderTableData(currentDefinition.table_name, page); });
+    const li = el('li', { class: `page-item ${disabled ? 'disabled' : ''} ${page === currentPage ? 'active' : ''}` });
+    const a = el('a', { class: 'page-link', href:'#', 'data-page': page }, [text]);
+    a.addEventListener('click', (e) => { e.preventDefault(); if(!disabled) fetchAndRenderTableData(currentDefinition.table_name, page); });
     li.appendChild(a); return li;
   };
-  paginationEl.appendChild(createItem('Previous', Math.max(1, currentPage-1), currentPage===1));
-  const maxVisible = 7;
-  let start = Math.max(1, currentPage - Math.floor(maxVisible/2));
-  let end = Math.min(totalPages, start + maxVisible -1);
-  if(end - start < maxVisible -1) start = Math.max(1, end - maxVisible +1);
-  if(start>1){ paginationEl.appendChild(createItem('1',1,false)); if(start>2) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); }
-  for(let i=start;i<=end;i++) paginationEl.appendChild(createItem(i,i,false));
-  if(end<totalPages){ if(end<totalPages-1) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); paginationEl.appendChild(createItem(totalPages,totalPages,false)); }
-  paginationEl.appendChild(createItem('Next', Math.min(totalPages, currentPage+1), currentPage===totalPages));
+  paginationEl.appendChild(createItem('Previous', Math.max(1, currentPage - 1), currentPage === 1));
+  const maxVisible = 7; let start = Math.max(1, currentPage - Math.floor(maxVisible / 2)); let end = Math.min(totalPages, start + maxVisible - 1);
+  if(end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
+  if(start > 1){ paginationEl.appendChild(createItem('1', 1, false)); if(start > 2) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); }
+  for(let i = start; i <= end; i++) paginationEl.appendChild(createItem(i, i, false));
+  if(end < totalPages){ if(end < totalPages - 1) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); paginationEl.appendChild(createItem(totalPages, totalPages, false)); }
+  paginationEl.appendChild(createItem('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
 }
 
-// --- EXPORTS ---
+// --- Exports ---
+async function fetchAllFilteredRows(tableName){
+  const from = $('filterFrom').value; const to = $('filterTo').value;
+  const pageSize = 1000; let all = []; let offset = 0;
+  while(true){
+    const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize - 1).is('deleted_at', null);
+    if(error) throw error;
+    if(!data || data.length === 0) break;
+    all = all.concat(data);
+    if(data.length < pageSize) break;
+    offset += pageSize;
+    if(all.length > 50000) break;
+  }
+  let filtered = all;
+  if(from) filtered = filtered.filter(r => r.entry_date && r.entry_date >= from);
+  if(to) filtered = filtered.filter(r => r.entry_date && r.entry_date <= to);
+  if(currentUser && currentUser.districtId){
+    const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
+    if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
+  }
+  return filtered;
+}
+
 async function exportData(){
   if(!currentDefinition){ alert('Select a form'); return; }
-  // export based on current filters and group mode
   const groupBy = \$('groupBy').value;
   if(groupBy === 'none'){
-    // export raw filtered rows
     const rows = await fetchAllFilteredRows(currentDefinition.table_name);
     if(!rows || !rows.length){ alert('No records'); return; }
-    const normalized = rows.map(r=> normalizeRow(r));
+    const normalized = rows.map(r => normalizeRow(r));
     const ws = XLSX.utils.json_to_sheet(normalized);
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
     XLSX.writeFile(wb, `${currentDefinition.table_name}_data.xlsx`);
   } else {
-    // aggregated export: reuse aggregate logic
-    await fetchAndRenderTableData(currentDefinition.table_name, 1);
-    // convert current table to array and export
-    const tbl = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr=>{
-      return Array.from(tr.querySelectorAll('td')).map(td=>td.textContent.trim());
-    });
-    if(!tbl.length){ alert('No data'); return; }
-    // build headers from thead
-    const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h=>h.textContent.trim());
-    const arr = tbl.map(r => {
-      const obj = {};
-      headers.forEach((h,i)=> obj[h] = r[i] || '');
+    await fetchAndRenderTableData(currentDefinition.table_name, 1); // populates aggregated table
+    // convert DOM table to JSON for export
+    const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h => h.textContent.trim());
+    const rows = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()));
+    if(!rows.length){ alert('No data'); return; }
+    const arr = rows.map(r => {
+      const obj = {}; headers.forEach((h,i)=> obj[h] = r[i] || '');
       return obj;
     });
     const ws = XLSX.utils.json_to_sheet(arr);
@@ -536,71 +587,30 @@ async function exportPDF(){
     if(!rows || !rows.length){ alert('No records'); return; }
     const headerKeys = Object.keys(rows[0]);
     const body = rows.map(r => headerKeys.map(k => String(normalizeCell(r[k]))));
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-    const pageWidth = doc.internal.pageSize.getWidth(); const margin=12;
-    doc.setFontSize(12); doc.text(currentDefinition.label||currentDefinition.table_name, margin, 16);
-    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth-margin, 16, {align:'right'});
-    doc.autoTable({
-      startY:20,
-      head: [headerKeys],
-      body,
-      styles:{fontSize:8,cellPadding:3},
-      margin:{left:margin,right:margin,top:20,bottom:margin},
-      showHead:'everyPage',
-      didDrawPage: function(data){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pageWidth-margin, doc.internal.pageSize.getHeight()-8,{align:'right'}); }
-    });
+    const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'}); const pw = doc.internal.pageSize.getWidth(); const margin = 12;
+    doc.setFontSize(12); doc.text(currentDefinition.label || currentDefinition.table_name, margin, 16);
+    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pw - margin, 16, { align:'right' });
+    doc.autoTable({ startY:20, head:[headerKeys], body, styles:{fontSize:8,cellPadding:3}, margin:{left:margin,right:margin,top:20,bottom:margin}, showHead:'everyPage', didDrawPage:function(){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pw - margin, doc.internal.pageSize.getHeight()-8, { align:'right' }); }});
     doc.save(`${currentDefinition.table_name}_data.pdf`);
   } else {
     await fetchAndRenderTableData(currentDefinition.table_name,1);
-    // convert table DOM to arrays and export similar to aggregated excel
     const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h=>h.textContent.trim());
-    const rows = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td=>td.textContent.trim()));
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-    const pageWidth = doc.internal.pageSize.getWidth(); const margin=12;
-    doc.setFontSize(12); doc.text(currentDefinition.label||currentDefinition.table_name, margin, 16);
-    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth-margin, 16, {align:'right'});
-    doc.autoTable({ startY:20, head:[headers], body:rows, styles:{fontSize:8,cellPadding:3}, margin:{left:margin,right:margin,top:20,bottom:margin}, showHead:'everyPage', didDrawPage:function(){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pageWidth-margin, doc.internal.pageSize.getHeight()-8,{align:'right'}); } });
+    const rows = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()));
+    if(!rows.length){ alert('No data'); return; }
+    const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'}); const pw = doc.internal.pageSize.getWidth(); const margin = 12;
+    doc.setFontSize(12); doc.text(currentDefinition.label || currentDefinition.table_name, margin, 16);
+    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pw - margin, 16, { align:'right' });
+    doc.autoTable({ startY:20, head:[headers], body:rows, styles:{fontSize:8,cellPadding:3}, margin:{left:margin,right:margin,top:20,bottom:margin}, showHead:'everyPage', didDrawPage:function(){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pw - margin, doc.internal.pageSize.getHeight()-8, { align:'right' }); }});
     doc.save(`${currentDefinition.table_name}_aggregated.pdf`);
   }
 }
 
 function normalizeRow(r){
-  const out = {};
-  Object.keys(r).forEach(k=>{
-    out[k] = normalizeCell(r[k]);
-  });
-  return out;
+  const out = {}; Object.keys(r).forEach(k=> out[k] = normalizeCell(r[k])); return out;
 }
-function normalizeCell(v){ if(v==null) return ''; if(typeof v==='object') return JSON.stringify(v); return v; }
+function normalizeCell(v){ if(v==null) return ''; if(typeof v === 'object') return JSON.stringify(v); return v; }
 
-// helper: fetch all rows matching filters (capped)
-async function fetchAllFilteredRows(tableName){
-  const from = $('filterFrom').value; const to = $('filterTo').value;
-  const pageSize = 1000;
-  let all = [], offset = 0;
-  while(true){
-    const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize -1).is('deleted_at', null);
-    if(error) throw error;
-    if(!data || data.length===0) break;
-    all = all.concat(data);
-    if(data.length < pageSize) break;
-    offset += pageSize;
-    if(all.length > 50000) break; // safety cap
-  }
-  // client-side filter by date/district
-  let filtered = all;
-  if(from) filtered = filtered.filter(r => r.entry_date && r.entry_date >= from);
-  if(to) filtered = filtered.filter(r => r.entry_date && r.entry_date <= to);
-  if(currentUser && currentUser.districtId) {
-    const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name||f.key) === 'district_id' || f.name === 'district_id');
-    if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
-  }
-  return filtered;
-}
-
-// --- DRAFTS & AUTOSAVE ---
+// --- Drafts & autosave ---
 function draftKey(table){ return draftPrefix + table; }
 function saveDraft(table){
   if(!table) return;
@@ -614,37 +624,17 @@ function loadDraft(table){
   const raw = localStorage.getItem(draftKey(table)); if(!raw) return;
   try{
     const parsed = JSON.parse(raw); const d = parsed.data || {};
-    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=> { if(d.hasOwnProperty(i.name)) i.value = d[i.name]; });
+    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i => { if(d.hasOwnProperty(i.name)) i.value = d[i.name]; });
     \$('draftStatus').textContent = `Draft loaded (${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : ''})`;
   }catch(e){ console.error('loadDraft', e); }
 }
-function clearDraft(){
-  if(!currentDefinition) return;
-  localStorage.removeItem(draftKey(currentDefinition.table_name));
-  renderDraftsList();
-  shortToast('Draft cleared');
-}
-function renderDraftsList(){
-  const el = \$('draftsList'); el.innerHTML = '';
-  const keys = Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix));
-  if(!keys.length){ el.innerHTML = '<div class="text-muted">No drafts</div>'; return; }
-  keys.forEach(k=>{
-    try{
-      const raw = JSON.parse(localStorage.getItem(k)); const name = k.replace(draftPrefix,'');
-      const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
-      btn.addEventListener('click', ()=>{ selectDefinition(name).then(()=>loadDraft(name)).catch(()=>{}); });
-      el.appendChild(btn);
-    }catch(e){ console.warn(e); }
-  });
-}
+function clearDraft(){ if(!currentDefinition) return; localStorage.removeItem(draftKey(currentDefinition.table_name)); renderDraftsList(); shortToast('Draft cleared'); }
+function renderDraftsList(){ const el = \$('draftsList'); el.innerHTML = ''; const keys = Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix)); if(!keys.length){ el.innerHTML = '<div class="text-muted">No drafts</div>'; return; } keys.forEach(k=>{ try{ const raw = JSON.parse(localStorage.getItem(k)); const name = k.replace(draftPrefix,''); const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]); btn.addEventListener('click', ()=>{ selectDefinition(name).then(()=>loadDraft(name)).catch(()=>{}); }); el.appendChild(btn); }catch(e){ console.warn(e); } }); }
 function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer = setTimeout(()=> { if(currentDefinition) saveDraft(currentDefinition.table_name); }, AUTOSAVE_MS); }
 
-// --- Offline queue for inserts ---
+// --- Offline queue ---
 function enqueueInsert(table, data){
-  const raw = localStorage.getItem(queueKey) || '[]'; const arr = JSON.parse(raw);
-  arr.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2,8), table, data, createdAt: new Date().toISOString() });
-  localStorage.setItem(queueKey, JSON.stringify(arr));
-  shortToast('Saved to offline queue');
+  const raw = localStorage.getItem(queueKey) || '[]'; const arr = JSON.parse(raw); arr.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2,8), table, data, createdAt: new Date().toISOString() }); localStorage.setItem(queueKey, JSON.stringify(arr)); shortToast('Saved to offline queue');
 }
 async function processQueue(){
   if(!navigator.onLine) return;
@@ -662,33 +652,30 @@ async function processQueue(){
   localStorage.setItem(queueKey, JSON.stringify(remaining));
 }
 
-// --- SAVE ENTRY (validation + duplicate check + offline) ---
+// --- Save entry (with green ring on submit) ---
 async function saveEntry(){
   if(!currentDefinition){ toast('Select a form'); return; }
-  // collect
-  const payload = {}; let valid = true; const errors = [];
+  const payload = {}; let valid = true; const errs = [];
   \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=>{
-    const name = i.name; const fd = (currentDefinition.fields||[]).find(f=> sanitizeName(f.name||f.key) === name || (f.name===name));
+    const name = i.name; const fd = (currentDefinition.fields||[]).find(f=> sanitizeName(f.name||f.key) === name || f.name === name);
     const raw = i.value === '' ? null : i.value;
-    if(fd && fd.required && (raw === null || raw === '')) { valid = false; errors.push((fd.label||fd.name)+' required'); }
-    if(fd && (fd.type||'').toLowerCase() === 'number' && raw!=null && raw!=='' && isNaN(Number(raw))) { valid=false; errors.push((fd.label||fd.name)+' must be number'); }
+    if(fd && fd.required && (raw === null || raw === '')){ valid = false; errs.push((fd.label||fd.name)+' is required'); }
+    if(fd && (fd.type||'').toLowerCase() === 'number' && raw!=null && raw!=='' && isNaN(Number(raw))){ valid=false; errs.push((fd.label||fd.name)+' must be a number'); }
     payload[name] = raw;
   });
-  // ensure entry_date present (canonical)
+  // ensure entry_date
   if(!payload.entry_date) payload.entry_date = \$('filterEntryDate').value || new Date().toISOString().slice(0,10);
-  if(!payload.entry_date){ valid=false; errors.push('entry_date missing'); }
-  if(!valid){ alert('Validation: '+errors.join(', ')); return; }
+  if(!payload.entry_date){ valid=false; errs.push('entry_date missing'); }
+  if(!valid){ alert('Validation: '+errs.join(', ')); return; }
 
-  // attach district if form has district_id
-  if(currentUser && currentUser.districtId) {
-    const hasDistrict = (currentDefinition.fields||[]).some(f=> sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
+  // district & audit
+  if(currentUser && currentUser.districtId){
+    const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
     if(hasDistrict) payload.district_id = currentUser.districtId;
   }
-
-  // attach audit field created_by
   if(currentUser && currentUser.id) payload.created_by = currentUser.id;
 
-  // local duplicate check using unique_keys metadata if present
+  // duplicate check if metadata has unique_keys
   if(currentDefinition.unique_keys && Array.isArray(currentDefinition.unique_keys) && currentDefinition.unique_keys.length){
     const where = {};
     currentDefinition.unique_keys.forEach(k => { if(payload[k]) where[k] = payload[k]; });
@@ -703,32 +690,31 @@ async function saveEntry(){
   saveDraft(currentDefinition.table_name);
 
   // offline handling
-  if(!navigator.onLine){
-    enqueueInsert(currentDefinition.table_name, payload);
-    return;
-  }
+  if(!navigator.onLine){ enqueueInsert(currentDefinition.table_name, payload); return; }
 
-  // submit
+  // show green ring while saving
+  showSaveIndicator(true);
+  setBusy(true);
   try{
-    setBusy(true);
     const { data, error } = await supabase.from(currentDefinition.table_name).insert([payload]).select();
+    showSaveIndicator(false);
+    setBusy(false);
     if(error) throw error;
     localStorage.removeItem(draftKey(currentDefinition.table_name));
     renderDraftsList();
     shortToast('Record saved');
-    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=>i.value='');
+    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=> i.value = '');
     await refreshViewer();
-  }catch(e){ console.error('saveEntry', e); enqueueInsert(currentDefinition.table_name, payload); toast('Save failed — queued for retry'); }
-  finally{ setBusy(false); }
+  }catch(e){
+    showSaveIndicator(false);
+    setBusy(false);
+    console.error('saveEntry', e);
+    enqueueInsert(currentDefinition.table_name, payload);
+    toast('Save failed — queued for retry.');
+  }
 }
 
-// busy state
-function setBusy(flag){
-  if(flag) document.body.classList.add('busy'); else document.body.classList.remove('busy');
-}
-
-// --- EDIT / AUDIT ---
-let editingRecord = null;
+// --- Edit & Audit ---
 function openEditModal(row){
   editingRecord = row;
   const form = \$('editForm'); form.innerHTML = '';
@@ -744,12 +730,12 @@ function openEditModal(row){
     else if(f.options && Array.isArray(f.options)){
       input = el('select',{class:'form-control',name});
       input.appendChild(el('option',{value:''},['-- select --']));
-      f.options.forEach(o => { const opt = el('option',{value:o.value},[o.label]); if(String(o.value)===String(val)) opt.selected=true; input.appendChild(opt); });
+      f.options.forEach(o => { const opt = el('option',{value:o.value},[o.label]); if(String(o.value) === String(val)) opt.selected=true; input.appendChild(opt); });
     } else input = el('input',{class:'form-control',type:'text',name,value:val});
-    wrapper.appendChild(label); wrapper.appendChild(input);
-    form.appendChild(wrapper);
+    wrapper.appendChild(label); wrapper.appendChild(input); form.appendChild(wrapper);
   });
-  // show audit history if available (will be loaded on History button too)
+  // clear previous audit
+  \$('auditList').innerHTML = '';
   const modal = new bootstrap.Modal(document.getElementById('editModal'));
   modal.show();
 }
@@ -762,11 +748,36 @@ async function saveEdit(){
   try{
     setBusy(true);
     const { data, error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', editingRecord.id).select();
+    setBusy(false);
     if(error) throw error;
     shortToast('Record updated');
     bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
     await refreshViewer();
-  }catch(e){ console.error('saveEdit', e); toast('Update failed'); } finally{ setBusy(false); }
+  }catch(e){
+    setBusy(false);
+    console.error('saveEdit', e);
+    toast('Update failed');
+  }
+}
+
+async function openAudit(row){
+  if(!row || !currentDefinition) return;
+  try{
+    const { data, error } = await supabase.from('audit_logs').select('*').eq('table_name', currentDefinition.table_name).eq('record_id', row.id).order('performed_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    const container = \$('auditList'); container.innerHTML = '';
+    container.appendChild(el('h6',{},['Recent changes:']));
+    if(!data || !data.length) container.appendChild(el('div',{},['No audit records found.']));
+    else data.forEach(a=>{
+      const d = el('div',{class:'mb-2 p-2', style:'background:#f8f9fa;border-radius:6px'});
+      d.appendChild(el('div',{},[`Action: ${a.action} • By: ${a.performed_by || 'unknown'} • At: ${new Date(a.performed_at).toLocaleString()}`]));
+      d.appendChild(el('pre',{},[JSON.stringify({before:a.before,after:a.after},null,2)]));
+      container.appendChild(d);
+    });
+  }catch(e){
+    console.error('openAudit', e);
+    toast('Failed to load audit');
+  }
 }
 
 async function softDelete(id){
@@ -775,11 +786,16 @@ async function softDelete(id){
     setBusy(true);
     const payload = { deleted_at: new Date().toISOString() };
     if(currentUser && currentUser.id) payload.deleted_by = currentUser.id;
-    const { data, error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', id);
+    const { error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', id);
+    setBusy(false);
     if(error) throw error;
     shortToast('Record soft-deleted');
     await refreshViewer();
-  }catch(e){ console.error('softDelete', e); toast('Delete failed'); } finally{ setBusy(false); }
+  }catch(e){
+    setBusy(false);
+    console.error('softDelete', e);
+    toast('Delete failed');
+  }
 }
 
 async function softDeleteCurrentRecord(){
@@ -789,57 +805,16 @@ async function softDeleteCurrentRecord(){
   bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
 }
 
-// Audit viewer (simple)
-async function openAudit(row){
-  if(!row || !currentDefinition) return;
-  try{
-    // fetch audit_logs for this table + record id (server must create audit_logs)
-    const { data, error } = await supabase.from('audit_logs').select('*').eq('table_name', currentDefinition.table_name).eq('record_id', row.id).order('performed_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    // show in modal content area below editForm for quick view
-    const modal = new bootstrap.Modal(document.getElementById('editModal'));
-    // populate edit form (read-only) then append audit list
-    openEditModal(row);
-    const container = el('div',{},[]);
-    container.appendChild(el('h6',{},['Recent changes:']));
-    if(!data || !data.length) container.appendChild(el('div',{},['No audit records found.']));
-    else data.forEach(a=>{
-      const d = el('div',{class:'mb-2 p-2', style:'background:#f8f9fa;border-radius:6px'});
-      d.appendChild(el('div',{},[`Action: ${a.action} • By: ${a.performed_by || 'unknown'} • At: ${new Date(a.performed_at).toLocaleString()}`]));
-      d.appendChild(el('pre',{},[JSON.stringify({before:a.before,after:a.after},null,2)]));
-      container.appendChild(d);
-    });
-    // append below editForm
-    const modalBody = document.querySelector('#editModal .modal-body');
-    // remove old audit section if any (keep editForm)
-    const existing = modalBody.querySelector('.audit-section'); if(existing) existing.remove();
-    const wrapper = el('div',{class:'audit-section mt-3'},[container]);
-    modalBody.appendChild(wrapper);
-    modal.show();
-  }catch(e){ console.error('openAudit', e); toast('Failed to load audit'); }
-}
+// helpers
+function normalizeCell(v){ if(v==null) return ''; if(typeof v === 'object') return JSON.stringify(v); return v; }
 
-// --- Utility: set filters quick presets or defaults ---
-(function setDefaultFilters(){
-  const today = new Date().toISOString().slice(0,10);
-  \$('filterFrom').value = today;
-  \$('filterTo').value = today;
-  \$('groupBy').value = 'none';
+// small safety: if anon key not replaced, show message
+(function anonKeyCheck(){
+  if(SUPABASE_ANON_KEY === 'REPLACE_WITH_ANON_KEY'){ setTimeout(()=> alert('Replace SUPABASE_ANON_KEY in this file with your Supabase anon key (frontend). The app cannot load forms until you do.'), 300); }
 })();
 
-// --- Small helpers & safety ---
-function setFormDisabled(flag){
-  \$('entryForm').querySelectorAll('input,select,textarea').forEach(i=> i.disabled = flag);
-  \$('btnSave').disabled = flag;
-}
-
-async function fetchSingleRowById(table, id){
-  const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
-  if(error) throw error; return data;
-}
-
-// --- END ---
   </script>
+  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
