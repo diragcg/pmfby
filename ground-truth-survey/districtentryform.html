@@ -155,7 +155,7 @@
                     <div id="entrySpinner" class="spinner-overlay hidden"><div class="spinner-border text-success" role="status"></div></div>
                 </div>
 
-                <div id="dataViewerPanel" class="form-card hidden">
+                <div id="dataViewerPanel" class="form-card hidden" style="position:relative;">
                     <h5 id="viewerTitle" class="mb-3">View Records</h5>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <button id="btnEnterNewData" class="btn btn-sm btn-outline-secondary">Enter New Data</button>
@@ -174,6 +174,7 @@
                     <nav aria-label="Page navigation" class="mt-3">
                         <ul class="pagination justify-content-center" id="pagination"></ul>
                     </nav>
+                    <div id="viewerSpinner" class="spinner-overlay hidden"><div class="spinner-border text-success" role="status"></div></div>
                 </div>
 
                 <div id="noForm" class="card-panel">
@@ -242,7 +243,7 @@
         let currentPage = 1;
         const recordsPerPage = 20;
         let totalRecords = 0;
-        let loadedCurrentRecord = null;
+        let currentRecordId = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             currentUser = getCurrentUser() || {
@@ -263,7 +264,7 @@
             $('btnUpdate').addEventListener('click', onUpdateClick);
             $('btnClearDraft').addEventListener('click', clearDraft);
             $('btnViewRecords').addEventListener('click', showDataViewer);
-            $('btnEnterNewData').addEventListener('click', showDataEntry);
+            $('btnEnterNewData').addEventListener('click', enterNewData);
             $('btnExport').addEventListener('click', exportData);
             $('btnExportPDF').addEventListener('click', exportPDF);
             $('btnRefreshData').addEventListener('click', () => fetchAndRenderTableData(currentDefinition.table_name, currentPage));
@@ -301,31 +302,27 @@
         async function selectDefinition(tableName) {
             Array.from($('formsList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
 
-            setLoadingOverlay($('dataEntryPanel'), true);
+            setLoadingOverlay($('dataViewerPanel'), true);
 
             try {
                 const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
                 if (error) throw error;
                 currentDefinition = data;
-                showDataEntry();
-                renderForm(currentDefinition);
-                loadDraft(currentDefinition.table_name);
-                await loadLatestForDistrict(currentDefinition.table_name);
-
+                await showDataViewer();
+                
             } catch (err) {
                 console.error('selectDefinition error', err);
                 showToast('Cannot open form. Check console.', 'danger');
             } finally {
-                setLoadingOverlay($('dataEntryPanel'), false);
+                setLoadingOverlay($('dataViewerPanel'), false);
             }
         }
 
-        function renderForm(def) {
+        function renderForm(def, record = null) {
             $('formTitle').textContent = def.label || def.table_name;
             const form = $('entryForm');
             form.innerHTML = '';
-            $('btnUpdate').style.display = 'inline-block';
-
+            
             (def.fields || []).forEach(field => {
                 const wrapper = el('div', { class: 'form-section' });
                 const label = el('label', { class: field.required ? 'form-label required' : 'form-label' }, [ field.label || field.name ]);
@@ -351,57 +348,31 @@
                 wrapper.appendChild(input);
                 form.appendChild(wrapper);
             });
-
-            $('dataEntryPanel').classList.remove('hidden');
-            $('noForm').classList.add('hidden');
-        }
-        
-       async function loadLatestForDistrict(tableName) {
-    try {
-        const { data, error } = await supabase
-            .from(tableName)
-            .select('*')
-            .eq('district_id', currentUser.districtId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-
-        // Check for a specific error code 'PGRST116' which means 'not found'.
-        // We handle this case separately because it's not a critical error.
-        if (error && error.code !== 'PGRST116') {
-            throw error;
-        }
-
-        // If data is found, assign it to loadedCurrentRecord and populate the form.
-        if (data) {
-            loadedCurrentRecord = data;
-            console.log('Latest record loaded:', loadedCurrentRecord);
             
-            const form = $('entryForm');
-            currentDefinition.fields.forEach(field => {
-                const inputName = sanitizeForInputName(field.name);
-                const inputElement = form.querySelector(`[name="${inputName}"]`);
-                if (inputElement && loadedCurrentRecord[field.name] !== null && loadedCurrentRecord[field.name] !== undefined) {
-                    inputElement.value = loadedCurrentRecord[field.name];
-                }
-            });
-            showToast('Latest data loaded successfully.', 'success');
-        } else {
-            // If no data is found, set loadedCurrentRecord to null and show a message.
-            console.log('No latest record found for district.');
-            loadedCurrentRecord = null;
-            showToast('No previous data found for this form.', 'info');
-        }
-    } catch (err) {
-        // Log the full error and show a user-friendly toast message.
-        console.error('Failed to load latest record for district:', err);
-        showToast('Failed to load previous data. Please try again.', 'danger');
-    }
-}
-        function showDataEntry() {
+            // Populate form if a record is provided
+            if (record) {
+                currentDefinition.fields.forEach(field => {
+                    const inputName = sanitizeForInputName(field.name);
+                    const inputElement = form.querySelector(`[name="${inputName}"]`);
+                    if (inputElement && record[field.name] !== null && record[field.name] !== undefined) {
+                        inputElement.value = record[field.name];
+                    }
+                });
+                $('btnSave').classList.add('hidden');
+                $('btnUpdate').classList.remove('hidden');
+            } else {
+                $('btnSave').classList.remove('hidden');
+                $('btnUpdate').classList.add('hidden');
+            }
+            
             $('dataEntryPanel').classList.remove('hidden');
             $('dataViewerPanel').classList.add('hidden');
             $('noForm').classList.add('hidden');
+        }
+
+        function enterNewData() {
+            renderForm(currentDefinition);
+            currentRecordId = null;
         }
 
         async function showDataViewer() {
@@ -456,7 +427,8 @@
             }
 
             const headerKeys = Object.keys(data[0]);
-            const headerRow = el('tr', {}, headerKeys.map(key => el('th', { scope: 'col' }, [key])));
+            const actionsHeader = el('th', { scope: 'col' }, ['Actions']);
+            const headerRow = el('tr', {}, headerKeys.map(key => el('th', { scope: 'col' }, [key])).concat(actionsHeader));
             headers.appendChild(headerRow);
 
             data.forEach(row => {
@@ -465,8 +437,28 @@
                     if (typeof cellValue === 'object') cellValue = JSON.stringify(cellValue);
                     return el('td', {}, [String(cellValue)]);
                 }));
+
+                const actionsCell = el('td', {}, [
+                    el('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: `editRecord('${row.id}')` }, ['Edit'])
+                ]);
+                rowEl.appendChild(actionsCell);
                 body.appendChild(rowEl);
             });
+        }
+        
+        async function editRecord(id) {
+            currentRecordId = id;
+            setLoadingOverlay($('dataEntryPanel'), true);
+            try {
+                const { data, error } = await supabase.from(currentDefinition.table_name).select('*').eq('id', id).single();
+                if (error) throw error;
+                renderForm(currentDefinition, data);
+            } catch (err) {
+                console.error('Failed to fetch record for editing:', err);
+                showToast('Failed to load record for editing.', 'danger');
+            } finally {
+                setLoadingOverlay($('dataEntryPanel'), false);
+            }
         }
 
         function renderPagination() {
@@ -703,7 +695,7 @@
                 showToast('Data saved successfully!', 'success');
                 clearDraft();
                 $('entryForm').reset();
-                await loadLatestForDistrict(currentDefinition.table_name);
+                showDataViewer();
             } catch (err) {
                 console.error('Error saving data:', err);
                 showToast('Error saving data. Please try again.', 'danger');
@@ -713,8 +705,8 @@
         }
 
         async function onUpdateClick() {
-            if (!currentDefinition || !loadedCurrentRecord) {
-                showToast('No record to update.', 'warning');
+            if (!currentDefinition || !currentRecordId) {
+                showToast('No record selected to update.', 'warning');
                 return;
             }
             const payload = {};
@@ -726,7 +718,7 @@
                 const { data, error } = await supabase
                     .from(currentDefinition.table_name)
                     .update(payload)
-                    .eq('id', loadedCurrentRecord.id)
+                    .eq('id', currentRecordId)
                     .select();
 
                 if (error) {
@@ -734,7 +726,7 @@
                 }
 
                 showToast('Record updated successfully!', 'success');
-                await loadLatestForDistrict(currentDefinition.table_name);
+                showDataViewer();
             } catch (err) {
                 console.error('Update error:', err);
                 showToast('Failed to update record. Please try again.', 'danger');
