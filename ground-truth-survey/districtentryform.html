@@ -1,657 +1,641 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>District — Data Entry (Single File Updated)</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
-  <style>
-    :root{--bg:#F8FAFC;--card:#fff;--pistachio:#e6f4e6;--accent:#1B5E20;--muted:#6b7280;--shadow:0 8px 24px rgba(2,6,23,0.06);--topbar-height:64px}
-    html,body{height:100%} body{font-family:"Mukta",system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);margin:0}
-    .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-height);background:var(--accent);color:#fff;display:flex;align-items:center;gap:12px;padding:0 18px;z-index:60}
-    .brand{font-weight:700;font-size:18px;margin-left:8px}
-    .container-app{max-width:1200px;margin:calc(var(--topbar-height)+20px) auto 48px;padding:0 12px}
-    .layout{display:flex;gap:16px;align-items:flex-start}
-    .sidebar{width:320px;min-width:220px}
-    .card-panel{background:var(--card);border-radius:10px;padding:14px;box-shadow:var(--shadow)}
-    .form-card{padding:16px;border-radius:10px;background:var(--card);box-shadow:var(--shadow)}
-    .form-section{margin-bottom:10px}
-    input.form-control,select.form-control,textarea.form-control{background:var(--pistachio);border:1px solid #d6ead6;height:44px;border-radius:8px}
-    input.form-control:focus,textarea.form-control:focus,select.form-control:focus{box-shadow:0 0 0 4px rgba(27,94,32,0.06);outline:none;border-color:var(--accent);background:#fff}
-    .data-table-container{max-height:calc(100vh - 360px);overflow:auto;margin-top:1rem}
-    .data-table th{position:sticky;top:0;background:#f8f9fa;z-index:10}
-    .hidden{display:none}
-    .small-muted{color:var(--muted);font-size:13px}
-    .required::after{ content: " *"; color:#d63333; margin-left:4px; font-weight:700;}
-    .compact { padding:6px 10px; height:auto; }
-    .inline-help { font-size:12px; color:var(--muted); margin-top:4px; }
-    .busy { opacity:0.6; pointer-events:none; }
-    .spinner-ring { width:28px;height:28px;border-radius:50%;border:4px solid rgba(0,0,0,0.08);border-top-color:transparent;box-sizing:border-box;display:inline-block;vertical-align:middle; }
-    .spinner-animate { animation: spin 1s linear infinite; border-top-color: currentColor; }
-    @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
-    .ring-yellow { color: #f59e0b; } .ring-green  { color: #16a34a; }
-    .action-indicator { display:inline-flex; align-items:center; gap:8px; }
-    .toast-fixed { position:fixed; right:20px; bottom:20px; z-index:1200; }
-    .table-wrap { overflow:auto; }
-  </style>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>District — Data Entry (संचालनालय कृषि छत्तीसगढ़)</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root{
+            --bg: #F8FAFC;
+            --card: #FFFFFF;
+            --pistachio: #e6f4e6;
+            --accent: #1B5E20;
+            --muted: #6b7280;
+            --shadow: 0 8px 24px rgba(2,6,23,0.06);
+            --topbar-height: 64px;
+        }
+        html,body{height:100%;}
+        body{
+            font-family: "Mukta", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+            background: var(--bg);
+            margin:0;
+            -webkit-font-smoothing:antialiased;
+        }
+
+        .topbar{
+            position:fixed; top:0; left:0; right:0; height:var(--topbar-height); background:var(--accent); color:#fff;
+            display:flex; align-items:center; gap:12px; padding:0 18px; z-index:60;
+        }
+        .brand{ font-weight:700; font-size:18px; margin-left:8px; }
+        .topbar .actions { margin-left:auto; display:flex; gap:8px; align-items:center; }
+
+        .container-app{ max-width:1100px; margin: calc(var(--topbar-height) + 28px) auto 48px; padding:0 12px; }
+        .layout{ display:flex; gap:16px; align-items:flex-start; }
+        @media (max-width: 992px){ .layout{ flex-direction:column; } }
+
+        .sidebar { width:300px; min-width:240px; }
+        .sidebar .card-panel{ padding:14px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); position:sticky; top:calc(var(--topbar-height) + 16px); max-height: calc(100vh - (var(--topbar-height) + 56px)); overflow:auto; }
+        .user-badge{ background:var(--pistachio); padding:8px 12px; border-radius:8px; font-weight:700; color:var(--accent); box-shadow:0 2px 6px rgba(0,0,0,0.04); display:inline-block; }
+
+        .forms-list .list-group-item { cursor:pointer; }
+        .forms-list .list-group-item.active { background:#eef6ff; border-left:4px solid var(--accent); }
+
+        .main { flex:1; min-width:0; }
+        .card-panel { background:var(--card); border-radius:10px; padding:16px; box-shadow:var(--shadow); }
+        .user-info { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-bottom:12px; padding:12px; border-radius:10px; background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); }
+        .user-info .meta { color:var(--muted); font-size:13px; }
+
+        .form-card { padding:16px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); }
+        .form-section { margin-bottom:12px; }
+        label.required::after{ content: " *"; color:#d63333; margin-left:3px; font-weight:700; }
+        input.form-control, select.form-control, textarea.form-control {
+            background: var(--pistachio);
+            border:1px solid #d6ead6;
+            height:46px;
+            border-radius:8px;
+        }
+        input.form-control:focus, textarea.form-control:focus, select.form-control:focus {
+            box-shadow: 0 0 0 4px rgba(27,94,32,0.06);
+            outline:none;
+            border-color:var(--accent);
+            background:#fff;
+        }
+
+        .save-row { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; align-items:center; }
+        .small-muted { color:var(--muted); font-size:13px; }
+
+        @media (max-width: 576px) {
+            .save-row { position:sticky; bottom:12px; background:transparent; padding-top:8px; }
+        }
+
+        .muted-box { font-size:13px; color:var(--muted); }
+        .hidden { display: none; }
+
+        /* data viewer specific styles */
+        .data-table-container { max-height: calc(100vh - 300px); overflow-y: auto; margin-top: 1rem; }
+        .data-table th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
+    </style>
 </head>
 <body>
-  <div class="topbar">
-    <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="34" height="34" alt="">
-    <div class="brand">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
-    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-      <button id="btnHome" class="btn btn-sm btn-light">Home</button>
-      <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
-    </div>
-  </div>
-  <div class="container-app">
-    <div class="layout">
-      <aside class="sidebar card-panel">
-        <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
-          <div id="userBadge" style="background:var(--pistachio);padding:8px 12px;border-radius:8px;font-weight:700;color:var(--accent)">user</div>
-          <div>
-            <div id="userRoleLine" style="font-weight:700;color:var(--accent)">Role: user</div>
-            <div id="userDistrictLine" class="small-muted">District: -</div>
-          </div>
+
+    <div class="topbar">
+        <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="34" height="34" alt="">
+        <div class="brand">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
+        <div class="actions">
+            <button id="btnHome" class="btn btn-sm btn-light">Home</button>
+            <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
         </div>
-Text
-    <div style="margin-top:8px;">
-      <div class="small-muted d-flex justify-content-between align-items-center">
-        <span>Available forms</span>
-        <span id="formsLoadingIndicator" class="action-indicator hidden"><span class="spinner-ring spinner-animate ring-yellow" id="formsLoadRing"></span><small class="small-muted">Loading</small></span>
-      </div>
-      <div id="formsList" class="list-group mt-2"></div>
     </div>
 
-    <div style="margin-top:12px;">
-      <div class="small-muted d-flex justify-content-between align-items-center">
-        Drafts
-        <small><button id="btnClearAllDrafts" class="btn btn-sm btn-link">Clear All</button></small>
-      </div>
-      <div id="draftsList" class="list-group mt-2"></div>
+    <div class="container-app">
+        <div class="layout">
+            <aside class="sidebar">
+                <div class="card-panel">
+                    <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
+                        <div class="user-badge" id="userBadge">test_district</div>
+                        <div>
+                            <div id="userRoleLine" style="font-weight:700;color:var(--accent);">Role: user</div>
+                            <div id="userDistrictLine" class="muted-box">District: 7b161aeb-4492-4a74-b587-306a4bb00b99</div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:8px;">
+                        <div class="small-muted">Available forms</div>
+                        <div id="formsList" class="forms-list list-group mt-2"></div>
+                    </div>
+
+                    <div style="margin-top:12px;">
+                        <div class="small-muted">Drafts</div>
+                        <div id="draftsList" class="list-group mt-2"></div>
+                    </div>
+
+                    <div style="margin-top:14px;">
+                        <button id="btnRefreshForms" class="btn btn-sm btn-outline-primary w-100">Refresh Forms</button>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="main">
+                <div class="user-info card-panel">
+                    <div>
+                        <div style="font-weight:800; font-size:16px;" id="pageTitle">डेटा एंट्री</div>
+                        <div class="muted-box">कृपया नीचे दिए फॉर्म में आवश्यक विवरण भरें और Save पर क्लिक करें।</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="muted-box">Logged in as</div>
+                        <div id="userSummary" style="font-weight:700;">test_district • Role: user • District: 7b161aeb-4492-4a74-b587-306a4bb00b99</div>
+                    </div>
+                </div>
+
+                <div id="dataEntryPanel" class="form-card hidden">
+                    <h5 id="formTitle" class="mb-3"></h5>
+                    <div class="d-flex justify-content-end mb-3">
+                        <button id="btnViewRecords" class="btn btn-sm btn-outline-secondary">View Records</button>
+                    </div>
+                    <form id="entryForm" autocomplete="off">
+                    </form>
+                    <div class="save-row">
+                        <div class="small-muted me-auto" id="formNote">All fields marked * are required.</div>
+                        <div>
+                            <button id="btnClearDraft" class="btn btn-outline-secondary btn-sm">Clear Draft</button>
+                            <button id="btnSave" class="btn btn-success btn-sm">Save</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dataViewerPanel" class="form-card hidden">
+                    <h5 id="viewerTitle" class="mb-3">View Records</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <button id="btnEnterNewData" class="btn btn-sm btn-outline-secondary">Enter New Data</button>
+                        <div id="viewerControls">
+                            <button id="btnExport" class="btn btn-sm btn-outline-success me-2">Export (Excel)</button>
+                            <button id="btnExportPDF" class="btn btn-sm btn-outline-danger me-2">Export (PDF)</button>
+                            <button id="btnRefreshData" class="btn btn-sm btn-outline-primary">Refresh Data</button>
+                        </div>
+                    </div>
+                    <div class="data-table-container">
+                        <table class="table table-striped table-hover data-table">
+                            <thead id="dataTableHeaders"></thead>
+                            <tbody id="dataTableBody"></tbody>
+                        </table>
+                    </div>
+                    <nav aria-label="Page navigation" class="mt-3">
+                        <ul class="pagination justify-content-center" id="pagination"></ul>
+                    </nav>
+                </div>
+
+                <div id="noForm" class="card-panel">
+                    <div class="small-muted">कृपया बाईं पट्टी से कोई फॉर्म चुनें।</div>
+                </div>
+            </main>
+        </div>
     </div>
 
-    <div style="margin-top:14px;">
-      <button id="btnRefreshForms" class="btn btn-sm btn-outline-primary w-100">Refresh Forms</button>
-    </div>
-  </aside>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
 
-  <main style="flex:1;min-width:0">
-    <div class="card-panel" style="margin-bottom:12px;">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-weight:800;font-size:16px" id="pageTitle">डेटा एंट्री</div>
-          <div class="small-muted">कृपया नीचे दिए फॉर्म में आवश्यक विवरण भरें और Save पर क्लिक करें।</div>
-        </div>
+    <script>
+        const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        <div style="text-align:right">
-          <div class="small-muted">Logged in as</div>
-          <div id="userSummary" style="font-weight:700">user • Role: user</div>
-          <div id="draftStatus" class="inline-help"></div>
-        </div>
-      </div>
-    </div>
+        const $ = id => document.getElementById(id);
+        function el(tag, attrs = {}, children = []) {
+            const e = document.createElement(tag);
+            for (const k in attrs) {
+                if (k === 'class') e.className = attrs[k];
+                else e.setAttribute(k, attrs[k]);
+            }
+            children.forEach(c => typeof c === 'string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c));
+            return e;
+        }
+        function toast(msg) { alert(msg); }
+        function getCurrentUser() {
+            const s = localStorage.getItem('user') || sessionStorage.getItem('user');
+            return s ? JSON.parse(s) : null;
+        }
+        function sanitizeForInputName(s) { return String(s || '').replace(/[^a-zA-Z0-9_]/g, '_'); }
+        const draftKeyPrefix = 'draft::';
 
-    <div id="dataEntryPanel" class="form-card hidden">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <h5 id="formTitle" class="mb-0"></h5>
-        <div class="d-flex align-items-center gap-2">
-          <label class="mb-0">Entry date</label>
-          <input id="filterEntryDate" type="date" class="form-control compact" />
-          <span id="formLoadIndicator" class="action-indicator hidden"><span class="spinner-ring spinner-animate ring-yellow" id="formLoadRing"></span><small class="small-muted">Loading</small></span>
-        </div>
-      </div>
+        let currentUser = null;
+        let definitions = [];
+        let currentDefinition = null;
+        let currentPage = 1;
+        const recordsPerPage = 20;
+        let totalRecords = 0;
 
-      <div class="mb-2 text-end">
-        <button id="btnViewRecords" class="btn btn-sm btn-outline-secondary">View Records</button>
-      </div>
+        document.addEventListener('DOMContentLoaded', async () => {
+            currentUser = getCurrentUser() || {
+                id: null, username: 'test_district', fullName: 'test_district', role: 'user',
+                districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99'
+            };
 
-      <form id="entryForm" autocomplete="off"></form>
+            $('userBadge').textContent = currentUser.fullName || currentUser.username || 'user';
+            $('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
+            $('userDistrictLine').textContent = `District: ${currentUser.districtId || ''}`;
+            $('userSummary').textContent = `${currentUser.fullName || currentUser.username} • Role: ${currentUser.role || 'user'} • District: ${currentUser.districtId || ''}`;
 
-      <div class="d-flex justify-content-end align-items-center mt-2">
-        <div class="small-muted me-auto" id="formNote">All fields marked * are required.</div>
-        <div>
-          <button id="btnClearDraft" type="button" class="btn btn-outline-secondary btn-sm">Clear Draft</button>
-          <button id="btnSave" type="button" class="btn btn-success btn-sm">
-            <span id="saveIndicator" class="action-indicator hidden"><span class="spinner-ring spinner-animate ring-green" id="saveRing"></span><small class="small-muted">Saving</small></span>
-            <span id="saveLabel">Save</span>
-          </button>
-        </div>
-      </div>
-    </div>
+            $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
+            $('btnHome').addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+            $('btnRefreshForms').addEventListener('click', loadDefinitions);
 
-    <div id="dataViewerPanel" class="form-card hidden">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <div class="d-flex gap-2 align-items-center">
-          <label class="mb-0 me-1">From</label>
-          <input id="filterFrom" type="date" class="form-control compact" />
-          <label class="mb-0 ms-2 me-1">To</label>
-          <input id="filterTo" type="date" class="form-control compact" />
-          <select id="groupBy" class="form-control compact ms-3">
-            <option value="none">Raw Records</option>
-            <option value="day">Group by Day</option>
-            <option value="week">Group by Week</option>
-            <option value="month">Group by Month</option>
-          </select>
-          <select id="aggMetric" class="form-control compact ms-2" style="min-width:160px">
-            <option value="">Aggregation (choose numeric)</option>
-          </select>
-        </div>
+            // New event listeners for data entry/viewer
+            $('btnSave').addEventListener('click', saveEntry);
+            $('btnClearDraft').addEventListener('click', clearDraft);
+            $('btnViewRecords').addEventListener('click', showDataViewer);
+            $('btnEnterNewData').addEventListener('click', showDataEntry);
+            $('btnExport').addEventListener('click', exportData);
+            $('btnExportPDF').addEventListener('click', exportPDF);
+            $('btnRefreshData').addEventListener('click', () => fetchAndRenderTableData(currentDefinition.table_name, currentPage));
 
-        <div>
-          <button id="btnEnterNewData" class="btn btn-sm btn-outline-secondary">Enter New Data</button>
-          <button id="btnExport" class="btn btn-sm btn-outline-success me-1">Export (Excel)</button>
-          <button id="btnExportPDF" class="btn btn-sm btn-outline-danger me-1">Export (PDF)</button>
-          <button id="btnRefreshData" class="btn btn-sm btn-outline-primary">Refresh</button>
-        </div>
-      </div>
+            await loadDefinitions();
+            renderDraftsList();
+        });
 
-      <div class="data-table-container table-wrap">
-        <table class="table table-striped table-hover data-table">
-          <thead id="dataTableHeaders"></thead>
-          <tbody id="dataTableBody"></tbody>
-        </table>
-      </div>
+        async function loadDefinitions() {
+            try {
+                const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                definitions = data || [];
+                renderFormsList();
+            } catch (err) {
+                console.error('Failed loading definitions', err);
+                toast('फॉर्म लोड करने में त्रुटि — कंसोल देखें।');
+            }
+        }
 
-      <nav aria-label="Page navigation" class="mt-3">
-        <ul class="pagination justify-content-center" id="pagination"></ul>
-      </nav>
-    </div>
+        function renderFormsList() {
+            const list = $('formsList');
+            list.innerHTML = '';
+            if (!definitions.length) {
+                list.innerHTML = '<div class="text-muted">No forms available</div>';
+                return;
+            }
+            definitions.forEach(def => {
+                const item = el('button', { type: 'button', class: 'list-group-item list-group-item-action' }, [ `${def.label || def.table_name}` ]);
+                item.addEventListener('click', () => selectDefinition(def.table_name));
+                list.appendChild(item);
+            });
+        }
 
-    <div id="noForm" class="card-panel">
-      <div class="small-muted">कृपया बाईं पट्टी से कोई फॉर्म चुनें।</div>
-    </div>
-  </main>
-</div>
-  </div>
-  <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Record</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <form id="editForm"></form>
-          <div class="mt-2 small-muted">Change will be audited and recorded.</div>
-          <div id="auditList" class="mt-3"></div>
-        </div>
-        <div class="modal-footer">
-          <button id="btnDeleteRecord" class="btn btn-outline-danger me-auto">Delete (soft)</button>
-          <button id="btnCancelEdit" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button id="btnSaveEdit" class="btn btn-primary">Save changes</button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div id="toastContainer" class="toast-fixed"></div>
-  <script>
-/* === Replace keys below with the values you provided === */
-const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-/* ======================================================= */
+        async function selectDefinition(tableName) {
+            Array.from($('formsList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
+            try {
+                const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
+                if (error) throw error;
+                currentDefinition = data;
+                showDataEntry();
+                renderForm(currentDefinition);
+                loadDraft(currentDefinition.table_name);
+            } catch (err) {
+                console.error('selectDefinition error', err);
+                toast('Cannot open form. Check console.');
+            }
+        }
 
-const \$ = id => document.getElementById(id);
-function el(tag, attrs={}, children=[]){ const e=document.createElement(tag); for(const k in attrs){ if(k==='class') e.className=attrs[k]; else e.setAttribute(k, attrs[k]); } children.forEach(c=> typeof c==='string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c)); return e; }
-function toast(msg, t=2200){ const c=\$('toastContainer'); const d=el('div',{class:'alert alert-secondary'},[msg]); c.appendChild(d); setTimeout(()=>d.remove(), t); }
-function shortToast(msg){ toast(msg,1600); }
-function sanitizeName(s){ return String(s||'').replace(/[^a-zA-Z0-9_]/g,'_'); }
+        function renderForm(def) {
+            $('formTitle').textContent = def.label || def.table_name;
+            const form = $('entryForm');
+            form.innerHTML = '';
+            (def.fields || []).forEach(field => {
+                const wrapper = el('div', { class: 'form-section' });
+                const label = el('label', { class: field.required ? 'form-label required' : 'form-label' }, [ field.label || field.name ]);
+                let input;
+                const type = field.type || 'text';
+                if (type === 'date') {
+                    input = el('input', { class: 'form-control', type: 'date', name: sanitizeForInputName(field.name) });
+                } else if (type === 'number') {
+                    input = el('input', { class: 'form-control', type: 'number', name: sanitizeForInputName(field.name), step: 'any' });
+                } else if (field.options && field.options.length) {
+                    input = el('select', { class: 'form-control', name: sanitizeForInputName(field.name) });
+                    field.options.forEach(option => {
+                        const optionEl = el('option', { value: option.value }, [option.label]);
+                        input.appendChild(optionEl);
+                    });
+                } else {
+                    input = el('input', { class: 'form-control', type: 'text', name: sanitizeForInputName(field.name) });
+                }
+                input.placeholder = field.placeholder || '';
+                wrapper.appendChild(label);
+                wrapper.appendChild(input);
+                form.appendChild(wrapper);
+            });
 
-let currentUser = null;
-let definitions = [];
-let currentDefinition = null;
-let currentPage = 1, recordsPerPage = 20, totalRecords = 0;
-const draftPrefix = 'draft::';
-const queueKey = 'queue::';
-let autosaveTimer = null;
-const AUTOSAVE_MS = 4000;
-let editingRecord = null;
+            $('dataEntryPanel').classList.remove('hidden');
+            $('noForm').classList.add('hidden');
+        }
 
-function showElem(id, yes){ const e=\$(id); if(!e) return; e.classList.toggle('hidden', !yes); }
-function setBusy(flag){ document.body.classList.toggle('busy', !!flag); }
-function showFormsLoading(v){ showElem('formsLoadingIndicator', v); }
-function showFormLoad(v){ showElem('formLoadIndicator', v); }
-function showSaveIndicator(v){ showElem('saveIndicator', v); if(v) $('saveLabel').classList.add('hidden'); else $('saveLabel').classList.remove('hidden'); }
+        function showDataEntry() {
+            $('dataEntryPanel').classList.remove('hidden');
+            $('dataViewerPanel').classList.add('hidden');
+            $('noForm').classList.add('hidden');
+        }
 
-function getCurrentUser(){
-  const s = localStorage.getItem('user') || sessionStorage.getItem('user');
-  if(s) return JSON.parse(s);
-  return { id: null, username: 'test_district', fullName: 'test_district', role: 'user', districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99' };
-}
+        async function showDataViewer() {
+            if (!currentDefinition) {
+                toast('Please select a form first.');
+                return;
+            }
+            $('dataEntryPanel').classList.add('hidden');
+            $('dataViewerPanel').classList.remove('hidden');
+            $('noForm').classList.add('hidden');
+            await fetchAndRenderTableData(currentDefinition.table_name, 1);
+        }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  currentUser = getCurrentUser();
-  \$('userBadge').textContent = currentUser.fullName || currentUser.username;
-  \$('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
-  \$('userDistrictLine').textContent = `District: ${currentUser.districtId || ''}`;
-  \$('userSummary').textContent = `${currentUser.fullName || currentUser.username} • Role: ${currentUser.role || 'user'} • District: ${currentUser.districtId || ''}`;
+        async function fetchAndRenderTableData(tableName, page = 1) {
+            currentPage = page;
+            const start = (currentPage - 1) * recordsPerPage;
+            const end = start + recordsPerPage - 1;
 
-  \$('btnLogout').addEventListener('click', ()=>{ localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.reload(); });
-  \$('btnHome').addEventListener('click', ()=>window.scrollTo({top:0,behavior:'smooth'}));
-  \$('btnRefreshForms').addEventListener('click', loadDefinitions);
-  \$('btnSave').addEventListener('click', saveEntry);
-  \$('btnClearDraft').addEventListener('click', clearDraft);
-  \$('btnViewRecords').addEventListener('click', showDataViewer);
-  \$('btnEnterNewData').addEventListener('click', showDataEntry);
-  \$('btnExport').addEventListener('click', exportData);
-  \$('btnExportPDF').addEventListener('click', exportPDF);
-  \$('btnRefreshData').addEventListener('click', refreshViewer);
-  \$('btnClearAllDrafts').addEventListener('click', ()=>{ if(confirm('Clear all local drafts?')) { Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix)).forEach(k=>localStorage.removeItem(k)); renderDraftsList(); } });
+            try {
+                const { data, count, error } = await supabase
+                    .from(tableName)
+                    .select('*', { count: 'exact' })
+                    .range(start, end);
 
-  document.getElementById('btnSaveEdit').addEventListener('click', saveEdit);
-  document.getElementById('btnDeleteRecord').addEventListener('click', softDeleteCurrentRecord);
+                if (error) {
+                    console.error('Error fetching table data:', error);
+                    toast('Failed to fetch data.');
+                    return;
+                }
+                totalRecords = count || 0;
+                renderDataTable(data);
+                renderPagination();
+            } catch (err) {
+                console.error('fetchAndRenderTableData error', err);
+                toast('Failed to fetch data. Check console.');
+            }
+        }
 
-  window.addEventListener('online', ()=>{ shortToast('Back online — syncing'); processQueue(); });
-  window.addEventListener('offline', ()=> shortToast('Offline — entries will be queued'));
+        function renderDataTable(data) {
+            const headers = $('dataTableHeaders');
+            const body = $('dataTableBody');
+            headers.innerHTML = '';
+            body.innerHTML = '';
 
-  await loadDefinitions();
-  renderDraftsList();
-  processQueue();
-});
+            if (!data || data.length === 0) {
+                body.innerHTML = '<tr><td colspan="100%" class="text-center">No records found.</td></tr>';
+                return;
+            }
 
-async function loadDefinitions(){
-  try{
-    showFormsLoading(true);
-    const { data, error } = await supabase.from('form_definitions').select('*').order('created_at',{ascending:false});
-    showFormsLoading(false);
-    if(error) throw error;
-    definitions = data || [];
-    renderFormsList();
-  }catch(e){
-    showFormsLoading(false);
-    console.error('loadDefinitions', e);
-    toast('फॉर्म लोड करने में समस्या — कंसोल देखें');
-  }
-}
+            const headerKeys = Object.keys(data[0]);
+            const headerRow = el('tr', {}, headerKeys.map(key => el('th', { scope: 'col' }, [key])));
+            headers.appendChild(headerRow);
 
-function renderFormsList(){
-  const list = \$('formsList'); list.innerHTML = '';
-  if(!definitions.length){ list.innerHTML = '<div class="text-muted">No forms available</div>'; return; }
-  definitions.forEach(def=>{
-    const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[def.label || def.table_name]);
-    btn.addEventListener('click', ()=> selectDefinition(def.table_name));
-    list.appendChild(btn);
-  });
-}
+            data.forEach(row => {
+                const rowEl = el('tr', {}, headerKeys.map(key => {
+                    let cellValue = row[key] !== null && row[key] !== undefined ? row[key] : '';
+                    if (typeof cellValue === 'object') cellValue = JSON.stringify(cellValue);
+                    return el('td', {}, [String(cellValue)]);
+                }));
+                body.appendChild(rowEl);
+            });
+        }
 
-async function selectDefinition(tableName){
-  Array.from(\$('formsList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
-  try{
-    showFormLoad(true);
-    const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
-    showFormLoad(false);
-    if(error) throw error;
-    currentDefinition = data;
-    if(!(currentDefinition.fields||[]).some(f=> sanitizeName(f.name) === 'entry_date' || f.name === 'entry_date')) shortToast('Warning: include entry_date in form_definitions for period reporting.');
-    renderForm(currentDefinition);
-    loadDraft(currentDefinition.table_name);
-    showDataEntry();
-  }catch(e){
-    showFormLoad(false);
-    console.error('selectDefinition', e);
-    toast('फॉर्म खोलने में त्रुटि — कंसोल देखें');
-  }
-}
+        function renderPagination() {
+            const paginationEl = $('pagination');
+            paginationEl.innerHTML = '';
+            const totalPages = Math.max(1, Math.ceil(totalRecords / recordsPerPage));
 
-function renderForm(def){
-  \$('formTitle').textContent = def.label || def.table_name;
-  const form = \$('entryForm'); form.innerHTML = '';
-  (def.fields||[]).forEach(field=>{
-    const name = sanitizeName(field.name || field.key || field.id || field.label);
-    const wrapper = el('div',{class:'form-section'});
-    const label = el('label', { class: field.required ? 'required' : ''}, [ field.label || field.name || name ]);
-    let input;
-    const type = (field.type || 'text').toLowerCase();
-    if(type === 'date') input = el('input',{class:'form-control',type:'date',name});
-    else if(type === 'number') input = el('input',{class:'form-control',type:'number',name,step:'any'});
-    else if(field.options && Array.isArray(field.options)){
-      input = el('select',{class:'form-control',name});
-      input.appendChild(el('option',{value:''},['-- select --']));
-      field.options.forEach(o => input.appendChild(el('option',{value:o.value},[o.label])));
-    } else input = el('input',{class:'form-control',type:'text',name});
-    if(field.placeholder) input.placeholder = field.placeholder;
-    input.addEventListener('input', scheduleAutosave);
-    wrapper.appendChild(label);
-    wrapper.appendChild(input);
-    if(field.hint) wrapper.appendChild(el('div',{class:'inline-help'},[field.hint]));
-    form.appendChild(wrapper);
-  });
+            const createPageItem = (text, page, isDisabled) => {
+                const li = el('li', { class: `page-item ${isDisabled ? 'disabled' : ''} ${page === currentPage ? 'active' : ''}` });
+                const a = el('a', { class: 'page-link', href: '#', 'data-page': page }, [text]);
+                li.appendChild(a);
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (!isDisabled) {
+                        fetchAndRenderTableData(currentDefinition.table_name, page);
+                    }
+                });
+                return li;
+            };
 
-  const agg = \$('aggMetric'); agg.innerHTML = '<option value="">Aggregation (choose numeric)</option>';
-  (def.fields||[]).forEach(f => { if((f.type||'').toLowerCase()==='number') agg.appendChild(el('option',{value:sanitizeName(f.name)},[f.label||f.name])); });
+            paginationEl.appendChild(createPageItem('Previous', Math.max(1, currentPage - 1), currentPage === 1));
 
-  \$('filterEntryDate').value = new Date().toISOString().slice(0,10);
-  \$('dataEntryPanel').classList.remove('hidden');
-  \$('noForm').classList.add('hidden');
-}
+            // Show limited pages when many
+            const maxVisible = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
 
-function showDataEntry(){ $('dataEntryPanel').classList.remove('hidden'); $('dataViewerPanel').classList.add('hidden'); \$('noForm').classList.add('hidden'); }
-async function showDataViewer(){ if(!currentDefinition){ toast('कृपया पहले फॉर्म चुनें'); return; } $('dataEntryPanel').classList.add('hidden'); $('dataViewerPanel').classList.remove('hidden'); \$('noForm').classList.add('hidden'); await refreshViewer(); }
-async function refreshViewer(){ if(!currentDefinition) return; currentPage = 1; await fetchAndRenderTableData(currentDefinition.table_name, currentPage); }
+            if (startPage > 1) {
+                paginationEl.appendChild(createPageItem('1', 1, false));
+                if (startPage > 2) {
+                    const li = el('li', { class: 'page-item disabled' }, [ el('span', { class: 'page-link' }, ['...']) ]);
+                    paginationEl.appendChild(li);
+                }
+            }
 
-async function fetchAndRenderTableData(tableName, page=1){
-  currentPage = page;
-  const fromDate = \$('filterFrom').value;
-  const toDate = \$('filterTo').value;
-  const groupBy = \$('groupBy').value;
-  const aggField = \$('aggMetric').value;
+            for (let i = startPage; i <= endPage; i++) {
+                paginationEl.appendChild(createPageItem(i, i, false));
+            }
 
-  if(groupBy === 'none'){
-    const start = (currentPage - 1) * recordsPerPage;
-    const end = start + recordsPerPage - 1;
-    try{
-      let query = supabase.from(tableName).select('*', { count: 'exact' }).range(start, end);
-      if(fromDate) query = query.gte('entry_date', fromDate);
-      if(toDate) query = query.lte('entry_date', toDate);
-      query = query.is('deleted_at', null);
-      if(currentUser && currentUser.districtId){
-        const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
-        if(hasDistrict) query = query.eq('district_id', currentUser.districtId);
-      }
-      const { data, count, error } = await query;
-      if(error) throw error;
-      totalRecords = count || 0;
-      renderDataTable(data || []);
-      renderPagination();
-    }catch(e){
-      console.error('fetch raw', e);
-      toast('डेटा लोड करने में त्रुटि — कंसोल देखें');
-    }
-    return;
-  }
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const li = el('li', { class: 'page-item disabled' }, [ el('span', { class: 'page-link' }, ['...']) ]);
+                    paginationEl.appendChild(li);
+                }
+                paginationEl.appendChild(createPageItem(totalPages, totalPages, false));
+            }
 
-  try{
-    const pageSize = 2000; let offset = 0; let all = [];
-    while(true){
-      const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize - 1).is('deleted_at', null);
-      if(error) throw error;
-      if(!data || data.length === 0) break;
-      all = all.concat(data);
-      if(data.length < pageSize) break;
-      offset += pageSize;
-      if(all.length > 30000) break;
-    }
-    let filtered = all;
-    if(fromDate) filtered = filtered.filter(r => r.entry_date && r.entry_date >= fromDate);
-    if(toDate) filtered = filtered.filter(r => r.entry_date && r.entry_date <= toDate);
-    if(currentUser && currentUser.districtId){
-      const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
-      if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
-    }
-    const grouped = {};
-    filtered.forEach(r=>{
-      const d = r.entry_date ? new Date(r.entry_date) : (r.created_at ? new Date(r.created_at) : null);
-      if(!d || isNaN(d)) return;
-      let key;
-      if(groupBy === 'day') key = d.toISOString().slice(0,10);
-      else if(groupBy === 'week'){ const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = tmp.getUTCDay() || 7; tmp.setUTCDate(tmp.getUTCDate() - day + 1); key = tmp.toISOString().slice(0,10); }
-      else if(groupBy === 'month') key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
-      else key = d.toISOString().slice(0,10);
-      if(!grouped[key]) grouped[key] = [];
-      grouped[key].push(r);
-    });
-    const rows = Object.keys(grouped).sort((a,b)=> b.localeCompare(a)).map(period=>{
-      const items = grouped[period];
-      const row = { period, count: items.length };
-      if(aggField){ const nums = items.map(i => Number(i[aggField]) || 0); row.sum = nums.reduce((s,n)=>s+n,0); row.avg = nums.length ? (row.sum / nums.length) : 0; }
-      return row;
-    });
-    renderAggregatedTable(rows, aggField);
-    totalRecords = rows.length;
-    renderPagination(true);
-  }catch(e){
-    console.error('aggregate', e);
-    toast('संग्रह बनाने में त्रुटि — कंसोल देखें');
-  }
-}
+            paginationEl.appendChild(createPageItem('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
+        }
 
-function renderAggregatedTable(rows, aggField){
-  const headers = $('dataTableHeaders'), body = $('dataTableBody'); headers.innerHTML=''; body.innerHTML='';
-  if(!rows || rows.length === 0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No aggregated data</td></tr>'; return; }
-  const headerCells = ['Period','Count']; if(aggField) headerCells.push('Sum','Avg');
-  headers.appendChild(el('tr', {}, headerCells.map(h => el('th',{scope:'col'},[h]))));
-  rows.forEach(r=>{ const tr = el('tr', {}, [ el('td', {}, [r.period]), el('td', {}, [String(r.count)]), ...(aggField ? [el('td', {}, [String(r.sum)]), el('td', {}, [String(Number(r.avg).toFixed(2))])] : []) ]); body.appendChild(tr); });
-}
+        // --- Export Helpers: chunked fetch to avoid timeouts ---
+        async function fetchAllTableData(tableName) {
+            const pageSize = 1000; // chunk size
+            let from = 0;
+            let all = [];
+            while (true) {
+                const { data, error } = await supabase
+                    .from(tableName)
+                    .select('*')
+                    .range(from, from + pageSize - 1);
+                if (error) throw error;
+                if (!data || data.length === 0) break;
+                all = all.concat(data);
+                if (data.length < pageSize) break;
+                from += pageSize;
+            }
+            return all;
+        }
 
-function renderDataTable(data){
-  const headers = $('dataTableHeaders'), body = $('dataTableBody'); headers.innerHTML=''; body.innerHTML='';
-  if(!data || data.length === 0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No records found.</td></tr>'; return; }
-  const keys = Object.keys(data[0]);
-  const headerRow = el('tr', {}, keys.map(k => el('th',{scope:'col'},[k])));
-  headerRow.appendChild(el('th', {}, ['Actions']));
-  headers.appendChild(headerRow);
-  data.forEach(row=>{
-    const tr = el('tr', {}, keys.map(k=> el('td', {}, [ String( normalizeCell(row[k]) ) ])));
-    const actions = el('td', {}, []);
-    const btnEdit = el('button',{class:'btn btn-sm btn-outline-primary me-1'},['Edit']); btnEdit.addEventListener('click', ()=> openEditModal(row));
-    const btnAudit = el('button',{class:'btn btn-sm btn-outline-secondary me-1'},['History']); btnAudit.addEventListener('click', ()=> openAudit(row));
-    const btnDel = el('button',{class:'btn btn-sm btn-outline-danger'},['Delete']); btnDel.addEventListener('click', ()=> { if(confirm('Soft-delete this record?')) softDelete(row.id); });
-    actions.appendChild(btnEdit); actions.appendChild(btnAudit); actions.appendChild(btnDel);
-    tr.appendChild(actions);
-    body.appendChild(tr);
-  });
-}
+        // Export to Excel (.xlsx)
+        async function exportData() {
+            if (!currentDefinition) {
+                alert('Please select a form first.');
+                return;
+            }
+            try {
+                const raw = await fetchAllTableData(currentDefinition.table_name);
+                if (!raw || raw.length === 0) {
+                    alert('No records to export.');
+                    return;
+                }
 
-function renderPagination(){
-  const paginationEl = \$('pagination'); paginationEl.innerHTML = '';
-  const totalPages = Math.max(1, Math.ceil(totalRecords / recordsPerPage));
-  const createItem = (text, page, disabled) => {
-    const li = el('li', { class: `page-item ${disabled ? 'disabled' : ''} ${page === currentPage ? 'active' : ''}` });
-    const a = el('a', { class: 'page-link', href:'#', 'data-page': page }, [text]);
-    a.addEventListener('click', (e) => { e.preventDefault(); if(!disabled) fetchAndRenderTableData(currentDefinition.table_name, page); });
-    li.appendChild(a); return li;
-  };
-  paginationEl.appendChild(createItem('Previous', Math.max(1, currentPage - 1), currentPage === 1));
-  const maxVisible = 7; let start = Math.max(1, currentPage - Math.floor(maxVisible / 2)); let end = Math.min(totalPages, start + maxVisible - 1);
-  if(end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
-  if(start > 1){ paginationEl.appendChild(createItem('1',1,false)); if(start>2) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); }
-  for(let i=start;i<=end;i++) paginationEl.appendChild(createItem(i,i,false));
-  if(end < totalPages){ if(end < totalPages - 1) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); paginationEl.appendChild(createItem(totalPages,totalPages,false)); }
-  paginationEl.appendChild(createItem('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
-}
+                const normalized = raw.map(r => {
+                    const out = {};
+                    Object.keys(r).forEach(k => {
+                        const v = r[k];
+                        if (v === null || v === undefined) out[k] = '';
+                        else if (typeof v === 'object') out[k] = JSON.stringify(v);
+                        else out[k] = v;
+                    });
+                    return out;
+                });
 
-async function fetchAllFilteredRows(tableName){
-  const from = $('filterFrom').value; const to = $('filterTo').value;
-  const pageSize = 1000; let all = []; let offset = 0;
-  while(true){
-    const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize - 1).is('deleted_at', null);
-    if(error) throw error;
-    if(!data || data.length === 0) break;
-    all = all.concat(data);
-    if(data.length < pageSize) break;
-    offset += pageSize;
-    if(all.length > 50000) break;
-  }
-  let filtered = all;
-  if(from) filtered = filtered.filter(r => r.entry_date && r.entry_date >= from);
-  if(to) filtered = filtered.filter(r => r.entry_date && r.entry_date <= to);
-  if(currentUser && currentUser.districtId){
-    const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
-    if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
-  }
-  return filtered;
-}
+                const worksheet = XLSX.utils.json_to_sheet(normalized);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+                const filename = `${currentDefinition.table_name}_data.xlsx`;
+                XLSX.writeFile(workbook, filename);
+            } catch (err) {
+                console.error('Error exporting to Excel:', err);
+                alert('Failed to export data. See console for details.');
+            }
+        }
 
-async function exportData(){
-  if(!currentDefinition){ alert('Select a form'); return; }
-  const groupBy = \$('groupBy').value;
-  if(groupBy === 'none'){
-    const rows = await fetchAllFilteredRows(currentDefinition.table_name);
-    if(!rows || !rows.length){ alert('No records'); return; }
-    const normalized = rows.map(r => normalizeRow(r));
-    const ws = XLSX.utils.json_to_sheet(normalized);
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
-    XLSX.writeFile(wb, `${currentDefinition.table_name}_data.xlsx`);
-  } else {
-    await fetchAndRenderTableData(currentDefinition.table_name, 1);
-    const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h => h.textContent.trim());
-    const rows = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()));
-    if(!rows.length){ alert('No data'); return; }
-    const arr = rows.map(r => { const obj = {}; headers.forEach((h,i)=> obj[h] = r[i] || ''); return obj; });
-    const ws = XLSX.utils.json_to_sheet(arr);
-    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Aggregated');
-    XLSX.writeFile(wb, `${currentDefinition.table_name}_aggregated.xlsx`);
-  }
-}
+        // Export to paginated A4 PDF with margins and repeated headers
+        async function exportPDF() {
+            if (!currentDefinition) {
+                alert('Please select a form first.');
+                return;
+            }
+            try {
+                const raw = await fetchAllTableData(currentDefinition.table_name);
+                if (!raw || raw.length === 0) {
+                    alert('No records to export.');
+                    return;
+                }
 
-async function exportPDF(){
-  if(!currentDefinition){ alert('Select a form'); return; }
-  const groupBy = \$('groupBy').value;
-  if(groupBy === 'none'){
-    const rows = await fetchAllFilteredRows(currentDefinition.table_name);
-    if(!rows || !rows.length){ alert('No records'); return; }
-    const headerKeys = Object.keys(rows[0]);
-    const body = rows.map(r => headerKeys.map(k => String(normalizeCell(r[k]))));
-    const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'}); const pw = doc.internal.pageSize.getWidth(); const margin = 12;
-    doc.setFontSize(12); doc.text(currentDefinition.label || currentDefinition.table_name, margin, 16);
-    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pw - margin, 16, { align:'right' });
-    doc.autoTable({ startY:20, head:[headerKeys], body, styles:{fontSize:8,cellPadding:3}, margin:{left:margin,right:margin,top:20,bottom:margin}, showHead:'everyPage', didDrawPage:function(){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pw - margin, doc.internal.pageSize.getHeight()-8, { align:'right' }); }});
-    doc.save(`${currentDefinition.table_name}_data.pdf`);
-  } else {
-    await fetchAndRenderTableData(currentDefinition.table_name,1);
-    const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h=>h.textContent.trim());
-    const rows = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()));
-    if(!rows.length){ alert('No data'); return; }
-    const { jsPDF } = window.jspdf; const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'}); const pw = doc.internal.pageSize.getWidth(); const margin = 12;
-    doc.setFontSize(12); doc.text(currentDefinition.label || currentDefinition.table_name, margin, 16);
-    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pw - margin, 16, { align:'right' });
-    doc.autoTable({ startY:20, head:[headers], body:rows, styles:{fontSize:8,cellPadding:3}, margin:{left:margin,right:margin,top:20,bottom:margin}, showHead:'everyPage', didDrawPage:function(){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pw - margin, doc.internal.pageSize.getHeight()-8, { align:'right' }); }});
-    doc.save(`${currentDefinition.table_name}_aggregated.pdf`);
-  }
-}
+                // Build header keys
+                const headerKeys = Object.keys(raw[0]);
+                // Build rows and normalize nested objects
+                const rows = raw.map(row => {
+                    const out = {};
+                    headerKeys.forEach(k => {
+                        const v = row[k];
+                        if (v === null || v === undefined) out[k] = '';
+                        else if (typeof v === 'object') out[k] = JSON.stringify(v);
+                        else out[k] = String(v);
+                    });
+                    return out;
+                });
 
-function normalizeRow(r){ const out = {}; Object.keys(r).forEach(k=> out[k] = normalizeCell(r[k])); return out; }
-function normalizeCell(v){ if(v==null) return ''; if(typeof v === 'object') return JSON.stringify(v); return v; }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
 
-function draftKey(table){ return draftPrefix + table; }
-function saveDraft(table){
-  if(!table) return;
-  const data = {}; \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=> data[i.name] = i.value);
-  localStorage.setItem(draftKey(table), JSON.stringify({ savedAt: new Date().toISOString(), data }));
-  renderDraftsList();
-  \$('draftStatus').textContent = `Draft saved at ${new Date().toLocaleTimeString()}`;
-  shortToast('Draft saved locally');
-}
-function loadDraft(table){
-  const raw = localStorage.getItem(draftKey(table)); if(!raw) return;
-  try{ const parsed = JSON.parse(raw); const d = parsed.data || {}; $('entryForm').querySelectorAll('input,textarea,select').forEach(i=> { if(d.hasOwnProperty(i.name)) i.value = d[i.name]; }); $('draftStatus').textContent = `Draft loaded (${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : ''})`; } catch(e){ console.error('loadDraft', e); }
-}
-function clearDraft(){ if(!currentDefinition) return; localStorage.removeItem(draftKey(currentDefinition.table_name)); renderDraftsList(); shortToast('Draft cleared'); }
-function renderDraftsList(){ const el = \$('draftsList'); el.innerHTML = ''; const keys = Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix)); if(!keys.length){ el.innerHTML = '<div class="text-muted">No drafts</div>'; return; } keys.forEach(k=>{ try{ const raw = JSON.parse(localStorage.getItem(k)); const name = k.replace(draftPrefix,''); const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]); btn.addEventListener('click', ()=>{ selectDefinition(name).then(()=>loadDraft(name)).catch(()=>{}); }); el.appendChild(btn); }catch(e){ console.warn(e); } }); }
-function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer = setTimeout(()=> { if(currentDefinition) saveDraft(currentDefinition.table_name); }, AUTOSAVE_MS); }
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const margin = 12;
 
-function enqueueInsert(table, data){ const raw = localStorage.getItem(queueKey) || '[]'; const arr = JSON.parse(raw); arr.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2,8), table, data, createdAt: new Date().toISOString() }); localStorage.setItem(queueKey, JSON.stringify(arr)); shortToast('Saved to offline queue'); }
-async function processQueue(){ if(!navigator.onLine) return; const raw = localStorage.getItem(queueKey); if(!raw) return; let arr = JSON.parse(raw); if(!arr.length) return; const remaining = []; for(const item of arr){ try{ const payload = { ...item.data }; if(currentUser && currentUser.id) payload.created_by = currentUser.id; const { error } = await supabase.from(item.table).insert([payload]); if(error){ console.error('queue insert failed', error); remaining.push(item); } else shortToast('Queued item synced'); }catch(e){ console.error('processQueue', e); remaining.push(item); } } localStorage.setItem(queueKey, JSON.stringify(remaining)); }
+                // Title and timestamp on first page
+                const title = currentDefinition.label || currentDefinition.table_name;
+                doc.setFontSize(12);
+                doc.text(title, margin, 16);
+                doc.setFontSize(9);
+                const now = new Date().toLocaleString();
+                doc.text(`Exported: ${now}`, pageWidth - margin, 16, { align: 'right' });
 
-async function saveEntry(){
-  if(!currentDefinition){ toast('कृपया कोई फॉर्म चुनें'); return; }
-  const payload = {}; let valid = true; const errs = [];
-  \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=>{
-    const name = i.name; const fd = (currentDefinition.fields||[]).find(f=> sanitizeName(f.name||f.key) === name || f.name === name);
-    const raw = i.value === '' ? null : i.value;
-    if(fd && fd.required && (raw === null || raw === '')){ valid = false; errs.push((fd.label||fd.name)+' required'); }
-    if(fd && (fd.type||'').toLowerCase()==='number' && raw!=null && raw!=='' && isNaN(Number(raw))){ valid=false; errs.push((fd.label||fd.name)+' must be number'); }
-    payload[name] = raw;
-  });
-  if(!payload.entry_date) payload.entry_date = \$('filterEntryDate').value || new Date().toISOString().slice(0,10);
-  if(!payload.entry_date){ valid=false; errs.push('entry_date missing'); }
-  if(!valid){ alert('Validation: '+errs.join(', ')); return; }
+                // Prepare head array and body arrays for autoTable
+                const head = [headerKeys];
+                const body = rows.map(r => headerKeys.map(k => r[k]));
 
-  if(currentUser && currentUser.districtId){
-    const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
-    if(hasDistrict) payload.district_id = currentUser.districtId;
-  }
-  if(currentUser && currentUser.id) payload.created_by = currentUser.id;
+                doc.autoTable({
+                    startY: 20,
+                    head,
+                    body,
+                    styles: { fontSize: 8, cellPadding: 3 },
+                    headStyles: { fillColor: [230, 230, 230], textColor: 20 },
+                    alternateRowStyles: { fillColor: [250, 250, 250] },
+                    margin: { left: margin, right: margin, top: 20, bottom: margin },
+                    pageBreak: 'auto',
+                    showHead: 'everyPage',
+                    columnStyles: headerKeys.reduce((acc, key, idx) => {
+                        acc[idx] = { cellWidth: 'auto' };
+                        return acc;
+                    }, {})
+                });
 
-  if(currentDefinition.unique_keys && Array.isArray(currentDefinition.unique_keys) && currentDefinition.unique_keys.length){
-    const where = {}; currentDefinition.unique_keys.forEach(k => { if(payload[k]) where[k] = payload[k]; });
-    if(Object.keys(where).length){
-      const { data: dup, error } = await supabase.from(currentDefinition.table_name).select('id').match(where).limit(1);
-      if(error) console.warn('dup check', error);
-      if(dup && dup.length){ if(!confirm('Possible duplicate found. Proceed?')) return; }
-    }
-  }
+                const filename = `${currentDefinition.table_name}_data.pdf`;
+                doc.save(filename);
 
-  saveDraft(currentDefinition.table_name);
-  if(!navigator.onLine){ enqueueInsert(currentDefinition.table_name, payload); return; }
+            } catch (err) {
+                console.error('Error exporting to PDF:', err);
+                alert('Failed to export PDF. See console for details.');
+            }
+        }
 
-  showSaveIndicator(true);
-  setBusy(true);
-  try{
-    const { data, error } = await supabase.from(currentDefinition.table_name).insert([payload]).select();
-    showSaveIndicator(false);
-    setBusy(false);
-    if(error) throw error;
-    localStorage.removeItem(draftKey(currentDefinition.table_name));
-    renderDraftsList();
-    shortToast('Record saved');
-    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=> i.value = '');
-    await refreshViewer();
-  }catch(e){
-    showSaveIndicator(false);
-    setBusy(false);
-    console.error('saveEntry', e);
-    enqueueInsert(currentDefinition.table_name, payload);
-    toast('Save failed — queued for retry.');
-  }
-}
+        // --- Draft storage helpers ---
+        function draftStorageKey(tableName) { return draftKeyPrefix + (tableName || 'unknown'); }
 
-function openEditModal(row){
-  editingRecord = row;
-  const form = \$('editForm'); form.innerHTML = '';
-  (currentDefinition.fields||[]).forEach(f=>{
-    const name = sanitizeName(f.name || f.key || f.id || f.label);
-    const wrapper = el('div',{class:'form-section'});
-    const label = el('label',{},[f.label||f.name||name]);
-    let input;
-    const type = (f.type||'text').toLowerCase();
-    const val = row[name] != null ? row[name] : '';
-    if(type==='date') input = el('input',{class:'form-control',type:'date',name,value:val});
-    else if(type==='number') input = el('input',{class:'form-control',type:'number',name,step:'any',value:val});
-    else if(f.options && Array.isArray(f.options)){ input = el('select',{class:'form-control',name}); input.appendChild(el('option',{value:''},['-- select --'])); f.options.forEach(o=>{ const opt=el('option',{value:o.value},[o.label]); if(String(o.value)===String(val)) opt.selected=true; input.appendChild(opt); }); }
-    else input = el('input',{class:'form-control',type:'text',name,value:val});
-    wrapper.appendChild(label); wrapper.appendChild(input); form.appendChild(wrapper);
-  });
-  \$('auditList').innerHTML = '';
-  const modal = new bootstrap.Modal(document.getElementById('editModal'));
-  modal.show();
-}
+        function saveDraft(tableName) {
+            if (!tableName) return;
+            const data = {};
+            $('entryForm').querySelectorAll('input, textarea, select').forEach(i => data[i.name] = i.value);
+            localStorage.setItem(draftStorageKey(tableName), JSON.stringify({ savedAt: new Date().toISOString(), data }));
+            renderDraftsList();
+            toastSmall('Draft saved locally');
+        }
 
-async function saveEdit(){
-  if(!editingRecord || !currentDefinition) return;
-  const payload = {};
-  \$('editForm').querySelectorAll('input,textarea,select').forEach(i=> payload[i.name] = i.value === '' ? null : i.value);
-  if(currentUser && currentUser.id) payload.updated_by = currentUser.id;
-  try{ setBusy(true); const { data, error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', editingRecord.id).select(); setBusy(false); if(error) throw error; shortToast('Record updated'); bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); await refreshViewer(); }catch(e){ setBusy(false); console.error('saveEdit', e); toast('Update failed'); }
-}
+        function loadDraft(tableName) {
+            const k = draftStorageKey(tableName);
+            const raw = localStorage.getItem(k);
+            if (!raw) return;
+            try {
+                const parsed = JSON.parse(raw);
+                const d = parsed.data || {};
+                $('entryForm').querySelectorAll('input, textarea, select').forEach(i => { if (d.hasOwnProperty(i.name)) i.value = d[i.name]; });
+                toastSmall('Draft loaded');
+            } catch (e) { console.error('draft parse', e); }
+        }
 
-async function openAudit(row){
-  if(!row || !currentDefinition) return;
-  try{
-    const { data, error } = await supabase.from('audit_logs').select('*').eq('table_name', currentDefinition.table_name).eq('record_id', row.id).order('performed_at',{ascending:false}).limit(50);
-    if(error) throw error;
-    const container = \$('auditList'); container.innerHTML = ''; container.appendChild(el('h6',{},['Recent changes:']));
-    if(!data || !data.length) container.appendChild(el('div',{},['No audit records found.']));
-    else data.forEach(a=>{ const d = el('div',{class:'mb-2 p-2', style:'background:#f8f9fa;border-radius:6px'}); d.appendChild(el('div',{},[`Action: ${a.action} • By: ${a.performed_by || 'unknown'} • At: ${new Date(a.performed_at).toLocaleString()}`])); d.appendChild(el('pre',{},[JSON.stringify({before:a.before,after:a.after},null,2)])); container.appendChild(d); });
-  }catch(e){ console.error('openAudit', e); toast('Failed to load audit'); }
-}
+        function clearDraft() {
+            if (!currentDefinition) return;
+            const k = draftStorageKey(currentDefinition.table_name);
+            localStorage.removeItem(k);
+            renderDraftsList();
+            toastSmall('Draft cleared');
+        }
 
-async function softDelete(id){
-  if(!currentDefinition) return;
-  try{ setBusy(true); const payload = { deleted_at: new Date().toISOString() }; if(currentUser && currentUser.id) payload.deleted_by = currentUser.id; const { error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', id); setBusy(false); if(error) throw error; shortToast('Record soft-deleted'); await refreshViewer(); }catch(e){ setBusy(false); console.error('softDelete', e); toast('Delete failed'); }
-}
-async function softDeleteCurrentRecord(){ if(!editingRecord) return; if(!confirm('Soft-delete this record?')) return; await softDelete(editingRecord.id); bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); }
+        function renderDraftsList() {
+            const elDrafts = $('draftsList'); elDrafts.innerHTML = '';
+            const keys = Object.keys(localStorage).filter(k => k.startsWith(draftKeyPrefix));
+            if (!keys.length) { elDrafts.innerHTML = '<div class="text-muted">No drafts</div>'; return; }
+            keys.forEach(k => {
+                try {
+                    const raw = JSON.parse(localStorage.getItem(k));
+                    const name = k.replace(draftKeyPrefix, '');
+                    const item = el('button', { type: 'button', class: 'list-group-item list-group-item-action' }, [ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
+                    item.addEventListener('click', () => { selectDefinition(name).then(() => loadDraft(name)).catch(() => {}); });
+                    elDrafts.appendChild(item);
+                } catch (e) { console.warn('bad draft', e); }
+            });
+        }
 
-function normalizeCell(v){ if(v==null) return ''; if(typeof v === 'object') return JSON.stringify(v); return v; }
+        function toastSmall(msg){
+            const div = document.createElement('div');
+            div.className = 'alert alert-secondary';
+            div.style.position = 'fixed'; div.style.right = '20px'; div.style.bottom = '20px'; div.style.zIndex = 9999;
+            div.textContent = msg; document.body.appendChild(div);
+            setTimeout(()=> div.remove(), 1600);
+        }
 
-(function anonCheck(){ if(!SUPABASE_KEY || SUPABASE_KEY.indexOf('REPLACE') !== -1){ setTimeout(()=> alert('Warning: Supabase key looks invalid. Ensure SUPABASE_KEY is set correctly.'), 300); } })();
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+        // Save entry to Supabase table and clear local draft on success
+        async function saveEntry() {
+            if (!currentDefinition) { toast('कृपया कोई फॉर्म चुनें'); return; }
+            const payload = {};
+            $('entryForm').querySelectorAll('input, textarea, select').forEach(i => payload[i.name] = i.value === '' ? null : i.value);
+
+            if (currentUser && currentUser.districtId) {
+                const hasDistrictCol = (currentDefinition.fields || []).some(f => sanitizeForInputName(f.name) === 'district_id' || f.name === 'district_id');
+                if (hasDistrictCol) payload['district_id'] = currentUser.districtId;
+            }
+
+            // Save a draft locally before sending (helps preserve in-progress)
+            saveDraft(currentDefinition.table_name);
+
+            try {
+                const { data, error } = await supabase.from(currentDefinition.table_name).insert([payload]);
+                console.log('insert response', { data, error });
+                if (error) throw error;
+                localStorage.removeItem(draftStorageKey(currentDefinition.table_name));
+                renderDraftsList();
+                toast('Record saved successfully');
+                // Clear form inputs
+                $('entryForm').querySelectorAll('input, textarea, select').forEach(i => i.value = '');
+            } catch (err) {
+                console.error('saveEntry error', err);
+                toast('Save failed. Check console for details.');
+            }
+        }
+    </script>
 </body>
 </html>
