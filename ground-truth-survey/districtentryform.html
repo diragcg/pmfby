@@ -3,130 +3,145 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>District — Data Entry (संचालनालय कृषि छत्तीसगढ़)</title>
+  <title>District — Data Entry (Single-file Robust)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
   <style>
-    :root{
-      --bg: #F8FAFC;
-      --card: #FFFFFF;
-      --pistachio: #e6f4e6;
-      --accent: #1B5E20;
-      --muted: #6b7280;
-      --shadow: 0 8px 24px rgba(2,6,23,0.06);
-      --topbar-height: 64px;
-    }
-    html,body{height:100%;}
-    body{
-      font-family: "Mukta", system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      background: var(--bg);
-      margin:0;
-    }
-    .topbar{
-      position:fixed; top:0; left:0; right:0; height:var(--topbar-height); background:var(--accent); color:#fff;
-      display:flex; align-items:center; gap:12px; padding:0 18px; z-index:60;
-    }
-    .brand{ font-weight:700; font-size:18px; margin-left:8px; }
-    .container-app{ max-width:1100px; margin: calc(var(--topbar-height) + 28px) auto 48px; padding:0 12px; }
-    .layout{ display:flex; gap:16px; align-items:flex-start; }
-    .sidebar { width:300px; min-width:240px; }
-    .card-panel{ padding:14px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); }
-    .user-badge{ background:var(--pistachio); padding:8px 12px; border-radius:8px; font-weight:700; color:var(--accent); }
-    .form-card { padding:16px; border-radius:10px; background:var(--card); box-shadow:var(--shadow); position:relative; }
-    .form-section { margin-bottom:12px; }
-    input.form-control, select.form-control, textarea.form-control { background: var(--pistachio); border:1px solid #d6ead6; height:46px; border-radius:8px; }
-    .save-row { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; align-items:center; }
-    .small-muted { color:var(--muted); font-size:13px; }
-    .hidden { display:none; }
-    .data-table-container { max-height: calc(100vh - 300px); overflow-y: auto; margin-top: 1rem; }
-    .data-table th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
-    .spinner-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background: rgba(255,255,255,0.6); border-radius:8px; }
-    .toast-area { position: fixed; right: 20px; bottom: 20px; z-index: 3000; min-width: 220px; }
+    :root{--bg:#F8FAFC;--card:#FFFFFF;--pistachio:#e6f4e6;--accent:#1B5E20;--muted:#6b7280;--shadow:0 8px 24px rgba(2,6,23,0.06);--topbar-height:64px}
+    html,body{height:100%} body{font-family:"Mukta",system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);margin:0}
+    .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-height);background:var(--accent);color:#fff;display:flex;align-items:center;gap:12px;padding:0 18px;z-index:60}
+    .brand{font-weight:700;font-size:18px;margin-left:8px}
+    .container-app{max-width:1200px;margin:calc(var(--topbar-height)+20px) auto 48px;padding:0 12px}
+    .layout{display:flex;gap:16px;align-items:flex-start}
+    .sidebar{width:320px;min-width:220px}
+    .card-panel{background:var(--card);border-radius:10px;padding:14px;box-shadow:var(--shadow)}
+    .form-card{padding:16px;border-radius:10px;background:var(--card);box-shadow:var(--shadow)}
+    .form-section{margin-bottom:10px}
+    input.form-control,select.form-control,textarea.form-control{background:var(--pistachio);border:1px solid #d6ead6;height:44px;border-radius:8px}
+    input.form-control:focus,textarea.form-control:focus,select.form-control:focus{box-shadow:0 0 0 4px rgba(27,94,32,0.06);outline:none;border-color:var(--accent);background:#fff}
+    .data-table-container{max-height:calc(100vh - 360px);overflow:auto;margin-top:1rem}
+    .data-table th{position:sticky;top:0;background:#f8f9fa;z-index:10}
+    .hidden{display:none}
+    .small-muted{color:var(--muted);font-size:13px}
+    .required::after{ content: " *"; color:#d63333; margin-left:4px; font-weight:700;}
+    .compact { padding:6px 10px; height:auto; }
+    .inline-help { font-size:12px; color:var(--muted); margin-top:4px; }
+    .busy { opacity:0.6; pointer-events:none; }
+    .table-wrap { overflow:auto; }
   </style>
 </head>
 <body>
   <div class="topbar">
     <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" width="34" height="34" alt="">
     <div class="brand">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
-    <div style="margin-left:auto;display:flex;gap:8px;">
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
       <button id="btnHome" class="btn btn-sm btn-light">Home</button>
       <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
     </div>
   </div>
   <div class="container-app">
     <div class="layout">
-      <aside class="sidebar">
-        <div class="card-panel">
-          <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
-            <div class="user-badge" id="userBadge">test_district</div>
-            <div>
-              <div id="userRoleLine" style="font-weight:700;color:var(--accent);">Role: user</div>
-              <div id="userDistrictLine" class="small-muted">District: -</div>
-            </div>
+      <aside class="sidebar card-panel">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
+          <div id="userBadge" style="background:#e6f4e6;padding:8px 12px;border-radius:8px;font-weight:700;color:var(--accent)">user</div>
+          <div>
+            <div id="userRoleLine" style="font-weight:700;color:var(--accent)">Role: user</div>
+            <div id="userDistrictLine" class="small-muted">District: -</div>
           </div>
+        </div>
 Text
-      <div style="margin-top:8px;">
-        <div class="small-muted">Available forms</div>
-        <div id="formsList" class="list-group mt-2"></div>
-      </div>
+    <div style="margin-top:8px;">
+      <div class="small-muted">Available forms</div>
+      <div id="formsList" class="list-group mt-2"></div>
+    </div>
 
-      <div style="margin-top:12px;">
-        <div class="small-muted">Drafts</div>
-        <div id="draftsList" class="list-group mt-2"></div>
+    <div style="margin-top:12px;">
+      <div class="small-muted d-flex justify-content-between align-items-center">
+        Drafts
+        <small><button id="btnClearAllDrafts" class="btn btn-sm btn-link">Clear All</button></small>
       </div>
+      <div id="draftsList" class="list-group mt-2"></div>
+    </div>
 
-      <div style="margin-top:14px;">
-        <button id="btnRefreshForms" class="btn btn-sm btn-outline-primary w-100">Refresh Forms</button>
-      </div>
+    <div style="margin-top:14px;">
+      <button id="btnRefreshForms" class="btn btn-sm btn-outline-primary w-100">Refresh Forms</button>
     </div>
   </aside>
 
-  <main style="flex:1;min-width:0;">
-    <div class="card-panel user-info" style="margin-bottom:12px;">
-      <div>
-        <div id="pageTitle" style="font-weight:800; font-size:16px;">डेटा एंट्री</div>
-        <div class="small-muted">कृपया नीचे दिए फॉर्म में आवश्यक विवरण भरें और Save पर क्लिक करें।</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="small-muted">Logged in as</div>
-        <div id="userSummary" style="font-weight:700;">test_district • Role: user • District: -</div>
+  <main style="flex:1;min-width:0">
+    <div class="card-panel" style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:800;font-size:16px" id="pageTitle">डेटा एंट्री</div>
+          <div class="small-muted">कृपया नीचे दिए फॉर्म में आवश्यक विवरण भरें और Save पर क्लिक करें।</div>
+        </div>
+
+        <div style="text-align:right">
+          <div class="small-muted">Logged in as</div>
+          <div id="userSummary" style="font-weight:700">user • Role: user</div>
+          <div id="draftStatus" class="inline-help"></div>
+        </div>
       </div>
     </div>
 
+    <!-- Entry panel -->
     <div id="dataEntryPanel" class="form-card hidden">
-      <h5 id="formTitle" class="mb-3"></h5>
-      <div class="d-flex justify-content-end mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 id="formTitle" class="mb-0"></h5>
+        <div>
+          <label class="me-2">Entry date</label>
+          <input id="filterEntryDate" type="date" class="form-control compact" />
+        </div>
+      </div>
+
+      <div class="mb-2 text-end">
         <button id="btnViewRecords" class="btn btn-sm btn-outline-secondary">View Records</button>
       </div>
 
       <form id="entryForm" autocomplete="off"></form>
 
-      <div class="save-row">
+      <div class="d-flex justify-content-end align-items-center mt-2">
         <div class="small-muted me-auto" id="formNote">All fields marked * are required.</div>
         <div>
-          <button id="btnClearDraft" class="btn btn-outline-secondary btn-sm">Clear Draft</button>
-          <button id="btnSave" class="btn btn-success btn-sm">Create New</button>
-          <button id="btnUpdate" class="btn btn-warning btn-sm">Update Existing</button>
+          <button id="btnClearDraft" type="button" class="btn btn-outline-secondary btn-sm">Clear Draft</button>
+          <button id="btnSave" type="button" class="btn btn-success btn-sm">Save</button>
         </div>
       </div>
-
-      <div id="entrySpinner" class="spinner-overlay hidden"><div class="spinner-border text-success" role="status"></div></div>
     </div>
 
+    <!-- Viewer with filters, raw & aggregated toggle -->
     <div id="dataViewerPanel" class="form-card hidden">
-      <h5 id="viewerTitle" class="mb-3">View Records</h5>
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <button id="btnEnterNewData" class="btn btn-sm btn-outline-secondary">Enter New Data</button>
-        <div id="viewerControls">
-          <button id="btnExport" class="btn btn-sm btn-outline-success me-2">Export (Excel)</button>
-          <button id="btnExportPDF" class="btn btn-sm btn-outline-danger me-2">Export (PDF)</button>
-          <button id="btnRefreshData" class="btn btn-sm btn-outline-primary">Refresh Data</button>
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex gap-2 align-items-center">
+          <label class="mb-0 me-1">From</label>
+          <input id="filterFrom" type="date" class="form-control compact" />
+          <label class="mb-0 ms-2 me-1">To</label>
+          <input id="filterTo" type="date" class="form-control compact" />
+          <select id="groupBy" class="form-control compact ms-3">
+            <option value="none">Raw Records</option>
+            <option value="day">Group by Day</option>
+            <option value="week">Group by Week</option>
+            <option value="month">Group by Month</option>
+          </select>
+          <select id="aggMetric" class="form-control compact ms-2" style="min-width:140px">
+            <option value="">Aggregation (choose numeric)</option>
+          </select>
+        </div>
+
+        <div>
+          <button id="btnEnterNewData" class="btn btn-sm btn-outline-secondary">Enter New Data</button>
+          <button id="btnExport" class="btn btn-sm btn-outline-success me-1">Export (Excel)</button>
+          <button id="btnExportPDF" class="btn btn-sm btn-outline-danger me-1">Export (PDF)</button>
+          <button id="btnRefreshData" class="btn btn-sm btn-outline-primary">Refresh</button>
         </div>
       </div>
 
-      <div class="data-table-container position-relative">
-        <div id="viewerSpinner" class="spinner-overlay hidden"><div class="spinner-border text-success" role="status"></div></div>
-        <table class="table table-striped table-hover data-table mb-0">
+      <div class="data-table-container table-wrap">
+        <table class="table table-striped table-hover data-table">
           <thead id="dataTableHeaders"></thead>
           <tbody id="dataTableBody"></tbody>
         </table>
@@ -143,557 +158,688 @@ Text
   </main>
 </div>
   </div>
-  <div id="toastArea" class="toast-area"></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-  <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-  <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+  <!-- Edit Modal -->
+  <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editForm"></form>
+          <div class="mt-2 small-muted">Change will be audited and recorded.</div>
+        </div>
+        <div class="modal-footer">
+          <button id="btnDeleteRecord" class="btn btn-outline-danger me-auto">Delete (soft)</button>
+          <button id="btnCancelEdit" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button id="btnSaveEdit" class="btn btn-primary">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- libs already loaded above -->
   <script>
-    // ---------- CONFIG ----------
-    const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/*
+Single-file robust client:
+- Dynamic forms from form_definitions (fields JSON). Requires each form to include an "entry_date" typed column—enforced client-side and expected server-side.
+- Raw records view + Aggregated view (group by day/week/month) with selectable numeric metric to aggregate.
+- Edit modal with audit retrieval (reads audit_logs for the record).
+- Soft-delete, restore expected via deleted_at server-side; client uses delete action.
+- Exports: .xlsx and paginated PDF (A4) for current filters (raw or aggregated).
+- Drafts (localStorage), autosave (debounced), offline queue for inserts.
+- Inline validation, disable save while in-flight, last-saved draft indicator.
+IMPORTANT: Replace SUPABASE_ANON_KEY with your anon key. Do NOT put service role key here.
+*/
 
-    // ---------- HELPERS ----------
-    const \$ = id => document.getElementById(id);
-    function el(tag, attrs = {}, children = []) {
-      const e = document.createElement(tag);
-      for (const k in attrs) {
-        if (k === 'class') e.className = attrs[k];
-        else e.setAttribute(k, attrs[k]);
-      }
-      children.forEach(c => typeof c === 'string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c));
-      return e;
-    }
-    function showToast(msg, type='secondary', ttl=3000) {
-      const area = \$('toastArea');
-      const div = document.createElement('div');
-      div.className = `alert alert-${type}`;
-      div.style.marginTop = '8px';
-      div.textContent = msg;
-      area.appendChild(div);
-      setTimeout(()=> div.remove(), ttl);
-    }
-    function setLoadingOverlay(container, show=true, targetId='entrySpinner') {
-      const target = container ? container.querySelector(`#${targetId}`) : null;
-      if (!target) return;
-      if (show) target.classList.remove('hidden'); else target.classList.add('hidden');
-    }
-    function sanitizeForInputName(s) { return String(s || '').replace(/[^a-zA-Z0-9_]/g, '_'); }
+const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co'; // replace
+const SUPABASE_ANON_KEY = 'REPLACE_WITH_ANON_KEY'; // replace
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ---------- STATE ----------
-    let currentUser = null;
-    let definitions = [];
-    let currentDefinition = null;
-    let currentPage = 1;
-    const recordsPerPage = 20;
-    let totalRecords = 0;
-    let loadedCurrentRecord = null; // for update flow
+const \$ = id => document.getElementById(id);
+function el(tag, attrs={}, children=[]) { const e = document.createElement(tag); for (const k in attrs) { if(k==='class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } children.forEach(c => typeof c==='string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c)); return e; }
+function toast(msg){ alert(msg); }
+function shortToast(msg){ const d = el('div',{class:'alert alert-secondary'}); d.style.position='fixed'; d.style.right='20px'; d.style.bottom='20px'; d.style.zIndex=9999; d.textContent=msg; document.body.appendChild(d); setTimeout(()=>d.remove(),1600); }
 
-    // ---------- INIT ----------
-    document.addEventListener('DOMContentLoaded', async () => {
-      currentUser = getCurrentUser() || {
-        id: null, username: 'test_district', fullName: 'test_district', role: 'user',
-        districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99'
-      };
+function sanitizeName(s){ return String(s||'').replace(/[^a-zA-Z0-9_]/g,'_'); }
 
-      \$('userBadge').textContent = currentUser.fullName || currentUser.username || 'user';
-      \$('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
-      \$('userDistrictLine').textContent = `District: ${currentUser.districtId || ''}`;
-      \$('userSummary').textContent = `${currentUser.fullName || currentUser.username} • Role: ${currentUser.role || 'user'} • District: ${currentUser.districtId || ''}`;
+let currentUser = null;
+let definitions = [];
+let currentDefinition = null;
+let currentPage = 1, recordsPerPage = 20, totalRecords = 0;
+const draftPrefix = 'draft::';
+const queueKey = 'queue::';
+let autosaveTimer = null;
+const AUTOSAVE_MS = 5000;
 
-      // event bindings
-      \$('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
-      \$('btnHome').addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-      \$('btnRefreshForms').addEventListener('click', loadDefinitions);
-
-      \$('btnSave').addEventListener('click', saveEntry);
-      \$('btnUpdate').addEventListener('click', onUpdateClick);
-      \$('btnClearDraft').addEventListener('click', clearDraft);
-      \$('btnViewRecords').addEventListener('click', showDataViewer);
-      \$('btnEnterNewData').addEventListener('click', showDataEntry);
-      \$('btnExport').addEventListener('click', exportData);
-      \$('btnExportPDF').addEventListener('click', exportPDF);
-      \$('btnRefreshData').addEventListener('click', () => fetchAndRenderTableData(currentDefinition.table_name, currentPage));
-
-      await loadDefinitions();
-      renderDraftsList();
-    });
-
-    function getCurrentUser() {
-      try {
-        const s = localStorage.getItem('user') || sessionStorage.getItem('user');
-        return s ? JSON.parse(s) : null;
-      } catch (e) { return null; }
-    }
-
-    // ---------- FORMS DEFINITION ----------
-    async function loadDefinitions() {
-      try {
-        const { data, error } = await supabase.from('form_definitions').select('*').order('created_at', { ascending: false });
-        if (error) throw error;
-        definitions = data || [];
-        renderFormsList();
-      } catch (err) {
-        console.error('Failed loading definitions', err);
-        showToast('फॉर्म लोड करने में त्रुटि — कंसोल देखें।', 'danger');
-      }
-    }
-
-function renderFormsList() {
-    const list = $('formsList');
-    list.innerHTML = '';
-    if (!definitions.length) {
-        list.innerHTML = '<div class="text-muted">No forms available</div>';
-        return;
-    }
-    definitions.forEach(def => {
-        // store the canonical table_name in a data attribute so we always use the correct identifier
-        const item = el('button', {
-            type: 'button',
-            class: 'list-group-item list-group-item-action',
-            'data-table': def.table_name
-        }, [ `${def.label || def.table_name}` ]);
-
-        // click handler reads the table name from data attribute and calls selectDefinition
-        item.addEventListener('click', (e) => {
-            const tn = e.currentTarget.getAttribute('data-table');
-            selectDefinition(tn);
-        });
-
-        list.appendChild(item);
-    });
+// init user (demo/local) — integrate with real auth as needed
+function getCurrentUser() {
+  const s = localStorage.getItem('user') || sessionStorage.getItem('user');
+  if (s) return JSON.parse(s);
+  return { id: null, username: 'test_district', fullName: 'test_district', role: 'user', districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99' };
 }
 
-async function selectDefinition(tableName) {
-    if (!tableName) return;
-    // highlight the selected item by matching data-table attribute
-    Array.from($('formsList').children).forEach(ch => {
-        const tn = ch.getAttribute && ch.getAttribute('data-table');
-        ch.classList.toggle('active', tn === tableName);
-    });
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = getCurrentUser();
+  \$('userBadge').textContent = currentUser.fullName || currentUser.username;
+  \$('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
+  \$('userDistrictLine').textContent = `District: ${currentUser.districtId || ''}`;
+  \$('userSummary').textContent = `${currentUser.fullName || currentUser.username} • Role: ${currentUser.role || 'user'} • District: ${currentUser.districtId || ''}`;
 
-    try {
-        const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
-        if (error) throw error;
-        currentDefinition = data;
-        showDataEntry();
-        renderForm(currentDefinition);
-        loadDraft(currentDefinition.table_name);
+  \$('btnLogout').addEventListener('click', ()=>{ localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.reload(); });
+  \$('btnHome').addEventListener('click', ()=>window.scrollTo({top:0,behavior:'smooth'}));
+  \$('btnRefreshForms').addEventListener('click', loadDefinitions);
+  \$('btnSave').addEventListener('click', saveEntry);
+  \$('btnClearDraft').addEventListener('click', clearDraft);
+  \$('btnViewRecords').addEventListener('click', showDataViewer);
+  \$('btnEnterNewData').addEventListener('click', showDataEntry);
+  \$('btnExport').addEventListener('click', exportData);
+  \$('btnExportPDF').addEventListener('click', exportPDF);
+  \$('btnRefreshData').addEventListener('click', refreshViewer);
 
-        // load latest record for update flow if available
-        await loadLatestForDistrict(currentDefinition.table_name);
-    } catch (err) {
-        console.error('selectDefinition error', err);
-        showToast('Cannot open form. Check console.', 'danger');
-    }
+  \$('btnClearAllDrafts').addEventListener('click', ()=>{ if(confirm('Clear all local drafts?')) { Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix)).forEach(k=>localStorage.removeItem(k)); renderDraftsList(); } });
+
+  // edit modal buttons
+  document.getElementById('btnSaveEdit').addEventListener('click', saveEdit);
+  document.getElementById('btnDeleteRecord').addEventListener('click', softDeleteCurrentRecord);
+
+  window.addEventListener('online', ()=>{ shortToast('Back online — syncing queue'); processQueue(); });
+  window.addEventListener('offline', ()=> shortToast('Offline — entries will be queued'));
+
+  await loadDefinitions();
+  renderDraftsList();
+  processQueue();
+});
+
+// Load form definitions from DB
+async function loadDefinitions(){
+  try{
+    const { data, error } = await supabase.from('form_definitions').select('*').order('created_at',{ascending:false});
+    if (error) throw error;
+    definitions = data || [];
+    renderFormsList();
+  } catch (e) {
+    console.error('loadDefinitions', e);
+    toast('फ़ॉर्म लोड करने में समस्या।');
+  }
 }
 
+function renderFormsList(){
+  const list = \$('formsList'); list.innerHTML = '';
+  if(!definitions.length){ list.innerHTML = '<div class="text-muted">No forms available</div>'; return; }
+  definitions.forEach(def=>{
+    const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[def.label || def.table_name]);
+    btn.addEventListener('click', ()=>selectDefinition(def.table_name));
+    list.appendChild(btn);
+  });
+}
 
-    function renderForm(def) {
-      \$('formTitle').textContent = def.label || def.table_name;
-      const form = \$('entryForm');
-      form.innerHTML = '';
-
-      (def.fields || []).forEach(field => {
-        const wrapper = el('div', { class: 'form-section' });
-        const label = el('label', { class: field.required ? 'form-label required' : 'form-label' }, [ field.label || field.name ]);
-        const inputName = sanitizeForInputName(field.name);
-        let input;
-        const type = field.type || 'text';
-        if (type === 'date') {
-          input = el('input', { class: 'form-control', type: 'date', name: inputName });
-        } else if (type === 'number') {
-          input = el('input', { class: 'form-control', type: 'number', name: inputName, step: 'any' });
-        } else if (field.options && field.options.length) {
-          input = el('select', { class: 'form-control', name: inputName });
-          field.options.forEach(option => input.appendChild(el('option', { value: option.value }, [ option.label ])));
-        } else {
-          input = el('input', { class: 'form-control', type: 'text', name: inputName });
-        }
-        input.placeholder = field.placeholder || '';
-        wrapper.appendChild(label);
-        wrapper.appendChild(input);
-        form.appendChild(wrapper);
-      });
-
-      \$('dataEntryPanel').classList.remove('hidden');
-      \$('noForm').classList.add('hidden');
+async function selectDefinition(tableName){
+  Array.from(\$('formsList').children).forEach(ch=>ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
+  try{
+    const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
+    if (error) throw error;
+    currentDefinition = data;
+    // ensure canonical entry_date exists in metadata or warn
+    if(!(currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'entry_date' || f.name === 'entry_date')) {
+      shortToast('Warning: form_definitions should include entry_date field (date) for period reporting.');
     }
+    renderForm(currentDefinition);
+    loadDraft(currentDefinition.table_name);
+    showDataEntry();
+  } catch(e){ console.error('selectDefinition', e); toast('Cannot open form'); }
+}
 
-    function showDataEntry() {
-      \$('dataEntryPanel').classList.remove('hidden');
-      \$('dataViewerPanel').classList.add('hidden');
-      \$('noForm').classList.add('hidden');
+// Render form inputs dynamically
+function renderForm(def){
+  \$('formTitle').textContent = def.label || def.table_name;
+  const form = \$('entryForm'); form.innerHTML = '';
+  (def.fields || []).forEach(field=>{
+    const name = sanitizeName(field.name || field.key || field.id || field.label);
+    const wrapper = el('div',{class:'form-section'});
+    const label = el('label',{class: field.required ? 'required' : ''},[field.label || field.name || name]);
+    let input;
+    const type = (field.type || 'text').toLowerCase();
+    if(type==='date') input = el('input',{class:'form-control',type:'date',name});
+    else if(type==='number') input = el('input',{class:'form-control',type:'number',name,step:'any'});
+    else if(field.options && Array.isArray(field.options)) {
+      input = el('select',{class:'form-control',name});
+      input.appendChild(el('option',{value:''},['-- select --']));
+      field.options.forEach(o => input.appendChild(el('option',{value:o.value},[o.label])));
+    } else {
+      input = el('input',{class:'form-control',type:'text',name});
     }
+    if(field.placeholder) input.placeholder = field.placeholder;
+    input.addEventListener('input', scheduleAutosave);
+    wrapper.appendChild(label);
+    wrapper.appendChild(input);
+    if(field.hint) wrapper.appendChild(el('div',{class:'inline-help'},[field.hint]));
+    form.appendChild(wrapper);
+  });
 
-    // ---------- VIEWER ----------
-    async function showDataViewer() {
-      if (!currentDefinition) { showToast('कृपया पहले फॉर्म चुनें।', 'warning'); return; }
-      \$('dataEntryPanel').classList.add('hidden');
-      \$('dataViewerPanel').classList.remove('hidden');
-      \$('noForm').classList.add('hidden');
-      await fetchAndRenderTableData(currentDefinition.table_name, 1);
-    }
+  // populate aggregation metric selector with numeric fields
+  const agg = \$('aggMetric'); agg.innerHTML = '<option value="">Aggregation (choose numeric)</option>';
+  (def.fields||[]).forEach(f => { if((f.type||'').toLowerCase()==='number') agg.appendChild(el('option',{value:sanitizeName(f.name)},[f.label||f.name])); });
 
-    async function fetchAndRenderTableData(tableName, page = 1) {
-      currentPage = page;
-      const start = (currentPage - 1) * recordsPerPage;
-      const end = start + recordsPerPage - 1;
+  \$('filterEntryDate').value = new Date().toISOString().slice(0,10); // default entry date to today
+  \$('dataEntryPanel').classList.remove('hidden');
+  \$('noForm').classList.add('hidden');
+}
 
-      const container = \$('dataViewerPanel').querySelector('.data-table-container');
-      setLoadingOverlay(container, true, 'viewerSpinner');
+// Show entry panel
+function showDataEntry(){ $('dataEntryPanel').classList.remove('hidden'); $('dataViewerPanel').classList.add('hidden'); \$('noForm').classList.add('hidden'); }
 
-      try {
-        // filter by district to show only that district's rows
-        const query = supabase.from(tableName)
-          .select('*', { count: 'estimated' })
-          .eq('district_id', currentUser && currentUser.districtId ? currentUser.districtId : null)
-          .order('created_at', { ascending: false })
-          .range(start, end);
+// Viewer
+async function showDataViewer(){ if(!currentDefinition){ toast('Select a form first'); return; } $('dataEntryPanel').classList.add('hidden'); $('dataViewerPanel').classList.remove('hidden'); \$('noForm').classList.add('hidden'); await refreshViewer(); }
 
-        const { data, count, error } = await query;
-        if (error) { throw error; }
+async function refreshViewer(){
+  if(!currentDefinition) return;
+  currentPage = 1;
+  await fetchAndRenderTableData(currentDefinition.table_name, currentPage);
+}
 
-        totalRecords = (typeof count === 'number') ? count : (data ? data.length : 0);
-        renderDataTable(data || []);
-        renderPagination();
-      } catch (err) {
-        console.error('Error fetching table data:', err);
-        showToast('डेटा लाने में त्रुटि — कंसोल देखें।', 'danger');
-      } finally {
-        setLoadingOverlay(container, false, 'viewerSpinner');
+// Fetch rows with date-range & grouping support
+async function fetchAndRenderTableData(tableName, page=1){
+  currentPage = page;
+  const from = \$('filterFrom').value;
+  const to = \$('filterTo').value;
+  const groupBy = \$('groupBy').value;
+  const aggField = \$('aggMetric').value;
+
+  // raw records
+  if(groupBy === 'none'){
+    const start = (currentPage - 1) * recordsPerPage;
+    const end = start + recordsPerPage - 1;
+    try{
+      // build base query with date filter and soft-delete excluded
+      let query = supabase.from(tableName).select('*', { count: 'exact' }).range(start, end);
+      if(from) query = query.gte('entry_date', from);
+      if(to) query = query.lte('entry_date', to);
+      // filter by district if form has district_id and user has district
+      if(currentUser && currentUser.districtId) {
+        const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
+        if(hasDistrict) query = query.eq('district_id', currentUser.districtId);
       }
-    }
-
-    function renderDataTable(data) {
-      const headers = \$('dataTableHeaders');
-      const body = \$('dataTableBody');
-      headers.innerHTML = '';
-      body.innerHTML = '';
-
-      if (!data || data.length === 0) {
-        body.innerHTML = '<tr><td colspan="100%" class="text-center">No records found.</td></tr>';
-        return;
-      }
-
-      const headerKeys = Object.keys(data[0]);
-      const headerRow = el('tr', {}, headerKeys.map(k => el('th', { scope: 'col' }, [k])));
-      headers.appendChild(headerRow);
-
-      const frag = document.createDocumentFragment();
-      data.forEach(row => {
-        const tr = el('tr', {});
-        headerKeys.forEach(key => {
-          let cellValue = row[key] !== null && row[key] !== undefined ? row[key] : '';
-          if (typeof cellValue === 'object') cellValue = JSON.stringify(cellValue);
-          tr.appendChild(el('td', {}, [String(cellValue)]));
-        });
-        frag.appendChild(tr);
-      });
-      body.appendChild(frag);
-    }
-
-    function renderPagination() {
-      const paginationEl = \$('pagination');
-      paginationEl.innerHTML = '';
-      const totalPages = Math.max(1, Math.ceil(totalRecords / recordsPerPage));
-
-      const makeItem = (text, page, isDisabled) => {
-        const li = el('li', { class: `page-item ${isDisabled ? 'disabled' : ''} ${page === currentPage ? 'active' : ''}` }, []);
-        const a = el('a', { class: 'page-link', href: '#', 'data-page': page }, [text]);
-        a.addEventListener('click', (e) => {
-          e.preventDefault();
-          if (!isDisabled && page !== currentPage) fetchAndRenderTableData(currentDefinition.table_name, page);
-        });
-        li.appendChild(a);
-        return li;
-      };
-
-      paginationEl.appendChild(makeItem('Previous', Math.max(1, currentPage - 1), currentPage === 1));
-
-      const maxVisible = 7;
-      let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-      let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-      if (endPage - startPage < maxVisible - 1) startPage = Math.max(1, endPage - maxVisible + 1);
-
-      if (startPage > 1) {
-        paginationEl.appendChild(makeItem('1', 1, false));
-        if (startPage > 2) paginationEl.appendChild(el('li', { class: 'page-item disabled' }, [ el('span', { class: 'page-link' }, ['...']) ]));
-      }
-
-      for (let i = startPage; i <= endPage; i++) paginationEl.appendChild(makeItem(i, i, false));
-
-      if (endPage < totalPages) {
-        if (endPage < totalPages - 1) paginationEl.appendChild(el('li', { class: 'page-item disabled' }, [ el('span', { class: 'page-link' }, ['...']) ]));
-        paginationEl.appendChild(makeItem(totalPages, totalPages, false));
-      }
-
-      paginationEl.appendChild(makeItem('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
-    }
-
-    // ---------- EXPORT (fixed) ----------
-    async function fetchAllTableData(tableName) {
-      const pageSize = 1000;
-      let from = 0;
-      let all = [];
-      while (true) {
-        const { data, error } = await supabase.from(tableName)
-          .select('*')
-          .eq('district_id', currentUser && currentUser.districtId ? currentUser.districtId : null)
-          .order('created_at', { ascending: false })
-          .range(from, from + pageSize - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
+      // exclude soft deleted by default (assumes deleted_at column)
+      query = query.is('deleted_at', null);
+      const { data, count, error } = await query;
+      if(error) throw error;
+      totalRecords = count || 0;
+      renderDataTable(data || []);
+      renderPagination();
+    }catch(e){ console.error('fetch raw', e); toast('Failed to fetch records'); }
+  } else {
+    // aggregated view: use Postgres RPC via supabase.sql() is not available on anon; use stored view/back-end ideally.
+    // We'll fetch raw range (bounded) and aggregate client-side for safety (works for moderate volumes).
+    try{
+      // fetch all rows in date range (with cap to avoid OOM)
+      const pageSize = 5000;
+      let all = [], offset = 0;
+      while(true){
+        const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize - 1).is('deleted_at', null);
+        if(error) throw error;
+        if(!data || data.length===0) break;
+        // apply date/district filters client-side
         all = all.concat(data);
-        if (data.length < pageSize) break;
-        from += pageSize;
+        if(data.length < pageSize) break;
+        offset += pageSize;
+        if(all.length > 20000) break; // safety cap
       }
-      return all;
-    }
-
-    async function exportData() {
-      if (!currentDefinition) { showToast('Please select a form first.', 'warning'); return; }
-      try {
-        const raw = await fetchAllTableData(currentDefinition.table_name);
-        if (!raw || raw.length === 0) { showToast('No records to export.', 'warning'); return; }
-
-        const normalized = raw.map(r => {
-          const out = {};
-          Object.keys(r).forEach(k => {
-            const v = r[k];
-            if (v === null || v === undefined) out[k] = '';
-            else if (typeof v === 'object') out[k] = JSON.stringify(v);
-            else out[k] = v;
-          });
-          return out;
-        });
-
-        const worksheet = XLSX.utils.json_to_sheet(normalized);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-        XLSX.writeFile(workbook, `${currentDefinition.table_name}_data.xlsx`);
-        showToast('Export complete', 'success');
-      } catch (err) {
-        console.error('Error exporting to Excel:', err);
-        showToast('Export failed. See console.', 'danger');
+      // filter by date and district
+      let filtered = all;
+      if(from) filtered = filtered.filter(r => r.entry_date && r.entry_date >= from);
+      if(to) filtered = filtered.filter(r => r.entry_date && r.entry_date <= to);
+      if(currentUser && currentUser.districtId) {
+        const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
+        if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
       }
-    }
-
-    async function exportPDF() {
-      if (!currentDefinition) { showToast('Please select a form first.', 'warning'); return; }
-      try {
-        const raw = await fetchAllTableData(currentDefinition.table_name);
-        if (!raw || raw.length === 0) { showToast('No records to export.', 'warning'); return; }
-
-        const headerKeys = Object.keys(raw[0]);
-        const body = raw.map(r => headerKeys.map(k => {
-          const v = r[k];
-          if (v === null || v === undefined) return '';
-          if (typeof v === 'object') return JSON.stringify(v);
-          return String(v);
-        }));
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const margin = 12;
-        const title = currentDefinition.label || currentDefinition.table_name;
-        doc.setFontSize(12); doc.text(title, margin, 16);
-        doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth - margin, 16, { align: 'right' });
-
-        doc.autoTable({
-          startY: 20,
-          head: [headerKeys],
-          body,
-          styles: { fontSize: 8, cellPadding: 3 },
-          headStyles: { fillColor: [230,230,230], textColor: 20 },
-          margin: { left: margin, right: margin, top: 20, bottom: margin },
-          showHead: 'everyPage',
-          pageBreak: 'auto'
-        });
-
-        doc.save(`${currentDefinition.table_name}_data.pdf`);
-        showToast('PDF export complete', 'success');
-      } catch (err) {
-        console.error('Error exporting to PDF:', err);
-        showToast('PDF export failed. See console.', 'danger');
-      }
-    }
-
-    // ---------- DRAFTS ----------
-    const draftKeyPrefix = 'draft::';
-    function draftStorageKey(tableName) { return draftKeyPrefix + (tableName || 'unknown'); }
-
-    function saveDraft(tableName) {
-      if (!tableName) return;
-      const data = {};
-      \$('entryForm').querySelectorAll('input, textarea, select').forEach(i => data[i.name] = i.value);
-      // only save if some meaningful value
-      const meaningful = Object.values(data).some(v => v !== '' && v !== null && v !== undefined);
-      if (!meaningful) return;
-      localStorage.setItem(draftStorageKey(tableName), JSON.stringify({ savedAt: new Date().toISOString(), data }));
-      renderDraftsList();
-      showToast('Draft saved locally', 'secondary');
-    }
-
-    function loadDraft(tableName) {
-      const k = draftStorageKey(tableName);
-      const raw = localStorage.getItem(k);
-      if (!raw) return;
-      try {
-        const parsed = JSON.parse(raw);
-        const d = parsed.data || {};
-        \$('entryForm').querySelectorAll('input, textarea, select').forEach(i => { if (d.hasOwnProperty(i.name)) i.value = d[i.name]; });
-        showToast('Draft loaded', 'secondary');
-      } catch (e) { console.error('draft parse', e); }
-    }
-
-    function clearDraft() {
-      if (!currentDefinition) return;
-      const k = draftStorageKey(currentDefinition.table_name);
-      localStorage.removeItem(k);
-      renderDraftsList();
-      showToast('Draft cleared', 'secondary');
-    }
-
-    function renderDraftsList() {
-      const elDrafts = \$('draftsList'); elDrafts.innerHTML = '';
-      const keys = Object.keys(localStorage).filter(k => k.startsWith(draftKeyPrefix));
-      if (!keys.length) { elDrafts.innerHTML = '<div class="text-muted">No drafts</div>'; return; }
-      keys.forEach(k => {
-        try {
-          const raw = JSON.parse(localStorage.getItem(k));
-          const name = k.replace(draftKeyPrefix, '');
-          const item = el('button', { type: 'button', class: 'list-group-item list-group-item-action' }, [ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
-          item.addEventListener('click', () => { selectDefinition(name).then(() => loadDraft(name)).catch(()=>{}); });
-          elDrafts.appendChild(item);
-        } catch (e) { console.warn('bad draft', e); }
+      // group by period
+      const grouped = {};
+      filtered.forEach(r => {
+        const d = r.entry_date ? new Date(r.entry_date) : new Date(r.created_at || null);
+        if(!d || isNaN(d)) return;
+        let key;
+        if(groupBy==='day') key = d.toISOString().slice(0,10);
+        else if(groupBy==='week'){ // ISO week start (Mon)
+          const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+          const day = tmp.getUTCDay() || 7;
+          tmp.setUTCDate(tmp.getUTCDate() - day + 1);
+          key = tmp.toISOString().slice(0,10);
+        } else if(groupBy==='month') key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        else key = d.toISOString().slice(0,10);
+        if(!grouped[key]) grouped[key] = [];
+        grouped[key].push(r);
       });
-    }
-
-    // ---------- SAVE NEW ENTRY ----------
-    async function saveEntry() {
-      if (!currentDefinition) { showToast('कृपया कोई फॉर्म चुनें', 'warning'); return; }
-      const payload = {};
-      \$('entryForm').querySelectorAll('input, textarea, select').forEach(i => payload[i.name] = i.value === '' ? null : i.value);
-
-      // add district id if the form defines district_id or we want to enforce
-      if (currentUser && currentUser.districtId) payload['district_id'] = currentUser.districtId;
-
-      saveDraft(currentDefinition.table_name);
-
-      setLoadingOverlay(\$('dataEntryPanel'), true);
-      try {
-        // try to mark previous current for the same district+entry_date as non-current (best done server side via RPC/trigger)
-        if (payload.entry_date) {
-          await supabase.from(currentDefinition.table_name).update({ is_current: false })
-            .match({ district_id: currentUser.districtId, entry_date: payload.entry_date, is_current: true });
+      // build rows
+      const rows = Object.keys(grouped).sort((a,b)=> b.localeCompare(a)).map(period=>{
+        const items = grouped[period];
+        const row = { period, count: items.length };
+        if(aggField){
+          const nums = items.map(i => Number(i[aggField])||0);
+          row.sum = nums.reduce((s,n)=>s+n,0);
+          row.avg = nums.length ? (row.sum / nums.length) : 0;
         }
+        return row;
+      });
+      renderAggregatedTable(rows, aggField);
+      totalRecords = rows.length;
+      renderPagination(true); // grouped view
+    }catch(e){ console.error('aggregate', e); toast('Failed to compute aggregation'); }
+  }
+}
 
-        const { data, error } = await supabase.from(currentDefinition.table_name).insert([payload]);
-        if (error) throw error;
+// Render aggregated table
+function renderAggregatedTable(rows, aggField){
+  const headers = $('dataTableHeaders'), body = $('dataTableBody'); headers.innerHTML=''; body.innerHTML='';
+  if(!rows || rows.length===0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No aggregated data</td></tr>'; return; }
+  const headerCells = ['Period','Count'];
+  if(aggField) headerCells.push('Sum','Avg');
+  headers.appendChild(el('tr',{}, headerCells.map(h => el('th',{scope:'col'},[h]))));
+  rows.forEach(r=>{
+    const tr = el('tr',{}, [
+      el('td',{},[r.period]),
+      el('td',{},[String(r.count)]),
+      ...(aggField ? [el('td',{},[String(r.sum)]), el('td',{},[String(Number(r.avg).toFixed(2))])] : [])
+    ]);
+    body.appendChild(tr);
+  });
+}
 
-        localStorage.removeItem(draftStorageKey(currentDefinition.table_name));
-        renderDraftsList();
-        showToast('Record saved successfully', 'success');
+// Render raw table
+function renderDataTable(data){
+  const headers = $('dataTableHeaders'), body = $('dataTableBody'); headers.innerHTML=''; body.innerHTML='';
+  if(!data || data.length===0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No records found.</td></tr>'; return; }
+  // normalize keys and order: id, entry_date, ... others
+  const keys = Object.keys(data[0]);
+  const headerRow = el('tr',{}, keys.map(k => el('th',{scope:'col'},[k])));
+  headerRow.appendChild(el('th',{},['Actions']));
+  headers.appendChild(headerRow);
+  data.forEach(row=>{
+    const tr = el('tr',{}, keys.map(k=>{
+      let v = row[k] != null && row[k] !== undefined ? row[k] : '';
+      if(typeof v === 'object') v = JSON.stringify(v);
+      return el('td',{},[String(v)]);
+    }));
+    const actions = el('td',{},[]);
+    const btnEdit = el('button',{class:'btn btn-sm btn-outline-primary me-1'},['Edit']);
+    btnEdit.addEventListener('click', ()=> openEditModal(row));
+    const btnAudit = el('button',{class:'btn btn-sm btn-outline-secondary me-1'},['History']);
+    btnAudit.addEventListener('click', ()=> openAudit(row));
+    const btnDel = el('button',{class:'btn btn-sm btn-outline-danger'},['Delete']);
+    btnDel.addEventListener('click', ()=> { if(confirm('Soft-delete this record?')) softDelete(row.id); });
+    actions.appendChild(btnEdit); actions.appendChild(btnAudit); actions.appendChild(btnDel);
+    tr.appendChild(actions);
+    body.appendChild(tr);
+  });
+}
 
-        // clear form inputs after save
-        \$('entryForm').querySelectorAll('input, textarea, select').forEach(i => i.value = '');
-        // reload latest record if needed
-        await loadLatestForDistrict(currentDefinition.table_name);
-      } catch (err) {
-        console.error('saveEntry error', err);
-        showToast('Save failed. Check console for details.', 'danger');
-      } finally {
-        setLoadingOverlay(\$('dataEntryPanel'), false);
-      }
+// Pagination (raw or grouped)
+function renderPagination(grouped=false){
+  const paginationEl = \$('pagination'); paginationEl.innerHTML='';
+  const totalPages = grouped ? Math.max(1, Math.ceil(totalRecords / recordsPerPage)) : Math.max(1, Math.ceil(totalRecords / recordsPerPage));
+  const createItem = (text, page, disabled) => {
+    const li = el('li',{class:`page-item ${disabled? 'disabled':''} ${page===currentPage? 'active':''}`});
+    const a = el('a',{class:'page-link',href:'#','data-page':page},[text]);
+    a.addEventListener('click', (e)=>{ e.preventDefault(); if(!disabled) fetchAndRenderTableData(currentDefinition.table_name, page); });
+    li.appendChild(a); return li;
+  };
+  paginationEl.appendChild(createItem('Previous', Math.max(1, currentPage-1), currentPage===1));
+  const maxVisible = 7;
+  let start = Math.max(1, currentPage - Math.floor(maxVisible/2));
+  let end = Math.min(totalPages, start + maxVisible -1);
+  if(end - start < maxVisible -1) start = Math.max(1, end - maxVisible +1);
+  if(start>1){ paginationEl.appendChild(createItem('1',1,false)); if(start>2) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); }
+  for(let i=start;i<=end;i++) paginationEl.appendChild(createItem(i,i,false));
+  if(end<totalPages){ if(end<totalPages-1) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); paginationEl.appendChild(createItem(totalPages,totalPages,false)); }
+  paginationEl.appendChild(createItem('Next', Math.min(totalPages, currentPage+1), currentPage===totalPages));
+}
+
+// --- EXPORTS ---
+async function exportData(){
+  if(!currentDefinition){ alert('Select a form'); return; }
+  // export based on current filters and group mode
+  const groupBy = \$('groupBy').value;
+  if(groupBy === 'none'){
+    // export raw filtered rows
+    const rows = await fetchAllFilteredRows(currentDefinition.table_name);
+    if(!rows || !rows.length){ alert('No records'); return; }
+    const normalized = rows.map(r=> normalizeRow(r));
+    const ws = XLSX.utils.json_to_sheet(normalized);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+    XLSX.writeFile(wb, `${currentDefinition.table_name}_data.xlsx`);
+  } else {
+    // aggregated export: reuse aggregate logic
+    await fetchAndRenderTableData(currentDefinition.table_name, 1);
+    // convert current table to array and export
+    const tbl = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr=>{
+      return Array.from(tr.querySelectorAll('td')).map(td=>td.textContent.trim());
+    });
+    if(!tbl.length){ alert('No data'); return; }
+    // build headers from thead
+    const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h=>h.textContent.trim());
+    const arr = tbl.map(r => {
+      const obj = {};
+      headers.forEach((h,i)=> obj[h] = r[i] || '');
+      return obj;
+    });
+    const ws = XLSX.utils.json_to_sheet(arr);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Aggregated');
+    XLSX.writeFile(wb, `${currentDefinition.table_name}_aggregated.xlsx`);
+  }
+}
+
+async function exportPDF(){
+  if(!currentDefinition){ alert('Select a form'); return; }
+  const groupBy = \$('groupBy').value;
+  if(groupBy === 'none'){
+    const rows = await fetchAllFilteredRows(currentDefinition.table_name);
+    if(!rows || !rows.length){ alert('No records'); return; }
+    const headerKeys = Object.keys(rows[0]);
+    const body = rows.map(r => headerKeys.map(k => String(normalizeCell(r[k]))));
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    const pageWidth = doc.internal.pageSize.getWidth(); const margin=12;
+    doc.setFontSize(12); doc.text(currentDefinition.label||currentDefinition.table_name, margin, 16);
+    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth-margin, 16, {align:'right'});
+    doc.autoTable({
+      startY:20,
+      head: [headerKeys],
+      body,
+      styles:{fontSize:8,cellPadding:3},
+      margin:{left:margin,right:margin,top:20,bottom:margin},
+      showHead:'everyPage',
+      didDrawPage: function(data){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pageWidth-margin, doc.internal.pageSize.getHeight()-8,{align:'right'}); }
+    });
+    doc.save(`${currentDefinition.table_name}_data.pdf`);
+  } else {
+    await fetchAndRenderTableData(currentDefinition.table_name,1);
+    // convert table DOM to arrays and export similar to aggregated excel
+    const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h=>h.textContent.trim());
+    const rows = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td=>td.textContent.trim()));
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    const pageWidth = doc.internal.pageSize.getWidth(); const margin=12;
+    doc.setFontSize(12); doc.text(currentDefinition.label||currentDefinition.table_name, margin, 16);
+    doc.setFontSize(9); doc.text(`Exported: ${new Date().toLocaleString()}`, pageWidth-margin, 16, {align:'right'});
+    doc.autoTable({ startY:20, head:[headers], body:rows, styles:{fontSize:8,cellPadding:3}, margin:{left:margin,right:margin,top:20,bottom:margin}, showHead:'everyPage', didDrawPage:function(){ const page = doc.internal.getCurrentPageInfo().pageNumber; const pageCount = doc.internal.getNumberOfPages(); doc.setFontSize(9); doc.text(`Page ${page} / ${pageCount}`, pageWidth-margin, doc.internal.pageSize.getHeight()-8,{align:'right'}); } });
+    doc.save(`${currentDefinition.table_name}_aggregated.pdf`);
+  }
+}
+
+function normalizeRow(r){
+  const out = {};
+  Object.keys(r).forEach(k=>{
+    out[k] = normalizeCell(r[k]);
+  });
+  return out;
+}
+function normalizeCell(v){ if(v==null) return ''; if(typeof v==='object') return JSON.stringify(v); return v; }
+
+// helper: fetch all rows matching filters (capped)
+async function fetchAllFilteredRows(tableName){
+  const from = $('filterFrom').value; const to = $('filterTo').value;
+  const pageSize = 1000;
+  let all = [], offset = 0;
+  while(true){
+    const { data, error } = await supabase.from(tableName).select('*').range(offset, offset + pageSize -1).is('deleted_at', null);
+    if(error) throw error;
+    if(!data || data.length===0) break;
+    all = all.concat(data);
+    if(data.length < pageSize) break;
+    offset += pageSize;
+    if(all.length > 50000) break; // safety cap
+  }
+  // client-side filter by date/district
+  let filtered = all;
+  if(from) filtered = filtered.filter(r => r.entry_date && r.entry_date >= from);
+  if(to) filtered = filtered.filter(r => r.entry_date && r.entry_date <= to);
+  if(currentUser && currentUser.districtId) {
+    const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name||f.key) === 'district_id' || f.name === 'district_id');
+    if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
+  }
+  return filtered;
+}
+
+// --- DRAFTS & AUTOSAVE ---
+function draftKey(table){ return draftPrefix + table; }
+function saveDraft(table){
+  if(!table) return;
+  const data = {}; \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=> data[i.name] = i.value);
+  localStorage.setItem(draftKey(table), JSON.stringify({ savedAt: new Date().toISOString(), data }));
+  renderDraftsList();
+  \$('draftStatus').textContent = `Draft saved at ${new Date().toLocaleTimeString()}`;
+  shortToast('Draft saved locally');
+}
+function loadDraft(table){
+  const raw = localStorage.getItem(draftKey(table)); if(!raw) return;
+  try{
+    const parsed = JSON.parse(raw); const d = parsed.data || {};
+    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=> { if(d.hasOwnProperty(i.name)) i.value = d[i.name]; });
+    \$('draftStatus').textContent = `Draft loaded (${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : ''})`;
+  }catch(e){ console.error('loadDraft', e); }
+}
+function clearDraft(){
+  if(!currentDefinition) return;
+  localStorage.removeItem(draftKey(currentDefinition.table_name));
+  renderDraftsList();
+  shortToast('Draft cleared');
+}
+function renderDraftsList(){
+  const el = \$('draftsList'); el.innerHTML = '';
+  const keys = Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix));
+  if(!keys.length){ el.innerHTML = '<div class="text-muted">No drafts</div>'; return; }
+  keys.forEach(k=>{
+    try{
+      const raw = JSON.parse(localStorage.getItem(k)); const name = k.replace(draftPrefix,'');
+      const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
+      btn.addEventListener('click', ()=>{ selectDefinition(name).then(()=>loadDraft(name)).catch(()=>{}); });
+      el.appendChild(btn);
+    }catch(e){ console.warn(e); }
+  });
+}
+function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer = setTimeout(()=> { if(currentDefinition) saveDraft(currentDefinition.table_name); }, AUTOSAVE_MS); }
+
+// --- Offline queue for inserts ---
+function enqueueInsert(table, data){
+  const raw = localStorage.getItem(queueKey) || '[]'; const arr = JSON.parse(raw);
+  arr.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2,8), table, data, createdAt: new Date().toISOString() });
+  localStorage.setItem(queueKey, JSON.stringify(arr));
+  shortToast('Saved to offline queue');
+}
+async function processQueue(){
+  if(!navigator.onLine) return;
+  const raw = localStorage.getItem(queueKey); if(!raw) return;
+  let arr = JSON.parse(raw); if(!arr.length) return;
+  const remaining = [];
+  for(const item of arr){
+    try{
+      const payload = { ...item.data };
+      if(currentUser && currentUser.id) payload.created_by = currentUser.id;
+      const { error } = await supabase.from(item.table).insert([payload]);
+      if(error){ console.error('queue insert failed', error); remaining.push(item); } else shortToast('Queued item synced');
+    }catch(e){ console.error('processQueue', e); remaining.push(item); }
+  }
+  localStorage.setItem(queueKey, JSON.stringify(remaining));
+}
+
+// --- SAVE ENTRY (validation + duplicate check + offline) ---
+async function saveEntry(){
+  if(!currentDefinition){ toast('Select a form'); return; }
+  // collect
+  const payload = {}; let valid = true; const errors = [];
+  \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=>{
+    const name = i.name; const fd = (currentDefinition.fields||[]).find(f=> sanitizeName(f.name||f.key) === name || (f.name===name));
+    const raw = i.value === '' ? null : i.value;
+    if(fd && fd.required && (raw === null || raw === '')) { valid = false; errors.push((fd.label||fd.name)+' required'); }
+    if(fd && (fd.type||'').toLowerCase() === 'number' && raw!=null && raw!=='' && isNaN(Number(raw))) { valid=false; errors.push((fd.label||fd.name)+' must be number'); }
+    payload[name] = raw;
+  });
+  // ensure entry_date present (canonical)
+  if(!payload.entry_date) payload.entry_date = \$('filterEntryDate').value || new Date().toISOString().slice(0,10);
+  if(!payload.entry_date){ valid=false; errors.push('entry_date missing'); }
+  if(!valid){ alert('Validation: '+errors.join(', ')); return; }
+
+  // attach district if form has district_id
+  if(currentUser && currentUser.districtId) {
+    const hasDistrict = (currentDefinition.fields||[]).some(f=> sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
+    if(hasDistrict) payload.district_id = currentUser.districtId;
+  }
+
+  // attach audit field created_by
+  if(currentUser && currentUser.id) payload.created_by = currentUser.id;
+
+  // local duplicate check using unique_keys metadata if present
+  if(currentDefinition.unique_keys && Array.isArray(currentDefinition.unique_keys) && currentDefinition.unique_keys.length){
+    const where = {};
+    currentDefinition.unique_keys.forEach(k => { if(payload[k]) where[k] = payload[k]; });
+    if(Object.keys(where).length){
+      const { data: dup, error } = await supabase.from(currentDefinition.table_name).select('id').match(where).limit(1);
+      if(error) console.warn('dup check', error);
+      if(dup && dup.length){ if(!confirm('Possible duplicate found. Proceed?')) return; }
     }
+  }
 
-    // ---------- LOAD LATEST TO PREFILL (UPDATE FLOW) ----------
-    async function loadLatestForDistrict(tableName) {
-      if (!tableName) return;
-      loadedCurrentRecord = null;
-      try {
-        const { data, error } = await supabase.from(tableName)
-          .select('*')
-          .eq('district_id', currentUser && currentUser.districtId ? currentUser.districtId : null)
-          .eq('is_current', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+  // save draft first
+  saveDraft(currentDefinition.table_name);
 
-        if (error) { console.warn('loadLatestForDistrict err', error); return; }
-        if (!data) return;
+  // offline handling
+  if(!navigator.onLine){
+    enqueueInsert(currentDefinition.table_name, payload);
+    return;
+  }
 
-        loadedCurrentRecord = data;
-        const form = \$('entryForm');
-        if (!form) return;
-        form.querySelectorAll('input, textarea, select').forEach(i => {
-          const n = i.name;
-          if (loadedCurrentRecord.hasOwnProperty(n)) i.value = loadedCurrentRecord[n] == null ? '' : String(loadedCurrentRecord[n]);
-        });
+  // submit
+  try{
+    setBusy(true);
+    const { data, error } = await supabase.from(currentDefinition.table_name).insert([payload]).select();
+    if(error) throw error;
+    localStorage.removeItem(draftKey(currentDefinition.table_name));
+    renderDraftsList();
+    shortToast('Record saved');
+    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=>i.value='');
+    await refreshViewer();
+  }catch(e){ console.error('saveEntry', e); enqueueInsert(currentDefinition.table_name, payload); toast('Save failed — queued for retry'); }
+  finally{ setBusy(false); }
+}
 
-        const noteEl = \$('formNote');
-        if (noteEl) noteEl.textContent = 'Loaded previous entry — edit and click "Update Existing" to save a new version (old entry preserved).';
-      } catch (err) {
-        console.error('loadLatestForDistrict error', err);
-      }
-    }
+// busy state
+function setBusy(flag){
+  if(flag) document.body.classList.add('busy'); else document.body.classList.remove('busy');
+}
 
-    // ---------- UPDATE (VERSIONED) ----------
-    async function onUpdateClick(e) {
-      e.preventDefault();
-      if (!currentDefinition) { showToast('कृपया कोई फॉर्म चुनें', 'warning'); return; }
-      if (!loadedCurrentRecord || !loadedCurrentRecord.id) { showToast('कोई मौजूदा रिकॉर्ड नहीं मिला। पहले Create/Save करें।', 'warning'); return; }
+// --- EDIT / AUDIT ---
+let editingRecord = null;
+function openEditModal(row){
+  editingRecord = row;
+  const form = \$('editForm'); form.innerHTML = '';
+  (currentDefinition.fields||[]).forEach(f=>{
+    const name = sanitizeName(f.name || f.key || f.id || f.label);
+    const wrapper = el('div',{class:'form-section'});
+    const label = el('label',{},[f.label||f.name||name]);
+    let input;
+    const type = (f.type||'text').toLowerCase();
+    const val = row[name] != null ? row[name] : '';
+    if(type==='date') input = el('input',{class:'form-control',type:'date',name,value:val});
+    else if(type==='number') input = el('input',{class:'form-control',type:'number',name,step:'any',value:val});
+    else if(f.options && Array.isArray(f.options)){
+      input = el('select',{class:'form-control',name});
+      input.appendChild(el('option',{value:''},['-- select --']));
+      f.options.forEach(o => { const opt = el('option',{value:o.value},[o.label]); if(String(o.value)===String(val)) opt.selected=true; input.appendChild(opt); });
+    } else input = el('input',{class:'form-control',type:'text',name,value:val});
+    wrapper.appendChild(label); wrapper.appendChild(input);
+    form.appendChild(wrapper);
+  });
+  // show audit history if available (will be loaded on History button too)
+  const modal = new bootstrap.Modal(document.getElementById('editModal'));
+  modal.show();
+}
 
-      const form = \$('entryForm');
-      if (form && !form.checkValidity()) { form.reportValidity(); return; }
+async function saveEdit(){
+  if(!editingRecord || !currentDefinition) return;
+  const payload = {};
+  \$('editForm').querySelectorAll('input,textarea,select').forEach(i=> payload[i.name] = i.value === '' ? null : i.value);
+  if(currentUser && currentUser.id) payload.updated_by = currentUser.id;
+  try{
+    setBusy(true);
+    const { data, error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', editingRecord.id).select();
+    if(error) throw error;
+    shortToast('Record updated');
+    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+    await refreshViewer();
+  }catch(e){ console.error('saveEdit', e); toast('Update failed'); } finally{ setBusy(false); }
+}
 
-      const payload = {};
-      form.querySelectorAll('input, textarea, select').forEach(i => payload[i.name] = i.value === '' ? null : i.value);
+async function softDelete(id){
+  if(!currentDefinition) return;
+  try{
+    setBusy(true);
+    const payload = { deleted_at: new Date().toISOString() };
+    if(currentUser && currentUser.id) payload.deleted_by = currentUser.id;
+    const { data, error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', id);
+    if(error) throw error;
+    shortToast('Record soft-deleted');
+    await refreshViewer();
+  }catch(e){ console.error('softDelete', e); toast('Delete failed'); } finally{ setBusy(false); }
+}
 
-      // map params expected by RPC upsert_versioned_entry
-      const rpcParams = {
-        p_predecessor_id: loadedCurrentRecord.id,
-        p_district_id: currentUser && currentUser.districtId ? currentUser.districtId : null,
-        p_entry_date: payload.entry_date || null,
-        p_metric_a: payload.metric_a != null ? Number(payload.metric_a) : null,
-        p_metric_b: payload.metric_b != null ? Number(payload.metric_b) : null,
-        p_notes: payload.notes || null,
-        p_created_by: currentUser && currentUser.id ? currentUser.id : null,
-        p_change_reason: payload.change_reason || 'Edited by user'
-      };
+async function softDeleteCurrentRecord(){
+  if(!editingRecord) return;
+  if(!confirm('Soft-delete this record?')) return;
+  await softDelete(editingRecord.id);
+  bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+}
 
-      if (!rpcParams.p_district_id) { showToast('District not available for current user.', 'danger'); return; }
+// Audit viewer (simple)
+async function openAudit(row){
+  if(!row || !currentDefinition) return;
+  try{
+    // fetch audit_logs for this table + record id (server must create audit_logs)
+    const { data, error } = await supabase.from('audit_logs').select('*').eq('table_name', currentDefinition.table_name).eq('record_id', row.id).order('performed_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    // show in modal content area below editForm for quick view
+    const modal = new bootstrap.Modal(document.getElementById('editModal'));
+    // populate edit form (read-only) then append audit list
+    openEditModal(row);
+    const container = el('div',{},[]);
+    container.appendChild(el('h6',{},['Recent changes:']));
+    if(!data || !data.length) container.appendChild(el('div',{},['No audit records found.']));
+    else data.forEach(a=>{
+      const d = el('div',{class:'mb-2 p-2', style:'background:#f8f9fa;border-radius:6px'});
+      d.appendChild(el('div',{},[`Action: ${a.action} • By: ${a.performed_by || 'unknown'} • At: ${new Date(a.performed_at).toLocaleString()}`]));
+      d.appendChild(el('pre',{},[JSON.stringify({before:a.before,after:a.after},null,2)]));
+      container.appendChild(d);
+    });
+    // append below editForm
+    const modalBody = document.querySelector('#editModal .modal-body');
+    // remove old audit section if any (keep editForm)
+    const existing = modalBody.querySelector('.audit-section'); if(existing) existing.remove();
+    const wrapper = el('div',{class:'audit-section mt-3'},[container]);
+    modalBody.appendChild(wrapper);
+    modal.show();
+  }catch(e){ console.error('openAudit', e); toast('Failed to load audit'); }
+}
 
-      \$('btnSave').disabled = true;
-      \$('btnUpdate').disabled = true;
-      setLoadingOverlay(\$('dataEntryPanel'), true);
+// --- Utility: set filters quick presets or defaults ---
+(function setDefaultFilters(){
+  const today = new Date().toISOString().slice(0,10);
+  \$('filterFrom').value = today;
+  \$('filterTo').value = today;
+  \$('groupBy').value = 'none';
+})();
 
-      try {
-        // expects RPC upsert_versioned_entry to exist in DB
-        const { data, error } = await supabase.rpc('upsert_versioned_entry', rpcParams);
-        if (error) throw error;
+// --- Small helpers & safety ---
+function setFormDisabled(flag){
+  \$('entryForm').querySelectorAll('input,select,textarea').forEach(i=> i.disabled = flag);
+  \$('btnSave').disabled = flag;
+}
 
-        localStorage.removeItem(draftStorageKey(currentDefinition.table_name));
-        renderDraftsList();
-        showToast('Update saved — previous entry preserved.', 'success');
+async function fetchSingleRowById(table, id){
+  const { data, error } = await supabase.from(table).select('*').eq('id', id).single();
+  if(error) throw error; return data;
+}
 
-        await loadLatestForDistrict(currentDefinition.table_name);
-        if (!\$('dataViewerPanel').classList.contains('hidden')) await fetchAndRenderTableData(currentDefinition.table_name, 1);
-      } catch (err) {
-        console.error('onUpdateClick error', err);
-        showToast('Update failed — check console.', 'danger');
-      } finally {
-        \$('btnSave').disabled = false;
-        \$('btnUpdate').disabled = false;
-        setLoadingOverlay(\$('dataEntryPanel'), false);
-      }
-    }
-
-    // Prevent natural form submit
-    document.addEventListener('submit', e => e.preventDefault());
+// --- END ---
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
