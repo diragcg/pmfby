@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>District Entry Form</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
     <style>
@@ -22,9 +23,9 @@
 </head>
 <body>
     <div class="topbar">
-        <img src="https://supabase.com/brand-assets/supabase-logo-icon.png" alt="supabase" width="34" height="34">
-        <div class="brand ms-2">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
+        <div class="brand">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
         <div class="ms-auto d-flex align-items-center gap-2">
+            <span id="userName" class="me-2"></span>
             <button id="btnAdmin" class="btn btn-sm btn-light">Admin</button>
             <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
         </div>
@@ -53,12 +54,14 @@
 
             <h4>Submitted Data</h4>
             <div id="dataList" class="hidden">
+                <div class="mb-2 d-flex justify-content-between align-items-center">
+                    <span class="text-muted small">Total records: <span id="recordCount">0</span></span>
+                    <button id="btnExport" class="btn btn-sm btn-success">Export to Excel</button>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered table-sm">
-                        <thead id="tableHead">
-                            </thead>
-                        <tbody id="tableBody">
-                            </tbody>
+                        <thead id="tableHead"></thead>
+                        <tbody id="tableBody"></tbody>
                     </table>
                 </div>
                 <div class="pagination-controls">
@@ -70,6 +73,28 @@
         </div>
     </div>
 
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModalLabel">Edit Record</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <form id="editForm">
+                <input type="hidden" id="editRecordId">
+                <div id="editFormFields" class="row g-3">
+                    </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" id="btnSaveEdit" class="btn btn-primary">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <div id="alertToast" style="position:fixed; right:20px; bottom:20px; z-index:9999;"></div>
 
     <script>
@@ -108,13 +133,15 @@
                 location.href = 'login.html';
                 return;
             }
-
+            $('userName').textContent = `${currentUser.email}`;
             $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
             $('btnAdmin').addEventListener('click', () => { location.href = 'admin.html'; });
             $('selectForm').addEventListener('change', handleFormSelection);
             $('dataForm').addEventListener('submit', handleFormSubmit);
             $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
-            $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); });
+            $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); } );
+            $('btnExport').addEventListener('click', exportToExcel);
+            $('btnSaveEdit').addEventListener('click', saveEditedRecord);
 
             loadFormDefinitions();
         });
@@ -201,11 +228,9 @@
             }
 
             try {
-                // Ensure form data is clean and matches table columns
                 const payload = {};
                 for (const field of currentDefinition.fields) {
                     const value = data[field.name];
-                    // Clean and convert data based on type
                     if (field.type === 'number') {
                         payload[field.name] = value ? parseFloat(value) : null;
                     } else if (field.type === 'date') {
@@ -220,8 +245,8 @@
                 if (error) throw error;
 
                 toast('Data submitted successfully!', 'success');
-                event.target.reset(); // Reset form fields
-                currentPage = 0; // Go back to the first page to see the new entry
+                event.target.reset();
+                currentPage = 0;
                 fetchAndRenderTableData();
 
             } catch (error) {
@@ -238,7 +263,6 @@
             const end = start + PAGE_SIZE - 1;
 
             try {
-                // Fetch data with pagination and ordering
                 const { data, error, count } = await supabase
                     .from(currentTableName)
                     .select('*', { count: 'exact' })
@@ -247,6 +271,7 @@
                 
                 if (error) throw error;
                 
+                $('recordCount').textContent = count;
                 renderTable(data, currentDefinition.fields);
                 updatePaginationControls(count);
 
@@ -260,27 +285,25 @@
             const tableHead = $('tableHead');
             const tableBody = $('tableBody');
             
-            // Render Headers
             tableHead.innerHTML = '';
             const headerRow = document.createElement('tr');
-            ['ID', 'Created At', ...fields.map(f => f.label)].forEach(text => {
+            ['ID', 'Created At', ...fields.map(f => f.label), 'Actions'].forEach(text => {
                 const th = document.createElement('th');
                 th.textContent = text;
                 headerRow.appendChild(th);
             });
             tableHead.appendChild(headerRow);
             
-            // Render Body
             tableBody.innerHTML = '';
             if (!data || data.length === 0) {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="${fields.length + 2}" class="text-center text-muted">No data found</td>`;
+                tr.innerHTML = `<td colspan="${fields.length + 3}" class="text-center text-muted">No data found</td>`;
                 tableBody.appendChild(tr);
                 return;
             }
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                // Add ID and Created At
+                
                 const idCell = document.createElement('td');
                 idCell.textContent = row.id;
                 tr.appendChild(idCell);
@@ -289,12 +312,27 @@
                 createdAtCell.textContent = new Date(row.created_at).toLocaleString();
                 tr.appendChild(createdAtCell);
 
-                // Add dynamic fields
                 fields.forEach(field => {
                     const td = document.createElement('td');
                     td.textContent = row[field.name] || '-';
                     tr.appendChild(td);
                 });
+
+                const actionsCell = document.createElement('td');
+                const editBtn = document.createElement('button');
+                editBtn.className = 'btn btn-sm btn-warning me-1';
+                editBtn.textContent = 'Edit';
+                editBtn.addEventListener('click', () => openEditModal(row));
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'btn btn-sm btn-danger';
+                deleteBtn.textContent = 'Delete';
+                deleteBtn.addEventListener('click', () => deleteRecord(row.id));
+
+                actionsCell.appendChild(editBtn);
+                actionsCell.appendChild(deleteBtn);
+                tr.appendChild(actionsCell);
+
                 tableBody.appendChild(tr);
             });
         }
@@ -306,6 +344,141 @@
             $('nextPage').disabled = currentPage >= totalPages - 1;
         }
 
+        /* ---------------- Export to Excel Logic ---------------- */
+        async function exportToExcel() {
+            if (!currentTableName) {
+                toast('Please select a form first!', 'warning');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
+
+                if (error) throw error;
+                
+                if (!data || data.length === 0) {
+                    toast('No data to export!', 'info');
+                    return;
+                }
+
+                const exportData = data.map(row => {
+                    const mappedRow = {};
+                    mappedRow['ID'] = row.id;
+                    mappedRow['Created At'] = new Date(row.created_at).toLocaleString();
+                    currentDefinition.fields.forEach(field => {
+                        mappedRow[field.label] = row[field.name];
+                    });
+                    return mappedRow;
+                });
+
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, currentTableName);
+                XLSX.writeFile(wb, `${currentTableName}_data.xlsx`);
+                
+                toast('Data exported to Excel successfully!', 'success');
+
+            } catch (error) {
+                console.error('Export error:', error);
+                toast('Failed to export data: ' + error.message, 'danger');
+            }
+        }
+
+        /* ---------------- Edit/Update Logic ---------------- */
+        let editModal;
+        document.addEventListener('DOMContentLoaded', () => {
+            const modalElement = document.getElementById('editModal');
+            editModal = new bootstrap.Modal(modalElement);
+        });
+
+        function openEditModal(record) {
+            const editFieldsContainer = $('editFormFields');
+            editFieldsContainer.innerHTML = '';
+            
+            $('editRecordId').value = record.id;
+            
+            currentDefinition.fields.forEach(field => {
+                const col = document.createElement('div');
+                col.className = 'col-12 mb-3';
+                const label = document.createElement('label');
+                label.className = 'form-label';
+                label.textContent = field.label;
+                const input = document.createElement('input');
+                input.className = 'form-control';
+                input.name = field.name;
+                input.value = record[field.name] || '';
+
+                if (field.type === 'number') {
+                    input.type = 'number';
+                } else if (field.type === 'date') {
+                    input.type = 'date';
+                } else {
+                    input.type = 'text';
+                }
+                
+                col.appendChild(label);
+                col.appendChild(input);
+                editFieldsContainer.appendChild(col);
+            });
+
+            editModal.show();
+        }
+
+        async function saveEditedRecord() {
+            const recordId = $('editRecordId').value;
+            const editForm = $('editForm');
+            const formData = new FormData(editForm);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const payload = {};
+                for (const field of currentDefinition.fields) {
+                    const value = data[field.name];
+                    if (field.type === 'number') {
+                        payload[field.name] = value ? parseFloat(value) : null;
+                    } else if (field.type === 'date') {
+                        payload[field.name] = value || null;
+                    } else {
+                        payload[field.name] = value || null;
+                    }
+                }
+
+                const { error } = await supabase
+                    .from(currentTableName)
+                    .update(payload)
+                    .eq('id', recordId);
+                
+                if (error) throw error;
+                
+                toast('Record updated successfully!', 'success');
+                editModal.hide();
+                fetchAndRenderTableData();
+
+            } catch (error) {
+                console.error('Update error:', error);
+                toast('Failed to update record: ' + error.message, 'danger');
+            }
+        }
+        
+        /* ---------------- Delete Logic ---------------- */
+        async function deleteRecord(recordId) {
+            if (!confirm('Are you sure you want to delete this record?')) return;
+            
+            try {
+                const { error } = await supabase
+                    .from(currentTableName)
+                    .delete()
+                    .eq('id', recordId);
+                
+                if (error) throw error;
+                
+                toast('Record deleted successfully!', 'success');
+                fetchAndRenderTableData();
+            } catch (error) {
+                console.error('Delete error:', error);
+                toast('Failed to delete record: ' + error.message, 'danger');
+            }
+        }
     </script>
 </body>
 </html>
