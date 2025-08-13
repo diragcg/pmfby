@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -21,13 +22,12 @@
         .form-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
         .form-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
         .form-card .card-body { position: relative; }
-        .card-loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.8); z-index: 10; }
         label.required::after { content: " *"; color:#d63333; font-weight:700; margin-left:2px; }
         .hidden { display:none !important; }
         .form-section { padding:20px; border:1px solid #e0e0e0; border-radius:8px; margin-bottom:20px; }
         .table-container { max-height: 500px; overflow-y: auto; position: relative; }
         .table-container table { width: 100%; }
-        .table-container thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
+        .table-container thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; cursor: pointer; }
         .table-container tfoot td { position: sticky; bottom: 0; background-color: #e9ecef; z-index: 10; }
         .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; }
         .export-buttons { display: flex; gap: 10px; }
@@ -47,7 +47,7 @@
         <div class="brand">संचालनालय कृषि छत्तीसगढ़ — District Entry</div>
         <div class="ms-auto d-flex align-items-center gap-2">
             <span id="userName" class="me-2"></span>
-            <button id="btnAdmin" class="btn btn-sm btn-light">Admin</button>
+            <button id="btnAdmin" class="btn btn-sm btn-light hidden">Admin</button>
             <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
         </div>
     </div>
@@ -90,9 +90,10 @@
                 <h4>Submitted Data</h4>
                 <div id="dataList">
                     <div class="mb-2 d-flex justify-content-between align-items-center">
+                        <input type="text" id="tableFilter" class="form-control w-25" placeholder="Filter table...">
                         <span class="text-muted small">Total records: <span id="recordCount">0</span></span>
                     </div>
-                    <div class="table-container">
+                    <div class="table-responsive table-container">
                         <table class="table table-striped table-bordered table-sm">
                             <thead id="tableHead"></thead>
                             <tbody id="tableBody"></tbody>
@@ -110,6 +111,24 @@
     </div>
     
     <div id="alertToast" style="position:fixed; right:20px; bottom:20px; z-index:2000;"></div>
+
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to delete this record? This action cannot be undone.
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script>
         /* ---------------- Supabase configuration ---------------- */
@@ -139,8 +158,10 @@
         let formDefinitions = [];
         let currentTableName = null;
         let currentDefinition = null;
+        let tableData = [];
         const PAGE_SIZE = 20;
         let currentPage = 0;
+        let deleteId = null;
 
         /* ---------------- Init ---------------- */
         document.addEventListener('DOMContentLoaded', async () => {
@@ -150,15 +171,23 @@
                 return;
             }
             $('userName').textContent = `${currentUser.email}`;
+            
+            // RBAC check for admin button
+            if (currentUser.is_admin) {
+                $('btnAdmin').classList.remove('hidden');
+            }
+
             $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
             $('btnAdmin').addEventListener('click', () => { location.href = 'admin.html'; });
             $('formSearch').addEventListener('input', filterFormList);
+            $('tableFilter').addEventListener('input', filterTable);
             $('btnBackToDashboard').addEventListener('click', showDashboard);
             $('dataForm').addEventListener('submit', handleFormSubmit);
             $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
             $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); } );
             $('btnExportExcel').addEventListener('click', exportToExcel);
             $('btnExportPdf').addEventListener('click', exportToPdf);
+            $('confirmDeleteBtn').addEventListener('click', () => deleteRecordConfirmed(deleteId));
             
             // Initial data load
             loadFormDefinitions();
@@ -173,18 +202,25 @@
         /* ---------------- Form Definition Logic ---------------- */
         async function loadFormDefinitions() {
             showLoading();
-            const { data, error } = await supabase
-                .from('form_definitions')
-                .select('*')
-                .order('table_name', { ascending: true });
+            let definitions = await localforage.getItem('form_definitions');
 
-            if (error) {
-                console.error('Error loading form definitions:', error);
-                toast('Failed to load form definitions', 'danger');
-                hideLoading();
-                return;
+            if (!definitions) {
+                const { data, error } = await supabase
+                    .from('form_definitions')
+                    .select('*')
+                    .order('table_name', { ascending: true });
+
+                if (error) {
+                    console.error('Error loading form definitions:', error);
+                    toast('Failed to load form definitions', 'danger');
+                    hideLoading();
+                    return;
+                }
+                definitions = data || [];
+                await localforage.setItem('form_definitions', definitions);
             }
-            formDefinitions = data || [];
+            
+            formDefinitions = definitions;
             renderFormCards(formDefinitions);
             hideLoading();
         }
@@ -225,7 +261,6 @@
                 `;
                 selector.appendChild(card);
                 
-                // Fetch record count for each card
                 const countSpan = $(`count-${index}`);
                 const count = await fetchRecordCount(def.table_name);
                 countSpan.classList.remove('placeholder-glow');
@@ -233,7 +268,7 @@
 
                 card.querySelector('.btn-view').addEventListener('click', () => handleFormSelection(def));
                 card.querySelector('.btn-export').addEventListener('click', (e) => {
-                    e.stopPropagation(); // Prevents card view from opening
+                    e.stopPropagation();
                     quickExport(def);
                 });
             });
@@ -274,16 +309,25 @@
                 const label = document.createElement('label');
                 label.className = 'form-label';
                 label.textContent = field.label;
+                if (field.required) { // Add required flag
+                    label.classList.add('required');
+                }
                 const input = document.createElement('input');
                 input.className = 'form-control';
                 input.name = field.name;
-
+                input.id = `input-${field.name}`; // Add ID for validation
+                
+                // Add validation attributes
                 if (field.type === 'number') {
                     input.type = 'number';
                 } else if (field.type === 'date') {
                     input.type = 'date';
                 } else {
                     input.type = 'text';
+                }
+                
+                if (field.required) {
+                    input.required = true;
                 }
                 
                 col.appendChild(label);
@@ -367,8 +411,9 @@
                 
                 if (error) throw error;
                 
+                tableData = data || []; // Cache the data
                 $('recordCount').textContent = count;
-                renderTable(data, currentDefinition.fields);
+                renderTable(tableData, currentDefinition.fields);
                 updatePaginationControls(count);
 
             } catch (error) {
@@ -386,9 +431,11 @@
             
             tableHead.innerHTML = '';
             const headerRow = document.createElement('tr');
-            ['ID', 'Created At', ...fields.map(f => f.label), 'Actions'].forEach(text => {
+            
+            ['ID', 'Created At', ...fields.map(f => f.label), 'Actions'].forEach((text, index) => {
                 const th = document.createElement('th');
                 th.textContent = text;
+                th.addEventListener('click', () => sortTable(index));
                 headerRow.appendChild(th);
             });
             tableHead.appendChild(headerRow);
@@ -439,7 +486,7 @@
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'btn btn-sm btn-danger';
                 deleteBtn.textContent = 'Delete';
-                deleteBtn.addEventListener('click', () => deleteRecord(row.id));
+                deleteBtn.addEventListener('click', () => showDeleteModal(row.id));
 
                 actionsCell.appendChild(editBtn);
                 actionsCell.appendChild(deleteBtn);
@@ -448,7 +495,6 @@
                 tableBody.appendChild(tr);
             });
             
-            // Render totals row
             if (numericalFields.length > 0) {
                 const totalRow = document.createElement('tr');
                 totalRow.className = 'fw-bold table-info';
@@ -462,7 +508,7 @@
                     }
                 });
                 
-                totalRowHtml += `<td></td>`; // Empty cell for actions
+                totalRowHtml += `<td></td>`;
                 totalRow.innerHTML = totalRowHtml;
                 tableFoot.appendChild(totalRow);
             }
@@ -473,6 +519,50 @@
             $('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages || 1}`;
             $('prevPage').disabled = currentPage === 0;
             $('nextPage').disabled = currentPage >= totalPages - 1;
+        }
+
+        /* ---------------- Filtering and Sorting Logic ---------------- */
+        let sortDirection = {};
+        function sortTable(columnIndex) {
+            const headers = ['id', 'created_at', ...currentDefinition.fields.map(f => f.name)];
+            const fieldName = headers[columnIndex];
+
+            if (!fieldName) return; // Don't sort the "Actions" column
+            
+            const direction = sortDirection[fieldName] === 'asc' ? 'desc' : 'asc';
+            sortDirection = { [fieldName]: direction };
+            
+            tableData.sort((a, b) => {
+                const valA = a[fieldName];
+                const valB = b[fieldName];
+                
+                if (typeof valA === 'number' && typeof valB === 'number') {
+                    return direction === 'asc' ? valA - valB : valB - valA;
+                }
+                
+                const strA = String(valA || '').toLowerCase();
+                const strB = String(valB || '').toLowerCase();
+                
+                if (strA < strB) return direction === 'asc' ? -1 : 1;
+                if (strA > strB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderTable(tableData, currentDefinition.fields);
+        }
+        
+        function filterTable(event) {
+            const filterTerm = event.target.value.toLowerCase();
+            const filteredData = tableData.filter(row => {
+                // Check all fields for a match
+                for (const key in row) {
+                    if (String(row[key]).toLowerCase().includes(filterTerm)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+            renderTable(filteredData, currentDefinition.fields);
         }
 
         /* ---------------- Export Logic ---------------- */
@@ -608,7 +698,7 @@
             }
         }
 
-        /* ---------------- Edit Logic ---------------- */
+        /* ---------------- Edit and Delete Logic ---------------- */
         function editRecord(record) {
             $('currentFormTitle').textContent = `Editing Record ID: ${record.id}`;
             $('recordId').value = record.id;
@@ -624,11 +714,14 @@
             $('dataForm').scrollIntoView({ behavior: 'smooth' });
         }
         
-        /* ---------------- Delete Logic ---------------- */
-        async function deleteRecord(recordId) {
-            if (!confirm('Are you sure you want to delete this record?')) return;
+        function showDeleteModal(recordId) {
+            deleteId = recordId;
+            const deleteModal = new bootstrap.Modal($('deleteModal'));
+            deleteModal.show();
+        }
+        
+        async function deleteRecordConfirmed(recordId) {
             showLoading();
-            
             try {
                 const { error } = await supabase
                     .from(currentTableName)
@@ -639,6 +732,7 @@
                 
                 toast('Record deleted successfully!', 'success');
                 await fetchAndRenderTableData();
+                bootstrap.Modal.getInstance($('deleteModal')).hide();
             } catch (error) {
                 console.error('Delete error:', error);
                 toast('Failed to delete record: ' + error.message, 'danger');
