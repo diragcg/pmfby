@@ -9,6 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -17,12 +18,17 @@
         .topbar .brand { font-weight:700; font-size:18px; margin-left:10px; }
         .container-app { max-width:1200px; margin:92px auto 48px; }
         .main-card { background:#fff; border-radius:10px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.06); }
-        .form-list-table tr:hover { background-color: #f1f1f1; cursor: pointer; }
+        .form-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .form-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .form-card .card-body { position: relative; }
+        .card-loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.8); z-index: 10; }
         label.required::after { content: " *"; color:#d63333; font-weight:700; margin-left:2px; }
         .hidden { display:none !important; }
         .form-section { padding:20px; border:1px solid #e0e0e0; border-radius:8px; margin-bottom:20px; }
-        .table-responsive { max-height: 500px; overflow-y: auto; }
-        .table thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
+        .table-container { max-height: 500px; overflow-y: auto; position: relative; }
+        .table-container table { width: 100%; }
+        .table-container thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; }
+        .table-container tfoot td { position: sticky; bottom: 0; background-color: #e9ecef; z-index: 10; }
         .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 10px; }
         .export-buttons { display: flex; gap: 10px; }
         .form-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -50,22 +56,11 @@
         <div class="main-card">
             <div id="dashboardView">
                 <div class="form-info-header">
-                    <h4>Select a Form</h4>
+                    <h4>Forms Dashboard</h4>
                     <input type="text" id="formSearch" class="form-control w-25" placeholder="Search forms...">
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-hover form-list-table">
-                        <thead>
-                            <tr>
-                                <th>Form Name</th>
-                                <th>Table Name</th>
-                                <th>Field Count</th>
-                            </tr>
-                        </thead>
-                        <tbody id="formListBody">
-                            </tbody>
-                    </table>
-                </div>
+                <div id="formSelector" class="row g-3">
+                    </div>
             </div>
             
             <div id="formView" class="hidden">
@@ -74,7 +69,12 @@
                 </button>
                 <div class="form-info-header">
                     <h4>Data Entry for: <span class="text-primary" id="currentFormTitle"></span></h4>
+                    <div class="export-buttons">
+                        <button id="btnExportExcel" class="btn btn-sm btn-success">Export to Excel</button>
+                        <button id="btnExportPdf" class="btn btn-sm btn-danger">Export to PDF</button>
+                    </div>
                 </div>
+                
                 <form id="dataForm" class="form-section">
                     <input type="hidden" id="recordId">
                     <div id="formFields" class="row g-3">
@@ -90,16 +90,13 @@
                 <h4>Submitted Data</h4>
                 <div id="dataList">
                     <div class="mb-2 d-flex justify-content-between align-items-center">
-                        <span class="text-muted small">Total records: <span id="recordCount">0</span> | Page <span id="currentPageNum">1</span> of <span id="totalPagesNum">1</span></span>
-                        <div class="export-buttons">
-                             <button id="btnExportExcel" class="btn btn-sm btn-success">Export to Excel</button>
-                             <button id="btnExportPdf" class="btn btn-sm btn-danger">Export to PDF</button>
-                        </div>
+                        <span class="text-muted small">Total records: <span id="recordCount">0</span></span>
                     </div>
-                    <div class="table-responsive">
+                    <div class="table-container">
                         <table class="table table-striped table-bordered table-sm">
                             <thead id="tableHead"></thead>
                             <tbody id="tableBody"></tbody>
+                            <tfoot id="tableFoot"></tfoot>
                         </table>
                     </div>
                     <div class="pagination-controls">
@@ -161,9 +158,8 @@
             $('dataForm').addEventListener('submit', handleFormSubmit);
             $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
             $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); } );
-            $('btnExportExcel').addEventListener('click', () => exportToExcel(tableData));
-            $('btnExportPdf').addEventListener('click', () => exportToPdf(tableData));
-
+            
+            // Initial data load
             loadFormDefinitions();
         });
 
@@ -188,28 +184,57 @@
                 return;
             }
             formDefinitions = data || [];
-            renderFormList(formDefinitions);
+            renderFormCards(formDefinitions);
             hideLoading();
         }
 
-        function renderFormList(forms) {
-            const formListBody = $('formListBody');
-            formListBody.innerHTML = '';
+        async function fetchRecordCount(tableName) {
+            const { count, error } = await supabase.from(tableName).select('*', { count: 'exact', head: true });
+            if (error) {
+                console.error(`Error fetching count for ${tableName}:`, error);
+                return 0;
+            }
+            return count || 0;
+        }
+
+        function renderFormCards(forms) {
+            const selector = $('formSelector');
+            selector.innerHTML = '';
             if (forms.length === 0) {
-                formListBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No forms found. Please create one in the Admin panel.</td></tr>';
+                selector.innerHTML = '<div class="col-12 text-center text-muted p-5">No forms found. Please create one in the Admin panel.</div>';
                 return;
             }
-            forms.forEach(def => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${def.label || def.table_name}</td>
-                    <td>${def.table_name}</td>
-                    <td>${(def.fields || []).length}</td>
+            forms.forEach(async (def, index) => {
+                const card = document.createElement('div');
+                card.className = 'col-md-6 col-lg-4';
+                card.innerHTML = `
+                    <div class="card form-card">
+                        <div class="card-body">
+                            <h5 class="card-title">${def.label || def.table_name}</h5>
+                            <p class="card-text text-muted small">${def.table_name}</p>
+                            <h2 class="card-text text-primary text-end mt-3 mb-0">
+                                <span id="count-${index}" class="placeholder-glow"><span class="placeholder col-4"></span></span>
+                            </h2>
+                            <div class="mt-3 d-flex justify-content-end gap-2">
+                                <button class="btn btn-sm btn-outline-primary btn-view">View</button>
+                                <button class="btn btn-sm btn-outline-success btn-export">Quick Export</button>
+                            </div>
+                        </div>
+                    </div>
                 `;
-                tr.addEventListener('click', () => {
-                    handleFormSelection(def);
+                selector.appendChild(card);
+                
+                // Fetch record count for each card
+                const countSpan = $(`count-${index}`);
+                const count = await fetchRecordCount(def.table_name);
+                countSpan.classList.remove('placeholder-glow');
+                countSpan.innerHTML = count;
+
+                card.querySelector('.btn-view').addEventListener('click', () => handleFormSelection(def));
+                card.querySelector('.btn-export').addEventListener('click', (e) => {
+                    e.stopPropagation(); // Prevents card view from opening
+                    quickExport(def);
                 });
-                formListBody.appendChild(tr);
             });
         }
         
@@ -219,7 +244,9 @@
                 (def.label && def.label.toLowerCase().includes(searchTerm)) || 
                 (def.table_name && def.table_name.toLowerCase().includes(searchTerm))
             );
-            renderFormList(filteredForms);
+            // This would be better with a proper search on the cards themselves
+            // but for a quick fix, let's just re-render
+            renderFormCards(filteredForms);
         }
 
         async function handleFormSelection(def) {
@@ -357,6 +384,7 @@
         function renderTable(data, fields) {
             const tableHead = $('tableHead');
             const tableBody = $('tableBody');
+            const tableFoot = $('tableFoot');
             
             tableHead.innerHTML = '';
             const headerRow = document.createElement('tr');
@@ -368,6 +396,7 @@
             tableHead.appendChild(headerRow);
             
             tableBody.innerHTML = '';
+            tableFoot.innerHTML = '';
             if (!data || data.length === 0) {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td colspan="${fields.length + 3}" class="text-center text-muted">No data found</td>`;
@@ -437,19 +466,50 @@
                 
                 totalRowHtml += `<td></td>`; // Empty cell for actions
                 totalRow.innerHTML = totalRowHtml;
-                tableBody.appendChild(totalRow);
+                tableFoot.appendChild(totalRow);
             }
         }
         
         function updatePaginationControls(count) {
             const totalPages = Math.ceil(count / PAGE_SIZE);
-            $('currentPageNum').textContent = currentPage + 1;
-            $('totalPagesNum').textContent = totalPages || 1;
+            $('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages || 1}`;
             $('prevPage').disabled = currentPage === 0;
             $('nextPage').disabled = currentPage >= totalPages - 1;
         }
 
-        /* ---------------- Export to Excel Logic ---------------- */
+        /* ---------------- Export Logic ---------------- */
+        async function quickExport(def) {
+            showLoading();
+            try {
+                const { data, error } = await supabase.from(def.table_name).select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    toast('No data to export!', 'info');
+                    return;
+                }
+                const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
+                const exportData = data.map(row => {
+                    const mappedRow = {};
+                    mappedRow['ID'] = row.id;
+                    mappedRow['Created At'] = new Date(row.created_at).toLocaleString();
+                    def.fields.forEach(field => { mappedRow[field.label] = row[field.name]; });
+                    return mappedRow;
+                });
+                
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, def.table_name);
+                XLSX.writeFile(wb, `${def.table_name}_data.xlsx`);
+                
+                toast('Data exported to Excel successfully!', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                toast('Failed to export data: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+        
         async function exportToExcel() {
             showLoading();
             if (!currentTableName) {
@@ -465,7 +525,6 @@
                     hideLoading();
                     return;
                 }
-                const headers = ['ID', 'Created At', ...currentDefinition.fields.map(f => f.label)];
                 const exportData = data.map(row => {
                     const mappedRow = {};
                     mappedRow['ID'] = row.id;
@@ -488,7 +547,6 @@
             }
         }
         
-        /* ---------------- Export to PDF Logic ---------------- */
         async function exportToPdf() {
             showLoading();
             if (!currentTableName) {
@@ -511,12 +569,12 @@
                     currentDefinition.fields.forEach(field => { rowData.push(row[field.name] || '-'); });
                     return rowData;
                 });
-
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF({
                     orientation: headers.length > 6 ? 'landscape' : 'portrait'
                 });
                 
+                doc.setFont('Poppins', 'normal');
                 doc.setFontSize(12);
                 doc.text(`Table Name: ${currentDefinition.label || currentDefinition.table_name}`, 10, 10);
                 doc.text(`Report Date: ${new Date().toLocaleString()}`, 10, 17);
@@ -538,7 +596,6 @@
                         textColor: [0, 0, 0]
                     },
                     didDrawPage: function(data) {
-                        // Footer
                         doc.text(`Page ${data.pageNumber} of ${data.pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
                     }
                 });
