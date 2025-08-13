@@ -60,7 +60,7 @@
                     <input type="text" id="formSearch" class="form-control w-25" placeholder="Search forms...">
                 </div>
                 <div id="formSelector" class="row g-3">
-                    </div>
+                </div>
             </div>
             
             <div id="formView" class="hidden">
@@ -78,7 +78,7 @@
                 <form id="dataForm" class="form-section">
                     <input type="hidden" id="recordId">
                     <div id="formFields" class="row g-3">
-                        </div>
+                    </div>
                     <div class="mt-4">
                         <button type="submit" id="submitBtn" class="btn btn-primary">Submit</button>
                         <button type="reset" class="btn btn-outline-secondary">Reset</button>
@@ -139,7 +139,6 @@
         let formDefinitions = [];
         let currentTableName = null;
         let currentDefinition = null;
-        let tableData = [];
         const PAGE_SIZE = 20;
         let currentPage = 0;
 
@@ -158,6 +157,8 @@
             $('dataForm').addEventListener('submit', handleFormSubmit);
             $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
             $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); } );
+            $('btnExportExcel').addEventListener('click', exportToExcel);
+            $('btnExportPdf').addEventListener('click', exportToPdf);
             
             // Initial data load
             loadFormDefinitions();
@@ -244,8 +245,6 @@
                 (def.label && def.label.toLowerCase().includes(searchTerm)) || 
                 (def.table_name && def.table_name.toLowerCase().includes(searchTerm))
             );
-            // This would be better with a proper search on the cards themselves
-            // but for a quick fix, let's just re-render
             renderFormCards(filteredForms);
         }
 
@@ -368,7 +367,6 @@
                 
                 if (error) throw error;
                 
-                tableData = data || []; // Store data globally for export
                 $('recordCount').textContent = count;
                 renderTable(data, currentDefinition.fields);
                 updatePaginationControls(count);
