@@ -3,17 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>District — Data Entry (Robust Single File)</title>
-  <!-- CSS -->
+  <title>District — Data Entry (Single File Updated)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@300;400;700;800&display=swap" rel="stylesheet">
-  <!-- Export & Supabase libs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
   <style>
-    :root{--bg:#F8FAFC;--card:#FFFFFF;--muted:#6b7280;--accent:#1B5E20;--pistachio:#e6f4e6;--shadow:0 8px 24px rgba(2,6,23,0.06);--topbar-height:64px}
+    :root{--bg:#F8FAFC;--card:#fff;--pistachio:#e6f4e6;--accent:#1B5E20;--muted:#6b7280;--shadow:0 8px 24px rgba(2,6,23,0.06);--topbar-height:64px}
     html,body{height:100%} body{font-family:"Mukta",system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg);margin:0}
     .topbar{position:fixed;top:0;left:0;right:0;height:var(--topbar-height);background:var(--accent);color:#fff;display:flex;align-items:center;gap:12px;padding:0 18px;z-index:60}
     .brand{font-weight:700;font-size:18px;margin-left:8px}
@@ -33,18 +31,10 @@
     .compact { padding:6px 10px; height:auto; }
     .inline-help { font-size:12px; color:var(--muted); margin-top:4px; }
     .busy { opacity:0.6; pointer-events:none; }
-    .spinner-ring {
-      width:28px;height:28px;border-radius:50%;border:4px solid rgba(0,0,0,0.08);border-top-color:transparent;box-sizing:border-box;
-      position:relative; display:inline-block; vertical-align:middle;
-    }
-    .spinner-ring::after{
-      content:''; position:absolute; inset:0; border-radius:50%; border:4px solid rgba(0,0,0,0.08); border-top-color:transparent; transform:rotate(0deg);
-    }
+    .spinner-ring { width:28px;height:28px;border-radius:50%;border:4px solid rgba(0,0,0,0.08);border-top-color:transparent;box-sizing:border-box;display:inline-block;vertical-align:middle; }
     .spinner-animate { animation: spin 1s linear infinite; border-top-color: currentColor; }
     @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
-    /* status ring colors */
-    .ring-yellow { color: #f59e0b; } /* yellow */
-    .ring-green  { color: #16a34a; } /* green */
+    .ring-yellow { color: #f59e0b; } .ring-green  { color: #16a34a; }
     .action-indicator { display:inline-flex; align-items:center; gap:8px; }
     .toast-fixed { position:fixed; right:20px; bottom:20px; z-index:1200; }
     .table-wrap { overflow:auto; }
@@ -179,7 +169,6 @@ Text
   </main>
 </div>
   </div>
-  <!-- Edit Modal -->
   <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content">
@@ -200,34 +189,20 @@ Text
       </div>
     </div>
   </div>
-  <!-- Toast container -->
   <div id="toastContainer" class="toast-fixed"></div>
-  <!-- JS: main -->
   <script>
-/*
-Robust single-file client.
-Replace SUPABASE_ANON_KEY with your anon key.
-Key features:
-- Dynamic forms from form_definitions table
-- Loading rings: yellow when loading form/list, green when saving
-- Drafts autosave, offline queue, pagination, aggregated view, edit modal, soft-delete, exports
-- Defensive checks and safe caps to avoid OOM
-
-If UI unresponsive: open DevTools Console for errors and ensure anon key + table 'form_definitions' exist.
-*/
-
+/* === Replace keys below with the values you provided === */
 const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/* ======================================================= */
 
 const \$ = id => document.getElementById(id);
-function el(tag, attrs={}, children=[]){ const e = document.createElement(tag); for(const k in attrs){ if(k==='class') e.className = attrs[k]; else e.setAttribute(k, attrs[k]); } children.forEach(c => typeof c==='string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c)); return e; }
-function toast(msg, timeout=2200){ const c = \$('toastContainer'); const d = el('div',{class:'alert alert-secondary'},[msg]); c.appendChild(d); setTimeout(()=> d.remove(), timeout); }
+function el(tag, attrs={}, children=[]){ const e=document.createElement(tag); for(const k in attrs){ if(k==='class') e.className=attrs[k]; else e.setAttribute(k, attrs[k]); } children.forEach(c=> typeof c==='string' ? e.appendChild(document.createTextNode(c)) : e.appendChild(c)); return e; }
+function toast(msg, t=2200){ const c=\$('toastContainer'); const d=el('div',{class:'alert alert-secondary'},[msg]); c.appendChild(d); setTimeout(()=>d.remove(), t); }
 function shortToast(msg){ toast(msg,1600); }
-
 function sanitizeName(s){ return String(s||'').replace(/[^a-zA-Z0-9_]/g,'_'); }
 
-// state
 let currentUser = null;
 let definitions = [];
 let currentDefinition = null;
@@ -238,19 +213,12 @@ let autosaveTimer = null;
 const AUTOSAVE_MS = 4000;
 let editingRecord = null;
 
-// UI indicators helpers
-function showFormsLoading(show){
-  if(show) $('formsLoadingIndicator').classList.remove('hidden'); else $('formsLoadingIndicator').classList.add('hidden');
-}
-function showFormLoadRing(show){
-  if(show) $('formLoadIndicator').classList.remove('hidden'); else $('formLoadIndicator').classList.add('hidden');
-}
-function showSaveIndicator(show){
-  if(show){ $('saveIndicator').classList.remove('hidden'); $('saveLabel').classList.add('hidden'); } else { $('saveIndicator').classList.add('hidden'); $('saveLabel').classList.remove('hidden'); }
-}
+function showElem(id, yes){ const e=\$(id); if(!e) return; e.classList.toggle('hidden', !yes); }
 function setBusy(flag){ document.body.classList.toggle('busy', !!flag); }
+function showFormsLoading(v){ showElem('formsLoadingIndicator', v); }
+function showFormLoad(v){ showElem('formLoadIndicator', v); }
+function showSaveIndicator(v){ showElem('saveIndicator', v); if(v) $('saveLabel').classList.add('hidden'); else $('saveLabel').classList.remove('hidden'); }
 
-// initialization
 function getCurrentUser(){
   const s = localStorage.getItem('user') || sessionStorage.getItem('user');
   if(s) return JSON.parse(s);
@@ -258,7 +226,6 @@ function getCurrentUser(){
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // wire buttons
   currentUser = getCurrentUser();
   \$('userBadge').textContent = currentUser.fullName || currentUser.username;
   \$('userRoleLine').textContent = `Role: ${currentUser.role || 'user'}`;
@@ -277,20 +244,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   \$('btnRefreshData').addEventListener('click', refreshViewer);
   \$('btnClearAllDrafts').addEventListener('click', ()=>{ if(confirm('Clear all local drafts?')) { Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix)).forEach(k=>localStorage.removeItem(k)); renderDraftsList(); } });
 
-  // modal buttons
   document.getElementById('btnSaveEdit').addEventListener('click', saveEdit);
   document.getElementById('btnDeleteRecord').addEventListener('click', softDeleteCurrentRecord);
 
   window.addEventListener('online', ()=>{ shortToast('Back online — syncing'); processQueue(); });
   window.addEventListener('offline', ()=> shortToast('Offline — entries will be queued'));
 
-  // load forms
   await loadDefinitions();
   renderDraftsList();
   processQueue();
 });
 
-// load form definitions
 async function loadDefinitions(){
   try{
     showFormsLoading(true);
@@ -302,7 +266,7 @@ async function loadDefinitions(){
   }catch(e){
     showFormsLoading(false);
     console.error('loadDefinitions', e);
-    toast('फॉर्म लोड करने में समस्या (कंसोल देखें)');
+    toast('फॉर्म लोड करने में समस्या — कंसोल देखें');
   }
 }
 
@@ -319,21 +283,19 @@ function renderFormsList(){
 async function selectDefinition(tableName){
   Array.from(\$('formsList').children).forEach(ch => ch.classList.toggle('active', ch.textContent.startsWith(tableName)));
   try{
-    showFormLoadRing(true);
+    showFormLoad(true);
     const { data, error } = await supabase.from('form_definitions').select('*').eq('table_name', tableName).single();
-    showFormLoadRing(false);
+    showFormLoad(false);
     if(error) throw error;
     currentDefinition = data;
-    if(!(currentDefinition.fields||[]).some(f=> sanitizeName(f.name) === 'entry_date' || f.name === 'entry_date')){
-      shortToast('Warning: form should include entry_date for period reporting.');
-    }
+    if(!(currentDefinition.fields||[]).some(f=> sanitizeName(f.name) === 'entry_date' || f.name === 'entry_date')) shortToast('Warning: include entry_date in form_definitions for period reporting.');
     renderForm(currentDefinition);
     loadDraft(currentDefinition.table_name);
     showDataEntry();
   }catch(e){
-    showFormLoadRing(false);
+    showFormLoad(false);
     console.error('selectDefinition', e);
-    toast('Cannot open form. Check console.');
+    toast('फॉर्म खोलने में त्रुटि — कंसोल देखें');
   }
 }
 
@@ -361,22 +323,18 @@ function renderForm(def){
     form.appendChild(wrapper);
   });
 
-  // aggregation metric options
   const agg = \$('aggMetric'); agg.innerHTML = '<option value="">Aggregation (choose numeric)</option>';
   (def.fields||[]).forEach(f => { if((f.type||'').toLowerCase()==='number') agg.appendChild(el('option',{value:sanitizeName(f.name)},[f.label||f.name])); });
 
-  // default entry date = today
   \$('filterEntryDate').value = new Date().toISOString().slice(0,10);
   \$('dataEntryPanel').classList.remove('hidden');
   \$('noForm').classList.add('hidden');
 }
 
-// show panels
 function showDataEntry(){ $('dataEntryPanel').classList.remove('hidden'); $('dataViewerPanel').classList.add('hidden'); \$('noForm').classList.add('hidden'); }
-async function showDataViewer(){ if(!currentDefinition){ toast('Please select a form first.'); return; } $('dataEntryPanel').classList.add('hidden'); $('dataViewerPanel').classList.remove('hidden'); \$('noForm').classList.add('hidden'); await refreshViewer(); }
+async function showDataViewer(){ if(!currentDefinition){ toast('कृपया पहले फॉर्म चुनें'); return; } $('dataEntryPanel').classList.add('hidden'); $('dataViewerPanel').classList.remove('hidden'); \$('noForm').classList.add('hidden'); await refreshViewer(); }
 async function refreshViewer(){ if(!currentDefinition) return; currentPage = 1; await fetchAndRenderTableData(currentDefinition.table_name, currentPage); }
 
-// fetch and render (raw or aggregated)
 async function fetchAndRenderTableData(tableName, page=1){
   currentPage = page;
   const fromDate = \$('filterFrom').value;
@@ -385,17 +343,14 @@ async function fetchAndRenderTableData(tableName, page=1){
   const aggField = \$('aggMetric').value;
 
   if(groupBy === 'none'){
-    // raw records with server-side pagination
     const start = (currentPage - 1) * recordsPerPage;
     const end = start + recordsPerPage - 1;
     try{
       let query = supabase.from(tableName).select('*', { count: 'exact' }).range(start, end);
       if(fromDate) query = query.gte('entry_date', fromDate);
       if(toDate) query = query.lte('entry_date', toDate);
-      // soft-delete handling assumed deleted_at column
       query = query.is('deleted_at', null);
-      // district filter if applicable
-      if(currentUser && currentUser.districtId) {
+      if(currentUser && currentUser.districtId){
         const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
         if(hasDistrict) query = query.eq('district_id', currentUser.districtId);
       }
@@ -406,12 +361,11 @@ async function fetchAndRenderTableData(tableName, page=1){
       renderPagination();
     }catch(e){
       console.error('fetch raw', e);
-      toast('Failed to fetch records. See console.');
+      toast('डेटा लोड करने में त्रुटि — कंसोल देखें');
     }
     return;
   }
 
-  // aggregated view - fetch bounded dataset then aggregate client-side (safe caps)
   try{
     const pageSize = 2000; let offset = 0; let all = [];
     while(true){
@@ -421,9 +375,8 @@ async function fetchAndRenderTableData(tableName, page=1){
       all = all.concat(data);
       if(data.length < pageSize) break;
       offset += pageSize;
-      if(all.length > 30000) break; // safety cap
+      if(all.length > 30000) break;
     }
-    // apply filters client-side
     let filtered = all;
     if(fromDate) filtered = filtered.filter(r => r.entry_date && r.entry_date >= fromDate);
     if(toDate) filtered = filtered.filter(r => r.entry_date && r.entry_date <= toDate);
@@ -431,59 +384,39 @@ async function fetchAndRenderTableData(tableName, page=1){
       const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
       if(hasDistrict) filtered = filtered.filter(r => r.district_id === currentUser.districtId);
     }
-
-    // group
     const grouped = {};
     filtered.forEach(r=>{
       const d = r.entry_date ? new Date(r.entry_date) : (r.created_at ? new Date(r.created_at) : null);
       if(!d || isNaN(d)) return;
       let key;
       if(groupBy === 'day') key = d.toISOString().slice(0,10);
-      else if(groupBy === 'week'){ // week start Mon
-        const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        const day = tmp.getUTCDay() || 7;
-        tmp.setUTCDate(tmp.getUTCDate() - day + 1);
-        key = tmp.toISOString().slice(0,10);
-      } else if(groupBy === 'month') key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+      else if(groupBy === 'week'){ const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = tmp.getUTCDay() || 7; tmp.setUTCDate(tmp.getUTCDate() - day + 1); key = tmp.toISOString().slice(0,10); }
+      else if(groupBy === 'month') key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
       else key = d.toISOString().slice(0,10);
       if(!grouped[key]) grouped[key] = [];
       grouped[key].push(r);
     });
-
     const rows = Object.keys(grouped).sort((a,b)=> b.localeCompare(a)).map(period=>{
       const items = grouped[period];
       const row = { period, count: items.length };
-      if(aggField){
-        const nums = items.map(i => Number(i[aggField]) || 0);
-        row.sum = nums.reduce((s,n)=>s+n,0);
-        row.avg = nums.length ? (row.sum / nums.length) : 0;
-      }
+      if(aggField){ const nums = items.map(i => Number(i[aggField]) || 0); row.sum = nums.reduce((s,n)=>s+n,0); row.avg = nums.length ? (row.sum / nums.length) : 0; }
       return row;
     });
-
     renderAggregatedTable(rows, aggField);
     totalRecords = rows.length;
-    renderPagination(true); // aggregated
+    renderPagination(true);
   }catch(e){
     console.error('aggregate', e);
-    toast('Failed to compute aggregation. See console.');
+    toast('संग्रह बनाने में त्रुटि — कंसोल देखें');
   }
 }
 
 function renderAggregatedTable(rows, aggField){
   const headers = $('dataTableHeaders'), body = $('dataTableBody'); headers.innerHTML=''; body.innerHTML='';
   if(!rows || rows.length === 0){ body.innerHTML = '<tr><td colspan="100%" class="text-center">No aggregated data</td></tr>'; return; }
-  const headerCells = ['Period','Count'];
-  if(aggField) headerCells.push('Sum','Avg');
+  const headerCells = ['Period','Count']; if(aggField) headerCells.push('Sum','Avg');
   headers.appendChild(el('tr', {}, headerCells.map(h => el('th',{scope:'col'},[h]))));
-  rows.forEach(r=>{
-    const tr = el('tr', {}, [
-      el('td', {}, [r.period]),
-      el('td', {}, [String(r.count)]),
-      ...(aggField ? [el('td', {}, [String(r.sum)]), el('td', {}, [String(Number(r.avg).toFixed(2))])] : [])
-    ]);
-    body.appendChild(tr);
-  });
+  rows.forEach(r=>{ const tr = el('tr', {}, [ el('td', {}, [r.period]), el('td', {}, [String(r.count)]), ...(aggField ? [el('td', {}, [String(r.sum)]), el('td', {}, [String(Number(r.avg).toFixed(2))])] : []) ]); body.appendChild(tr); });
 }
 
 function renderDataTable(data){
@@ -494,25 +427,18 @@ function renderDataTable(data){
   headerRow.appendChild(el('th', {}, ['Actions']));
   headers.appendChild(headerRow);
   data.forEach(row=>{
-    const tr = el('tr', {}, keys.map(k=>{
-      let v = row[k] != null && row[k] !== undefined ? row[k] : '';
-      if(typeof v === 'object') v = JSON.stringify(v);
-      return el('td', {}, [String(v)]);
-    }));
+    const tr = el('tr', {}, keys.map(k=> el('td', {}, [ String( normalizeCell(row[k]) ) ])));
     const actions = el('td', {}, []);
-    const btnEdit = el('button',{class:'btn btn-sm btn-outline-primary me-1'},['Edit']);
-    btnEdit.addEventListener('click', ()=> openEditModal(row));
-    const btnAudit = el('button',{class:'btn btn-sm btn-outline-secondary me-1'},['History']);
-    btnAudit.addEventListener('click', ()=> openAudit(row));
-    const btnDel = el('button',{class:'btn btn-sm btn-outline-danger'},['Delete']);
-    btnDel.addEventListener('click', ()=> { if(confirm('Soft-delete this record?')) softDelete(row.id); });
+    const btnEdit = el('button',{class:'btn btn-sm btn-outline-primary me-1'},['Edit']); btnEdit.addEventListener('click', ()=> openEditModal(row));
+    const btnAudit = el('button',{class:'btn btn-sm btn-outline-secondary me-1'},['History']); btnAudit.addEventListener('click', ()=> openAudit(row));
+    const btnDel = el('button',{class:'btn btn-sm btn-outline-danger'},['Delete']); btnDel.addEventListener('click', ()=> { if(confirm('Soft-delete this record?')) softDelete(row.id); });
     actions.appendChild(btnEdit); actions.appendChild(btnAudit); actions.appendChild(btnDel);
     tr.appendChild(actions);
     body.appendChild(tr);
   });
 }
 
-function renderPagination(isGrouped=false){
+function renderPagination(){
   const paginationEl = \$('pagination'); paginationEl.innerHTML = '';
   const totalPages = Math.max(1, Math.ceil(totalRecords / recordsPerPage));
   const createItem = (text, page, disabled) => {
@@ -524,13 +450,12 @@ function renderPagination(isGrouped=false){
   paginationEl.appendChild(createItem('Previous', Math.max(1, currentPage - 1), currentPage === 1));
   const maxVisible = 7; let start = Math.max(1, currentPage - Math.floor(maxVisible / 2)); let end = Math.min(totalPages, start + maxVisible - 1);
   if(end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
-  if(start > 1){ paginationEl.appendChild(createItem('1', 1, false)); if(start > 2) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); }
-  for(let i = start; i <= end; i++) paginationEl.appendChild(createItem(i, i, false));
-  if(end < totalPages){ if(end < totalPages - 1) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); paginationEl.appendChild(createItem(totalPages, totalPages, false)); }
+  if(start > 1){ paginationEl.appendChild(createItem('1',1,false)); if(start>2) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); }
+  for(let i=start;i<=end;i++) paginationEl.appendChild(createItem(i,i,false));
+  if(end < totalPages){ if(end < totalPages - 1) paginationEl.appendChild(el('li',{class:'page-item disabled'},[el('span',{class:'page-link'},['...'])])); paginationEl.appendChild(createItem(totalPages,totalPages,false)); }
   paginationEl.appendChild(createItem('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
 }
 
-// --- Exports ---
 async function fetchAllFilteredRows(tableName){
   const from = $('filterFrom').value; const to = $('filterTo').value;
   const pageSize = 1000; let all = []; let offset = 0;
@@ -564,15 +489,11 @@ async function exportData(){
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
     XLSX.writeFile(wb, `${currentDefinition.table_name}_data.xlsx`);
   } else {
-    await fetchAndRenderTableData(currentDefinition.table_name, 1); // populates aggregated table
-    // convert DOM table to JSON for export
+    await fetchAndRenderTableData(currentDefinition.table_name, 1);
     const headers = Array.from(\$('dataTableHeaders').querySelectorAll('th')).map(h => h.textContent.trim());
     const rows = Array.from(\$('dataTableBody').querySelectorAll('tr')).map(tr => Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim()));
     if(!rows.length){ alert('No data'); return; }
-    const arr = rows.map(r => {
-      const obj = {}; headers.forEach((h,i)=> obj[h] = r[i] || '');
-      return obj;
-    });
+    const arr = rows.map(r => { const obj = {}; headers.forEach((h,i)=> obj[h] = r[i] || ''); return obj; });
     const ws = XLSX.utils.json_to_sheet(arr);
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Aggregated');
     XLSX.writeFile(wb, `${currentDefinition.table_name}_aggregated.xlsx`);
@@ -605,12 +526,9 @@ async function exportPDF(){
   }
 }
 
-function normalizeRow(r){
-  const out = {}; Object.keys(r).forEach(k=> out[k] = normalizeCell(r[k])); return out;
-}
+function normalizeRow(r){ const out = {}; Object.keys(r).forEach(k=> out[k] = normalizeCell(r[k])); return out; }
 function normalizeCell(v){ if(v==null) return ''; if(typeof v === 'object') return JSON.stringify(v); return v; }
 
-// --- Drafts & autosave ---
 function draftKey(table){ return draftPrefix + table; }
 function saveDraft(table){
   if(!table) return;
@@ -622,63 +540,37 @@ function saveDraft(table){
 }
 function loadDraft(table){
   const raw = localStorage.getItem(draftKey(table)); if(!raw) return;
-  try{
-    const parsed = JSON.parse(raw); const d = parsed.data || {};
-    \$('entryForm').querySelectorAll('input,textarea,select').forEach(i => { if(d.hasOwnProperty(i.name)) i.value = d[i.name]; });
-    \$('draftStatus').textContent = `Draft loaded (${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : ''})`;
-  }catch(e){ console.error('loadDraft', e); }
+  try{ const parsed = JSON.parse(raw); const d = parsed.data || {}; $('entryForm').querySelectorAll('input,textarea,select').forEach(i=> { if(d.hasOwnProperty(i.name)) i.value = d[i.name]; }); $('draftStatus').textContent = `Draft loaded (${parsed.savedAt ? new Date(parsed.savedAt).toLocaleString() : ''})`; } catch(e){ console.error('loadDraft', e); }
 }
 function clearDraft(){ if(!currentDefinition) return; localStorage.removeItem(draftKey(currentDefinition.table_name)); renderDraftsList(); shortToast('Draft cleared'); }
 function renderDraftsList(){ const el = \$('draftsList'); el.innerHTML = ''; const keys = Object.keys(localStorage).filter(k=>k.startsWith(draftPrefix)); if(!keys.length){ el.innerHTML = '<div class="text-muted">No drafts</div>'; return; } keys.forEach(k=>{ try{ const raw = JSON.parse(localStorage.getItem(k)); const name = k.replace(draftPrefix,''); const btn = el('button',{type:'button',class:'list-group-item list-group-item-action'},[ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]); btn.addEventListener('click', ()=>{ selectDefinition(name).then(()=>loadDraft(name)).catch(()=>{}); }); el.appendChild(btn); }catch(e){ console.warn(e); } }); }
 function scheduleAutosave(){ clearTimeout(autosaveTimer); autosaveTimer = setTimeout(()=> { if(currentDefinition) saveDraft(currentDefinition.table_name); }, AUTOSAVE_MS); }
 
-// --- Offline queue ---
-function enqueueInsert(table, data){
-  const raw = localStorage.getItem(queueKey) || '[]'; const arr = JSON.parse(raw); arr.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2,8), table, data, createdAt: new Date().toISOString() }); localStorage.setItem(queueKey, JSON.stringify(arr)); shortToast('Saved to offline queue');
-}
-async function processQueue(){
-  if(!navigator.onLine) return;
-  const raw = localStorage.getItem(queueKey); if(!raw) return;
-  let arr = JSON.parse(raw); if(!arr.length) return;
-  const remaining = [];
-  for(const item of arr){
-    try{
-      const payload = { ...item.data };
-      if(currentUser && currentUser.id) payload.created_by = currentUser.id;
-      const { error } = await supabase.from(item.table).insert([payload]);
-      if(error){ console.error('queue insert failed', error); remaining.push(item); } else shortToast('Queued item synced');
-    }catch(e){ console.error('processQueue', e); remaining.push(item); }
-  }
-  localStorage.setItem(queueKey, JSON.stringify(remaining));
-}
+function enqueueInsert(table, data){ const raw = localStorage.getItem(queueKey) || '[]'; const arr = JSON.parse(raw); arr.push({ id: Date.now()+'_'+Math.random().toString(36).slice(2,8), table, data, createdAt: new Date().toISOString() }); localStorage.setItem(queueKey, JSON.stringify(arr)); shortToast('Saved to offline queue'); }
+async function processQueue(){ if(!navigator.onLine) return; const raw = localStorage.getItem(queueKey); if(!raw) return; let arr = JSON.parse(raw); if(!arr.length) return; const remaining = []; for(const item of arr){ try{ const payload = { ...item.data }; if(currentUser && currentUser.id) payload.created_by = currentUser.id; const { error } = await supabase.from(item.table).insert([payload]); if(error){ console.error('queue insert failed', error); remaining.push(item); } else shortToast('Queued item synced'); }catch(e){ console.error('processQueue', e); remaining.push(item); } } localStorage.setItem(queueKey, JSON.stringify(remaining)); }
 
-// --- Save entry (with green ring on submit) ---
 async function saveEntry(){
-  if(!currentDefinition){ toast('Select a form'); return; }
+  if(!currentDefinition){ toast('कृपया कोई फॉर्म चुनें'); return; }
   const payload = {}; let valid = true; const errs = [];
   \$('entryForm').querySelectorAll('input,textarea,select').forEach(i=>{
     const name = i.name; const fd = (currentDefinition.fields||[]).find(f=> sanitizeName(f.name||f.key) === name || f.name === name);
     const raw = i.value === '' ? null : i.value;
-    if(fd && fd.required && (raw === null || raw === '')){ valid = false; errs.push((fd.label||fd.name)+' is required'); }
-    if(fd && (fd.type||'').toLowerCase() === 'number' && raw!=null && raw!=='' && isNaN(Number(raw))){ valid=false; errs.push((fd.label||fd.name)+' must be a number'); }
+    if(fd && fd.required && (raw === null || raw === '')){ valid = false; errs.push((fd.label||fd.name)+' required'); }
+    if(fd && (fd.type||'').toLowerCase()==='number' && raw!=null && raw!=='' && isNaN(Number(raw))){ valid=false; errs.push((fd.label||fd.name)+' must be number'); }
     payload[name] = raw;
   });
-  // ensure entry_date
   if(!payload.entry_date) payload.entry_date = \$('filterEntryDate').value || new Date().toISOString().slice(0,10);
   if(!payload.entry_date){ valid=false; errs.push('entry_date missing'); }
   if(!valid){ alert('Validation: '+errs.join(', ')); return; }
 
-  // district & audit
   if(currentUser && currentUser.districtId){
     const hasDistrict = (currentDefinition.fields||[]).some(f => sanitizeName(f.name) === 'district_id' || f.name === 'district_id');
     if(hasDistrict) payload.district_id = currentUser.districtId;
   }
   if(currentUser && currentUser.id) payload.created_by = currentUser.id;
 
-  // duplicate check if metadata has unique_keys
   if(currentDefinition.unique_keys && Array.isArray(currentDefinition.unique_keys) && currentDefinition.unique_keys.length){
-    const where = {};
-    currentDefinition.unique_keys.forEach(k => { if(payload[k]) where[k] = payload[k]; });
+    const where = {}; currentDefinition.unique_keys.forEach(k => { if(payload[k]) where[k] = payload[k]; });
     if(Object.keys(where).length){
       const { data: dup, error } = await supabase.from(currentDefinition.table_name).select('id').match(where).limit(1);
       if(error) console.warn('dup check', error);
@@ -686,13 +578,9 @@ async function saveEntry(){
     }
   }
 
-  // save draft first
   saveDraft(currentDefinition.table_name);
-
-  // offline handling
   if(!navigator.onLine){ enqueueInsert(currentDefinition.table_name, payload); return; }
 
-  // show green ring while saving
   showSaveIndicator(true);
   setBusy(true);
   try{
@@ -714,7 +602,6 @@ async function saveEntry(){
   }
 }
 
-// --- Edit & Audit ---
 function openEditModal(row){
   editingRecord = row;
   const form = \$('editForm'); form.innerHTML = '';
@@ -727,14 +614,10 @@ function openEditModal(row){
     const val = row[name] != null ? row[name] : '';
     if(type==='date') input = el('input',{class:'form-control',type:'date',name,value:val});
     else if(type==='number') input = el('input',{class:'form-control',type:'number',name,step:'any',value:val});
-    else if(f.options && Array.isArray(f.options)){
-      input = el('select',{class:'form-control',name});
-      input.appendChild(el('option',{value:''},['-- select --']));
-      f.options.forEach(o => { const opt = el('option',{value:o.value},[o.label]); if(String(o.value) === String(val)) opt.selected=true; input.appendChild(opt); });
-    } else input = el('input',{class:'form-control',type:'text',name,value:val});
+    else if(f.options && Array.isArray(f.options)){ input = el('select',{class:'form-control',name}); input.appendChild(el('option',{value:''},['-- select --'])); f.options.forEach(o=>{ const opt=el('option',{value:o.value},[o.label]); if(String(o.value)===String(val)) opt.selected=true; input.appendChild(opt); }); }
+    else input = el('input',{class:'form-control',type:'text',name,value:val});
     wrapper.appendChild(label); wrapper.appendChild(input); form.appendChild(wrapper);
   });
-  // clear previous audit
   \$('auditList').innerHTML = '';
   const modal = new bootstrap.Modal(document.getElementById('editModal'));
   modal.show();
@@ -745,19 +628,7 @@ async function saveEdit(){
   const payload = {};
   \$('editForm').querySelectorAll('input,textarea,select').forEach(i=> payload[i.name] = i.value === '' ? null : i.value);
   if(currentUser && currentUser.id) payload.updated_by = currentUser.id;
-  try{
-    setBusy(true);
-    const { data, error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', editingRecord.id).select();
-    setBusy(false);
-    if(error) throw error;
-    shortToast('Record updated');
-    bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
-    await refreshViewer();
-  }catch(e){
-    setBusy(false);
-    console.error('saveEdit', e);
-    toast('Update failed');
-  }
+  try{ setBusy(true); const { data, error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', editingRecord.id).select(); setBusy(false); if(error) throw error; shortToast('Record updated'); bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); await refreshViewer(); }catch(e){ setBusy(false); console.error('saveEdit', e); toast('Update failed'); }
 }
 
 async function openAudit(row){
@@ -765,56 +636,22 @@ async function openAudit(row){
   try{
     const { data, error } = await supabase.from('audit_logs').select('*').eq('table_name', currentDefinition.table_name).eq('record_id', row.id).order('performed_at',{ascending:false}).limit(50);
     if(error) throw error;
-    const container = \$('auditList'); container.innerHTML = '';
-    container.appendChild(el('h6',{},['Recent changes:']));
+    const container = \$('auditList'); container.innerHTML = ''; container.appendChild(el('h6',{},['Recent changes:']));
     if(!data || !data.length) container.appendChild(el('div',{},['No audit records found.']));
-    else data.forEach(a=>{
-      const d = el('div',{class:'mb-2 p-2', style:'background:#f8f9fa;border-radius:6px'});
-      d.appendChild(el('div',{},[`Action: ${a.action} • By: ${a.performed_by || 'unknown'} • At: ${new Date(a.performed_at).toLocaleString()}`]));
-      d.appendChild(el('pre',{},[JSON.stringify({before:a.before,after:a.after},null,2)]));
-      container.appendChild(d);
-    });
-  }catch(e){
-    console.error('openAudit', e);
-    toast('Failed to load audit');
-  }
+    else data.forEach(a=>{ const d = el('div',{class:'mb-2 p-2', style:'background:#f8f9fa;border-radius:6px'}); d.appendChild(el('div',{},[`Action: ${a.action} • By: ${a.performed_by || 'unknown'} • At: ${new Date(a.performed_at).toLocaleString()}`])); d.appendChild(el('pre',{},[JSON.stringify({before:a.before,after:a.after},null,2)])); container.appendChild(d); });
+  }catch(e){ console.error('openAudit', e); toast('Failed to load audit'); }
 }
 
 async function softDelete(id){
   if(!currentDefinition) return;
-  try{
-    setBusy(true);
-    const payload = { deleted_at: new Date().toISOString() };
-    if(currentUser && currentUser.id) payload.deleted_by = currentUser.id;
-    const { error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', id);
-    setBusy(false);
-    if(error) throw error;
-    shortToast('Record soft-deleted');
-    await refreshViewer();
-  }catch(e){
-    setBusy(false);
-    console.error('softDelete', e);
-    toast('Delete failed');
-  }
+  try{ setBusy(true); const payload = { deleted_at: new Date().toISOString() }; if(currentUser && currentUser.id) payload.deleted_by = currentUser.id; const { error } = await supabase.from(currentDefinition.table_name).update(payload).eq('id', id); setBusy(false); if(error) throw error; shortToast('Record soft-deleted'); await refreshViewer(); }catch(e){ setBusy(false); console.error('softDelete', e); toast('Delete failed'); }
 }
+async function softDeleteCurrentRecord(){ if(!editingRecord) return; if(!confirm('Soft-delete this record?')) return; await softDelete(editingRecord.id); bootstrap.Modal.getInstance(document.getElementById('editModal')).hide(); }
 
-async function softDeleteCurrentRecord(){
-  if(!editingRecord) return;
-  if(!confirm('Soft-delete this record?')) return;
-  await softDelete(editingRecord.id);
-  bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
-}
-
-// helpers
 function normalizeCell(v){ if(v==null) return ''; if(typeof v === 'object') return JSON.stringify(v); return v; }
 
-// small safety: if anon key not replaced, show message
-(function anonKeyCheck(){
-  if(SUPABASE_ANON_KEY === 'REPLACE_WITH_ANON_KEY'){ setTimeout(()=> alert('Replace SUPABASE_ANON_KEY in this file with your Supabase anon key (frontend). The app cannot load forms until you do.'), 300); }
-})();
-
+(function anonCheck(){ if(!SUPABASE_KEY || SUPABASE_KEY.indexOf('REPLACE') !== -1){ setTimeout(()=> alert('Warning: Supabase key looks invalid. Ensure SUPABASE_KEY is set correctly.'), 300); } })();
   </script>
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
