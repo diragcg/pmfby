@@ -242,7 +242,7 @@
                 const { data, error, count } = await supabase
                     .from(currentTableName)
                     .select('*', { count: 'exact' })
-                    .order('created_at', { ascending: false }) // This line will now work!
+                    .order('created_at', { ascending: false })
                     .range(start, end);
                 
                 if (error) throw error;
@@ -281,19 +281,27 @@
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 // Add ID and Created At
-                let rowHtml = `<td>${row.id}</td><td>${new Date(row.created_at).toLocaleString()}</td>`;
+                const idCell = document.createElement('td');
+                idCell.textContent = row.id;
+                tr.appendChild(idCell);
+
+                const createdAtCell = document.createElement('td');
+                createdAtCell.textContent = new Date(row.created_at).toLocaleString();
+                tr.appendChild(createdAtCell);
+
                 // Add dynamic fields
                 fields.forEach(field => {
-                    rowHtml += `<td>${row[field.name] || '-'}</td>`;
+                    const td = document.createElement('td');
+                    td.textContent = row[field.name] || '-';
+                    tr.appendChild(td);
                 });
-                tr.innerHTML = rowHtml;
                 tableBody.appendChild(tr);
             });
         }
         
         function updatePaginationControls(count) {
             const totalPages = Math.ceil(count / PAGE_SIZE);
-            $('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages}`;
+            $('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages || 1}`;
             $('prevPage').disabled = currentPage === 0;
             $('nextPage').disabled = currentPage >= totalPages - 1;
         }
