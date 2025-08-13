@@ -402,10 +402,17 @@
             setLoadingOverlay($('dataViewerPanel'), true);
 
             try {
-                const { data, count, error } = await supabase
-                    .from(tableName)
-                    .select('*', { count: 'exact' })
-                    .eq('district_id', currentUser && currentUser.districtId ? currentUser.districtId : null)
+                // Get the fields from the form definition to check for `district_id`.
+                const hasDistrictIdColumn = (currentDefinition.fields || []).some(field => field.name === 'district_id');
+
+                let query = supabase.from(tableName).select('*', { count: 'exact' });
+                
+                // Only apply the filter if the column exists in the table.
+                if (hasDistrictIdColumn) {
+                    query = query.eq('district_id', currentUser && currentUser.districtId ? currentUser.districtId : null);
+                }
+
+                const { data, count, error } = await query
                     .order('created_at', { ascending: false })
                     .range(start, end);
 
@@ -453,7 +460,7 @@
                 body.appendChild(rowEl);
             });
         }
-        
+
         async function editRecord(id) {
             currentRecordId = id;
             setLoadingOverlay($('dataEntryPanel'), true);
@@ -523,13 +530,19 @@
             const pageSize = 1000;
             let from = 0;
             let all = [];
+            // Get the fields from the form definition to check for `district_id`.
+            const hasDistrictIdColumn = (currentDefinition.fields || []).some(field => field.name === 'district_id');
+
             while (true) {
-                const { data, error } = await supabase
-                    .from(tableName)
-                    .select('*')
-                    .eq('district_id', currentUser && currentUser.districtId ? currentUser.districtId : null)
+                let query = supabase.from(tableName).select('*');
+                if (hasDistrictIdColumn) {
+                    query = query.eq('district_id', currentUser && currentUser.districtId ? currentUser.districtId : null);
+                }
+                
+                const { data, error } = await query
                     .order('created_at', { ascending: false })
                     .range(from, from + pageSize - 1);
+
                 if (error) throw error;
                 if (!data || data.length === 0) break;
                 all = all.concat(data);
@@ -680,15 +693,15 @@
                 } catch (e) { console.warn('bad draft', e); }
             });
         }
-        
+
         async function saveEntry() {
             if (!currentDefinition) { showToast('कृपया कोई फॉर्म चुनें', 'warning'); return; }
             const payload = {};
             $('entryForm').querySelectorAll('input, textarea, select').forEach(i => payload[i.name] = i.value === '' ? null : i.value);
 
-            if (currentUser && currentUser.districtId) {
-                const hasDistrictCol = (currentDefinition.fields || []).some(f => sanitizeForInputName(f.name) === 'district_id' || f.name === 'district_id');
-                if (hasDistrictCol) payload['district_id'] = currentUser.districtId;
+            const hasDistrictCol = (currentDefinition.fields || []).some(f => f.name === 'district_id');
+            if (hasDistrictCol && currentUser && currentUser.districtId) {
+                payload['district_id'] = currentUser.districtId;
             }
 
             setLoadingOverlay($('dataEntryPanel'), true);
