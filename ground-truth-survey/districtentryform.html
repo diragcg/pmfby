@@ -356,41 +356,48 @@
             $('noForm').classList.add('hidden');
         }
         
-        async function loadLatestForDistrict(tableName) {
-            try {
-                const { data, error } = await supabase
-                    .from(tableName)
-                    .select('*')
-                    .eq('district_id', currentUser.districtId)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
+       async function loadLatestForDistrict(tableName) {
+    try {
+        const { data, error } = await supabase
+            .from(tableName)
+            .select('*')
+            .eq('district_id', currentUser.districtId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
 
-                if (error && error.code !== 'PGRST116') throw error;
-                
-                if (data) {
-                    loadedCurrentRecord = data;
-                    console.log('Latest record loaded:', loadedCurrentRecord);
-                    
-                    const form = $('entryForm');
-                    currentDefinition.fields.forEach(field => {
-                        const inputName = sanitizeForInputName(field.name);
-                        const inputElement = form.querySelector(`[name="${inputName}"]`);
-                        if (inputElement && loadedCurrentRecord[field.name] !== null && loadedCurrentRecord[field.name] !== undefined) {
-                            inputElement.value = loadedCurrentRecord[field.name];
-                        }
-                    });
-                    showToast('Latest draft loaded from database.', 'success');
-                } else {
-                    console.log('No latest record found for district.');
-                    loadedCurrentRecord = null;
-                }
-            } catch (err) {
-                console.error('Failed to load latest record for district:', err);
-                showToast('Failed to load previous data. Please try again.', 'danger');
-            }
+        // Check for a specific error code 'PGRST116' which means 'not found'.
+        // We handle this case separately because it's not a critical error.
+        if (error && error.code !== 'PGRST116') {
+            throw error;
         }
 
+        // If data is found, assign it to loadedCurrentRecord and populate the form.
+        if (data) {
+            loadedCurrentRecord = data;
+            console.log('Latest record loaded:', loadedCurrentRecord);
+            
+            const form = $('entryForm');
+            currentDefinition.fields.forEach(field => {
+                const inputName = sanitizeForInputName(field.name);
+                const inputElement = form.querySelector(`[name="${inputName}"]`);
+                if (inputElement && loadedCurrentRecord[field.name] !== null && loadedCurrentRecord[field.name] !== undefined) {
+                    inputElement.value = loadedCurrentRecord[field.name];
+                }
+            });
+            showToast('Latest data loaded successfully.', 'success');
+        } else {
+            // If no data is found, set loadedCurrentRecord to null and show a message.
+            console.log('No latest record found for district.');
+            loadedCurrentRecord = null;
+            showToast('No previous data found for this form.', 'info');
+        }
+    } catch (err) {
+        // Log the full error and show a user-friendly toast message.
+        console.error('Failed to load latest record for district:', err);
+        showToast('Failed to load previous data. Please try again.', 'danger');
+    }
+}
         function showDataEntry() {
             $('dataEntryPanel').classList.remove('hidden');
             $('dataViewerPanel').classList.add('hidden');
