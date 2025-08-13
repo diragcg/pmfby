@@ -6,6 +6,8 @@
     <title>District Entry Form</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
     <style>
@@ -14,11 +16,15 @@
         .topbar .brand { font-weight:700; font-size:18px; margin-left:10px; }
         .container-app { max-width:1200px; margin:92px auto 48px; }
         .main-card { background:#fff; border-radius:10px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.06); }
+        .form-card { cursor: pointer; transition: transform 0.2s; }
+        .form-card:hover { transform: translateY(-5px); }
+        .form-card.selected { border: 2px solid #1B5E20; }
         label.required::after { content: " *"; color:#d63333; font-weight:700; margin-left:2px; }
         .hidden { display:none !important; }
         .form-section { padding:20px; border:1px solid #e0e0e0; border-radius:8px; margin-bottom:20px; }
         .table-responsive { max-height: 500px; overflow-y: auto; }
         .pagination-controls { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+        .export-buttons { display: flex; gap: 10px; }
     </style>
 </head>
 <body>
@@ -34,17 +40,19 @@
     <div class="container-app">
         <div class="main-card">
             <h4>Select a Form</h4>
-            <div id="formSelector" class="mb-4">
-                <select id="selectForm" class="form-select"></select>
-            </div>
+            <div id="formSelector" class="mb-4 row g-3">
+                </div>
             
-            <div id="formContainer" class="hidden">
+            <div id="dataEntrySection" class="hidden">
+                <hr class="my-4">
+                
+                <h4>Data Entry for: <span class="text-primary" id="currentFormTitle"></span></h4>
                 <form id="dataForm" class="form-section">
-                    <h5 id="formTitle"></h5>
+                    <input type="hidden" id="recordId">
                     <div id="formFields" class="row g-3">
                         </div>
                     <div class="mt-4">
-                        <button type="submit" class="btn btn-primary">Submit Data</button>
+                        <button type="submit" id="submitBtn" class="btn btn-primary">Submit</button>
                         <button type="reset" class="btn btn-outline-secondary">Reset</button>
                     </div>
                 </form>
@@ -56,7 +64,10 @@
             <div id="dataList" class="hidden">
                 <div class="mb-2 d-flex justify-content-between align-items-center">
                     <span class="text-muted small">Total records: <span id="recordCount">0</span></span>
-                    <button id="btnExport" class="btn btn-sm btn-success">Export to Excel</button>
+                    <div class="export-buttons">
+                         <button id="btnExportExcel" class="btn btn-sm btn-success">Export to Excel</button>
+                         <button id="btnExportPdf" class="btn btn-sm btn-danger">Export to PDF</button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered table-sm">
@@ -73,27 +84,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="editModalLabel">Edit Record</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="editForm">
-                <input type="hidden" id="editRecordId">
-                <div id="editFormFields" class="row g-3">
-                    </div>
-            </form>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            <button type="button" id="btnSaveEdit" class="btn btn-primary">Save changes</button>
-          </div>
-        </div>
-      </div>
-    </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <div id="alertToast" style="position:fixed; right:20px; bottom:20px; z-index:9999;"></div>
 
@@ -136,12 +126,11 @@
             $('userName').textContent = `${currentUser.email}`;
             $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
             $('btnAdmin').addEventListener('click', () => { location.href = 'admin.html'; });
-            $('selectForm').addEventListener('change', handleFormSelection);
             $('dataForm').addEventListener('submit', handleFormSubmit);
             $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
             $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); } );
-            $('btnExport').addEventListener('click', exportToExcel);
-            $('btnSaveEdit').addEventListener('click', saveEditedRecord);
+            $('btnExportExcel').addEventListener('click', () => exportToExcel());
+            $('btnExportPdf').addEventListener('click', () => exportToPdf());
 
             loadFormDefinitions();
         });
@@ -163,33 +152,51 @@
         }
 
         function renderFormSelector() {
-            const selector = $('selectForm');
-            selector.innerHTML = '<option value="">--- Select a Form ---</option>';
+            const selector = $('formSelector');
+            selector.innerHTML = '';
+            if (formDefinitions.length === 0) {
+                selector.innerHTML = '<div class="col-12 text-muted">No forms found. Please create one in the Admin panel.</div>';
+                return;
+            }
             formDefinitions.forEach(def => {
-                const option = document.createElement('option');
-                option.value = def.table_name;
-                option.textContent = def.label || def.table_name;
-                selector.appendChild(option);
+                const card = document.createElement('div');
+                card.className = 'col-md-4';
+                card.innerHTML = `
+                    <div class="card form-card">
+                        <div class="card-body">
+                            <h5 class="card-title">${def.label || def.table_name}</h5>
+                            <p class="card-text text-muted small">${(def.fields || []).length} fields</p>
+                        </div>
+                    </div>
+                `;
+                card.addEventListener('click', () => {
+                    handleFormSelection(def);
+                    const allCards = document.querySelectorAll('.form-card');
+                    allCards.forEach(c => c.classList.remove('selected'));
+                    card.querySelector('.form-card').classList.add('selected');
+                });
+                selector.appendChild(card);
             });
         }
 
-        function handleFormSelection(event) {
-            currentTableName = event.target.value;
-            currentDefinition = formDefinitions.find(d => d.table_name === currentTableName);
-            if (currentDefinition) {
-                renderForm(currentDefinition);
-                fetchAndRenderTableData();
-                $('formContainer').classList.remove('hidden');
-                $('dataList').classList.remove('hidden');
-            } else {
-                $('formContainer').classList.add('hidden');
-                $('dataList').classList.add('hidden');
-            }
+        function handleFormSelection(def) {
+            currentTableName = def.table_name;
+            currentDefinition = def;
+            $('currentFormTitle').textContent = def.label || def.table_name;
+            
+            // Reset form and UI
+            $('dataForm').reset();
+            $('recordId').value = '';
+            $('submitBtn').textContent = 'Submit';
+
+            renderForm(currentDefinition);
+            fetchAndRenderTableData();
+            $('dataEntrySection').classList.remove('hidden');
+            $('dataList').classList.remove('hidden');
         }
 
         /* ---------------- Dynamic Form Rendering ---------------- */
         function renderForm(def) {
-            $('formTitle').textContent = def.label || def.table_name;
             const fieldsContainer = $('formFields');
             fieldsContainer.innerHTML = '';
             def.fields.forEach(field => {
@@ -216,7 +223,7 @@
             });
         }
 
-        /* ---------------- Data Submission Logic ---------------- */
+        /* ---------------- Data Submission and Update Logic ---------------- */
         async function handleFormSubmit(event) {
             event.preventDefault();
             const formData = new FormData(event.target);
@@ -240,13 +247,30 @@
                     }
                 }
                 
-                const { error } = await supabase.from(currentTableName).insert([payload]);
+                const recordId = $('recordId').value;
+                let error;
+
+                if (recordId) {
+                    // Update existing record
+                    const { error: updateError } = await supabase
+                        .from(currentTableName)
+                        .update(payload)
+                        .eq('id', recordId);
+                    error = updateError;
+                } else {
+                    // Insert new record
+                    const { error: insertError } = await supabase.from(currentTableName).insert([payload]);
+                    error = insertError;
+                }
                 
                 if (error) throw error;
 
-                toast('Data submitted successfully!', 'success');
-                event.target.reset();
-                currentPage = 0;
+                toast(recordId ? 'Record updated successfully!' : 'Data submitted successfully!', 'success');
+                event.target.reset(); // Reset form fields
+                $('recordId').value = '';
+                $('submitBtn').textContent = 'Submit';
+
+                currentPage = 0; // Go back to the first page to see the new/updated entry
                 fetchAndRenderTableData();
 
             } catch (error) {
@@ -322,7 +346,7 @@
                 const editBtn = document.createElement('button');
                 editBtn.className = 'btn btn-sm btn-warning me-1';
                 editBtn.textContent = 'Edit';
-                editBtn.addEventListener('click', () => openEditModal(row));
+                editBtn.addEventListener('click', () => editRecord(row));
 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'btn btn-sm btn-danger';
@@ -350,114 +374,79 @@
                 toast('Please select a form first!', 'warning');
                 return;
             }
-
             try {
                 const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
-
                 if (error) throw error;
-                
                 if (!data || data.length === 0) {
                     toast('No data to export!', 'info');
                     return;
                 }
-
                 const exportData = data.map(row => {
                     const mappedRow = {};
                     mappedRow['ID'] = row.id;
                     mappedRow['Created At'] = new Date(row.created_at).toLocaleString();
-                    currentDefinition.fields.forEach(field => {
-                        mappedRow[field.label] = row[field.name];
-                    });
+                    currentDefinition.fields.forEach(field => { mappedRow[field.label] = row[field.name]; });
                     return mappedRow;
                 });
-
                 const ws = XLSX.utils.json_to_sheet(exportData);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, currentTableName);
                 XLSX.writeFile(wb, `${currentTableName}_data.xlsx`);
-                
                 toast('Data exported to Excel successfully!', 'success');
-
+            } catch (error) {
+                console.error('Export error:', error);
+                toast('Failed to export data: ' + error.message, 'danger');
+            }
+        }
+        
+        /* ---------------- Export to PDF Logic ---------------- */
+        async function exportToPdf() {
+            if (!currentTableName) {
+                toast('Please select a form first!', 'warning');
+                return;
+            }
+            try {
+                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    toast('No data to export!', 'info');
+                    return;
+                }
+                const headers = ['ID', 'Created At', ...currentDefinition.fields.map(f => f.label)];
+                const rows = data.map(row => {
+                    const rowData = [row.id, new Date(row.created_at).toLocaleString()];
+                    currentDefinition.fields.forEach(field => { rowData.push(row[field.name] || '-'); });
+                    return rowData;
+                });
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.autoTable({
+                    head: [headers],
+                    body: rows,
+                });
+                doc.save(`${currentTableName}_data.pdf`);
+                toast('Data exported to PDF successfully!', 'success');
             } catch (error) {
                 console.error('Export error:', error);
                 toast('Failed to export data: ' + error.message, 'danger');
             }
         }
 
-        /* ---------------- Edit/Update Logic ---------------- */
-        let editModal;
-        document.addEventListener('DOMContentLoaded', () => {
-            const modalElement = document.getElementById('editModal');
-            editModal = new bootstrap.Modal(modalElement);
-        });
-
-        function openEditModal(record) {
-            const editFieldsContainer = $('editFormFields');
-            editFieldsContainer.innerHTML = '';
+        /* ---------------- Edit Logic ---------------- */
+        function editRecord(record) {
+            $('currentFormTitle').textContent = `Editing Record ID: ${record.id}`;
+            $('recordId').value = record.id;
+            $('submitBtn').textContent = 'Update';
             
-            $('editRecordId').value = record.id;
+            const fieldsContainer = $('formFields');
+            const formInputs = fieldsContainer.querySelectorAll('input');
             
-            currentDefinition.fields.forEach(field => {
-                const col = document.createElement('div');
-                col.className = 'col-12 mb-3';
-                const label = document.createElement('label');
-                label.className = 'form-label';
-                label.textContent = field.label;
-                const input = document.createElement('input');
-                input.className = 'form-control';
-                input.name = field.name;
-                input.value = record[field.name] || '';
-
-                if (field.type === 'number') {
-                    input.type = 'number';
-                } else if (field.type === 'date') {
-                    input.type = 'date';
-                } else {
-                    input.type = 'text';
-                }
-                
-                col.appendChild(label);
-                col.appendChild(input);
-                editFieldsContainer.appendChild(col);
+            formInputs.forEach(input => {
+                input.value = record[input.name] || '';
             });
 
-            editModal.show();
-        }
-
-        async function saveEditedRecord() {
-            const recordId = $('editRecordId').value;
-            const editForm = $('editForm');
-            const formData = new FormData(editForm);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const payload = {};
-                for (const field of currentDefinition.fields) {
-                    const value = data[field.name];
-                    if (field.type === 'number') {
-                        payload[field.name] = value ? parseFloat(value) : null;
-                    } else if (field.type === 'date') {
-                        payload[field.name] = value || null;
-                    } else {
-                        payload[field.name] = value || null;
-                    }
-                }
-
-                const { error } = await supabase
-                    .from(currentTableName)
-                    .update(payload)
-                    .eq('id', recordId);
-                
-                if (error) throw error;
-                
-                toast('Record updated successfully!', 'success');
-                editModal.hide();
-                fetchAndRenderTableData();
-
-            } catch (error) {
-                console.error('Update error:', error);
-                toast('Failed to update record: ' + error.message, 'danger');
-            }
+            // Scroll to the form section
+            $('dataEntrySection').scrollIntoView({ behavior: 'smooth' });
         }
         
         /* ---------------- Delete Logic ---------------- */
