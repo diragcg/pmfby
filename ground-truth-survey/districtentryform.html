@@ -34,6 +34,7 @@
         .form-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
         .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); z-index: 2000; display: flex; justify-content: center; align-items: center; }
         .spinner-border { width: 3rem; height: 3rem; }
+        .nav-link.active { background-color: #f8f9fa !important; color: #1B5E20 !important; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -67,43 +68,51 @@
                 <button id="btnBackToDashboard" class="btn btn-sm btn-outline-secondary mb-3">
                     < Back to Dashboard
                 </button>
-                <div class="form-info-header">
-                    <h4>Data Entry for: <span class="text-primary" id="currentFormTitle"></span></h4>
-                    <div class="export-buttons">
-                        <button id="btnExportExcel" class="btn btn-sm btn-success">Export to Excel</button>
-                        <button id="btnExportPdf" class="btn btn-sm btn-danger">Export to PDF</button>
-                    </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="mb-0">Data for: <span class="text-primary" id="currentFormTitle"></span></h4>
+                    <button id="btnGetReport" class="btn btn-info">Get Report</button>
                 </div>
                 
-                <form id="dataForm" class="form-section">
-                    <input type="hidden" id="recordId">
-                    <div id="formFields" class="row g-3">
+                <ul class="nav nav-tabs" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="data-entry-tab" data-bs-toggle="tab" data-bs-target="#data-entry" type="button" role="tab" aria-controls="data-entry" aria-selected="true">Data Entry</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="submitted-data-tab" data-bs-toggle="tab" data-bs-target="#submitted-data" type="button" role="tab" aria-controls="submitted-data" aria-selected="false">Submitted Data</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content border border-top-0 p-3 bg-white" id="myTabContent">
+                    <div class="tab-pane fade show active" id="data-entry" role="tabpanel" aria-labelledby="data-entry-tab">
+                        <form id="dataForm" class="form-section">
+                            <input type="hidden" id="recordId">
+                            <div id="formFields" class="row g-3">
+                            </div>
+                            <div class="mt-4">
+                                <button type="submit" id="submitBtn" class="btn btn-primary">Submit</button>
+                                <button type="reset" class="btn btn-outline-secondary">Reset</button>
+                            </div>
+                        </form>
                     </div>
-                    <div class="mt-4">
-                        <button type="submit" id="submitBtn" class="btn btn-primary">Submit</button>
-                        <button type="reset" class="btn btn-outline-secondary">Reset</button>
-                    </div>
-                </form>
-            
-                <hr class="my-4">
-
-                <h4>Submitted Data</h4>
-                <div id="dataList">
-                    <div class="mb-2 d-flex justify-content-between align-items-center">
-                        <input type="text" id="tableFilter" class="form-control w-25" placeholder="Filter table...">
-                        <span class="text-muted small">Total records: <span id="recordCount">0</span></span>
-                    </div>
-                    <div class="table-responsive table-container">
-                        <table class="table table-striped table-bordered table-sm">
-                            <thead id="tableHead"></thead>
-                            <tbody id="tableBody"></tbody>
-                            <tfoot id="tableFoot"></tfoot>
-                        </table>
-                    </div>
-                    <div class="pagination-controls">
-                        <button id="prevPage" class="btn btn-sm btn-outline-primary">Previous</button>
-                        <span id="pageInfo" class="align-self-center"></span>
-                        <button id="nextPage" class="btn btn-sm btn-outline-primary">Next</button>
+                    <div class="tab-pane fade" id="submitted-data" role="tabpanel" aria-labelledby="submitted-data-tab">
+                        <div id="dataList">
+                            <div class="mb-2 d-flex justify-content-between align-items-center">
+                                <input type="text" id="tableFilter" class="form-control w-25" placeholder="Filter table...">
+                                <span class="text-muted small">Total records: <span id="recordCount">0</span></span>
+                            </div>
+                            <div class="table-responsive table-container">
+                                <table class="table table-striped table-bordered table-sm">
+                                    <thead id="tableHead"></thead>
+                                    <tbody id="tableBody"></tbody>
+                                    <tfoot id="tableFoot"></tfoot>
+                                </table>
+                            </div>
+                            <div class="pagination-controls">
+                                <button id="prevPage" class="btn btn-sm btn-outline-primary">Previous</button>
+                                <span id="pageInfo" class="align-self-center"></span>
+                                <button id="nextPage" class="btn btn-sm btn-outline-primary">Next</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -128,6 +137,27 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reportModalLabel">Generate Report</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Select a format to export the complete dataset for '<span id="reportFormTitle" class="fw-bold"></span>':</p>
+                    <div class="d-flex justify-content-around my-3">
+                        <button id="reportExportExcel" class="btn btn-success">Export to Excel</button>
+                        <button id="reportExportPdf" class="btn btn-danger">Export to PDF</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -185,10 +215,25 @@
             $('dataForm').addEventListener('submit', handleFormSubmit);
             $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
             $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); } );
-            $('btnExportExcel').addEventListener('click', exportToExcel);
-            $('btnExportPdf').addEventListener('click', exportToPdf);
+            
+            // Report modal listeners
+            $('btnGetReport').addEventListener('click', () => {
+                $('reportFormTitle').textContent = currentDefinition.label || currentDefinition.table_name;
+                const reportModal = new bootstrap.Modal($('reportModal'));
+                reportModal.show();
+            });
+            $('reportExportExcel').addEventListener('click', exportToExcel);
+            $('reportExportPdf').addEventListener('click', exportToPdf);
+
             $('confirmDeleteBtn').addEventListener('click', () => deleteRecordConfirmed(deleteId));
             
+            // Tab change listener to re-render data
+            $('submitted-data-tab').addEventListener('shown.bs.tab', () => {
+                if (currentTableName) {
+                    fetchAndRenderTableData();
+                }
+            });
+
             // Initial data load
             loadFormDefinitions();
         });
@@ -254,7 +299,6 @@
                             </h2>
                             <div class="mt-3 d-flex justify-content-end gap-2">
                                 <button class="btn btn-sm btn-outline-primary btn-view">View</button>
-                                <button class="btn btn-sm btn-outline-success btn-export">Quick Export</button>
                             </div>
                         </div>
                     </div>
@@ -267,10 +311,6 @@
                 countSpan.innerHTML = count;
 
                 card.querySelector('.btn-view').addEventListener('click', () => handleFormSelection(def));
-                card.querySelector('.btn-export').addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    quickExport(def);
-                });
             });
         }
         
@@ -297,6 +337,9 @@
             
             $('dashboardView').classList.add('hidden');
             $('formView').classList.remove('hidden');
+            
+            const dataEntryTab = new bootstrap.Tab($('data-entry-tab'));
+            dataEntryTab.show();
         }
 
         /* ---------------- Dynamic Form Rendering ---------------- */
@@ -309,15 +352,14 @@
                 const label = document.createElement('label');
                 label.className = 'form-label';
                 label.textContent = field.label;
-                if (field.required) { // Add required flag
+                if (field.required) {
                     label.classList.add('required');
                 }
                 const input = document.createElement('input');
                 input.className = 'form-control';
                 input.name = field.name;
-                input.id = `input-${field.name}`; // Add ID for validation
+                input.id = `input-${field.name}`;
                 
-                // Add validation attributes
                 if (field.type === 'number') {
                     input.type = 'number';
                 } else if (field.type === 'date') {
@@ -411,7 +453,7 @@
                 
                 if (error) throw error;
                 
-                tableData = data || []; // Cache the data
+                tableData = data || [];
                 $('recordCount').textContent = count;
                 renderTable(tableData, currentDefinition.fields);
                 updatePaginationControls(count);
@@ -527,7 +569,7 @@
             const headers = ['id', 'created_at', ...currentDefinition.fields.map(f => f.name)];
             const fieldName = headers[columnIndex];
 
-            if (!fieldName) return; // Don't sort the "Actions" column
+            if (!fieldName) return;
             
             const direction = sortDirection[fieldName] === 'asc' ? 'desc' : 'asc';
             sortDirection = { [fieldName]: direction };
@@ -554,7 +596,6 @@
         function filterTable(event) {
             const filterTerm = event.target.value.toLowerCase();
             const filteredData = tableData.filter(row => {
-                // Check all fields for a match
                 for (const key in row) {
                     if (String(row[key]).toLowerCase().includes(filterTerm)) {
                         return true;
@@ -566,40 +607,11 @@
         }
 
         /* ---------------- Export Logic ---------------- */
-        async function quickExport(def) {
-            showLoading();
-            try {
-                const { data, error } = await supabase.from(def.table_name).select('*').order('created_at', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    toast('No data to export!', 'info');
-                    return;
-                }
-                const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
-                const exportData = data.map(row => {
-                    const mappedRow = {};
-                    mappedRow['ID'] = row.id;
-                    mappedRow['Created At'] = new Date(row.created_at).toLocaleString();
-                    def.fields.forEach(field => { mappedRow[field.label] = row[field.name]; });
-                    return mappedRow;
-                });
-                
-                const ws = XLSX.utils.json_to_sheet(exportData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, def.table_name);
-                XLSX.writeFile(wb, `${def.table_name}_data.xlsx`);
-                
-                toast('Data exported to Excel successfully!', 'success');
-            } catch (error) {
-                console.error('Export error:', error);
-                toast('Failed to export data: ' + error.message, 'danger');
-            } finally {
-                hideLoading();
-            }
-        }
-        
         async function exportToExcel() {
             showLoading();
+            const reportModal = bootstrap.Modal.getInstance($('reportModal'));
+            if (reportModal) reportModal.hide();
+            
             if (!currentTableName) {
                 toast('Please select a form first!', 'warning');
                 hideLoading();
@@ -637,6 +649,9 @@
         
         async function exportToPdf() {
             showLoading();
+            const reportModal = bootstrap.Modal.getInstance($('reportModal'));
+            if (reportModal) reportModal.hide();
+
             if (!currentTableName) {
                 toast('Please select a form first!', 'warning');
                 hideLoading();
@@ -700,6 +715,9 @@
 
         /* ---------------- Edit and Delete Logic ---------------- */
         function editRecord(record) {
+            const dataEntryTab = new bootstrap.Tab($('data-entry-tab'));
+            dataEntryTab.show();
+            
             $('currentFormTitle').textContent = `Editing Record ID: ${record.id}`;
             $('recordId').value = record.id;
             $('submitBtn').textContent = 'Update';
