@@ -137,7 +137,7 @@
                         <button id="btnViewRecords" class="btn btn-sm btn-outline-secondary">View Records</button>
                     </div>
                     <form id="entryForm" autocomplete="off">
-                        </form>
+                    </form>
                     <div class="save-row">
                         <div class="small-muted me-auto" id="formNote">All fields marked * are required.</div>
                         <div>
@@ -151,8 +151,9 @@
                     <h5 id="viewerTitle" class="mb-3">View Records</h5>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <button id="btnEnterNewData" class="btn btn-sm btn-outline-secondary">Enter New Data</button>
-                        <div>
-                            <button id="btnExport" class="btn btn-sm btn-outline-success me-2">Export to CSV</button>
+                        <div id="viewerControls">
+                            <button id="btnExport" class="btn btn-sm btn-outline-success me-2">Export (Excel)</button>
+                            <button id="btnExportPDF" class="btn btn-sm btn-outline-danger me-2">Export (PDF)</button>
                             <button id="btnRefreshData" class="btn btn-sm btn-outline-primary">Refresh Data</button>
                         </div>
                     </div>
@@ -176,7 +177,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
-    
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@3.5.28/dist/jspdf.plugin.autotable.min.js"></script>
+
     <script>
         const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
@@ -221,13 +224,14 @@
             $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
             $('btnHome').addEventListener('click', () => { window.scrollTo({ top: 0, behavior: 'smooth' }); });
             $('btnRefreshForms').addEventListener('click', loadDefinitions);
-            
+
             // New event listeners for data entry/viewer
             $('btnSave').addEventListener('click', saveEntry);
             $('btnClearDraft').addEventListener('click', clearDraft);
             $('btnViewRecords').addEventListener('click', showDataViewer);
             $('btnEnterNewData').addEventListener('click', showDataEntry);
             $('btnExport').addEventListener('click', exportData);
+            $('btnExportPDF').addEventListener('click', exportPDF);
             $('btnRefreshData').addEventListener('click', () => fetchAndRenderTableData(currentDefinition.table_name, currentPage));
 
             await loadDefinitions();
@@ -321,7 +325,7 @@
             $('dataEntryPanel').classList.add('hidden');
             $('dataViewerPanel').classList.remove('hidden');
             $('noForm').classList.add('hidden');
-            await fetchAndRenderTableData(currentDefinition.table_name);
+            await fetchAndRenderTableData(currentDefinition.table_name, 1);
         }
 
         async function fetchAndRenderTableData(tableName, page = 1) {
@@ -329,21 +333,26 @@
             const start = (currentPage - 1) * recordsPerPage;
             const end = start + recordsPerPage - 1;
 
-            const { data, count, error } = await supabase
-                .from(tableName)
-                .select('*', { count: 'exact' })
-                .range(start, end);
+            try {
+                const { data, count, error } = await supabase
+                    .from(tableName)
+                    .select('*', { count: 'exact' })
+                    .range(start, end);
 
-            if (error) {
-                console.error('Error fetching table data:', error);
-                toast('Failed to fetch data.');
-                return;
+                if (error) {
+                    console.error('Error fetching table data:', error);
+                    toast('Failed to fetch data.');
+                    return;
+                }
+                totalRecords = count || 0;
+                renderDataTable(data);
+                renderPagination();
+            } catch (err) {
+                console.error('fetchAndRenderTableData error', err);
+                toast('Failed to fetch data. Check console.');
             }
-            totalRecords = count;
-            renderDataTable(data);
-            renderPagination();
         }
-        
+
         function renderDataTable(data) {
             const headers = $('dataTableHeaders');
             const body = $('dataTableBody');
@@ -360,7 +369,11 @@
             headers.appendChild(headerRow);
 
             data.forEach(row => {
-                const rowEl = el('tr', {}, headerKeys.map(key => el('td', {}, [row[key] !== null ? row[key] : ''])));
+                const rowEl = el('tr', {}, headerKeys.map(key => {
+                    let cellValue = row[key] !== null && row[key] !== undefined ? row[key] : '';
+                    if (typeof cellValue === 'object') cellValue = JSON.stringify(cellValue);
+                    return el('td', {}, [String(cellValue)]);
+                }));
                 body.appendChild(rowEl);
             });
         }
@@ -368,7 +381,7 @@
         function renderPagination() {
             const paginationEl = $('pagination');
             paginationEl.innerHTML = '';
-            const totalPages = Math.ceil(totalRecords / recordsPerPage);
+            const totalPages = Math.max(1, Math.ceil(totalRecords / recordsPerPage));
 
             const createPageItem = (text, page, isDisabled) => {
                 const li = el('li', { class: `page-item ${isDisabled ? 'disabled' : ''} ${page === currentPage ? 'active' : ''}` });
@@ -383,38 +396,164 @@
                 return li;
             };
 
-            paginationEl.appendChild(createPageItem('Previous', currentPage - 1, currentPage === 1));
+            paginationEl.appendChild(createPageItem('Previous', Math.max(1, currentPage - 1), currentPage === 1));
 
-            for (let i = 1; i <= totalPages; i++) {
+            // Show limited pages when many
+            const maxVisible = 7;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+
+            if (startPage > 1) {
+                paginationEl.appendChild(createPageItem('1', 1, false));
+                if (startPage > 2) {
+                    const li = el('li', { class: 'page-item disabled' }, [ el('span', { class: 'page-link' }, ['...']) ]);
+                    paginationEl.appendChild(li);
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
                 paginationEl.appendChild(createPageItem(i, i, false));
             }
 
-            paginationEl.appendChild(createPageItem('Next', currentPage + 1, currentPage === totalPages));
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const li = el('li', { class: 'page-item disabled' }, [ el('span', { class: 'page-link' }, ['...']) ]);
+                    paginationEl.appendChild(li);
+                }
+                paginationEl.appendChild(createPageItem(totalPages, totalPages, false));
+            }
+
+            paginationEl.appendChild(createPageItem('Next', Math.min(totalPages, currentPage + 1), currentPage === totalPages));
         }
 
-        function exportData() {
+        // --- Export Helpers: chunked fetch to avoid timeouts ---
+        async function fetchAllTableData(tableName) {
+            const pageSize = 1000; // chunk size
+            let from = 0;
+            let all = [];
+            while (true) {
+                const { data, error } = await supabase
+                    .from(tableName)
+                    .select('*')
+                    .range(from, from + pageSize - 1);
+                if (error) throw error;
+                if (!data || data.length === 0) break;
+                all = all.concat(data);
+                if (data.length < pageSize) break;
+                from += pageSize;
+            }
+            return all;
+        }
+
+        // Export to Excel (.xlsx)
+        async function exportData() {
             if (!currentDefinition) {
                 alert('Please select a form first.');
                 return;
             }
+            try {
+                const raw = await fetchAllTableData(currentDefinition.table_name);
+                if (!raw || raw.length === 0) {
+                    alert('No records to export.');
+                    return;
+                }
 
-            const { data, error } = supabase
-                .from(currentDefinition.table_name)
-                .select('*')
-                .limit(1000); // Limit to 1000 records to avoid timeouts on large tables
+                const normalized = raw.map(r => {
+                    const out = {};
+                    Object.keys(r).forEach(k => {
+                        const v = r[k];
+                        if (v === null || v === undefined) out[k] = '';
+                        else if (typeof v === 'object') out[k] = JSON.stringify(v);
+                        else out[k] = v;
+                    });
+                    return out;
+                });
 
-            if (error) {
-                console.error('Error fetching data for export:', error);
-                alert('Failed to fetch data for export.');
+                const worksheet = XLSX.utils.json_to_sheet(normalized);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+                const filename = `${currentDefinition.table_name}_data.xlsx`;
+                XLSX.writeFile(workbook, filename);
+            } catch (err) {
+                console.error('Error exporting to Excel:', err);
+                alert('Failed to export data. See console for details.');
+            }
+        }
+
+        // Export to paginated A4 PDF with margins and repeated headers
+        async function exportPDF() {
+            if (!currentDefinition) {
+                alert('Please select a form first.');
                 return;
             }
+            try {
+                const raw = await fetchAllTableData(currentDefinition.table_name);
+                if (!raw || raw.length === 0) {
+                    alert('No records to export.');
+                    return;
+                }
 
-            const worksheet = XLSX.utils.json_to_sheet(data);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-            XLSX.writeFile(workbook, `${currentDefinition.table_name}_data.csv`);
+                // Build header keys
+                const headerKeys = Object.keys(raw[0]);
+                // Build rows and normalize nested objects
+                const rows = raw.map(row => {
+                    const out = {};
+                    headerKeys.forEach(k => {
+                        const v = row[k];
+                        if (v === null || v === undefined) out[k] = '';
+                        else if (typeof v === 'object') out[k] = JSON.stringify(v);
+                        else out[k] = String(v);
+                    });
+                    return out;
+                });
+
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const margin = 12;
+
+                // Title and timestamp on first page
+                const title = currentDefinition.label || currentDefinition.table_name;
+                doc.setFontSize(12);
+                doc.text(title, margin, 16);
+                doc.setFontSize(9);
+                const now = new Date().toLocaleString();
+                doc.text(`Exported: ${now}`, pageWidth - margin, 16, { align: 'right' });
+
+                // Prepare head array and body arrays for autoTable
+                const head = [headerKeys];
+                const body = rows.map(r => headerKeys.map(k => r[k]));
+
+                doc.autoTable({
+                    startY: 20,
+                    head,
+                    body,
+                    styles: { fontSize: 8, cellPadding: 3 },
+                    headStyles: { fillColor: [230, 230, 230], textColor: 20 },
+                    alternateRowStyles: { fillColor: [250, 250, 250] },
+                    margin: { left: margin, right: margin, top: 20, bottom: margin },
+                    pageBreak: 'auto',
+                    showHead: 'everyPage',
+                    columnStyles: headerKeys.reduce((acc, key, idx) => {
+                        acc[idx] = { cellWidth: 'auto' };
+                        return acc;
+                    }, {})
+                });
+
+                const filename = `${currentDefinition.table_name}_data.pdf`;
+                doc.save(filename);
+
+            } catch (err) {
+                console.error('Error exporting to PDF:', err);
+                alert('Failed to export PDF. See console for details.');
+            }
         }
-        
+
+        // --- Draft storage helpers ---
         function draftStorageKey(tableName) { return draftKeyPrefix + (tableName || 'unknown'); }
 
         function saveDraft(tableName) {
@@ -447,16 +586,16 @@
         }
 
         function renderDraftsList() {
-            const el = $('draftsList'); el.innerHTML = '';
+            const elDrafts = $('draftsList'); elDrafts.innerHTML = '';
             const keys = Object.keys(localStorage).filter(k => k.startsWith(draftKeyPrefix));
-            if (!keys.length) { el.innerHTML = '<div class="text-muted">No drafts</div>'; return; }
+            if (!keys.length) { elDrafts.innerHTML = '<div class="text-muted">No drafts</div>'; return; }
             keys.forEach(k => {
                 try {
                     const raw = JSON.parse(localStorage.getItem(k));
                     const name = k.replace(draftKeyPrefix, '');
                     const item = el('button', { type: 'button', class: 'list-group-item list-group-item-action' }, [ `${name} • ${raw.savedAt ? new Date(raw.savedAt).toLocaleString() : 'Saved'}` ]);
-                    item.addEventListener('click', () => { selectDefinition(name); loadDraft(name); });
-                    el.appendChild(item);
+                    item.addEventListener('click', () => { selectDefinition(name).then(() => loadDraft(name)).catch(() => {}); });
+                    elDrafts.appendChild(item);
                 } catch (e) { console.warn('bad draft', e); }
             });
         }
@@ -469,6 +608,7 @@
             setTimeout(()=> div.remove(), 1600);
         }
 
+        // Save entry to Supabase table and clear local draft on success
         async function saveEntry() {
             if (!currentDefinition) { toast('कृपया कोई फॉर्म चुनें'); return; }
             const payload = {};
@@ -479,6 +619,7 @@
                 if (hasDistrictCol) payload['district_id'] = currentUser.districtId;
             }
 
+            // Save a draft locally before sending (helps preserve in-progress)
             saveDraft(currentDefinition.table_name);
 
             try {
@@ -488,6 +629,7 @@
                 localStorage.removeItem(draftStorageKey(currentDefinition.table_name));
                 renderDraftsList();
                 toast('Record saved successfully');
+                // Clear form inputs
                 $('entryForm').querySelectorAll('input, textarea, select').forEach(i => i.value = '');
             } catch (err) {
                 console.error('saveEntry error', err);
