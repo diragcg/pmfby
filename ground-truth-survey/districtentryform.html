@@ -16,9 +16,7 @@
         .topbar .brand { font-weight:700; font-size:18px; margin-left:10px; }
         .container-app { max-width:1200px; margin:92px auto 48px; }
         .main-card { background:#fff; border-radius:10px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,0.06); }
-        .form-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        .form-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-        .form-card.selected { border: 2px solid #1B5E20; }
+        .form-list-table tr:hover { background-color: #f1f1f1; cursor: pointer; }
         label.required::after { content: " *"; color:#d63333; font-weight:700; margin-left:2px; }
         .hidden { display:none !important; }
         .form-section { padding:20px; border:1px solid #e0e0e0; border-radius:8px; margin-bottom:20px; }
@@ -43,11 +41,22 @@
         <div class="main-card">
             <div id="dashboardView">
                 <div class="form-info-header">
-                    <h4>Dashboard</h4>
-                    <button id="btnRefreshForms" class="btn btn-sm btn-outline-primary">Refresh Forms</button>
+                    <h4>Select a Form</h4>
+                    <input type="text" id="formSearch" class="form-control w-25" placeholder="Search forms...">
                 </div>
-                <div id="formSelector" class="row g-3">
-                    </div>
+                <div class="table-responsive">
+                    <table class="table table-hover form-list-table">
+                        <thead>
+                            <tr>
+                                <th>Form Name</th>
+                                <th>Table Name</th>
+                                <th>Field Count</th>
+                            </tr>
+                        </thead>
+                        <tbody id="formListBody">
+                            </tbody>
+                    </table>
+                </div>
             </div>
             
             <div id="formView" class="hidden">
@@ -135,7 +144,7 @@
             $('userName').textContent = `${currentUser.email}`;
             $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
             $('btnAdmin').addEventListener('click', () => { location.href = 'admin.html'; });
-            $('btnRefreshForms').addEventListener('click', loadFormDefinitions);
+            $('formSearch').addEventListener('input', filterFormList);
             $('btnBackToDashboard').addEventListener('click', showDashboard);
             $('dataForm').addEventListener('submit', handleFormSubmit);
             $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
@@ -164,32 +173,37 @@
                 return;
             }
             formDefinitions = data || [];
-            renderFormSelector();
+            renderFormList(formDefinitions);
         }
 
-        function renderFormSelector() {
-            const selector = $('formSelector');
-            selector.innerHTML = '';
-            if (formDefinitions.length === 0) {
-                selector.innerHTML = '<div class="col-12 text-muted">No forms found. Please create one in the Admin panel.</div>';
+        function renderFormList(forms) {
+            const formListBody = $('formListBody');
+            formListBody.innerHTML = '';
+            if (forms.length === 0) {
+                formListBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No forms found. Please create one in the Admin panel.</td></tr>';
                 return;
             }
-            formDefinitions.forEach(def => {
-                const card = document.createElement('div');
-                card.className = 'col-md-4';
-                card.innerHTML = `
-                    <div class="card form-card">
-                        <div class="card-body">
-                            <h5 class="card-title">${def.label || def.table_name}</h5>
-                            <p class="card-text text-muted small">${(def.fields || []).length} fields</p>
-                        </div>
-                    </div>
+            forms.forEach(def => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${def.label || def.table_name}</td>
+                    <td>${def.table_name}</td>
+                    <td>${(def.fields || []).length}</td>
                 `;
-                card.addEventListener('click', () => {
+                tr.addEventListener('click', () => {
                     handleFormSelection(def);
                 });
-                selector.appendChild(card);
+                formListBody.appendChild(tr);
             });
+        }
+        
+        function filterFormList(event) {
+            const searchTerm = event.target.value.toLowerCase();
+            const filteredForms = formDefinitions.filter(def => 
+                (def.label && def.label.toLowerCase().includes(searchTerm)) || 
+                (def.table_name && def.table_name.toLowerCase().includes(searchTerm))
+            );
+            renderFormList(filteredForms);
         }
 
         async function handleFormSelection(def) {
@@ -197,7 +211,6 @@
             currentDefinition = def;
             $('currentFormTitle').textContent = def.label || def.table_name;
             
-            // Reset form and UI
             $('dataForm').reset();
             $('recordId').value = '';
             $('submitBtn').textContent = 'Submit';
@@ -205,7 +218,6 @@
             renderForm(currentDefinition);
             fetchAndRenderTableData();
             
-            // Switch views
             $('dashboardView').classList.add('hidden');
             $('formView').classList.remove('hidden');
         }
@@ -266,14 +278,12 @@
                 let error;
 
                 if (recordId) {
-                    // Update existing record
                     const { error: updateError } = await supabase
                         .from(currentTableName)
                         .update(payload)
                         .eq('id', recordId);
                     error = updateError;
                 } else {
-                    // Insert new record
                     const { error: insertError } = await supabase.from(currentTableName).insert([payload]);
                     error = insertError;
                 }
@@ -281,11 +291,11 @@
                 if (error) throw error;
 
                 toast(recordId ? 'Record updated successfully!' : 'Data submitted successfully!', 'success');
-                event.target.reset(); // Reset form fields
+                event.target.reset();
                 $('recordId').value = '';
                 $('submitBtn').textContent = 'Submit';
 
-                currentPage = 0; // Go back to the first page to see the new/updated entry
+                currentPage = 0;
                 fetchAndRenderTableData();
 
             } catch (error) {
@@ -460,7 +470,6 @@
                 input.value = record[input.name] || '';
             });
 
-            // Scroll to the form section
             $('dataForm').scrollIntoView({ behavior: 'smooth' });
         }
         
