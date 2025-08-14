@@ -255,7 +255,7 @@ let lastHeaders = [];
 let lastTableName = '';
 let definitionsCache = [];
 let dropTableName = '';
-let currentTableData = [];
+let allTableData = [];
 let currentPage = 1;
 const rowsPerPage = 25;
 
@@ -521,7 +521,7 @@ async function viewData(tableName) {
         // Fetch all data for export, without pagination
         const { data: allData, error: allDataError } = await supabase.from(tableName).select('*').order('created_at', { ascending: false });
         if (allDataError) throw allDataError;
-        currentTableData = allData;
+        allTableData = allData;
         
         renderTableData(tableName, 1);
 
@@ -543,10 +543,10 @@ async function renderTableData(tableName, page) {
     const startDate = $('startDateFilter').value;
     const endDate = $('endDateFilter').value;
     
-    let filteredData = currentTableData;
+    let filteredData = allTableData;
 
     if (startDate || endDate) {
-        filteredData = currentTableData.filter(row => {
+        filteredData = allTableData.filter(row => {
             const rowDate = new Date(row.created_at);
             const start = startDate ? new Date(startDate) : null;
             const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
@@ -673,7 +673,7 @@ async function dropTableConfirmed() {
 
 // Export functions
 function exportToExcel() {
-    if (!currentTableData || currentTableData.length === 0) {
+    if (!allTableData || allTableData.length === 0) {
         return toast('No data to export!', 'warning');
     }
     const def = definitionsCache.find(d => d.table_name === $('dataModalTableName').textContent);
@@ -683,9 +683,9 @@ function exportToExcel() {
     const startDate = $('startDateFilter').value;
     const endDate = $('endDateFilter').value;
     
-    let filteredData = currentTableData;
+    let filteredData = allTableData;
     if (startDate || endDate) {
-        filteredData = currentTableData.filter(row => {
+        filteredData = allTableData.filter(row => {
             const rowDate = new Date(row.created_at);
             const start = startDate ? new Date(startDate) : null;
             const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
@@ -713,7 +713,7 @@ function exportToExcel() {
 }
 
 function exportToPdf() {
-    if (!currentTableData || currentTableData.length === 0) {
+    if (!allTableData || allTableData.length === 0) {
         return toast('No data to export!', 'warning');
     }
     
@@ -727,9 +727,9 @@ function exportToPdf() {
     const startDate = $('startDateFilter').value;
     const endDate = $('endDateFilter').value;
     
-    let filteredData = currentTableData;
+    let filteredData = allTableData;
     if (startDate || endDate) {
-        filteredData = currentTableData.filter(row => {
+        filteredData = allTableData.filter(row => {
             const rowDate = new Date(row.created_at);
             const start = startDate ? new Date(startDate) : null;
             const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
