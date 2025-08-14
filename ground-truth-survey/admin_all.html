@@ -707,8 +707,11 @@ function exportToExcel() {
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Report");
-    XLSX.writeFile(wb, `${$('dataModalTableName').textContent}_report.xlsx`);
+    const dateRange = (startDate && endDate) ? `_${startDate}_to_${endDate}` : '';
+    const fileName = `${$('dataModalTableName').textContent}_report${dateRange}.xlsx`;
+    const sheetName = (startDate && endDate) ? `Report from ${startDate} to ${endDate}` : 'Report';
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    XLSX.writeFile(wb, fileName);
     toast('Data exported to Excel successfully!', 'success');
 }
 
@@ -750,15 +753,18 @@ function exportToPdf() {
     });
 
     const title = $('dataModalTableName').textContent;
+    const dateRangeText = (startDate && endDate) ? `Data from ${startDate} to ${endDate}` : 'All Data';
 
     // Header
     doc.setFontSize(12);
     doc.text(`Report for: ${title}`, 14, 15);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, doc.internal.pageSize.getWidth() - 14, 15, null, null, "right");
-    doc.line(14, 18, doc.internal.pageSize.getWidth() - 14, 18);
+    doc.setFontSize(10);
+    doc.text(dateRangeText, 14, 20);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, doc.internal.pageSize.getWidth() - 14, 20, null, null, "right");
+    doc.line(14, 23, doc.internal.pageSize.getWidth() - 14, 23);
 
     doc.autoTable({
-        startY: 22,
+        startY: 27,
         head: [headers],
         body: body,
         theme: 'plain',
@@ -772,7 +778,8 @@ function exportToPdf() {
         }
     });
 
-    doc.save(`${title}_report.pdf`);
+    const fileName = (startDate && endDate) ? `${title}_report_${startDate}_to_${endDate}.pdf` : `${title}_report.pdf`;
+    doc.save(fileName);
     toast('Data exported to PDF successfully!', 'success');
 }
 </script>
