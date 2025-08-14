@@ -526,7 +526,6 @@ async function viewData(tableName) {
         const viewDataModal = new bootstrap.Modal($('viewDataModal'));
         viewDataModal.show();
 
-        // FIX: Attach click listener directly after modal content is ready
         const applyFilterBtn = $('applyDateFilterBtn');
         if (applyFilterBtn) {
             applyFilterBtn.onclick = applyDateFilter;
@@ -540,24 +539,21 @@ async function viewData(tableName) {
 }
 
 async function renderTableData(tableName, page) {
-    setStatus('Loading data...');
     currentPage = page;
     
-    // Get filter dates from the input fields
-    const startDate = $('startDateFilter').value;
-    const endDate = $('endDateFilter').value;
+    const startDateStr = $('startDateFilter').value;
+    const endDateStr = $('endDateFilter').value;
     
     let filteredData = allTableData;
 
-    if (startDate || endDate) {
+    if (startDateStr || endDateStr) {
+        const startDate = startDateStr ? new Date(startDateStr) : null;
+        const endDate = endDateStr ? new Date(endDateStr + 'T23:59:59.999Z') : null;
+        
         filteredData = allTableData.filter(row => {
             const rowDate = new Date(row.created_at);
-            const start = startDate ? new Date(startDate) : null;
-            const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
-            
-            const isAfterStart = start ? rowDate >= start : true;
-            const isBeforeEnd = end ? rowDate <= end : true;
-            
+            const isAfterStart = startDate ? rowDate >= startDate : true;
+            const isBeforeEnd = endDate ? rowDate <= endDate : true;
             return isAfterStart && isBeforeEnd;
         });
     }
@@ -583,6 +579,7 @@ async function renderTableData(tableName, page) {
     
     if (!paginatedData || paginatedData.length === 0) {
         tableBody.innerHTML = `<tr><td colspan="${headers.length}" class="text-center text-muted">No data found.</td></tr>`;
+        setStatus('No data found for this filter.', 'text-muted');
     } else {
         paginatedData.forEach(row => {
             const tr = document.createElement('tr');
@@ -601,14 +598,14 @@ async function renderTableData(tableName, page) {
             });
             tableBody.appendChild(tr);
         });
+        setStatus(`Showing records ${start + 1} to ${start + paginatedData.length} of ${totalCount}.`);
     }
 
     renderPagination(tableName, totalCount);
-    setStatus(`Showing records ${start + 1} to ${start + paginatedData.length} of ${totalCount}.`);
 }
 
 async function applyDateFilter() {
-    console.log("Filter button clicked!");
+    console.log("Filter button clicked. Applying filter...");
     const tableName = $('dataModalTableName').textContent;
     renderTableData(tableName, 1);
 }
@@ -677,25 +674,26 @@ async function dropTableConfirmed() {
 
 // Export functions
 function exportToExcel() {
+    console.log("Export to Excel button clicked.");
+    
     if (!allTableData || allTableData.length === 0) {
         return toast('No data to export!', 'warning');
     }
     const def = definitionsCache.find(d => d.table_name === $('dataModalTableName').textContent);
     const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
     
-    const startDate = $('startDateFilter').value;
-    const endDate = $('endDateFilter').value;
+    const startDateStr = $('startDateFilter').value;
+    const endDateStr = $('endDateFilter').value;
     
     let filteredData = allTableData;
-    if (startDate || endDate) {
+    if (startDateStr || endDateStr) {
+        const startDate = startDateStr ? new Date(startDateStr) : null;
+        const endDate = endDateStr ? new Date(endDateStr + 'T23:59:59.999Z') : null;
+        
         filteredData = allTableData.filter(row => {
             const rowDate = new Date(row.created_at);
-            const start = startDate ? new Date(startDate) : null;
-            const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
-            
-            const isAfterStart = start ? rowDate >= start : true;
-            const isBeforeEnd = end ? rowDate <= end : true;
-            
+            const isAfterStart = startDate ? rowDate >= startDate : true;
+            const isBeforeEnd = endDate ? rowDate <= endDate : true;
             return isAfterStart && isBeforeEnd;
         });
     }
@@ -710,15 +708,17 @@ function exportToExcel() {
 
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const wb = XLSX.utils.book_new();
-    const dateRange = (startDate && endDate) ? `_${startDate}_to_${endDate}` : '';
+    const dateRange = (startDateStr && endDateStr) ? `_${startDateStr}_to_${endDateStr}` : '';
     const fileName = `${$('dataModalTableName').textContent}_report${dateRange}.xlsx`;
-    const sheetName = (startDate && endDate) ? `Report from ${startDate} to ${endDate}` : 'Report';
+    const sheetName = (startDateStr && endDateStr) ? `Report from ${startDateStr} to ${endDateStr}` : 'Report';
     XLSX.utils.book_append_sheet(wb, ws, sheetName);
     XLSX.writeFile(wb, fileName);
     toast('Data exported to Excel successfully!', 'success');
 }
 
 function exportToPdf() {
+    console.log("Export to PDF button clicked.");
+    
     if (!allTableData || allTableData.length === 0) {
         return toast('No data to export!', 'warning');
     }
@@ -729,19 +729,18 @@ function exportToPdf() {
     
     const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
     
-    const startDate = $('startDateFilter').value;
-    const endDate = $('endDateFilter').value;
+    const startDateStr = $('startDateFilter').value;
+    const endDateStr = $('endDateFilter').value;
     
     let filteredData = allTableData;
-    if (startDate || endDate) {
+    if (startDateStr || endDateStr) {
+        const startDate = startDateStr ? new Date(startDateStr) : null;
+        const endDate = endDateStr ? new Date(endDateStr + 'T23:59:59.999Z') : null;
+        
         filteredData = allTableData.filter(row => {
             const rowDate = new Date(row.created_at);
-            const start = startDate ? new Date(startDate) : null;
-            const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
-            
-            const isAfterStart = start ? rowDate >= start : true;
-            const isBeforeEnd = end ? rowDate <= end : true;
-            
+            const isAfterStart = startDate ? rowDate >= startDate : true;
+            const isBeforeEnd = endDate ? rowDate <= endDate : true;
             return isAfterStart && isBeforeEnd;
         });
     }
@@ -755,7 +754,7 @@ function exportToPdf() {
     });
 
     const title = $('dataModalTableName').textContent;
-    const dateRangeText = (startDate && endDate) ? `Data from ${startDate} to ${endDate}` : 'All Data';
+    const dateRangeText = (startDateStr && endDateStr) ? `Data from ${startDateStr} to ${endDateStr}` : 'All Data';
 
     doc.setFontSize(12);
     doc.text(`Report for: ${title}`, 14, 15);
@@ -778,7 +777,7 @@ function exportToPdf() {
         }
     });
 
-    const fileName = (startDate && endDate) ? `${title}_report_${startDate}_to_${endDate}.pdf` : `${title}_report.pdf`;
+    const fileName = (startDateStr && endDateStr) ? `${title}_report_${startDateStr}_to_${endDateStr}.pdf` : `${title}_report.pdf`;
     doc.save(fileName);
     toast('Data exported to PDF successfully!', 'success');
 }
