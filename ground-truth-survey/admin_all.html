@@ -17,9 +17,8 @@
         body { font-family: 'Poppins', sans-serif; background: #f0f2f5; }
         .topbar {
             position: fixed; top: 0; left: 0; right: 0; height: 64px;
-            background: #fff; color: #343a40; display: flex; align-items: center;
+            background: #176531; color: #fff; display: flex; align-items: center;
             padding: 0 1.5rem; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            border-bottom: 1px solid #e9ecef;
         }
         .topbar .brand { font-weight: 700; font-size: 1.2rem; }
         .container-app { padding-top: 80px; padding-bottom: 24px; }
@@ -57,8 +56,8 @@
     <div class="topbar">
         <div class="brand">संचालनालय कृषि छत्तीसगढ़ — Admin</div>
         <div class="ms-auto d-flex align-items-center gap-2">
-            <button id="btnHome" class="btn btn-sm btn-outline-dark">Home</button>
-            <button id="btnDashboard" class="btn btn-sm btn-outline-dark">Dashboard</button>
+            <button id="btnHome" class="btn btn-sm btn-light">Home</button>
+            <button id="btnDashboard" class="btn btn-sm btn-light">Dashboard</button>
             <button id="btnLogout" class="btn btn-sm btn-dark">Logout</button>
         </div>
     </div>
@@ -183,9 +182,18 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <div class="d-flex justify-content-end mb-3">
-                <button id="exportExcelBtn" class="btn btn-sm btn-success me-2">Export to Excel</button>
-                <button id="exportPdfBtn" class="btn btn-sm btn-danger">Export to PDF</button>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <label for="startDateFilter">From:</label>
+                    <input type="date" id="startDateFilter" class="form-control form-control-sm">
+                    <label for="endDateFilter">To:</label>
+                    <input type="date" id="endDateFilter" class="form-control form-control-sm">
+                    <button id="applyDateFilterBtn" class="btn btn-sm btn-primary">Apply Filter</button>
+                </div>
+                <div>
+                    <button id="exportExcelBtn" class="btn btn-sm btn-success me-2">Export to Excel</button>
+                    <button id="exportPdfBtn" class="btn btn-sm btn-danger">Export to PDF</button>
+                </div>
             </div>
             <div class="table-responsive" style="max-height: 70vh; overflow-y: auto;">
               <table class="table table-striped table-bordered table-sm">
@@ -272,9 +280,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('btnCreateConfirm').addEventListener('click', createTableAndSaveDef);
     $('confirmDropBtn').addEventListener('click', dropTableConfirmed);
 
-    // Set up export buttons
+    // Set up export and filter buttons
     $('exportExcelBtn').addEventListener('click', exportToExcel);
     $('exportPdfBtn').addEventListener('click', exportToPdf);
+    $('applyDateFilterBtn').addEventListener('click', applyDateFilter);
 
     // Initial view
     showCreator();
@@ -509,12 +518,10 @@ async function viewData(tableName) {
 
         $('dataModalTableName').textContent = def.label || tableName;
         
-        // Fetch all data for export, without pagination
         const { data: allData, error: allDataError } = await supabase.from(tableName).select('*').order('created_at', { ascending: false });
         if (allDataError) throw allDataError;
         currentTableData = allData;
 
-        // Render the first page of data
         renderTableData(tableName, 1);
 
         const viewDataModal = new bootstrap.Modal($('viewDataModal'));
@@ -527,15 +534,23 @@ async function viewData(tableName) {
     }
 }
 
-async function renderTableData(tableName, page) {
+async function renderTableData(tableName, page, startDate = null, endDate = null) {
     setStatus('Loading data...');
     currentPage = page;
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage - 1;
     
     try {
-        const { data, error, count } = await supabase.from(tableName)
-            .select('*', { count: 'exact' })
+        let query = supabase.from(tableName).select('*', { count: 'exact' });
+
+        if (startDate) {
+            query = query.gte('created_at', startDate);
+        }
+        if (endDate) {
+            query = query.lte('created_at', endDate);
+        }
+
+        const { data, error, count } = await query
             .order('created_at', { ascending: false })
             .range(start, end);
             
@@ -588,6 +603,36 @@ async function renderTableData(tableName, page) {
         toast('Failed to render data: ' + (err.message || JSON.stringify(err)), 'danger');
     }
 }
+
+async function applyDateFilter() {
+    const startDate = $('startDateFilter').value;
+    const endDate = $('endDateFilter').value;
+    const tableName = $('dataModalTableName').textContent;
+
+    if (!startDate && !endDate) {
+        toast('Please select at least one date range.', 'warning');
+        return;
+    }
+    
+    // Re-fetch the full dataset based on the new filter
+    try {
+        let query = supabase.from(tableName).select('*').order('created_at', { ascending: false });
+        if (startDate) {
+            query = query.gte('created_at', startDate);
+        }
+        if (endDate) {
+            query = query.lte('created_at', endDate + 'T23:59:59.999Z'); // Include the full end date
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        currentTableData = data;
+        renderTableData(tableName, 1, startDate, endDate);
+    } catch (err) {
+        console.error('Filter failed:', err);
+        toast('Failed to apply filter: ' + err.message, 'danger');
+    }
+}
+
 
 function renderPagination(tableName, totalCount) {
     const totalPages = Math.ceil(totalCount / rowsPerPage);
@@ -690,14 +735,26 @@ function exportToPdf() {
     });
 
     const title = $('dataModalTableName').textContent;
-    doc.text(title, doc.internal.pageSize.getWidth() / 2, 20, { align: 'center' });
+
+    // Header
+    doc.setFontSize(12);
+    doc.text(`Report for: ${title}`, 14, 15);
+    doc.text(`Date: ${new Date().toLocaleDateString()}`, doc.internal.pageSize.getWidth() - 14, 15, null, null, "right");
+    doc.line(14, 18, doc.internal.pageSize.getWidth() - 14, 18);
 
     doc.autoTable({
-        startY: 30,
+        startY: 22,
         head: [headers],
         body: body,
         theme: 'plain',
+        headStyles: { fillColor: [0, 0, 0], textColor: [255, 255, 255] },
         styles: { textColor: [0, 0, 0] },
+        alternateRowStyles: { fillColor: [245, 245, 245] },
+        didDrawPage: function (data) {
+            // Footer
+            let str = "Page " + doc.internal.getNumberOfPages();
+            doc.text(str, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, null, null, "center");
+        }
     });
 
     doc.save(`${title}_report.pdf`);
