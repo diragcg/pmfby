@@ -518,10 +518,11 @@ async function viewData(tableName) {
 
         $('dataModalTableName').textContent = def.label || tableName;
         
+        // Fetch all data for export, without pagination
         const { data: allData, error: allDataError } = await supabase.from(tableName).select('*').order('created_at', { ascending: false });
         if (allDataError) throw allDataError;
         currentTableData = allData;
-
+        
         renderTableData(tableName, 1);
 
         const viewDataModal = new bootstrap.Modal($('viewDataModal'));
@@ -534,103 +535,78 @@ async function viewData(tableName) {
     }
 }
 
-async function renderTableData(tableName, page, startDate = null, endDate = null) {
+async function renderTableData(tableName, page) {
     setStatus('Loading data...');
     currentPage = page;
-    const start = (page - 1) * rowsPerPage;
-    const end = start + rowsPerPage - 1;
     
-    try {
-        let query = supabase.from(tableName).select('*', { count: 'exact' });
+    // Get filter dates from the input fields
+    const startDate = $('startDateFilter').value;
+    const endDate = $('endDateFilter').value;
+    
+    let filteredData = currentTableData;
 
-        if (startDate) {
-            query = query.gte('created_at', startDate);
-        }
-        if (endDate) {
-            query = query.lte('created_at', endDate);
-        }
-
-        const { data, error, count } = await query
-            .order('created_at', { ascending: false })
-            .range(start, end);
+    if (startDate || endDate) {
+        filteredData = currentTableData.filter(row => {
+            const rowDate = new Date(row.created_at);
+            const start = startDate ? new Date(startDate) : null;
+            const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
             
-        if (error) throw error;
-        
-        const def = definitionsCache.find(d => d.table_name === tableName);
-        const tableHead = $('dataModalTableHead');
-        const tableBody = $('dataModalTableBody');
-        
-        tableHead.innerHTML = '';
-        tableBody.innerHTML = '';
-        
-        const headerRow = document.createElement('tr');
-        const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
-        headers.forEach(header => {
-            const th = document.createElement('th');
-            th.textContent = header;
-            headerRow.appendChild(th);
+            const isAfterStart = start ? rowDate >= start : true;
+            const isBeforeEnd = end ? rowDate <= end : true;
+            
+            return isAfterStart && isBeforeEnd;
         });
-        tableHead.appendChild(headerRow);
-        
-        if (!data || data.length === 0) {
-            tableBody.innerHTML = `<tr><td colspan="${headers.length}" class="text-center text-muted">No data found.</td></tr>`;
-        } else {
-            data.forEach(row => {
-                const tr = document.createElement('tr');
-                const idCell = document.createElement('td');
-                idCell.textContent = row.id;
-                tr.appendChild(idCell);
-                
-                const createdAtCell = document.createElement('td');
-                createdAtCell.textContent = new Date(row.created_at).toLocaleString();
-                tr.appendChild(createdAtCell);
-                
-                def.fields.forEach(field => {
-                    const td = document.createElement('td');
-                    td.textContent = row[field.name] || '-';
-                    tr.appendChild(td);
-                });
-                tableBody.appendChild(tr);
-            });
-        }
-
-        renderPagination(tableName, count);
-        setStatus(`Showing records ${start + 1} to ${start + data.length} of ${count}.`);
-
-    } catch (err) {
-        console.error('Render data failed:', err);
-        setStatus('Failed to load data.', 'text-danger');
-        toast('Failed to render data: ' + (err.message || JSON.stringify(err)), 'danger');
     }
+
+    const totalCount = filteredData.length;
+    const start = (page - 1) * rowsPerPage;
+    const paginatedData = filteredData.slice(start, start + rowsPerPage);
+    const def = definitionsCache.find(d => d.table_name === tableName);
+    const tableHead = $('dataModalTableHead');
+    const tableBody = $('dataModalTableBody');
+    
+    tableHead.innerHTML = '';
+    tableBody.innerHTML = '';
+    
+    const headerRow = document.createElement('tr');
+    const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
+    headers.forEach(header => {
+        const th = document.createElement('th');
+        th.textContent = header;
+        headerRow.appendChild(th);
+    });
+    tableHead.appendChild(headerRow);
+    
+    if (!paginatedData || paginatedData.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="${headers.length}" class="text-center text-muted">No data found.</td></tr>`;
+    } else {
+        paginatedData.forEach(row => {
+            const tr = document.createElement('tr');
+            const idCell = document.createElement('td');
+            idCell.textContent = row.id;
+            tr.appendChild(idCell);
+            
+            const createdAtCell = document.createElement('td');
+            createdAtCell.textContent = new Date(row.created_at).toLocaleString();
+            tr.appendChild(createdAtCell);
+            
+            def.fields.forEach(field => {
+                const td = document.createElement('td');
+                td.textContent = row[field.name] || '-';
+                tr.appendChild(td);
+            });
+            tableBody.appendChild(tr);
+        });
+    }
+
+    renderPagination(tableName, totalCount);
+    setStatus(`Showing records ${start + 1} to ${start + paginatedData.length} of ${totalCount}.`);
 }
 
 async function applyDateFilter() {
-    const startDate = $('startDateFilter').value;
-    const endDate = $('endDateFilter').value;
     const tableName = $('dataModalTableName').textContent;
-
-    if (!startDate && !endDate) {
-        toast('Please select at least one date range.', 'warning');
-        return;
-    }
-    
-    // Re-fetch the full dataset based on the new filter
-    try {
-        let query = supabase.from(tableName).select('*').order('created_at', { ascending: false });
-        if (startDate) {
-            query = query.gte('created_at', startDate);
-        }
-        if (endDate) {
-            query = query.lte('created_at', endDate + 'T23:59:59.999Z'); // Include the full end date
-        }
-        const { data, error } = await query;
-        if (error) throw error;
-        currentTableData = data;
-        renderTableData(tableName, 1, startDate, endDate);
-    } catch (err) {
-        console.error('Filter failed:', err);
-        toast('Failed to apply filter: ' + err.message, 'danger');
-    }
+    // Re-render the table with the new filter and reset to page 1
+    renderTableData(tableName, 1);
 }
 
 
@@ -702,13 +678,33 @@ function exportToExcel() {
     }
     const def = definitionsCache.find(d => d.table_name === $('dataModalTableName').textContent);
     const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
-    const data = currentTableData.map(row => {
+    
+    // Apply the same date filter to the export data
+    const startDate = $('startDateFilter').value;
+    const endDate = $('endDateFilter').value;
+    
+    let filteredData = currentTableData;
+    if (startDate || endDate) {
+        filteredData = currentTableData.filter(row => {
+            const rowDate = new Date(row.created_at);
+            const start = startDate ? new Date(startDate) : null;
+            const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
+            
+            const isAfterStart = start ? rowDate >= start : true;
+            const isBeforeEnd = end ? rowDate <= end : true;
+            
+            return isAfterStart && isBeforeEnd;
+        });
+    }
+
+    const data = filteredData.map(row => {
         const rowData = [row.id, new Date(row.created_at).toLocaleString()];
         def.fields.forEach(field => {
             rowData.push(row[field.name] || '-');
         });
         return rowData;
     });
+
     const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Report");
@@ -726,7 +722,26 @@ function exportToPdf() {
     const def = definitionsCache.find(d => d.table_name === $('dataModalTableName').textContent);
     
     const headers = ['ID', 'Created At', ...def.fields.map(f => f.label)];
-    const body = currentTableData.map(row => {
+    
+    // Apply the same date filter to the export data
+    const startDate = $('startDateFilter').value;
+    const endDate = $('endDateFilter').value;
+    
+    let filteredData = currentTableData;
+    if (startDate || endDate) {
+        filteredData = currentTableData.filter(row => {
+            const rowDate = new Date(row.created_at);
+            const start = startDate ? new Date(startDate) : null;
+            const end = endDate ? new Date(endDate + 'T23:59:59.999Z') : null;
+            
+            const isAfterStart = start ? rowDate >= start : true;
+            const isBeforeEnd = end ? rowDate <= end : true;
+            
+            return isAfterStart && isBeforeEnd;
+        });
+    }
+
+    const body = filteredData.map(row => {
         const rowData = [row.id, new Date(row.created_at).toLocaleString()];
         def.fields.forEach(field => {
             rowData.push(row[field.name] || '-');
