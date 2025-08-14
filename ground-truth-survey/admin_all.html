@@ -284,19 +284,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     $('exportExcelBtn').addEventListener('click', exportToExcel);
     $('exportPdfBtn').addEventListener('click', exportToPdf);
 
-    // --- NEW FIX FOR FILTER BUTTON NOT RESPONDING ---
-    // The filter button is inside the modal, so we must attach the listener
-    // after the modal has been completely opened.
-    const viewDataModalEl = $('viewDataModal');
-    if (viewDataModalEl) {
-        viewDataModalEl.addEventListener('shown.bs.modal', function () {
-            const applyFilterBtn = $('applyDateFilterBtn');
-            if (applyFilterBtn) {
-                applyFilterBtn.addEventListener('click', applyDateFilter);
-            }
-        });
-    }
-
     // Initial view
     showCreator();
     loadDefinitions();
@@ -530,7 +517,6 @@ async function viewData(tableName) {
 
         $('dataModalTableName').textContent = def.label || tableName;
         
-        // Fetch all data for export, without pagination
         const { data: allData, error: allDataError } = await supabase.from(tableName).select('*').order('created_at', { ascending: false });
         if (allDataError) throw allDataError;
         allTableData = allData;
@@ -539,6 +525,12 @@ async function viewData(tableName) {
 
         const viewDataModal = new bootstrap.Modal($('viewDataModal'));
         viewDataModal.show();
+
+        // **NEW FIX: Attach click listener directly after modal content is ready**
+        const applyFilterBtn = $('applyDateFilterBtn');
+        if (applyFilterBtn) {
+            applyFilterBtn.onclick = applyDateFilter;
+        }
         
     } catch (err) {
         console.error('Data view failed:', err);
@@ -616,6 +608,8 @@ async function renderTableData(tableName, page) {
 }
 
 async function applyDateFilter() {
+    // Adding console.log to confirm the function is being called
+    console.log("Filter button clicked!");
     const tableName = $('dataModalTableName').textContent;
     // Re-render the table with the new filter and reset to page 1
     renderTableData(tableName, 1);
