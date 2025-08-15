@@ -14,6 +14,26 @@
     .toast-area{position:fixed;right:20px;bottom:20px;z-index:4000;}
     .calc-display{background:#fff3cd;border:1px solid #ffeaa7;color:#856404;}
     .form-control{margin-bottom:8px;}
+    .form-header-btn{
+      background: linear-gradient(135deg, #1B5E20, #2E7D32);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      font-size: 16px;
+      box-shadow: 0 4px 12px rgba(27, 94, 32, 0.3);
+      margin-bottom: 20px;
+      width: 100%;
+      cursor: default;
+    }
+    .date-filter-row{
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #dee2e6;
+    }
   </style>
 </head>
 <body>
@@ -33,19 +53,18 @@
     <div class="row g-3">
       <div class="col-md-8">
         <div class="card-panel">
-          <h5>Data Entry Form</h5>
+          <button class="form-header-btn">Data Entry Form</button>
           
           <form id="kccForm">
             <div class="row g-3">
               <div class="col-md-6">
-                <label class="form-label">Name of District *</label>
-                <select id="district_name" class="form-control" required>
-                  <option value="">Loading districts...</option>
-                </select>
-              </div>
-              <div class="col-md-6">
                 <label class="form-label">Entry Date *</label>
                 <input type="date" id="entry_date" class="form-control" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Name of District</label>
+                <input type="text" id="district_name_display" class="form-control" readonly style="background-color:#f8f9fa;">
+                <input type="hidden" id="district_id" />
               </div>
             </div>
 
@@ -94,17 +113,17 @@
       <div class="col-md-4">
         <div class="card-panel">
           <h6>Current Summary</h6>
-          <div id="currentTotals">Ready to enter data</div>
+          <div id="currentTotals">Loading...</div>
           
           <hr/>
           
           <h6>Status</h6>
-          <div id="status">Form ready</div>
+          <div id="status">Initializing...</div>
           
           <hr/>
           
           <h6>Recent Entries</h6>
-          <div id="recentEntries">No recent entries</div>
+          <div id="recentEntries">Loading...</div>
           
           <div class="mt-3">
             <button id="btnRefresh" class="btn btn-sm btn-outline-primary w-100">Refresh Data</button>
@@ -115,10 +134,30 @@
 
     <div id="viewerCard" class="card-panel hidden mt-3">
       <div class="d-flex justify-content-between mb-3">
-        <h5>KCC Records</h5>
+        <h5>KCC Records - <span id="districtNameInViewer"></span></h5>
         <div>
           <button id="btnExportExcel" class="btn btn-sm btn-outline-success me-2">Export Excel</button>
           <button id="btnBackToForm" class="btn btn-sm btn-outline-secondary">Back to Form</button>
+        </div>
+      </div>
+
+      <!-- Date Range Filter -->
+      <div class="date-filter-row">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">From Date</label>
+            <input type="date" id="filterFromDate" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">To Date</label>
+            <input type="date" id="filterToDate" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <button id="btnApplyFilter" class="btn btn-primary">Apply Filter</button>
+          </div>
+          <div class="col-md-3">
+            <button id="btnClearFilter" class="btn btn-outline-secondary">Clear Filter</button>
+          </div>
         </div>
       </div>
       
@@ -126,13 +165,13 @@
         <table class="table table-striped table-hover">
           <thead class="table-light">
             <tr>
-              <th>District</th>
               <th>Date</th>
               <th>Active KCC</th>
               <th>Saturated</th>
               <th>Not Saturated</th>
               <th>Reasons</th>
               <th>Current</th>
+              <th>Version</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -155,15 +194,15 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // STATE
+    // STATE - User's district is fixed (simulating login)
     const currentUser = { 
       id: '7b161aeb-4492-4a74-b587-306a4bb00b99',
       username: 'test_district',
-      districtId: null // Will be set when district is selected
+      districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99', // Fixed district
+      districtName: 'Test District' // Will be loaded from DB
     };
     
     let loadedCurrentRecord = null;
-    let districtsData = [];
 
     const $ = id => document.getElementById(id);
     
@@ -199,51 +238,39 @@
       }
     }
 
-    // LOAD DISTRICTS
-    async function loadDistricts(){
+    // LOAD USER'S DISTRICT INFO
+    async function loadUserDistrict(){
       try {
-        $('status').textContent = 'Loading districts...';
+        $('status').textContent = 'Loading district info...';
         const { data, error } = await supabase
           .from('districts')
           .select('id, name')
-          .order('name');
-        
-        const select = $('district_name');
-        select.innerHTML = '<option value="">Select District</option>';
+          .eq('id', currentUser.districtId)
+          .single();
         
         if (error) {
-          console.error('Districts error:', error);
-          select.innerHTML = '<option value="">Error loading districts</option>';
-          $('status').textContent = 'Error loading districts';
+          console.error('District error:', error);
+          $('district_name_display').value = 'Unknown District';
+          $('status').textContent = 'Error loading district';
           return;
         }
         
-        if (data && data.length > 0) {
-          districtsData = data;
-          data.forEach(district => {
-            const option = document.createElement('option');
-            option.value = district.id;
-            option.textContent = district.name;
-            select.appendChild(option);
-          });
-          $('status').textContent = `${data.length} districts loaded`;
-        } else {
-          select.innerHTML = '<option value="">No districts found</option>';
-          $('status').textContent = 'No districts found';
+        if (data) {
+          currentUser.districtName = data.name;
+          $('district_name_display').value = data.name;
+          $('district_id').value = data.id;
+          $('districtNameInViewer').textContent = data.name;
+          $('status').textContent = `District: ${data.name}`;
         }
       } catch (err) {
-        console.error('Districts error:', err);
-        $('district_name').innerHTML = '<option value="">Error loading districts</option>';
-        $('status').textContent = 'Error loading districts';
+        console.error('District error:', err);
+        $('district_name_display').value = 'Error Loading District';
+        $('status').textContent = 'Error loading district';
       }
     }
 
     // VALIDATION
     function validateForm(){
-      if (!$('district_name').value) {
-        toast('Please select a district', 'warning');
-        return false;
-      }
       if (!$('entry_date').value) {
         toast('Please enter entry date', 'warning');
         return false;
@@ -270,11 +297,9 @@
     async function saveEntry(){
       if (!validateForm()) return;
 
-      const selectedDistrict = districtsData.find(d => d.id === $('district_name').value);
-      
       const payload = {
-        district_id: $('district_name').value,
-        district_name: selectedDistrict ? selectedDistrict.name : '',
+        district_id: currentUser.districtId,
+        district_name: currentUser.districtName,
         entry_date: $('entry_date').value,
         total_active_kcc: parseInt($('total_active_kcc').value) || 0,
         total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
@@ -324,7 +349,7 @@
       }
     }
 
-    // UPDATE ENTRY (using RPC)
+    // UPDATE ENTRY (using fixed RPC)
     async function updateEntry(){
       if (!loadedCurrentRecord) {
         toast('No record to update. Save a new entry first.', 'warning');
@@ -339,12 +364,10 @@
         return;
       }
 
-      const selectedDistrict = districtsData.find(d => d.id === $('district_name').value);
-
       const params = {
         p_predecessor_id: loadedCurrentRecord.id,
-        p_district_id: $('district_name').value,
-        p_district_name: selectedDistrict ? selectedDistrict.name : '',
+        p_district_id: currentUser.districtId,
+        p_district_name: currentUser.districtName,
         p_entry_date: $('entry_date').value,
         p_total_active_kcc: parseInt($('total_active_kcc').value) || 0,
         p_total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
@@ -380,10 +403,8 @@
       }
     }
 
-    // LOAD LATEST RECORD
+    // LOAD LATEST RECORD (only for user's district)
     async function loadLatestRecord(){
-      if (!currentUser.districtId) return;
-
       try {
         const { data, error } = await supabase
           .from('kcc_entries')
@@ -398,7 +419,6 @@
           loadedCurrentRecord = data;
           
           // Pre-fill form
-          $('district_name').value = data.district_id;
           $('entry_date').value = data.entry_date;
           $('total_active_kcc').value = data.total_active_kcc || 0;
           $('total_kcc_saturated').value = data.total_kcc_saturated || 0;
@@ -422,80 +442,91 @@
       }
     }
 
-    // LOAD DASHBOARD DATA
+    // LOAD DASHBOARD DATA (only for user's district)
     async function loadDashboardData(){
       try {
-        // Load current totals for selected district
-        if (currentUser.districtId) {
-          const { data: totals } = await supabase
-            .from('kcc_entries')
-            .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
-            .eq('district_id', currentUser.districtId)
-            .eq('is_current', true)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+        // Load current totals for user's district only
+        const { data: totals } = await supabase
+          .from('kcc_entries')
+          .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
+          .eq('district_id', currentUser.districtId)
+          .eq('is_current', true)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-          if (totals) {
-            $('currentTotals').innerHTML = `
-              <div><strong>Active KCC:</strong> ${totals.total_active_kcc || 0}</div>
-              <div><strong>Saturated:</strong> ${totals.total_kcc_saturated || 0}</div>
-              <div><strong>Not Saturated:</strong> ${totals.total_kcc_not_saturated || 0}</div>
-            `;
-          } else {
-            $('currentTotals').innerHTML = '<div class="text-muted">No data for selected district</div>';
-          }
+        if (totals) {
+          $('currentTotals').innerHTML = `
+            <div><strong>Active KCC:</strong> \${totals.total_active_kcc || 0}</div>
+            <div><strong>Saturated:</strong> \${totals.total_kcc_saturated || 0}</div>
+            <div><strong>Not Saturated:</strong> \${totals.total_kcc_not_saturated || 0}</div>
+          `;
+        } else {
+          $('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
+        }
 
-          // Load recent entries
-          const { data: recent } = await supabase
-            .from('kcc_entries')
-            .select('entry_date, total_active_kcc, is_current')
-            .eq('district_id', currentUser.districtId)
-            .order('created_at', { ascending: false })
-            .limit(3);
+        // Load recent entries for user's district only
+        const { data: recent } = await supabase
+          .from('kcc_entries')
+          .select('entry_date, total_active_kcc, is_current')
+          .eq('district_id', currentUser.districtId)
+          .order('created_at', { ascending: false })
+          .limit(3);
 
-          if (recent && recent.length) {
-            $('recentEntries').innerHTML = recent.map(r => 
-              `<div class="small mb-1">
-                ${r.entry_date} - ${r.total_active_kcc} accounts ${r.is_current ? '(current)' : ''}
-              </div>`
-            ).join('');
-          } else {
-            $('recentEntries').innerHTML = '<div class="text-muted">No recent entries</div>';
-          }
+        if (recent && recent.length) {
+          $('recentEntries').innerHTML = recent.map(r => 
+            `<div class="small mb-1">
+              ${r.entry_date} - ${r.total_active_kcc} accounts \${r.is_current ? '(current)' : ''}
+            </div>`
+          ).join('');
+        } else {
+          $('recentEntries').innerHTML = '<div class="text-muted">No recent entries</div>';
         }
       } catch (err) {
         console.error('Dashboard load error:', err);
+        $('currentTotals').innerHTML = '<div class="text-muted">Error loading data</div>';
+        $('recentEntries').innerHTML = '<div class="text-muted">Error loading entries</div>';
       }
     }
 
     // CLEAR FORM
     function clearForm(){
-      $('kccForm').reset();
       $('entry_date').value = new Date().toISOString().slice(0,10);
       $('total_active_kcc').value = '0';
       $('total_kcc_saturated').value = '0';
       $('total_kcc_not_saturated').value = '0';
+      $('reasons_not_saturated').value = '';
+      $('change_reason').value = '';
       $('changeReasonRow').style.display = 'none';
       $('btnUpdate').style.display = 'none';
       loadedCurrentRecord = null;
-      currentUser.districtId = null;
       updateNotSaturated();
-      $('currentTotals').innerHTML = 'Ready to enter data';
-      $('recentEntries').innerHTML = 'No recent entries';
     }
 
-    // VIEW RECORDS
+    // VIEW RECORDS (only for user's district with date filtering)
     async function showRecords(){
       document.querySelector('.row.g-3').style.display = 'none';
       $('viewerCard').classList.remove('hidden');
-      
+      await loadRecordsTable();
+    }
+
+    async function loadRecordsTable(fromDate = null, toDate = null){
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('kcc_entries')
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(50);
+          .eq('district_id', currentUser.districtId)
+          .order('created_at', { ascending: false });
+
+        // Apply date filters if provided
+        if (fromDate) {
+          query = query.gte('entry_date', fromDate);
+        }
+        if (toDate) {
+          query = query.lte('entry_date', toDate);
+        }
+
+        const { data, error } = await query.limit(100);
         
         const tbody = $('recordsTableBody');
         tbody.innerHTML = '';
@@ -504,15 +535,15 @@
           data.forEach(record => {
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td>${record.district_name || '-'}</td>
-              <td>${record.entry_date || '-'}</td>
-              <td>${record.total_active_kcc || 0}</td>
-              <td>${record.total_kcc_saturated || 0}</td>
-              <td>${record.total_kcc_not_saturated || 0}</td>
-              <td class="small">${record.reasons_not_saturated || '-'}</td>
-              <td>${record.is_current ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+              <td>\${record.entry_date || '-'}</td>
+              <td>\${record.total_active_kcc || 0}</td>
+              <td>\${record.total_kcc_saturated || 0}</td>
+              <td>\${record.total_kcc_not_saturated || 0}</td>
+              <td class="small">\${record.reasons_not_saturated || '-'}</td>
+              <td>\${record.is_current ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+              <td>\${record.version_number || 1}</td>
               <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="editRecord('${record.id}')">Edit</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editRecord('\${record.id}')">Edit</button>
               </td>
             `;
             tbody.appendChild(row);
@@ -543,10 +574,8 @@
         if (error) throw error;
 
         loadedCurrentRecord = data;
-        currentUser.districtId = data.district_id;
         
         // Fill form
-        $('district_name').value = data.district_id;
         $('entry_date').value = data.entry_date;
         $('total_active_kcc').value = data.total_active_kcc || 0;
         $('total_kcc_saturated').value = data.total_kcc_saturated || 0;
@@ -559,7 +588,6 @@
         $('changeReasonRow').style.display = 'block';
         
         showForm();
-        await loadDashboardData();
         toast('Record loaded for editing', 'info');
       } catch (err) {
         console.error('Edit record error:', err);
@@ -567,12 +595,13 @@
       }
     };
 
-    // EXPORT TO EXCEL
+    // EXPORT TO EXCEL (only user's district data)
     async function exportToExcel(){
       try {
         const { data, error } = await supabase
           .from('kcc_entries')
           .select('*')
+          .eq('district_id', currentUser.districtId)
           .order('created_at', { ascending: false });
 
         if (!data || !data.length || error) {
@@ -589,12 +618,13 @@
           'Reasons for Non-saturation': record.reasons_not_saturated,
           'Is Current': record.is_current ? 'Yes' : 'No',
           'Version': record.version_number,
-          'Created At': record.created_at
+          'Created At': record.created_at,
+          'Change Reason': record.change_reason
         })));
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'KCC Data');
-        XLSX.writeFile(workbook, `KCC_Data_${new Date().toISOString().slice(0,10)}.xlsx`);
+        XLSX.writeFile(workbook, `KCC_Data_${currentUser.districtName}_${new Date().toISOString().slice(0,10)}.xlsx`);
         
         toast('Excel file downloaded', 'success');
       } catch (err) {
@@ -603,8 +633,29 @@
       }
     }
 
+    // DATE FILTER FUNCTIONS
+    function applyDateFilter(){
+      const fromDate = $('filterFromDate').value;
+      const toDate = $('filterToDate').value;
+      
+      if (fromDate && toDate && fromDate > toDate) {
+        toast('From date cannot be later than To date', 'warning');
+        return;
+      }
+      
+      loadRecordsTable(fromDate, toDate);
+      toast('Filter applied', 'success', 1500);
+    }
+
+    function clearDateFilter(){
+      $('filterFromDate').value = '';
+      $('filterToDate').value = '';
+      loadRecordsTable();
+      toast('Filter cleared', 'info', 1500);
+    }
+
     // INIT
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       $('entry_date').value = new Date().toISOString().slice(0,10);
       
       // Event listeners
@@ -618,18 +669,9 @@
       $('btnRefresh').addEventListener('click', loadDashboardData);
       $('btnExportExcel').addEventListener('click', exportToExcel);
       
-      // District selection change
-      $('district_name').addEventListener('change', (e) => {
-        if (e.target.value) {
-          currentUser.districtId = e.target.value;
-          loadDashboardData();
-          loadLatestRecord();
-        } else {
-          currentUser.districtId = null;
-          $('currentTotals').innerHTML = 'Ready to enter data';
-          $('recentEntries').innerHTML = 'No recent entries';
-        }
-      });
+      // Date filter listeners
+      $('btnApplyFilter').addEventListener('click', applyDateFilter);
+      $('btnClearFilter').addEventListener('click', clearDateFilter);
       
       $('btnLogout').addEventListener('click', () => {
         if (confirm('Are you sure you want to logout?')) {
@@ -640,8 +682,10 @@
         }
       });
 
-      // Load districts immediately
-      loadDistricts();
+      // Initialize app
+      await loadUserDistrict();
+      await loadDashboardData();
+      await loadLatestRecord();
       updateNotSaturated();
     });
 
@@ -650,3 +694,4 @@
   </script>
 </body>
 </html>
+
