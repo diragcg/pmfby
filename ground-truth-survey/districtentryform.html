@@ -334,7 +334,6 @@
                     fetchAndRenderTableData();
                 }
             });
-
             loadFormDefinitions();
         });
 
@@ -353,9 +352,8 @@
                 const { data, error } = await supabase
                     .from('form_definitions')
                     .select('*')
-                    .eq('district_id', currentUser.districtId) // Added this filter
+                    .eq('district_id', currentUser.districtId)
                     .order('table_name', { ascending: true });
-
                 if (error) {
                     console.error('Error loading form definitions:', error);
                     toast('Failed to load form definitions', 'danger');
@@ -405,16 +403,14 @@
                     </div>
                 `;
                 selector.appendChild(card);
-                
                 const countSpan = $(`count-${index}`);
                 const count = await fetchRecordCount(def.table_name);
                 countSpan.classList.remove('placeholder-glow');
                 countSpan.innerHTML = count;
-
                 card.querySelector('.btn-view').addEventListener('click', () => handleFormSelection(def));
             });
         }
-        
+
         function filterFormList(event) {
             const searchTerm = event.target.value.toLowerCase();
             const filteredForms = formDefinitions.filter(def => 
@@ -428,17 +424,13 @@
             currentTableName = def.table_name;
             currentDefinition = def;
             $('currentFormTitle').textContent = def.label || def.table_name;
-            
             $('dataForm').reset();
             $('recordId').value = '';
             $('submitBtn').textContent = 'Submit';
-
             renderForm(currentDefinition);
             fetchAndRenderTableData();
-            
             $('dashboardView').classList.add('hidden');
             $('formView').classList.remove('hidden');
-            
             const dataEntryTab = new bootstrap.Tab($('data-entry-tab'));
             dataEntryTab.show();
         }
@@ -460,7 +452,6 @@
                 input.className = 'form-control';
                 input.name = field.name;
                 input.id = `input-${field.name}`;
-                
                 if (field.type === 'number') {
                     input.type = 'number';
                 } else if (field.type === 'date') {
@@ -468,11 +459,9 @@
                 } else {
                     input.type = 'text';
                 }
-                
                 if (field.required) {
                     input.required = true;
                 }
-                
                 col.appendChild(label);
                 col.appendChild(input);
                 fieldsContainer.appendChild(col);
@@ -485,13 +474,11 @@
             showLoading();
             const formData = new FormData(event.target);
             const data = Object.fromEntries(formData.entries());
-
             if (!currentTableName) {
                 toast('No table selected!', 'danger');
                 hideLoading();
                 return;
             }
-
             try {
                 const payload = {};
                 for (const field of currentDefinition.fields) {
@@ -505,9 +492,11 @@
                     }
                 }
                 
+                // Add district_id to the payload
+                payload.district_id = currentUser.districtId;
+
                 const recordId = $('recordId').value;
                 let error;
-
                 if (recordId) {
                     const { error: updateError } = await supabase
                         .from(currentTableName)
@@ -518,17 +507,13 @@
                     const { error: insertError } = await supabase.from(currentTableName).insert([payload]);
                     error = insertError;
                 }
-                
                 if (error) throw error;
-
                 toast(recordId ? 'Record updated successfully!' : 'Data submitted successfully!', 'success');
                 event.target.reset();
                 $('recordId').value = '';
                 $('submitBtn').textContent = 'Submit';
-
                 currentPage = 0;
                 await fetchAndRenderTableData();
-
             } catch (error) {
                 console.error('Submission error:', error);
                 toast('Failed to submit data: ' + error.message, 'danger');
@@ -541,25 +526,19 @@
         async function fetchAndRenderTableData() {
             if (!currentTableName) return;
             showLoading();
-            
             const start = currentPage * PAGE_SIZE;
             const end = start + PAGE_SIZE - 1;
-
             try {
                 const { data, error, count } = await supabase
                     .from(currentTableName)
                     .select('*', { count: 'exact' })
-                    .eq('district_id', currentUser.districtId) // Added this filter
                     .order('created_at', { ascending: false })
                     .range(start, end);
-                
                 if (error) throw error;
-                
                 tableData = data || [];
                 $('recordCount').textContent = count;
                 renderTable(tableData, currentDefinition.fields);
                 updatePaginationControls(count);
-
             } catch (error) {
                 console.error('fetchAndRenderTableData error', error);
                 toast('Failed to load table data: ' + error.message, 'danger');
@@ -567,15 +546,13 @@
                 hideLoading();
             }
         }
-        
+
         function renderTable(data, fields) {
             const tableHead = $('tableHead');
             const tableBody = $('tableBody');
             const tableFoot = $('tableFoot');
-            
             tableHead.innerHTML = '';
             const headerRow = document.createElement('tr');
-            
             ['ID', 'Created At', ...fields.map(f => f.label), 'Actions'].forEach((text, index) => {
                 const th = document.createElement('th');
                 th.textContent = text;
@@ -583,279 +560,167 @@
                 headerRow.appendChild(th);
             });
             tableHead.appendChild(headerRow);
-            
             tableBody.innerHTML = '';
             tableFoot.innerHTML = '';
             if (!data || data.length === 0) {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="${fields.length + 3}" class="text-center text-muted">No data found</td>`;
+                tr.innerHTML = `<td colspan="${fields.length + 3}" class="text-center text-muted">No data available.</td>`;
                 tableBody.appendChild(tr);
                 return;
             }
-            
-            let numericalFields = fields.filter(f => f.type === 'number');
-            let totals = {};
-            if (numericalFields.length > 0) {
-                numericalFields.forEach(f => totals[f.name] = 0);
-            }
-
             data.forEach(row => {
                 const tr = document.createElement('tr');
-                
-                const idCell = document.createElement('td');
-                idCell.textContent = row.id;
-                tr.appendChild(idCell);
-
-                const createdAtCell = document.createElement('td');
-                createdAtCell.textContent = new Date(row.created_at).toLocaleString();
-                tr.appendChild(createdAtCell);
-
-                fields.forEach(field => {
-                    const td = document.createElement('td');
-                    const value = row[field.name];
-                    td.textContent = value !== null ? value : '-';
-                    tr.appendChild(td);
-
-                    if (field.type === 'number' && typeof value === 'number') {
-                        totals[field.name] += value;
-                    }
-                });
-
-                const actionsCell = document.createElement('td');
-                const editBtn = document.createElement('button');
-                editBtn.className = 'btn btn-sm btn-warning me-1';
-                editBtn.textContent = 'Edit';
-                editBtn.addEventListener('click', () => editRecord(row));
-
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'btn btn-sm btn-danger';
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.addEventListener('click', () => showDeleteModal(row.id));
-
-                actionsCell.appendChild(editBtn);
-                actionsCell.appendChild(deleteBtn);
-                tr.appendChild(actionsCell);
-
+                tr.innerHTML = `
+                    <td>${row.id}</td>
+                    <td>${new Date(row.created_at).toLocaleString()}</td>
+                    ${fields.map(f => `<td>${row[f.name] || '-'}</td>`).join('')}
+                    <td>
+                        <button class="btn btn-sm btn-info me-1 btn-edit" data-id="${row.id}">Edit</button>
+                        <button class="btn btn-sm btn-danger btn-delete" data-id="${row.id}">Delete</button>
+                    </td>
+                `;
                 tableBody.appendChild(tr);
             });
-            
-            if (numericalFields.length > 0) {
-                const totalRow = document.createElement('tr');
-                totalRow.className = 'fw-bold table-info';
-                let totalRowHtml = `<td colspan="2">Total</td>`;
-                
-                fields.forEach(field => {
-                    if (field.type === 'number') {
-                        totalRowHtml += `<td>${totals[field.name].toFixed(2)}</td>`;
-                    } else {
-                        totalRowHtml += `<td></td>`;
-                    }
-                });
-                
-                totalRowHtml += `<td></td>`;
-                totalRow.innerHTML = totalRowHtml;
-                tableFoot.appendChild(totalRow);
-            }
+            document.querySelectorAll('.btn-edit').forEach(btn => btn.addEventListener('click', event => editRecord(event.target.dataset.id)));
+            document.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', event => showDeleteModal(event.target.dataset.id)));
         }
-        
-        function updatePaginationControls(count) {
-            const totalPages = Math.ceil(count / PAGE_SIZE);
-            $('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages || 1}`;
+
+        function updatePaginationControls(totalRecords) {
+            const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
+            $('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages}`;
             $('prevPage').disabled = currentPage === 0;
             $('nextPage').disabled = currentPage >= totalPages - 1;
         }
 
-        /* ---------------- Filtering and Sorting Logic ---------------- */
-        let sortDirection = {};
-        function sortTable(columnIndex) {
-            const headers = ['id', 'created_at', ...currentDefinition.fields.map(f => f.name)];
-            const fieldName = headers[columnIndex];
+        let currentSortColumn = null;
+        let currentSortDirection = 'asc';
 
-            if (!fieldName) return;
-            
-            const direction = sortDirection[fieldName] === 'asc' ? 'desc' : 'asc';
-            sortDirection = { [fieldName]: direction };
-            
-            tableData.sort((a, b) => {
-                const valA = a[fieldName];
-                const valB = b[fieldName];
-                
-                if (typeof valA === 'number' && typeof valB === 'number') {
-                    return direction === 'asc' ? valA - valB : valB - valA;
+        function sortTable(columnIndex) {
+            if (columnIndex > 1 && columnIndex < currentDefinition.fields.length + 2) {
+                const fieldName = currentDefinition.fields[columnIndex - 2].name;
+                if (currentSortColumn === fieldName) {
+                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSortColumn = fieldName;
+                    currentSortDirection = 'asc';
                 }
-                
-                const strA = String(valA || '').toLowerCase();
-                const strB = String(valB || '').toLowerCase();
-                
-                if (strA < strB) return direction === 'asc' ? -1 : 1;
-                if (strA > strB) return direction === 'asc' ? 1 : -1;
-                return 0;
-            });
-            
-            renderTable(tableData, currentDefinition.fields);
+                const sortedData = [...tableData].sort((a, b) => {
+                    const valA = a[fieldName];
+                    const valB = b[fieldName];
+                    if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
+                    if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+                renderTable(sortedData, currentDefinition.fields);
+            }
         }
         
-        function filterTable(event) {
-            const filterTerm = event.target.value.toLowerCase();
-            const filteredData = tableData.filter(row => {
-                for (const key in row) {
-                    if (String(row[key]).toLowerCase().includes(filterTerm)) {
-                        return true;
-                    }
-                }
-                return false;
-            });
+        function filterTable() {
+            const filterText = $('tableFilter').value.toLowerCase();
+            const filteredData = tableData.filter(row =>
+                Object.values(row).some(value =>
+                    String(value).toLowerCase().includes(filterText)
+                )
+            );
             renderTable(filteredData, currentDefinition.fields);
         }
 
-        /* ---------------- Export Logic ---------------- */
-        async function exportToExcel() {
-            showLoading();
-            const reportModal = bootstrap.Modal.getInstance($('reportModal'));
-            if (reportModal) reportModal.hide();
-            
-            if (!currentTableName) {
-                toast('Please select a form first!', 'warning');
-                hideLoading();
-                return;
+        function editRecord(id) {
+            const record = tableData.find(r => r.id == id);
+            if (!record) {
+                return toast('Record not found', 'danger');
             }
-            try {
-                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    toast('No data to export!', 'info');
-                    hideLoading();
-                    return;
-                }
-                const exportData = data.map(row => {
-                    const mappedRow = {};
-                    mappedRow['ID'] = row.id;
-                    mappedRow['Created At'] = new Date(row.created_at).toLocaleString();
-                    currentDefinition.fields.forEach(field => { mappedRow[field.label] = row[field.name]; });
-                    return mappedRow;
-                });
-                
-                const ws = XLSX.utils.json_to_sheet(exportData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, currentTableName);
-                XLSX.writeFile(wb, `${currentTableName}_data.xlsx`);
-                
-                toast('Data exported to Excel successfully!', 'success');
-            } catch (error) {
-                console.error('Export error:', error);
-                toast('Failed to export data: ' + error.message, 'danger');
-            } finally {
-                hideLoading();
-            }
-        }
-        
-        async function exportToPdf() {
-            showLoading();
-            const reportModal = bootstrap.Modal.getInstance($('reportModal'));
-            if (reportModal) reportModal.hide();
-
-            if (!currentTableName) {
-                toast('Please select a form first!', 'warning');
-                hideLoading();
-                return;
-            }
-            try {
-                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    toast('No data to export!', 'info');
-                    hideLoading();
-                    return;
-                }
-                
-                const headers = ['ID', 'Created At', ...currentDefinition.fields.map(f => f.label)];
-                const rows = data.map(row => {
-                    const rowData = [row.id, new Date(row.created_at).toLocaleString()];
-                    currentDefinition.fields.forEach(field => { rowData.push(row[field.name] || '-'); });
-                    return rowData;
-                });
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF({
-                    orientation: headers.length > 6 ? 'landscape' : 'portrait'
-                });
-                
-                doc.setFont('Poppins', 'normal');
-                doc.setFontSize(12);
-                doc.text(`Table Name: ${currentDefinition.label || currentDefinition.table_name}`, 10, 10);
-                doc.text(`Report Date: ${new Date().toLocaleString()}`, 10, 17);
-                doc.text(`User: ${currentUser.email}`, 10, 24);
-                
-                doc.autoTable({
-                    head: [headers],
-                    body: rows,
-                    startY: 30,
-                    styles: {
-                        font: 'Poppins',
-                        fontSize: 8,
-                        cellPadding: 2,
-                        fillColor: [255, 255, 255],
-                        textColor: [0, 0, 0]
-                    },
-                    headStyles: {
-                        fillColor: [240, 240, 240],
-                        textColor: [0, 0, 0]
-                    },
-                    didDrawPage: function(data) {
-                        doc.text(`Page ${data.pageNumber} of ${data.pageCount}`, data.settings.margin.left, doc.internal.pageSize.height - 10);
-                    }
-                });
-                
-                doc.save(`${currentTableName}_data.pdf`);
-                toast('Data exported to PDF successfully!', 'success');
-            } catch (error) {
-                console.error('Export error:', error);
-                toast('Failed to export data: ' + error.message, 'danger');
-            } finally {
-                hideLoading();
-            }
-        }
-
-        /* ---------------- Edit and Delete Logic ---------------- */
-        function editRecord(record) {
-            const dataEntryTab = new bootstrap.Tab($('data-entry-tab'));
-            dataEntryTab.show();
-            
-            $('currentFormTitle').textContent = `Editing Record ID: ${record.id}`;
             $('recordId').value = record.id;
             $('submitBtn').textContent = 'Update';
-            
-            const fieldsContainer = $('formFields');
-            const formInputs = fieldsContainer.querySelectorAll('input');
-            
-            formInputs.forEach(input => {
-                input.value = record[input.name] || '';
+            currentDefinition.fields.forEach(field => {
+                const input = $(`input-${field.name}`);
+                if (input) {
+                    input.value = record[field.name] || '';
+                }
             });
-
-            $('dataForm').scrollIntoView({ behavior: 'smooth' });
+            const dataEntryTab = new bootstrap.Tab($('data-entry-tab'));
+            dataEntryTab.show();
         }
-        
-        function showDeleteModal(recordId) {
-            deleteId = recordId;
+
+        function showDeleteModal(id) {
+            deleteId = id;
             const deleteModal = new bootstrap.Modal($('deleteModal'));
             deleteModal.show();
         }
-        
-        async function deleteRecordConfirmed(recordId) {
+
+        async function deleteRecordConfirmed(id) {
             showLoading();
             try {
-                const { error } = await supabase
-                    .from(currentTableName)
-                    .delete()
-                    .eq('id', recordId);
-                
+                const { error } = await supabase.from(currentTableName).delete().eq('id', id);
                 if (error) throw error;
-                
                 toast('Record deleted successfully!', 'success');
-                await fetchAndRenderTableData();
-                bootstrap.Modal.getInstance($('deleteModal')).hide();
+                fetchAndRenderTableData();
             } catch (error) {
                 console.error('Delete error:', error);
                 toast('Failed to delete record: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
+            }
+            const deleteModal = bootstrap.Modal.getInstance($('deleteModal'));
+            if (deleteModal) deleteModal.hide();
+        }
+
+        /* ---------------- Export Functionality ---------------- */
+        async function exportToExcel() {
+            showLoading();
+            try {
+                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    toast('No data to export.', 'warning');
+                    return;
+                }
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(data);
+                XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+                XLSX.writeFile(wb, `${currentTableName}_data.xlsx`);
+                toast('Excel file generated successfully.', 'success');
+            } catch (error) {
+                console.error('Excel export error:', error);
+                toast('Failed to export to Excel: ' + error.message, 'danger');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        async function exportToPdf() {
+            showLoading();
+            try {
+                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
+                if (error) throw error;
+                if (!data || data.length === 0) {
+                    toast('No data to export.', 'warning');
+                    return;
+                }
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'pt');
+                const headers = Object.keys(data[0]);
+                const tableData = data.map(row => headers.map(header => String(row[header])));
+                doc.autoTable({
+                    head: [headers],
+                    body: tableData,
+                    theme: 'striped',
+                    styles: {
+                        font: 'Helvetica',
+                        fontSize: 8,
+                        cellPadding: 4,
+                    },
+                    headStyles: {
+                        fillColor: [23, 101, 49],
+                        textColor: 255
+                    },
+                    margin: { top: 10, right: 10, bottom: 10, left: 10 }
+                });
+                doc.save(`${currentTableName}_data.pdf`);
+                toast('PDF file generated successfully.', 'success');
+            } catch (error) {
+                console.error('PDF export error:', error);
+                toast('Failed to export to PDF: ' + error.message, 'danger');
             } finally {
                 hideLoading();
             }
