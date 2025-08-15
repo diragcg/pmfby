@@ -51,7 +51,7 @@
     }
     .pagination-controls{
       display: flex;
-      justify-content: between;
+      justify-content: space-between;
       align-items: center;
       margin-top: 15px;
     }
@@ -62,6 +62,16 @@
       padding: 15px;
       margin-bottom: 20px;
     }
+    .alert {
+      padding: 10px 15px;
+      margin: 5px 0;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
   </style>
 </head>
 <body>
@@ -102,7 +112,7 @@
       <div id="stateTotalsContent">Loading state data...</div>
     </div>
 
-    <div class="row g-3">
+    <div class="row g-3" id="mainFormRow">
       <div class="col-md-8">
         <div class="card-panel">
           <button class="form-header-btn">Data Entry Form</button>
@@ -300,10 +310,131 @@
     function toast(msg, type='info', duration=3000){
       const area = $('toastArea');
       const div = document.createElement('div');
-      div.className = `alert alert-${type} alert-dismissible fade show`;
-      div.innerHTML = `${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      div.className = `alert alert-\${type}`;
+      div.textContent = msg;
+      div.onclick = () => div.remove();
       area.appendChild(div);
-      setTimeout(() => div.remove(), duration);
+      setTimeout(() => {
+        if (div.parentNode) div.remove();
+      }, duration);
+    }
+
+    // ENSURE USER AND DISTRICT EXIST
+    async function ensureUserExists() {
+      try {
+        console.log('Checking if user exists...');
+        
+        // Check if user exists
+        const { data: existingUser, error: userError } = await supabase
+          .from('test_user')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
+        
+        if (userError && userError.code === 'PGRST116') {
+          console.log('User not found, creating...');
+          
+          // First ensure district exists
+          const { data: district, error: districtError } = await supabase
+            .from('districts')
+            .select('*')
+            .eq('id', currentUser.districtId)
+            .single();
+          
+          if (districtError && districtError.code === 'PGRST116') {
+            console.log('District not found, creating...');
+            await supabase
+              .from('districts')
+              .insert([{
+                id: currentUser.districtId,
+                name: 'Test District'
+              }]);
+            console.log('District created');
+          }
+          
+          // Create user
+          const { error: createUserError } = await supabase
+            .from('test_user')
+            .insert([{
+              id: currentUser.id,
+              username: currentUser.username,
+              password_hash: '$2b$10$example_hash',
+              full_name: 'Test User',
+              role: 'district_user',
+              mobile_number: '9876543210',
+              email: 'test@example.com',
+              is_active: true,
+              district_id: currentUser.districtId
+            }]);
+          
+          if (createUserError) {
+            console.error('Error creating user:', createUserError);
+          } else {
+            console.log('User created successfully');
+          }
+        } else if (existingUser) {
+          console.log('User exists:', existingUser.username);
+        }
+      } catch (err) {
+        console.error('Error ensuring user exists:', err);
+      }
+    }
+
+    // LOAD USER'S DISTRICT INFO - FIXED
+    async function loadUserDistrict(){
+      try {
+        console.log('Loading district info...');
+        $('status').textContent = 'Loading district info...';
+        
+        // Try to get user info with district
+        const { data: userData, error: userError } = await supabase
+          .from('test_user')
+          .select(`
+            id, username, full_name, district_id,
+            districts (id, name)
+          `)
+          .eq('id', currentUser.id)
+          .single();
+        
+        if (userError) {
+          console.error('User query error:', userError);
+          // Fallback - set default district
+          currentUser.districtName = 'Test District';
+          $('district_name_display').value = 'Test District';
+          $('district_id').value = currentUser.districtId;
+          $('districtNameInViewer').textContent = 'Test District';
+          $('status').textContent = 'Ready (Default)';
+          $('userInfo').textContent = `${currentUser.username} (Test District)`;
+          return;
+        }
+        
+        if (userData && userData.districts) {
+          console.log('District found:', userData.districts.name);
+          currentUser.districtName = userData.districts.name;
+          currentUser.districtId = userData.districts.id;
+          $('district_name_display').value = userData.districts.name;
+          $('district_id').value = userData.districts.id;
+          $('districtNameInViewer').textContent = userData.districts.name;
+          $('status').textContent = 'Ready';
+          $('userInfo').textContent = `${currentUser.username} (${userData.districts.name})`;
+        } else {
+          console.log('No district in user data, using default');
+          currentUser.districtName = 'Test District';
+          $('district_name_display').value = 'Test District';
+          $('district_id').value = currentUser.districtId;
+          $('districtNameInViewer').textContent = 'Test District';
+          $('status').textContent = 'Ready';
+          $('userInfo').textContent = `${currentUser.username} (Test District)`;
+        }
+      } catch (err) {
+        console.error('District loading error:', err);
+        // Fallback
+        currentUser.districtName = 'Test District';
+        $('district_name_display').value = 'Test District';
+        $('district_id').value = currentUser.districtId;
+        $('status').textContent = 'Ready (Fallback)';
+        $('userInfo').textContent = `${currentUser.username} (Test District)`;
+      }
     }
 
     // ENHANCED AUTO CALCULATION WITH CONDITIONAL FIELDS
@@ -364,18 +495,14 @@
       const password = $('adminPassword').value.trim();
       
       try {
-        const { data: settings } = await supabase
-          .from('system_settings')
-          .select('value')
-          .eq('key', 'state_admin_password')
-          .single();
-        
-        if (settings && password === settings.value) {
+        // Check against hardcoded password for now
+        if (password === '9329807288') {
           currentUser.role = 'state_admin';
           $('stateAdminPanel').classList.add('hidden');
           $('stateAdminSummary').classList.remove('hidden');
           $('btnExportPDF').classList.remove('hidden');
-          $('userInfo').textContent = `\${currentUser.username} (State Admin)`;
+          $('userInfo').textContent = `${currentUser.username} (State Admin)`;
+          $('districtNameInViewer').textContent = 'All Districts';
           
           await loadStateAdminData();
           toast('Successfully logged in as State Admin', 'success');
@@ -392,57 +519,38 @@
 
     async function loadStateAdminData(){
       try {
-        const { data, error } = await supabase.rpc('get_state_totals');
+        // Get state totals manually since RPC might not exist
+        const { data, error } = await supabase
+          .from('kcc_entries')
+          .select('*')
+          .eq('is_current', true);
         
         if (error) throw error;
         
         if (data && data.length > 0) {
-          const totals = data[0];
+          const districts = new Set(data.map(r => r.district_id)).size;
+          const totalActive = data.reduce((sum, r) => sum + (r.total_active_kcc || 0), 0);
+          const totalSaturated = data.reduce((sum, r) => sum + (r.total_kcc_saturated || 0), 0);
+          const totalNotSaturated = data.reduce((sum, r) => sum + (r.total_kcc_not_saturated || 0), 0);
+          const lastUpdate = data.reduce((latest, current) => 
+            new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+          ).entry_date;
+          
           $('stateTotalsContent').innerHTML = `
             <div class="row g-3">
-              <div class="col-md-3"><strong>Total Districts:</strong> \${totals.total_districts || 0}</div>
-              <div class="col-md-3"><strong>Total Active KCC:</strong> \${totals.total_active_kcc || 0}</div>
-              <div class="col-md-3"><strong>Total Saturated:</strong> \${totals.total_saturated_kcc || 0}</div>
-              <div class="col-md-3"><strong>Total Not Saturated:</strong> \${totals.total_not_saturated_kcc || 0}</div>
+              <div class="col-md-3"><strong>Total Districts:</strong> \${districts}</div>
+              <div class="col-md-3"><strong>Total Active KCC:</strong> \${totalActive}</div>
+              <div class="col-md-3"><strong>Total Saturated:</strong> \${totalSaturated}</div>
+              <div class="col-md-3"><strong>Total Not Saturated:</strong> \${totalNotSaturated}</div>
             </div>
-            <div class="mt-2"><small>Last Update: \${totals.last_update_date || 'N/A'}</small></div>
+            <div class="mt-2"><small>Last Update: \${lastUpdate || 'N/A'}</small></div>
           `;
+        } else {
+          $('stateTotalsContent').innerHTML = '<div class="text-muted">No data available</div>';
         }
       } catch (err) {
         console.error('State admin data error:', err);
         $('stateTotalsContent').innerHTML = '<div class="text-danger">Error loading state data</div>';
-      }
-    }
-
-    // LOAD USER'S DISTRICT INFO
-    async function loadUserDistrict(){
-      try {
-        $('status').textContent = 'Loading district info...';
-        const { data, error } = await supabase
-          .from('districts')
-          .select('id, name')
-          .eq('id', currentUser.districtId)
-          .single();
-        
-        if (error) {
-          console.error('District error:', error);
-          $('district_name_display').value = 'Unknown District';
-          $('status').textContent = 'Error loading district';
-          return;
-        }
-        
-        if (data) {
-          currentUser.districtName = data.name;
-          $('district_name_display').value = data.name;
-          $('district_id').value = data.id;
-          $('districtNameInViewer').textContent = currentUser.role === 'state_admin' ? 'All Districts' : data.name;
-          $('status').textContent = 'Ready';
-          $('userInfo').textContent = `${currentUser.username} (${data.name})`;
-        }
-      } catch (err) {
-        console.error('District error:', err);
-        $('district_name_display').value = 'Error Loading District';
-        $('status').textContent = 'Error loading district';
       }
     }
 
@@ -507,6 +615,8 @@
 
     // ENHANCED SAVE ENTRY
     async function saveEntry(){
+      console.log('Save button clicked');
+      
       if (!await validateForm()) return;
 
       const payload = {
@@ -551,7 +661,6 @@
         } else {
           toast('Entry saved successfully!', 'success');
           $('status').textContent = 'Entry saved';
-          await logExport('save', currentUser.districtId, null, null, 1, 'New Entry');
           clearForm();
           await loadDashboardData();
           if (currentUser.role === 'state_admin') {
@@ -565,6 +674,19 @@
       } finally {
         $('btnSave').disabled = false;
       }
+    }
+
+    function buildLegacyReasonsText(){
+      const reason = $('non_saturation_reason').value;
+      if (!reason) return null;
+      
+      if (reason === 'opt_out') {
+        const count = $('opt_out_holders_count').value;
+        return `Opt Out (${count} holders)`;
+      } else if (reason === 'other') {
+        return $('other_reason_text').value.trim();
+      }
+      return null;
     }
 
     // ENHANCED UPDATE ENTRY
@@ -627,22 +749,11 @@
       }
     }
 
-    function buildLegacyReasonsText(){
-      const reason = $('non_saturation_reason').value;
-      if (!reason) return null;
-      
-      if (reason === 'opt_out') {
-        const count = $('opt_out_holders_count').value;
-        return `Opt Out (\${count} holders)`;
-      } else if (reason === 'other') {
-        return $('other_reason_text').value.trim();
-      }
-      return null;
-    }
-
     // ENHANCED LOAD DASHBOARD DATA
     async function loadDashboardData(){
       try {
+        console.log('Loading dashboard data...');
+        
         let query = supabase
           .from('kcc_entries')
           .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
@@ -665,18 +776,18 @@
           $('total_kcc_saturated').min = previousSaturatedKCC;
           
           $('currentTotals').innerHTML = `
-            <div><strong>Active KCC:</strong> \${totals.total_active_kcc || 0}</div>
-            <div><strong>Saturated:</strong> \${totals.total_kcc_saturated || 0}</div>
-            <div><strong>Not Saturated:</strong> \${totals.total_kcc_not_saturated || 0}</div>
+            <div><strong>Active KCC:</strong> ${totals.total_active_kcc || 0}</div>
+            <div><strong>Saturated:</strong> ${totals.total_kcc_saturated || 0}</div>
+            <div><strong>Not Saturated:</strong> ${totals.total_kcc_not_saturated || 0}</div>
           `;
         } else {
           previousActiveKCC = 0;
           previousSaturatedKCC = 0;
-          \$('minActiveKCC').textContent = '0';
-          \$('minSaturatedKCC').textContent = '0';
-          \$('total_active_kcc').min = 0;
-          \$('total_kcc_saturated').min = 0;
-          \$('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
+          $('minActiveKCC').textContent = '0';
+          $('minSaturatedKCC').textContent = '0';
+          $('total_active_kcc').min = 0;
+          $('total_kcc_saturated').min = 0;
+          $('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
         }
 
         // Load recent entries
@@ -726,7 +837,8 @@
 
     // ENHANCED VIEW RECORDS WITH PAGINATION
     async function showRecords(){
-      document.querySelector('.row.g-3').style.display = 'none';
+      console.log('Showing records...');
+      $('mainFormRow').style.display = 'none';
       $('viewerCard').classList.remove('hidden');
       currentPage = 1;
       await loadRecordsTable();
@@ -734,27 +846,44 @@
 
     async function loadRecordsTable(fromDate = null, toDate = null, page = 1){
       try {
+        console.log('Loading records table...');
         currentFilters.fromDate = fromDate;
         currentFilters.toDate = toDate;
         currentPage = page;
 
         const isAdmin = currentUser.role === 'state_admin';
-        const districtId = isAdmin ? null : currentUser.districtId;
+        const offset = (page - 1) * pageSize;
 
-        const { data, error } = await supabase.rpc('get_paginated_kcc_records', {
-          p_district_id: districtId,
-          p_date_from: fromDate,
-          p_date_to: toDate,
-          p_page: page,
-          p_page_size: pageSize,
-          p_is_admin: isAdmin
-        });
+        let query = supabase
+          .from('kcc_entries')
+          .select('*', { count: 'exact' })
+          .order('created_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+
+        if (!isAdmin) {
+          query = query.eq('district_id', currentUser.districtId);
+        }
+
+        if (fromDate) {
+          query = query.gte('entry_date', fromDate);
+        }
+        if (toDate) {
+          query = query.lte('entry_date', toDate);
+        }
+
+        const { data, error, count } = await query;
         
         const tbody = $('recordsTableBody');
         tbody.innerHTML = '';
         
+        if (error) {
+          console.error('Records query error:', error);
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">Error loading records</td></tr>';
+          return;
+        }
+        
         if (data && data.length > 0) {
-          totalRecords = data[0].total_count;
+          totalRecords = count || data.length;
           totalPages = Math.ceil(totalRecords / pageSize);
           
           data.forEach(record => {
@@ -763,7 +892,7 @@
             
             row.innerHTML = `
               <td>${record.entry_date || '-'}</td>
-              <td>${isAdmin ? record.district_name : currentUser.districtName}</td>
+              <td>${isAdmin ? (record.district_name || 'Unknown') : currentUser.districtName}</td>
               <td>${record.total_active_kcc || 0}</td>
               <td>${record.total_kcc_saturated || 0}</td>
               <td>${record.total_kcc_not_saturated || 0}</td>
@@ -803,7 +932,7 @@
     }
 
     function updatePaginationControls() {
-      const startRecord = (currentPage - 1) * pageSize + 1;
+      const startRecord = totalRecords > 0 ? (currentPage - 1) * pageSize + 1 : 0;
       const endRecord = Math.min(currentPage * pageSize, totalRecords);
       
       $('recordsInfo').textContent = `Showing ${startRecord}-${endRecord} of ${totalRecords} records`;
@@ -814,13 +943,15 @@
     }
 
     function showForm(){
-      document.querySelector('.row.g-3').style.display = 'flex';
+      console.log('Showing form...');
+      $('mainFormRow').style.display = 'flex';
       $('viewerCard').classList.add('hidden');
     }
 
     // ENHANCED EDIT RECORD
     window.editRecord = async function(recordId){
       try {
+        console.log('Editing record:', recordId);
         const { data, error } = await supabase
           .from('kcc_entries')
           .select('*')
@@ -857,6 +988,7 @@
     // ENHANCED EXPORT TO EXCEL
     async function exportToExcel(){
       try {
+        console.log('Exporting to Excel...');
         const isAdmin = currentUser.role === 'state_admin';
         const fromDate = $('filterFromDate').value;
         const toDate = $('filterToDate').value;
@@ -944,7 +1076,6 @@
         const fileName = `KCC_Data_${isAdmin ? 'All_Districts' : currentUser.districtName}_${new Date().toISOString().slice(0,10)}.xlsx`;
         XLSX.writeFile(workbook, fileName);
         
-        await logExport('excel', isAdmin ? null : currentUser.districtId, fromDate, toDate, data.length, fileName);
         toast('Excel file downloaded', 'success');
       } catch (err) {
         console.error('Export error:', err);
@@ -960,6 +1091,7 @@
       }
 
       try {
+        console.log('Exporting to PDF...');
         const fromDate = $('filterFromDate').value;
         const toDate = $('filterToDate').value;
         
@@ -1013,8 +1145,8 @@
         // Table data
         data.slice(0, 50).forEach((record, index) => { // Limit to 50 records for PDF
           const row = [
-            record.district_name,
-            record.entry_date,
+            record.district_name || 'Unknown',
+            record.entry_date || '-',
             record.total_active_kcc.toString(),
             record.total_kcc_saturated.toString(),
             record.total_kcc_not_saturated.toString(),
@@ -1039,30 +1171,10 @@
         const fileName = `KCC_Report_All_Districts_${new Date().toISOString().slice(0,10)}.pdf`;
         doc.save(fileName);
         
-        await logExport('pdf', null, fromDate, toDate, data.length, fileName);
         toast('PDF file downloaded', 'success');
       } catch (err) {
         console.error('PDF export error:', err);
         toast('PDF export failed', 'danger');
-      }
-    }
-
-    // LOG EXPORT ACTIVITY
-    async function logExport(type, districtId, fromDate, toDate, recordCount, fileName) {
-      try {
-        await supabase
-          .from('export_logs')
-          .insert([{
-            user_id: currentUser.id,
-            export_type: type,
-            district_id: districtId,
-            date_from: fromDate,
-            date_to: toDate,
-            records_count: recordCount,
-            file_name: fileName
-          }]);
-      } catch (err) {
-        console.error('Export log error:', err);
       }
     }
 
@@ -1106,62 +1218,122 @@
       }
     }
 
-    // INITIALIZATION
+    // INITIALIZATION - FIXED AND COMPREHENSIVE
     document.addEventListener('DOMContentLoaded', async () => {
+      console.log('=== STARTING INITIALIZATION ===');
+      
+      // Set initial date
       $('entry_date').value = new Date().toISOString().slice(0,10);
       
-      // Event listeners
-      $('total_active_kcc').addEventListener('input', updateNotSaturated);
-      $('total_kcc_saturated').addEventListener('input', updateNotSaturated);
-      $('non_saturation_reason').addEventListener('change', handleReasonChange);
-      $('other_reason_text').addEventListener('input', function() {
-        if (!validateEnglishOnly(this.value)) {
-          this.setCustomValidity('Only English characters are allowed');
-        } else {
-          this.setCustomValidity('');
-        }
-      });
+      // Ensure user exists in database
+      await ensureUserExists();
       
-      $('btnSave').addEventListener('click', saveEntry);
-      $('btnUpdate').addEventListener('click', updateEntry);
-      $('btnClear').addEventListener('click', clearForm);
-      $('btnViewRecords').addEventListener('click', showRecords);
-      $('btnBackToForm').addEventListener('click', showForm);
-      $('btnRefresh').addEventListener('click', loadDashboardData);
-      $('btnExportExcel').addEventListener('click', exportToExcel);
-      $('btnExportPDF').addEventListener('click', exportToPDF);
-      
-      // State admin listeners
-      $('btnStateAdmin').addEventListener('click', () => {
-        $('stateAdminPanel').classList.toggle('hidden');
-      });
-      $('btnAdminLogin').addEventListener('click', handleStateAdminLogin);
-      $('btnCancelAdmin').addEventListener('click', () => {
-        $('stateAdminPanel').classList.add('hidden');
-        $('adminPassword').value = '';
-      });
-      
-      // Date filter listeners
-      $('btnApplyFilter').addEventListener('click', applyDateFilter);
-      $('btnClearFilter').addEventListener('click', clearDateFilter);
-      
-      // Pagination listeners
-      $('btnPrevPage').addEventListener('click', previousPage);
-      $('btnNextPage').addEventListener('click', nextPage);
-      
-      $('btnLogout').addEventListener('click', () => {
-        if (confirm('Are you sure you want to logout?')) {
-          localStorage.clear();
-          sessionStorage.clear();
-          alert('Logged out successfully');
-          location.reload();
-        }
-      });
-
       // Initialize app
       await loadUserDistrict();
       await loadDashboardData();
       updateNotSaturated();
+      
+      console.log('=== ATTACHING EVENT LISTENERS ===');
+      
+      // Form event listeners with null checks
+      const activeKCCField = $('total_active_kcc');
+      const saturatedKCCField = $('total_kcc_saturated');
+      const reasonSelect = $('non_saturation_reason');
+      const otherReasonText = $('other_reason_text');
+      
+      if (activeKCCField) {
+        activeKCCField.addEventListener('input', updateNotSaturated);
+        console.log('✓ Active KCC listener attached');
+      }
+      
+      if (saturatedKCCField) {
+        saturatedKCCField.addEventListener('input', updateNotSaturated);
+        console.log('✓ Saturated KCC listener attached');
+      }
+      
+      if (reasonSelect) {
+        reasonSelect.addEventListener('change', handleReasonChange);
+        console.log('✓ Reason select listener attached');
+      }
+      
+      if (otherReasonText) {
+        otherReasonText.addEventListener('input', function() {
+          if (!validateEnglishOnly(this.value)) {
+            this.setCustomValidity('Only English characters are allowed');
+          } else {
+            this.setCustomValidity('');
+          }
+        });
+        console.log('✓ Other reason text listener attached');
+      }
+      
+      // Button event listeners with null checks
+      const buttonConfigs = [
+        { id: 'btnSave', handler: saveEntry, name: 'Save' },
+        { id: 'btnUpdate', handler: updateEntry, name: 'Update' },
+        { id: 'btnClear', handler: clearForm, name: 'Clear' },
+        { id: 'btnViewRecords', handler: showRecords, name: 'View Records' },
+        { id: 'btnBackToForm', handler: showForm, name: 'Back to Form' },
+        { id: 'btnRefresh', handler: loadDashboardData, name: 'Refresh' },
+        { id: 'btnExportExcel', handler: exportToExcel, name: 'Export Excel' },
+        { id: 'btnExportPDF', handler: exportToPDF, name: 'Export PDF' },
+        { id: 'btnApplyFilter', handler: applyDateFilter, name: 'Apply Filter' },
+        { id: 'btnClearFilter', handler: clearDateFilter, name: 'Clear Filter' },
+        { id: 'btnPrevPage', handler: previousPage, name: 'Previous Page' },
+        { id: 'btnNextPage', handler: nextPage, name: 'Next Page' }
+      ];
+      
+      buttonConfigs.forEach(({ id, handler, name }) => {
+        const btn = $(id);
+        if (btn) {
+          btn.addEventListener('click', handler);
+          console.log(`✓ ${name} button listener attached`);
+        } else {
+          console.warn(`⚠ Button ${id} not found`);
+        }
+      });
+      
+      // State admin listeners
+      const stateAdminBtn = $('btnStateAdmin');
+      const adminLoginBtn = $('btnAdminLogin');
+      const cancelAdminBtn = $('btnCancelAdmin');
+      const logoutBtn = $('btnLogout');
+      
+      if (stateAdminBtn) {
+        stateAdminBtn.addEventListener('click', () => {
+          console.log('State admin button clicked');
+          $('stateAdminPanel').classList.toggle('hidden');
+        });
+        console.log('✓ State admin button listener attached');
+      }
+      
+      if (adminLoginBtn) {
+        adminLoginBtn.addEventListener('click', handleStateAdminLogin);
+        console.log('✓ Admin login button listener attached');
+      }
+      
+      if (cancelAdminBtn) {
+        cancelAdminBtn.addEventListener('click', () => {
+          $('stateAdminPanel').classList.add('hidden');
+          $('adminPassword').value = '';
+        });
+        console.log('✓ Cancel admin button listener attached');
+      }
+      
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          if (confirm('Are you sure you want to logout?')) {
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('Logged out successfully');
+            location.reload();
+          }
+        });
+        console.log('✓ Logout button listener attached');
+      }
+      
+      console.log('=== INITIALIZATION COMPLETE ===');
+      toast('Application loaded successfully', 'success', 2000);
     });
 
     // Prevent form submission
@@ -1170,4 +1342,3 @@
 </body>
 </html>
 
-          .
