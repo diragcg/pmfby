@@ -217,7 +217,9 @@
         let currentUser = null;
         let tableData = [];
         let deleteId = null;
-        let unsubscribeFromTable = null;
+        let unsubscribeFromTable = null; // Store the unsubscribe function for real-time listener
+
+        // The form definition for the KCC data
         const kccDefinition = {
             table_name: "kcc_pmfby_data",
             label: "KCC PMFBY Data Entry",
@@ -237,7 +239,7 @@
                 location.href = 'login.html';
                 return;
             }
-            
+
             // Set up user name and admin button
             $('userName').textContent = currentUser.full_name || currentUser.username;
             if (currentUser.role === 'admin') {
@@ -393,11 +395,11 @@
             hideLoading();
         }
 
-        function renderTable(data) {
+        function renderTable(data, fields) {
             const tableHead = $('tableHead');
             const tableBody = $('tableBody');
             tableHead.innerHTML = '';
-            const headerLabels = ['ID', 'Created At', ...kccDefinition.fields.map(f => f.label), 'Actions'];
+            const headerLabels = ['ID', 'Created At', ...fields.map(f => f.label), 'Actions'];
             const headerRow = document.createElement('tr');
             headerLabels.forEach((text, index) => {
                 const th = document.createElement('th');
@@ -420,11 +422,7 @@
                 tr.innerHTML = `
                     <td>${row.id}</td>
                     <td>${new Date(row.created_at).toLocaleString()}</td>
-                    <td>${row.district_name || '-'}</td>
-                    <td>${row.active_kcc_accounts || '0'}</td>
-                    <td>${row.saturated_kcc_accounts || '0'}</td>
-                    <td>${row.non_saturated_kcc_accounts || '0'}</td>
-                    <td>${row.reasons || '-'}</td>
+                    ${fields.map(f => `<td>${row[f.name] || '-'}</td>`).join('')}
                     <td>
                         <button class="btn btn-sm btn-info me-1 btn-edit" data-id="${row.id}"><i class="fa-solid fa-pen-to-square"></i></button>
                         <button class="btn btn-sm btn-danger btn-delete" data-id="${row.id}"><i class="fa-solid fa-trash-can"></i></button>
