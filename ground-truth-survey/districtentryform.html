@@ -4,7 +4,6 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>District Entry Dashboard</title>
-    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -12,664 +11,568 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-        body { font-family: 'Poppins', sans-serif; background: #FFF8E1; }
+        body { font-family: 'Poppins', sans-serif; background: #f0f2f5; }
         .topbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 64px;
-            background: #1B5E20; color: #fff; display: flex; align-items: center;
-            padding: 0 1rem; z-index: 1000; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 10px 20px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            display: flex;
+            align-items: center;
         }
-        .topbar .brand { font-weight: 700; font-size: 1rem; margin-left: 0.5rem; text-transform: uppercase; }
-        .container-app { padding-top: 80px; padding-bottom: 24px; }
-        .main-card { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06); }
-        .form-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
-        .form-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
-        label.required::after { content: " *"; color: #d63333; font-weight: 700; margin-left: 2px; }
-        .hidden { display: none !important; }
-        .form-section { padding: 1rem; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 1rem; }
-        .table-container { max-height: 500px; overflow-y: auto; position: relative; }
-        .table-container table { min-width: 700px; }
-        .table-container thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; cursor: pointer; }
-        .table-container tfoot td { position: sticky; bottom: 0; background-color: #e9ecef; z-index: 10; }
-        .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 1rem; }
-        .form-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
-        .form-info-header h4 { font-size: 1.25rem; margin-bottom: 0; }
-        .form-info-header .form-control { max-width: 250px; margin-top: 0.5rem; }
-        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); z-index: 2000; display: flex; justify-content: center; align-items: center; }
-        .spinner-border { width: 3rem; height: 3rem; }
-        .nav-link.active { background-color: #f8f9fa !important; color: #1B5E20 !important; font-weight: 600; }
+        .topbar-logo {
+            height: 40px;
+            margin-right: 15px;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #333;
+        }
+        .navbar-nav .nav-link {
+            color: #555;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+        .navbar-nav .nav-link:hover {
+            color: #007bff;
+        }
+        .navbar-nav .nav-link.active {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+        }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+        .main-content {
+            padding-top: 80px; /* Adjust padding to accommodate fixed header */
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border: none;
+        }
+        .form-label { font-weight: 600; }
+        .table-responsive {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        .table thead th {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        .toast-container { z-index: 1060; }
+        .toast {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-primary { background-color: #007bff; border-color: #007bff; }
+        .btn-primary:hover { background-color: #0056b3; border-color: #0056b3; }
+        .btn-success { background-color: #28a745; border-color: #28a745; }
+        .btn-success:hover { background-color: #218838; border-color: #218838; }
+        .btn-danger { background-color: #dc3545; border-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; border-color: #c82333; }
     </style>
 </head>
 <body>
-    <div id="loadingOverlay" class="loading-overlay hidden">
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
-    
-    <div class="topbar">
-        <div class="d-flex align-items-center">
-            <h5 class="brand d-none d-sm-block">संचालनालय कृषि छत्तीसगढ़</h5>
-            <h5 class="brand d-sm-none">कृषि</h5>
-        </div>
-        <div class="ms-auto d-flex align-items-center gap-2">
-            <button id="btnHome" class="btn btn-sm btn-light">Home</button>
-            <button id="btnProfile" class="btn btn-sm btn-light">Profile</button>
-            <button id="btnAdmin" class="btn btn-sm btn-light hidden">Admin</button>
-            <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
-        </div>
-    </div>
 
-    <div class="container container-app">
-        <div class="main-card">
-            <div id="dashboardView">
-                <div class="form-info-header">
-                    <h4>Forms Dashboard</h4>
-                    <input type="text" id="formSearch" class="form-control" placeholder="Search forms...">
-                </div>
-                <div id="formSelector" class="row g-3">
+    <!-- Top Navigation Bar -->
+    <header class="topbar d-flex justify-content-between align-items-center">
+        <nav class="navbar navbar-expand-lg w-100">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <img src="https://placehold.co/40x40/007bff/ffffff?text=CG" alt="Logo" class="topbar-logo rounded-circle" />
+                <span>Agriculture Dept, CG</span>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="#">Home</a>
+                    </li>
+                    <!-- Start of the new tab added as requested -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="kcc_pmfby_dashboard.html">KCC PMFBY Dashboard</a>
+                    </li>
+                    <!-- End of the new tab -->
+                </ul>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container-fluid main-content py-4">
+        <div class="row">
+            <!-- Form Section -->
+            <div class="col-lg-4 mb-4">
+                <div class="card p-4">
+                    <h2 class="card-title text-center mb-4">Entry Form</h2>
+                    <form id="dataForm">
+                        <input type="hidden" id="recordId" name="recordId">
+                        <input type="hidden" id="tableName" name="tableName">
+                        <div id="formFields" class="mb-3">
+                            <!-- Dynamic form fields will be populated here -->
+                        </div>
+                        <button type="submit" id="submitBtn" class="btn btn-primary w-100">Submit</button>
+                    </form>
+                    <button id="resetBtn" class="btn btn-outline-secondary w-100 mt-2">Reset Form</button>
                 </div>
             </div>
-            
-            <div id="formView" class="hidden">
-                <button id="btnBackToDashboard" class="btn btn-sm btn-outline-secondary mb-3">
-                    &larr; Back to Dashboard
-                </button>
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="mb-0">Data for: <span class="text-primary" id="currentFormTitle"></span></h4>
-                </div>
-                
-                <ul class="nav nav-tabs" id="myTab" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="data-entry-tab" data-bs-toggle="tab" data-bs-target="#data-entry" type="button" role="tab" aria-controls="data-entry" aria-selected="true">Enter Data</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="submitted-data-tab" data-bs-toggle="tab" data-bs-target="#submitted-data" type="button" role="tab" aria-controls="submitted-data" aria-selected="false">View Data</button>
-                    </li>
-                </ul>
-                
-                <div class="tab-content border border-top-0 p-3 bg-white" id="myTabContent">
-                    <div class="tab-pane fade show active" id="data-entry" role="tabpanel" aria-labelledby="data-entry-tab">
-                        <form id="dataForm" class="form-section">
-                            <input type="hidden" id="recordId">
-                            <div id="formFields" class="row g-3">
-                            </div>
-                            <div class="mt-4">
-                                <button type="submit" id="submitBtn" class="btn btn-primary">Submit</button>
-                                <button type="reset" class="btn btn-outline-secondary">Reset</button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="tab-pane fade" id="submitted-data" role="tabpanel" aria-labelledby="submitted-data-tab">
-                        <div id="dataList">
-                            <div class="mb-2 d-flex justify-content-between align-items-center flex-wrap">
-                                <input type="text" id="tableFilter" class="form-control mb-2 mb-md-0" placeholder="Filter table...">
-                                <span class="text-muted small ms-2">Total records: <span id="recordCount">0</span></span>
-                                <button id="btnGetReport" class="btn btn-info ms-auto">Get Report</button>
-                            </div>
-                            <div class="table-responsive table-container">
-                                <table class="table table-striped table-bordered table-sm">
-                                    <thead id="tableHead"></thead>
-                                    <tbody id="tableBody"></tbody>
-                                    <tfoot id="tableFoot"></tfoot>
-                                </table>
-                            </div>
-                            <div class="pagination-controls">
-                                <button id="prevPage" class="btn btn-sm btn-outline-primary">Previous</button>
-                                <span id="pageInfo" class="align-self-center"></span>
-                                <button id="nextPage" class="btn btn-sm btn-outline-primary">Next</button>
-                            </div>
+
+            <!-- Table Section -->
+            <div class="col-lg-8">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="card-title m-0">Submitted Data</h2>
+                        <div class="d-flex">
+                            <button id="downloadExcelBtn" class="btn btn-success me-2">Download Excel</button>
+                            <button id="downloadPdfBtn" class="btn btn-danger">Download PDF</button>
                         </div>
                     </div>
+                    <div class="table-responsive">
+                        <table id="dataTable" class="table table-striped table-hover">
+                            <thead>
+                                <!-- Table headers will be populated here -->
+                            </thead>
+                            <tbody>
+                                <!-- Table rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    
-    <div id="alertToast" style="position:fixed; right:1rem; bottom:1rem; z-index:2000;"></div>
+    </main>
 
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            Are you sure you want to delete this record? This action cannot be undone.
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-            <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+    <!-- Modal for data display -->
+    <div class="modal fade" id="dataModal" tabindex="-1" aria-labelledby="dataModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="reportModalLabel">Generate Report</h5>
+                    <h5 class="modal-title" id="dataModalLabel">Data Details</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Select a format to export the complete dataset for '<span id="reportFormTitle" class="fw-bold"></span>':</p>
-                    <div class="d-flex justify-content-around my-3">
-                        <button id="reportExportExcel" class="btn btn-success">Export to Excel</button>
-                        <button id="reportExportPdf" class="btn btn-danger">Export to PDF</button>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="row w-100">
+                            <div class="col-md-4 mb-2">
+                                <label for="startDate" class="form-label">Start Date:</label>
+                                <input type="date" id="startDate" class="form-control">
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label for="endDate" class="form-label">End Date:</label>
+                                <input type="date" id="endDate" class="form-control">
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end mb-2">
+                                <button id="filterDateBtn" class="btn btn-primary w-100 me-2">Filter by Date</button>
+                                <button id="resetFilterBtn" class="btn btn-outline-secondary w-100">Reset Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="dataModalTable">
+                            <thead id="dataModalTableHead">
+                                <tr></tr>
+                            </thead>
+                            <tbody id="dataModalTableBody">
+                                <!-- Data will be loaded here -->
+                            </tbody>
+                        </table>
+                        <div id="noDataMessage" class="text-center text-muted d-none">No data available for the selected period.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button id="modalDownloadExcelBtn" class="btn btn-success">Download Excel</button>
+                    <button id="modalDownloadPdfBtn" class="btn btn-danger">Download PDF</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="profileModalLabel">Profile Manager</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body" id="profileDetails">
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-          </div>
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this record? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmDeleteBtn" class="btn btn-danger">Delete</button>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
 
-    <script>
-        /* ---------------- Supabase configuration ---------------- */
-        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    <!-- Toasts -->
+    <div class="toast-container position-fixed top-0 end-0 p-3">
+        <div id="myToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="toastTitle"></strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastBody"></div>
+        </div>
+    </div>
 
-        /* ---------------- Helpers ---------------- */
-        const $ = id => document.getElementById(id);
-        function toast(msg, type = 'info') {
-            const div = document.createElement('div');
-            div.className = `alert alert-${type} shadow`;
-            div.style.minWidth = '240px';
-            div.textContent = msg;
-            $('alertToast').appendChild(div);
-            setTimeout(() => div.remove(), 5000);
-        }
-        function getCurrentUser() {
-            const s = localStorage.getItem('user') || sessionStorage.getItem('user');
-            return s ? JSON.parse(s) : null;
-        }
-        function showLoading() { $('loadingOverlay').classList.remove('hidden'); }
-        function hideLoading() { $('loadingOverlay').classList.add('hidden'); }
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, collection, query, where, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        /* ---------------- State ---------------- */
-        let currentUser = null;
-        let formDefinitions = [];
-        let currentTableName = null;
-        let currentDefinition = null;
-        let tableData = [];
-        const PAGE_SIZE = 20;
-        let currentPage = 0;
+        // Global variables for Firebase setup
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const __initial_auth_token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : '';
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        let userId;
+
+        // Function to handle authentication and get the user ID
+        async function authenticateUser() {
+            try {
+                if (__initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                userId = auth.currentUser?.uid || crypto.randomUUID();
+                console.log('User authenticated:', userId);
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                userId = crypto.randomUUID();
+            }
+        }
+
+        let definitions = {
+            "districts": {
+                "displayName": "Districts (जिला)",
+                "fields": [
+                    { "name": "district_name", "type": "text", "label": "District Name (जिला का नाम)", "required": true }
+                ]
+            },
+            "farmers": {
+                "displayName": "Farmers (किसान)",
+                "fields": [
+                    { "name": "farmer_name", "type": "text", "label": "Farmer Name (किसान का नाम)", "required": true },
+                    { "name": "kcc_number", "type": "text", "label": "KCC Number", "required": false },
+                    { "name": "mobile_number", "type": "tel", "label": "Mobile Number (मोबाइल नंबर)", "required": true }
+                ]
+            },
+            "kcc_pmfby": {
+                "displayName": "KCC PMFBY Data",
+                "fields": [
+                    { "name": "farmer_id", "type": "text", "label": "Farmer ID", "required": true },
+                    { "name": "crop_name", "type": "text", "label": "Crop Name", "required": true },
+                    { "name": "sowing_date", "type": "date", "label": "Sowing Date", "required": true },
+                    { "name": "area_hectors", "type": "number", "label": "Area (Hectors)", "required": true }
+                ]
+            }
+        };
+
+        let currentTableName = "districts";
         let deleteId = null;
+        let originalData = [];
+        let filteredData = [];
 
-        /* ---------------- Init ---------------- */
-        document.addEventListener('DOMContentLoaded', async () => {
-            currentUser = getCurrentUser();
-            if (!currentUser) {
-                location.href = 'login.html';
-                return;
-            }
-            
-            if (currentUser.is_admin) {
-                $('btnAdmin').classList.remove('hidden');
-            }
+        const $ = id => document.getElementById(id);
 
-            $('btnHome').addEventListener('click', showDashboard);
-            $('btnProfile').addEventListener('click', showProfile);
-            $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
-            $('btnAdmin').addEventListener('click', () => { location.href = 'admin.html'; });
-            $('formSearch').addEventListener('input', filterFormList);
-            $('tableFilter').addEventListener('input', filterTable);
-            $('btnBackToDashboard').addEventListener('click', showDashboard);
-            $('dataForm').addEventListener('submit', handleFormSubmit);
-            $('prevPage').addEventListener('click', () => { if (currentPage > 0) { currentPage--; fetchAndRenderTableData(); } });
-            $('nextPage').addEventListener('click', () => { currentPage++; fetchAndRenderTableData(); } );
-            
-            // Report modal listeners
-            $('btnGetReport').addEventListener('click', () => {
-                $('reportFormTitle').textContent = currentDefinition.label || currentDefinition.table_name;
-                const reportModal = new bootstrap.Modal($('reportModal'));
-                reportModal.show();
-            });
-            $('reportExportExcel').addEventListener('click', exportToExcel);
-            $('reportExportPdf').addEventListener('click', exportToPdf);
-
-            $('confirmDeleteBtn').addEventListener('click', () => deleteRecordConfirmed(deleteId));
-            
-            // Tab change listener
-            $('submitted-data-tab').addEventListener('shown.bs.tab', () => {
-                if (currentTableName) {
-                    fetchAndRenderTableData();
-                }
-            });
-            loadFormDefinitions();
-        });
-
-        function showDashboard() {
-            $('dashboardView').classList.remove('hidden');
-            $('formView').classList.add('hidden');
-            currentPage = 0;
-            // Reload definitions to get the latest counts
-            loadFormDefinitions();
+        async function init() {
+            await authenticateUser();
+            // Assuming the table name is defined elsewhere or set dynamically
+            // For this example, we'll default to 'districts'
+            renderForm(currentTableName);
+            attachListeners();
+            await fetchAndRenderTableData();
         }
 
-        function showProfile() {
-            const profileDetails = $('profileDetails');
-            profileDetails.innerHTML = '';
-            
-            if (currentUser) {
-                const fields = ['email', 'user_name', 'role', 'district_id'];
-                fields.forEach(field => {
-                    const row = document.createElement('div');
-                    row.className = 'mb-2';
-                    row.innerHTML = `<p class="mb-0"><strong>${field.replace('_', ' ')}:</strong> ${currentUser[field]}</p>`;
-                    profileDetails.appendChild(row);
-                });
-            } else {
-                profileDetails.innerHTML = '<p class="text-danger">User profile not found.</p>';
-            }
-            const profileModal = new bootstrap.Modal($('profileModal'));
-            profileModal.show();
-        }
-
-        /* ---------------- Form Definition Logic ---------------- */
-        async function loadFormDefinitions() {
-            showLoading();
-            let definitions = await localforage.getItem('form_definitions');
-
-            if (!definitions) {
-                const { data, error } = await supabase
-                    .from('form_definitions')
-                    .select('*')
-                    .eq('district_id', currentUser.districtId)
-                    .order('table_name', { ascending: true });
-                if (error) {
-                    console.error('Error loading form definitions:', error);
-                    toast('Failed to load form definitions', 'danger');
-                    hideLoading();
-                    return;
-                }
-                definitions = data || [];
-                await localforage.setItem('form_definitions', definitions);
-            }
-            
-            formDefinitions = definitions;
-            renderFormCards(formDefinitions);
-            hideLoading();
-        }
-
-        async function fetchRecordCount(tableName) {
-            const { count, error } = await supabase.from(tableName).select('*', { count: 'exact', head: true });
-            if (error) {
-                console.error(`Error fetching count for ${tableName}:`, error);
-                return 0;
-            }
-            return count || 0;
-        }
-
-        function renderFormCards(forms) {
-            const selector = $('formSelector');
-            selector.innerHTML = '';
-            if (forms.length === 0) {
-                selector.innerHTML = '<div class="col-12 text-center text-muted p-5">No forms found. Please contact your admin.</div>';
-                return;
-            }
-            forms.forEach(async (def, index) => {
-                const card = document.createElement('div');
-                card.className = 'col-12 col-md-6 col-lg-4';
-                card.innerHTML = `
-                    <div class="card form-card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">${def.label || def.table_name}</h5>
-                            <p class="card-text text-muted small">${def.table_name}</p>
-                            <h2 class="card-text text-primary text-end mt-3 mb-0">
-                                <span id="count-${index}" class="placeholder-glow"><span class="placeholder col-4"></span></span>
-                            </h2>
-                            <div class="mt-3 d-flex justify-content-end gap-2">
-                                <button class="btn btn-sm btn-outline-primary btn-view">Enter Data</button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                selector.appendChild(card);
-                const countSpan = $(`count-${index}`);
-                const count = await fetchRecordCount(def.table_name);
-                countSpan.classList.remove('placeholder-glow');
-                countSpan.innerHTML = count;
-                card.querySelector('.btn-view').addEventListener('click', () => handleFormSelection(def));
-            });
-        }
-
-        function filterFormList(event) {
-            const searchTerm = event.target.value.toLowerCase();
-            const filteredForms = formDefinitions.filter(def => 
-                (def.label && def.label.toLowerCase().includes(searchTerm)) || 
-                (def.table_name && def.table_name.toLowerCase().includes(searchTerm))
-            );
-            renderFormCards(filteredForms);
-        }
-
-        async function handleFormSelection(def) {
-            currentTableName = def.table_name;
-            currentDefinition = def;
-            $('currentFormTitle').textContent = def.label || def.table_name;
-            $('dataForm').reset();
-            $('recordId').value = '';
+        function renderForm(tableName) {
+            const def = definitions[tableName];
+            const formFieldsContainer = $('formFields');
+            formFieldsContainer.innerHTML = '';
+            $('tableName').value = tableName;
             $('submitBtn').textContent = 'Submit';
-            renderForm(currentDefinition);
-            fetchAndRenderTableData();
-            $('dashboardView').classList.add('hidden');
-            $('formView').classList.remove('hidden');
-            const dataEntryTab = new bootstrap.Tab($('data-entry-tab'));
-            dataEntryTab.show();
-        }
+            $('recordId').value = '';
 
-        /* ---------------- Dynamic Form Rendering ---------------- */
-        function renderForm(def) {
-            const fieldsContainer = $('formFields');
-            fieldsContainer.innerHTML = '';
             def.fields.forEach(field => {
-                const col = document.createElement('div');
-                col.className = 'col-12 col-md-6';
+                const formGroup = document.createElement('div');
+                formGroup.className = 'mb-3';
                 const label = document.createElement('label');
+                label.htmlFor = field.name;
                 label.className = 'form-label';
                 label.textContent = field.label;
-                if (field.required) {
-                    label.classList.add('required');
-                }
                 const input = document.createElement('input');
-                input.className = 'form-control';
+                input.type = field.type;
+                input.id = field.name;
                 input.name = field.name;
-                input.id = `input-${field.name}`;
-                if (field.type === 'number') {
-                    input.type = 'number';
-                } else if (field.type === 'date') {
-                    input.type = 'date';
-                } else {
-                    input.type = 'text';
-                }
+                input.className = 'form-control';
                 if (field.required) {
                     input.required = true;
                 }
-                col.appendChild(label);
-                col.appendChild(input);
-                fieldsContainer.appendChild(col);
+                formGroup.appendChild(label);
+                formGroup.appendChild(input);
+                formFieldsContainer.appendChild(formGroup);
             });
         }
 
-        /* ---------------- Data Submission and Update Logic ---------------- */
+        function attachListeners() {
+            $('dataForm').addEventListener('submit', handleFormSubmit);
+            $('resetBtn').addEventListener('click', resetForm);
+            $('downloadExcelBtn').addEventListener('click', () => downloadTableAsExcel('dataTable', 'SubmittedData.xlsx'));
+            $('downloadPdfBtn').addEventListener('click', () => downloadTableAsPdf('dataTable', 'SubmittedData.pdf'));
+            $('confirmDeleteBtn').addEventListener('click', () => deleteRecordConfirmed(deleteId));
+        }
+
         async function handleFormSubmit(event) {
             event.preventDefault();
             showLoading();
-            const formData = new FormData(event.target);
-            const data = Object.fromEntries(formData.entries());
-            if (!currentTableName) {
-                toast('No table selected!', 'danger');
-                hideLoading();
-                return;
-            }
-            try {
-                const payload = {};
-                for (const field of currentDefinition.fields) {
-                    const value = data[field.name];
-                    if (field.type === 'number') {
-                        payload[field.name] = value ? parseFloat(value) : null;
-                    } else if (field.type === 'date') {
-                        payload[field.name] = value || null;
-                    } else {
-                        payload[field.name] = value || null;
-                    }
-                }
-                
-                // Add district_id to the payload
-                payload.district_id = currentUser.districtId;
 
-                const recordId = $('recordId').value;
-                let error;
-                if (recordId) {
-                    const { error: updateError } = await supabase
-                        .from(currentTableName)
-                        .update(payload)
-                        .eq('id', recordId);
-                    error = updateError;
-                } else {
-                    const { error: insertError } = await supabase.from(currentTableName).insert([payload]);
-                    error = insertError;
+            const form = event.target;
+            const recordId = $('recordId').value;
+            const tableName = $('tableName').value;
+            const def = definitions[tableName];
+
+            const formData = {};
+            def.fields.forEach(field => {
+                const input = form.querySelector(`#${field.name}`);
+                if (input) {
+                    formData[field.name] = input.value;
                 }
-                if (error) throw error;
-                toast(recordId ? 'Record updated successfully!' : 'Data submitted successfully!', 'success');
-                event.target.reset();
-                $('recordId').value = '';
-                $('submitBtn').textContent = 'Submit';
-                currentPage = 0;
+            });
+            formData.created_by = userId; // Add created_by field
+
+            try {
+                if (recordId) {
+                    // Update existing record
+                    const recordRef = doc(db, `artifacts/${appId}/users/${userId}/${tableName}`, recordId);
+                    await updateDoc(recordRef, { ...formData, updated_at: new Date().toISOString() });
+                    toast('Record updated successfully!', 'success');
+                } else {
+                    // Add new record
+                    const collectionRef = collection(db, `artifacts/${appId}/users/${userId}/${tableName}`);
+                    await addDoc(collectionRef, { ...formData, created_at: new Date().toISOString() });
+                    toast('Record added successfully!', 'success');
+                }
+
+                form.reset();
+                resetForm();
                 await fetchAndRenderTableData();
             } catch (error) {
                 console.error('Submission error:', error);
-                toast('Failed to submit data: ' + error.message, 'danger');
+                toast('Failed to save record: ' + error.message, 'danger');
             } finally {
                 hideLoading();
             }
         }
 
-        /* ---------------- Data Fetching and Display Logic ---------------- */
+        function resetForm() {
+            $('dataForm').reset();
+            $('recordId').value = '';
+            $('submitBtn').textContent = 'Submit';
+            $('dataForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
         async function fetchAndRenderTableData() {
-            if (!currentTableName) return;
             showLoading();
-            const start = currentPage * PAGE_SIZE;
-            const end = start + PAGE_SIZE - 1;
+            const collectionRef = collection(db, `artifacts/${appId}/users/${userId}/${currentTableName}`);
             try {
-                const { data, error, count } = await supabase
-                    .from(currentTableName)
-                    .select('*', { count: 'exact' })
-                    .order('created_at', { ascending: false })
-                    .range(start, end);
-                if (error) throw error;
-                tableData = data || [];
-                $('recordCount').textContent = count;
-                renderTable(tableData, currentDefinition.fields);
-                updatePaginationControls(count);
+                const q = query(collectionRef);
+                const querySnapshot = await getDocs(q);
+                originalData = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                filteredData = [...originalData];
+                renderTable(filteredData);
             } catch (error) {
-                console.error('fetchAndRenderTableData error', error);
-                toast('Failed to load table data: ' + error.message, 'danger');
+                console.error("Error fetching data:", error);
+                toast('Failed to load data: ' + error.message, 'danger');
             } finally {
                 hideLoading();
             }
         }
 
-        function renderTable(data, fields) {
-            const tableHead = $('tableHead');
-            const tableBody = $('tableBody');
-            const tableFoot = $('tableFoot');
-            tableHead.innerHTML = '';
-            const headerRow = document.createElement('tr');
-            ['ID', 'Created At', ...fields.map(f => f.label), 'Actions'].forEach((text, index) => {
-                const th = document.createElement('th');
-                th.textContent = text;
-                th.addEventListener('click', () => sortTable(index));
-                headerRow.appendChild(th);
-            });
-            tableHead.appendChild(headerRow);
+        function renderTable(data) {
+            const def = definitions[currentTableName];
+            const tableHead = $('dataTable').querySelector('thead');
+            const tableBody = $('dataTable').querySelector('tbody');
+
+            // Render header
+            tableHead.innerHTML = `
+                <tr>
+                    <th>ID</th>
+                    <th>Created At</th>
+                    ${def.fields.map(field => `<th>${field.label}</th>`).join('')}
+                    <th>Actions</th>
+                </tr>
+            `;
+
+            // Render body
             tableBody.innerHTML = '';
-            tableFoot.innerHTML = '';
-            if (!data || data.length === 0) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td colspan="${fields.length + 3}" class="text-center text-muted">No data available.</td>`;
-                tableBody.appendChild(tr);
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="100%" class="text-center">No data available.</td></tr>';
                 return;
             }
+
             data.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${row.id}</td>
+                    <td>${row.id.substring(0, 8)}...</td>
                     <td>${new Date(row.created_at).toLocaleString()}</td>
-                    ${fields.map(f => `<td>${row[f.name] || '-'}</td>`).join('')}
+                    ${def.fields.map(field => `<td>${row[field.name] || '-'}</td>`).join('')}
                     <td>
-                        <button class="btn btn-sm btn-info me-1 btn-edit" data-id="${row.id}">Edit</button>
-                        <button class="btn btn-sm btn-danger btn-delete" data-id="${row.id}">Delete</button>
+                        <button class="btn btn-sm btn-info text-white me-1 edit-btn" data-id="${row.id}">Edit</button>
+                        <button class="btn btn-sm btn-danger delete-btn" data-id="${row.id}">Delete</button>
                     </td>
                 `;
                 tableBody.appendChild(tr);
             });
-            document.querySelectorAll('.btn-edit').forEach(btn => btn.addEventListener('click', event => editRecord(event.target.dataset.id)));
-            document.querySelectorAll('.btn-delete').forEach(btn => btn.addEventListener('click', event => showDeleteModal(event.target.dataset.id)));
+
+            // Attach event listeners for actions
+            tableBody.querySelectorAll('.edit-btn').forEach(button => {
+                button.addEventListener('click', (e) => showEditForm(e.target.dataset.id));
+            });
+            tableBody.querySelectorAll('.delete-btn').forEach(button => {
+                button.addEventListener('click', (e) => showDeleteModal(e.target.dataset.id));
+            });
         }
 
-        function updatePaginationControls(totalRecords) {
-            const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
-            $('pageInfo').textContent = `Page ${currentPage + 1} of ${totalPages}`;
-            $('prevPage').disabled = currentPage === 0;
-            $('nextPage').disabled = currentPage >= totalPages - 1;
-        }
-
-        let currentSortColumn = null;
-        let currentSortDirection = 'asc';
-
-        function sortTable(columnIndex) {
-            if (columnIndex > 1 && columnIndex < currentDefinition.fields.length + 2) {
-                const fieldName = currentDefinition.fields[columnIndex - 2].name;
-                if (currentSortColumn === fieldName) {
-                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
-                } else {
-                    currentSortColumn = fieldName;
-                    currentSortDirection = 'asc';
-                }
-                const sortedData = [...tableData].sort((a, b) => {
-                    const valA = a[fieldName];
-                    const valB = b[fieldName];
-                    if (valA < valB) return currentSortDirection === 'asc' ? -1 : 1;
-                    if (valA > valB) return currentSortDirection === 'asc' ? 1 : -1;
-                    return 0;
-                });
-                renderTable(sortedData, currentDefinition.fields);
-            }
-        }
-        
-        function filterTable() {
-            const filterText = $('tableFilter').value.toLowerCase();
-            const filteredData = tableData.filter(row =>
-                Object.values(row).some(value =>
-                    String(value).toLowerCase().includes(filterText)
-                )
-            );
-            renderTable(filteredData, currentDefinition.fields);
-        }
-
-        function editRecord(id) {
-            const record = tableData.find(r => r.id == id);
-            if (!record) {
-                return toast('Record not found', 'danger');
-            }
+        function showEditForm(recordId) {
+            const record = originalData.find(d => d.id === recordId);
+            if (!record) return;
             $('recordId').value = record.id;
             $('submitBtn').textContent = 'Update';
-            currentDefinition.fields.forEach(field => {
-                const input = $(`input-${field.name}`);
-                if (input) {
-                    input.value = record[field.name] || '';
-                }
+
+            const formInputs = $('formFields').querySelectorAll('input');
+            formInputs.forEach(input => {
+                input.value = record[input.name] || '';
             });
-            const dataEntryTab = new bootstrap.Tab($('data-entry-tab'));
-            dataEntryTab.show();
+
+            $('dataForm').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function showDeleteModal(id) {
-            deleteId = id;
+        function showDeleteModal(recordId) {
+            deleteId = recordId;
             const deleteModal = new bootstrap.Modal($('deleteModal'));
             deleteModal.show();
         }
 
-        async function deleteRecordConfirmed(id) {
+        async function deleteRecordConfirmed(recordId) {
             showLoading();
             try {
-                const { error } = await supabase.from(currentTableName).delete().eq('id', id);
-                if (error) throw error;
+                const recordRef = doc(db, `artifacts/${appId}/users/${userId}/${currentTableName}`, recordId);
+                await deleteDoc(recordRef);
                 toast('Record deleted successfully!', 'success');
-                fetchAndRenderTableData();
+                await fetchAndRenderTableData();
+                bootstrap.Modal.getInstance($('deleteModal')).hide();
             } catch (error) {
                 console.error('Delete error:', error);
                 toast('Failed to delete record: ' + error.message, 'danger');
             } finally {
                 hideLoading();
             }
-            const deleteModal = bootstrap.Modal.getInstance($('deleteModal'));
-            if (deleteModal) deleteModal.hide();
         }
 
-        /* ---------------- Export Functionality ---------------- */
-        async function exportToExcel() {
-            showLoading();
-            try {
-                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    toast('No data to export.', 'warning');
-                    return;
-                }
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(data);
-                XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
-                XLSX.writeFile(wb, `${currentTableName}_data.xlsx`);
-                toast('Excel file generated successfully.', 'success');
-            } catch (error) {
-                console.error('Excel export error:', error);
-                toast('Failed to export to Excel: ' + error.message, 'danger');
-            } finally {
-                hideLoading();
-            }
+        function showLoading() {
+            $('loadingOverlay').style.display = 'flex';
         }
 
-        async function exportToPdf() {
-            showLoading();
-            try {
-                const { data, error } = await supabase.from(currentTableName).select('*').order('created_at', { ascending: false });
-                if (error) throw error;
-                if (!data || data.length === 0) {
-                    toast('No data to export.', 'warning');
-                    return;
-                }
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'pt');
-                const headers = Object.keys(data[0]);
-                const tableData = data.map(row => headers.map(header => String(row[header])));
-                doc.autoTable({
-                    head: [headers],
-                    body: tableData,
-                    theme: 'striped',
-                    styles: {
-                        font: 'Helvetica',
-                        fontSize: 8,
-                        cellPadding: 4,
-                    },
-                    headStyles: {
-                        fillColor: [23, 101, 49],
-                        textColor: 255
-                    },
-                    margin: { top: 10, right: 10, bottom: 10, left: 10 }
-                });
-                doc.save(`${currentTableName}_data.pdf`);
-                toast('PDF file generated successfully.', 'success');
-            } catch (error) {
-                console.error('PDF export error:', error);
-                toast('Failed to export to PDF: ' + error.message, 'danger');
-            } finally {
-                hideLoading();
-            }
+        function hideLoading() {
+            $('loadingOverlay').style.display = 'none';
         }
+
+        function toast(message, type = 'info') {
+            const toastElement = $('myToast');
+            const toastTitle = $('toastTitle');
+            const toastBody = $('toastBody');
+            toastTitle.textContent = type === 'success' ? 'Success' : (type === 'danger' ? 'Error' : 'Info');
+            toastBody.textContent = message;
+            toastElement.className = `toast text-bg-${type}`;
+            const toastBootstrap = new bootstrap.Toast(toastElement, { delay: 5000 });
+            toastBootstrap.show();
+        }
+
+        function downloadTableAsExcel(tableId, filename) {
+            const table = $(tableId);
+            if (!table) return;
+
+            // Clone table to remove action column
+            const tableClone = table.cloneNode(true);
+            const headerRow = tableClone.querySelector('thead tr');
+            const bodyRows = tableClone.querySelectorAll('tbody tr');
+            
+            // Remove 'Actions' header
+            headerRow.removeChild(headerRow.lastElementChild);
+            
+            // Remove 'Actions' cells from body rows
+            bodyRows.forEach(row => {
+                if (row.lastElementChild) {
+                    row.removeChild(row.lastElementChild);
+                }
+            });
+
+            const ws = XLSX.utils.table_to_sheet(tableClone);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            XLSX.writeFile(wb, filename);
+            toast('Excel file downloaded successfully!', 'success');
+        }
+
+        function downloadTableAsPdf(tableId, filename) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const table = $(tableId);
+
+            if (!table) return;
+
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent);
+            const body = Array.from(table.querySelectorAll('tbody tr')).map(row => {
+                const cells = row.querySelectorAll('td');
+                // Exclude the last cell (Actions)
+                return Array.from(cells).slice(0, -1).map(cell => cell.textContent);
+            });
+
+            doc.autoTable({
+                head: [headers.slice(0, -1)],
+                body: body,
+                startY: 20
+            });
+
+            doc.save(filename);
+            toast('PDF file downloaded successfully!', 'success');
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>
