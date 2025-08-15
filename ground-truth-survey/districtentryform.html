@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>District Entry Dashboard</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -11,129 +12,34 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: #FFF8E1;
-        }
+        body { font-family: 'Poppins', sans-serif; background: #FFF8E1; }
         .topbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 64px;
-            background: #1B5E20;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            padding: 0 1rem;
-            z-index: 1000;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            position: fixed; top: 0; left: 0; right: 0; height: 64px;
+            background: #1B5E20; color: #fff; display: flex; align-items: center;
+            padding: 0 1rem; z-index: 1000; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
-        .topbar .brand {
-            font-weight: 700;
-            font-size: 1rem;
-            margin-left: 0.5rem;
-            text-transform: uppercase;
-        }
-        .container-app {
-            padding-top: 80px;
-            padding-bottom: 24px;
-        }
-        .main-card {
-            background: #fff;
-            border-radius: 10px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-        }
-        .form-card {
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .form-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-        label.required::after {
-            content: " *";
-            color: #d63333;
-            font-weight: 700;
-            margin-left: 2px;
-        }
-        .hidden {
-            display: none !important;
-        }
-        .form-section {
-            padding: 1rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .table-container {
-            max-height: 500px;
-            overflow-y: auto;
-            position: relative;
-        }
-        .table-container table {
-            min-width: 700px; /* Ensures horizontal scroll on small screens */
-        }
-        .table-container thead th {
-            position: sticky;
-            top: 0;
-            background-color: #f8f9fa;
-            z-index: 10;
-            cursor: pointer;
-        }
-        .table-container tfoot td {
-            position: sticky;
-            bottom: 0;
-            background-color: #e9ecef;
-            z-index: 10;
-        }
-        .pagination-controls {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 10px;
-            margin-top: 1rem;
-        }
-        .form-info-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-        .form-info-header h4 {
-            font-size: 1.25rem;
-            margin-bottom: 0;
-        }
-        .form-info-header .form-control {
-            max-width: 250px;
-            margin-top: 0.5rem;
-        }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.8);
-            z-index: 2000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .spinner-border {
-            width: 3rem;
-            height: 3rem;
-        }
-        .nav-link.active {
-            background-color: #f8f9fa !important;
-            color: #1B5E20 !important;
-            font-weight: 600;
-        }
+        .topbar .brand { font-weight: 700; font-size: 1rem; margin-left: 0.5rem; text-transform: uppercase; }
+        .container-app { padding-top: 80px; padding-bottom: 24px; }
+        .main-card { background: #fff; border-radius: 10px; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06); }
+        .form-card { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .form-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
+        label.required::after { content: " *"; color: #d63333; font-weight: 700; margin-left: 2px; }
+        .hidden { display: none !important; }
+        .form-section { padding: 1rem; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 1rem; }
+        .table-container { max-height: 500px; overflow-y: auto; position: relative; }
+        .table-container table { min-width: 700px; }
+        .table-container thead th { position: sticky; top: 0; background-color: #f8f9fa; z-index: 10; cursor: pointer; }
+        .table-container tfoot td { position: sticky; bottom: 0; background-color: #e9ecef; z-index: 10; }
+        .pagination-controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 1rem; }
+        .form-info-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; }
+        .form-info-header h4 { font-size: 1.25rem; margin-bottom: 0; }
+        .form-info-header .form-control { max-width: 250px; margin-top: 0.5rem; }
+        .loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+        .spinner-border { width: 3rem; height: 3rem; }
+        .nav-link.active { background-color: #f8f9fa !important; color: #1B5E20 !important; font-weight: 600; }
     </style>
 </head>
 <body>
@@ -149,7 +55,8 @@
             <h5 class="brand d-sm-none">कृषि</h5>
         </div>
         <div class="ms-auto d-flex align-items-center gap-2">
-            <span id="userName" class="me-2 text-white small"></span>
+            <button id="btnHome" class="btn btn-sm btn-light">Home</button>
+            <button id="btnProfile" class="btn btn-sm btn-light">Profile</button>
             <button id="btnAdmin" class="btn btn-sm btn-light hidden">Admin</button>
             <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
         </div>
@@ -176,10 +83,10 @@
                 
                 <ul class="nav nav-tabs" id="myTab" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="data-entry-tab" data-bs-toggle="tab" data-bs-target="#data-entry" type="button" role="tab" aria-controls="data-entry" aria-selected="true">Data Entry</button>
+                        <button class="nav-link active" id="data-entry-tab" data-bs-toggle="tab" data-bs-target="#data-entry" type="button" role="tab" aria-controls="data-entry" aria-selected="true">Enter Data</button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="submitted-data-tab" data-bs-toggle="tab" data-bs-target="#submitted-data" type="button" role="tab" aria-controls="submitted-data" aria-selected="false">Submitted Data</button>
+                        <button class="nav-link" id="submitted-data-tab" data-bs-toggle="tab" data-bs-target="#submitted-data" type="button" role="tab" aria-controls="submitted-data" aria-selected="false">View Data</button>
                     </li>
                 </ul>
                 
@@ -262,6 +169,22 @@
         </div>
     </div>
 
+    <div class="modal fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="profileModalLabel">Profile Manager</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="profileDetails">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
         /* ---------------- Supabase configuration ---------------- */
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
@@ -302,12 +225,13 @@
                 location.href = 'login.html';
                 return;
             }
-            $('userName').textContent = `Logged in as: ${currentUser.email}`;
             
             if (currentUser.is_admin) {
                 $('btnAdmin').classList.remove('hidden');
             }
 
+            $('btnHome').addEventListener('click', showDashboard);
+            $('btnProfile').addEventListener('click', showProfile);
             $('btnLogout').addEventListener('click', () => { localStorage.removeItem('user'); sessionStorage.removeItem('user'); location.href = 'login.html'; });
             $('btnAdmin').addEventListener('click', () => { location.href = 'admin.html'; });
             $('formSearch').addEventListener('input', filterFormList);
@@ -341,6 +265,27 @@
             $('dashboardView').classList.remove('hidden');
             $('formView').classList.add('hidden');
             currentPage = 0;
+            // Reload definitions to get the latest counts
+            loadFormDefinitions();
+        }
+
+        function showProfile() {
+            const profileDetails = $('profileDetails');
+            profileDetails.innerHTML = '';
+            
+            if (currentUser) {
+                const fields = ['email', 'user_name', 'role', 'district_id'];
+                fields.forEach(field => {
+                    const row = document.createElement('div');
+                    row.className = 'mb-2';
+                    row.innerHTML = `<p class="mb-0"><strong>${field.replace('_', ' ')}:</strong> ${currentUser[field]}</p>`;
+                    profileDetails.appendChild(row);
+                });
+            } else {
+                profileDetails.innerHTML = '<p class="text-danger">User profile not found.</p>';
+            }
+            const profileModal = new bootstrap.Modal($('profileModal'));
+            profileModal.show();
         }
 
         /* ---------------- Form Definition Logic ---------------- */
@@ -382,7 +327,7 @@
             const selector = $('formSelector');
             selector.innerHTML = '';
             if (forms.length === 0) {
-                selector.innerHTML = '<div class="col-12 text-center text-muted p-5">No forms found. Please create one in the Admin panel.</div>';
+                selector.innerHTML = '<div class="col-12 text-center text-muted p-5">No forms found. Please contact your admin.</div>';
                 return;
             }
             forms.forEach(async (def, index) => {
@@ -397,7 +342,7 @@
                                 <span id="count-${index}" class="placeholder-glow"><span class="placeholder col-4"></span></span>
                             </h2>
                             <div class="mt-3 d-flex justify-content-end gap-2">
-                                <button class="btn btn-sm btn-outline-primary btn-view">View</button>
+                                <button class="btn btn-sm btn-outline-primary btn-view">Enter Data</button>
                             </div>
                         </div>
                     </div>
