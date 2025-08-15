@@ -10,6 +10,7 @@
     .topbar{height:64px;background:#1B5E20;color:#fff;display:flex;align-items:center;padding:0 18px;position:fixed;left:0;right:0;top:0;z-index:50;}
     .container-app{max-width:1200px;margin:100px auto 40px;}
     .card-panel{background:#fff;border-radius:10px;padding:20px;box-shadow:0 6px 18px rgba(2,6,23,0.06);}
+    .card-panel-yellow{background:#FFF3CD;border-radius:10px;padding:20px;box-shadow:0 6px 18px rgba(2,6,23,0.06);}
     .hidden{display:none;}
     .toast-area{position:fixed;right:20px;bottom:20px;z-index:4000;}
     .calc-display{background:#fff3cd;border:1px solid #ffeaa7;color:#856404;}
@@ -34,13 +35,58 @@
       margin-bottom: 15px;
       border: 1px solid #dee2e6;
     }
+    .conditional-field{
+      margin-top: 10px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 5px;
+      border: 1px solid #dee2e6;
+    }
+    .state-admin-panel{
+      background: #e3f2fd;
+      border: 2px solid #2196f3;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    .pagination-controls{
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-top: 15px;
+    }
+    .admin-summary{
+      background: #e8f5e8;
+      border: 1px solid #4caf50;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
   </style>
 </head>
 <body>
   <div class="topbar">
     <div style="font-weight:700;">KCC Data Entry - Directorate of Agriculture Chhattisgarh</div>
     <div style="margin-left:auto;">
+      <span id="userInfo" class="me-3"></span>
+      <button id="btnStateAdmin" class="btn btn-sm btn-outline-light me-2">State Admin</button>
       <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
+    </div>
+  </div>
+
+  <!-- State Admin Panel (Hidden by default) -->
+  <div id="stateAdminPanel" class="state-admin-panel hidden">
+    <h5>🔐 State Admin Access</h5>
+    <div class="row g-3">
+      <div class="col-md-6">
+        <input type="password" id="adminPassword" class="form-control" placeholder="Enter admin password">
+      </div>
+      <div class="col-md-3">
+        <button id="btnAdminLogin" class="btn btn-primary">Login as Admin</button>
+      </div>
+      <div class="col-md-3">
+        <button id="btnCancelAdmin" class="btn btn-outline-secondary">Cancel</button>
+      </div>
     </div>
   </div>
 
@@ -48,6 +94,12 @@
     <div class="card-panel mb-3">
       <h4>KCC Account Data Entry (PMFBY)</h4>
       <p>Enter KCC account details for notified crops under PMFBY scheme</p>
+    </div>
+
+    <!-- State Admin Summary (Hidden by default) -->
+    <div id="stateAdminSummary" class="admin-summary hidden">
+      <h5>📊 State Total Summary</h5>
+      <div id="stateTotalsContent">Loading state data...</div>
     </div>
 
     <div class="row g-3">
@@ -76,7 +128,7 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label">Total KCC Accounts Saturated *</label>
-                <small class="text-muted d-block">Under PMFBY (Cannot exceed Active KCC)</small>
+                <small class="text-muted d-block">Under PMFBY (Cannot exceed Active KCC, Must be ≥ previous: <span id="minSaturatedKCC">0</span>)</small>
                 <input type="number" id="total_kcc_saturated" class="form-control" min="0" value="" required>
               </div>
             </div>
@@ -89,7 +141,22 @@
               </div>
               <div class="col-md-6">
                 <label class="form-label" id="reasonsLabel">Reasons for Non-saturation</label>
-                <textarea id="reasons_not_saturated" class="form-control" rows="3" placeholder="Enter reasons if any accounts are not saturated"></textarea>
+                <select id="non_saturation_reason" class="form-control" disabled>
+                  <option value="">Select Reason</option>
+                  <option value="opt_out">Opt Out</option>
+                  <option value="other">Other</option>
+                </select>
+                
+                <!-- Conditional Fields -->
+                <div id="optOutField" class="conditional-field hidden">
+                  <label class="form-label">Number of KCC Holders (Opt Out) *</label>
+                  <input type="number" id="opt_out_holders_count" class="form-control" min="0" value="0">
+                </div>
+                
+                <div id="otherReasonField" class="conditional-field hidden">
+                  <label class="form-label">Specify Other Reason *</label>
+                  <textarea id="other_reason_text" class="form-control" rows="2" placeholder="Enter reason in English only"></textarea>
+                </div>
               </div>
             </div>
 
@@ -111,7 +178,7 @@
       </div>
 
       <div class="col-md-4">
-        <div class="card-panel">
+        <div class="card-panel-yellow">
           <h6>Current Summary</h6>
           <div id="currentTotals">Ready to enter data</div>
           
@@ -136,6 +203,7 @@
       <div class="d-flex justify-content-between mb-3">
         <h5>KCC Records - <span id="districtNameInViewer"></span></h5>
         <div>
+          <button id="btnExportPDF" class="btn btn-sm btn-outline-danger me-2 hidden">Export PDF</button>
           <button id="btnExportExcel" class="btn btn-sm btn-outline-success me-2">Export Excel</button>
           <button id="btnBackToForm" class="btn btn-sm btn-outline-secondary">Back to Form</button>
         </div>
@@ -166,19 +234,33 @@
           <thead class="table-light">
             <tr>
               <th>Date</th>
+              <th>District</th>
               <th>Active KCC</th>
               <th>Saturated</th>
               <th>Not Saturated</th>
-              <th>Reasons</th>
+              <th>Reason Type</th>
+              <th>Details</th>
               <th>Current</th>
               <th>Version</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="recordsTableBody">
-            <tr><td colspan="8">Loading...</td></tr>
+            <tr><td colspan="10">Loading...</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination Controls -->
+      <div class="pagination-controls">
+        <div>
+          <span id="recordsInfo">Showing 0 of 0 records</span>
+        </div>
+        <div>
+          <button id="btnPrevPage" class="btn btn-sm btn-outline-primary me-2" disabled>Previous</button>
+          <span id="pageInfo">Page 1 of 1</span>
+          <button id="btnNextPage" class="btn btn-sm btn-outline-primary ms-2" disabled>Next</button>
+        </div>
       </div>
     </div>
   </div>
@@ -187,6 +269,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <script>
     // CONFIG
@@ -199,24 +282,31 @@
       id: '7b161aeb-4492-4a74-b587-306a4bb00b99',
       username: 'test_district',
       districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99',
-      districtName: 'Test District'
+      districtName: 'Test District',
+      role: 'district_user'
     };
     
     let loadedCurrentRecord = null;
-    let previousActiveKCC = 0; // Track minimum allowed active KCC
+    let previousActiveKCC = 0;
+    let previousSaturatedKCC = 0;
+    let currentPage = 1;
+    let totalPages = 1;
+    let totalRecords = 0;
+    const pageSize = 5;
+    let currentFilters = { fromDate: null, toDate: null };
 
     const $ = id => document.getElementById(id);
     
-    function toast(msg, type='info'){
+    function toast(msg, type='info', duration=3000){
       const area = $('toastArea');
       const div = document.createElement('div');
-      div.className = `alert alert-${type}`;
-      div.textContent = msg;
+      div.className = `alert alert-${type} alert-dismissible fade show`;
+      div.innerHTML = `${msg} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
       area.appendChild(div);
-      setTimeout(() => div.remove(), 3000);
+      setTimeout(() => div.remove(), duration);
     }
 
-    // AUTO CALCULATION
+    // ENHANCED AUTO CALCULATION WITH CONDITIONAL FIELDS
     function updateNotSaturated(){
       const active = parseInt($('total_active_kcc').value) || 0;
       const saturated = parseInt($('total_kcc_saturated').value) || 0;
@@ -224,18 +314,103 @@
       
       $('total_kcc_not_saturated').value = notSaturated;
       
-      const reasonsField = $('reasons_not_saturated');
+      const reasonSelect = $('non_saturation_reason');
       const reasonsLabel = $('reasonsLabel');
       
       if (notSaturated > 0) {
-        reasonsField.disabled = false;
-        reasonsField.required = true;
+        reasonSelect.disabled = false;
+        reasonSelect.required = true;
         reasonsLabel.innerHTML = 'Reasons for Non-saturation *';
       } else {
-        reasonsField.disabled = true;
-        reasonsField.required = false;
-        reasonsField.value = '';
+        reasonSelect.disabled = true;
+        reasonSelect.required = false;
+        reasonSelect.value = '';
         reasonsLabel.innerHTML = 'Reasons for Non-saturation';
+        hideConditionalFields();
+      }
+    }
+
+    // CONDITIONAL FIELDS MANAGEMENT
+    function handleReasonChange(){
+      const reason = $('non_saturation_reason').value;
+      hideConditionalFields();
+      
+      if (reason === 'opt_out') {
+        $('optOutField').classList.remove('hidden');
+        $('opt_out_holders_count').required = true;
+      } else if (reason === 'other') {
+        $('otherReasonField').classList.remove('hidden');
+        $('other_reason_text').required = true;
+      }
+    }
+
+    function hideConditionalFields(){
+      $('optOutField').classList.add('hidden');
+      $('otherReasonField').classList.add('hidden');
+      $('opt_out_holders_count').required = false;
+      $('other_reason_text').required = false;
+      $('opt_out_holders_count').value = '0';
+      $('other_reason_text').value = '';
+    }
+
+    // ENGLISH ONLY VALIDATION
+    function validateEnglishOnly(text){
+      const englishPattern = /^[a-zA-Z0-9\s\.,!?;:'"()-]*$/;
+      return englishPattern.test(text);
+    }
+
+    // STATE ADMIN FUNCTIONALITY
+    async function handleStateAdminLogin(){
+      const password = $('adminPassword').value.trim();
+      
+      try {
+        const { data: settings } = await supabase
+          .from('system_settings')
+          .select('value')
+          .eq('key', 'state_admin_password')
+          .single();
+        
+        if (settings && password === settings.value) {
+          currentUser.role = 'state_admin';
+          $('stateAdminPanel').classList.add('hidden');
+          $('stateAdminSummary').classList.remove('hidden');
+          $('btnExportPDF').classList.remove('hidden');
+          $('userInfo').textContent = `\${currentUser.username} (State Admin)`;
+          
+          await loadStateAdminData();
+          toast('Successfully logged in as State Admin', 'success');
+        } else {
+          toast('Invalid admin password', 'danger');
+        }
+      } catch (err) {
+        console.error('Admin login error:', err);
+        toast('Admin login failed', 'danger');
+      }
+      
+      $('adminPassword').value = '';
+    }
+
+    async function loadStateAdminData(){
+      try {
+        const { data, error } = await supabase.rpc('get_state_totals');
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          const totals = data[0];
+          $('stateTotalsContent').innerHTML = `
+            <div class="row g-3">
+              <div class="col-md-3"><strong>Total Districts:</strong> \${totals.total_districts || 0}</div>
+              <div class="col-md-3"><strong>Total Active KCC:</strong> \${totals.total_active_kcc || 0}</div>
+              <div class="col-md-3"><strong>Total Saturated:</strong> \${totals.total_saturated_kcc || 0}</div>
+              <div class="col-md-3"><strong>Total Not Saturated:</strong> \${totals.total_not_saturated_kcc || 0}</div>
+            </div>
+            <div class="mt-2"><small>Last Update: \${totals.last_update_date || 'N/A'}</small></div>
+          `;
+        }
+      } catch (err) {
+        console.error('State admin data error:', err);
+        $('stateTotalsContent').innerHTML = '<div class="text-danger">Error loading state data</div>';
       }
     }
 
@@ -260,8 +435,9 @@
           currentUser.districtName = data.name;
           $('district_name_display').value = data.name;
           $('district_id').value = data.id;
-          $('districtNameInViewer').textContent = data.name;
+          $('districtNameInViewer').textContent = currentUser.role === 'state_admin' ? 'All Districts' : data.name;
           $('status').textContent = 'Ready';
+          $('userInfo').textContent = `${currentUser.username} (${data.name})`;
         }
       } catch (err) {
         console.error('District error:', err);
@@ -270,8 +446,8 @@
       }
     }
 
-    // VALIDATION
-    function validateForm(){
+    // ENHANCED VALIDATION
+    async function validateForm(){
       if (!$('entry_date').value) {
         toast('Please enter entry date', 'warning');
         return false;
@@ -286,6 +462,12 @@
         return false;
       }
       
+      // Check if saturated is less than previous
+      if (saturated < previousSaturatedKCC) {
+        toast(`Total Saturated KCC (${saturated}) cannot be less than previous value (${previousSaturatedKCC})`, 'warning');
+        return false;
+      }
+      
       // Check if saturated exceeds active
       if (saturated > active) {
         toast('Saturated accounts cannot exceed total active accounts', 'warning');
@@ -293,17 +475,39 @@
       }
       
       const notSaturated = active - saturated;
-      if (notSaturated > 0 && !$('reasons_not_saturated').value.trim()) {
-        toast('Please provide reasons for non-saturation', 'warning');
-        return false;
+      const reason = $('non_saturation_reason').value;
+      
+      if (notSaturated > 0) {
+        if (!reason) {
+          toast('Please select a reason for non-saturation', 'warning');
+          return false;
+        }
+        
+        if (reason === 'opt_out') {
+          const optOutCount = parseInt($('opt_out_holders_count').value) || 0;
+          if (optOutCount < 0) {
+            toast('Opt out count cannot be negative', 'warning');
+            return false;
+          }
+        } else if (reason === 'other') {
+          const otherText = $('other_reason_text').value.trim();
+          if (!otherText) {
+            toast('Please specify the other reason', 'warning');
+            return false;
+          }
+          if (!validateEnglishOnly(otherText)) {
+            toast('Other reason must contain only English characters', 'warning');
+            return false;
+          }
+        }
       }
       
       return true;
     }
 
-    // SAVE ENTRY
+    // ENHANCED SAVE ENTRY
     async function saveEntry(){
-      if (!validateForm()) return;
+      if (!await validateForm()) return;
 
       const payload = {
         district_id: currentUser.districtId,
@@ -312,7 +516,10 @@
         total_active_kcc: parseInt($('total_active_kcc').value) || 0,
         total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
         total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-        reasons_not_saturated: $('reasons_not_saturated').value.trim() || null,
+        non_saturation_reason: $('non_saturation_reason').value || null,
+        opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
+        other_reason_text: $('other_reason_text').value.trim() || null,
+        reasons_not_saturated: buildLegacyReasonsText(),
         created_by: currentUser.id,
         is_current: true,
         version_number: 1
@@ -344,8 +551,12 @@
         } else {
           toast('Entry saved successfully!', 'success');
           $('status').textContent = 'Entry saved';
+          await logExport('save', currentUser.districtId, null, null, 1, 'New Entry');
           clearForm();
           await loadDashboardData();
+          if (currentUser.role === 'state_admin') {
+            await loadStateAdminData();
+          }
         }
       } catch (err) {
         console.error('Save error:', err);
@@ -356,14 +567,14 @@
       }
     }
 
-    // UPDATE ENTRY (using fixed RPC)
+    // ENHANCED UPDATE ENTRY
     async function updateEntry(){
       if (!loadedCurrentRecord) {
         toast('No record to update. Save a new entry first.', 'warning');
         return;
       }
       
-      if (!validateForm()) return;
+      if (!await validateForm()) return;
 
       const changeReason = $('change_reason').value.trim();
       if (!changeReason) {
@@ -379,9 +590,12 @@
         p_total_active_kcc: parseInt($('total_active_kcc').value) || 0,
         p_total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
         p_total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-        p_reasons_not_saturated: $('reasons_not_saturated').value.trim() || null,
         p_created_by: currentUser.id,
-        p_change_reason: changeReason
+        p_change_reason: changeReason,
+        p_non_saturation_reason: $('non_saturation_reason').value || null,
+        p_opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
+        p_other_reason_text: $('other_reason_text').value.trim() || null,
+        p_reasons_not_saturated: buildLegacyReasonsText()
       };
 
       $('btnUpdate').disabled = true;
@@ -400,6 +614,9 @@
           $('change_reason').value = '';
           clearForm();
           await loadDashboardData();
+          if (currentUser.role === 'state_admin') {
+            await loadStateAdminData();
+          }
         }
       } catch (err) {
         console.error('Update error:', err);
@@ -410,49 +627,76 @@
       }
     }
 
-    // LOAD DASHBOARD DATA (only for user's district)
+    function buildLegacyReasonsText(){
+      const reason = $('non_saturation_reason').value;
+      if (!reason) return null;
+      
+      if (reason === 'opt_out') {
+        const count = $('opt_out_holders_count').value;
+        return `Opt Out (\${count} holders)`;
+      } else if (reason === 'other') {
+        return $('other_reason_text').value.trim();
+      }
+      return null;
+    }
+
+    // ENHANCED LOAD DASHBOARD DATA
     async function loadDashboardData(){
       try {
-        // Load current totals for user's district only
-        const { data: totals } = await supabase
+        let query = supabase
           .from('kcc_entries')
           .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
-          .eq('district_id', currentUser.districtId)
           .eq('is_current', true)
           .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+          .limit(1);
+
+        if (currentUser.role !== 'state_admin') {
+          query = query.eq('district_id', currentUser.districtId);
+        }
+
+        const { data: totals } = await query.maybeSingle();
 
         if (totals) {
           previousActiveKCC = totals.total_active_kcc || 0;
+          previousSaturatedKCC = totals.total_kcc_saturated || 0;
           $('minActiveKCC').textContent = previousActiveKCC;
+          $('minSaturatedKCC').textContent = previousSaturatedKCC;
           $('total_active_kcc').min = previousActiveKCC;
+          $('total_kcc_saturated').min = previousSaturatedKCC;
           
           $('currentTotals').innerHTML = `
-            <div><strong>Active KCC:</strong> ${totals.total_active_kcc || 0}</div>
-            <div><strong>Saturated:</strong> ${totals.total_kcc_saturated || 0}</div>
-            <div><strong>Not Saturated:</strong> ${totals.total_kcc_not_saturated || 0}</div>
+            <div><strong>Active KCC:</strong> \${totals.total_active_kcc || 0}</div>
+            <div><strong>Saturated:</strong> \${totals.total_kcc_saturated || 0}</div>
+            <div><strong>Not Saturated:</strong> \${totals.total_kcc_not_saturated || 0}</div>
           `;
         } else {
           previousActiveKCC = 0;
-          $('minActiveKCC').textContent = '0';
-          $('total_active_kcc').min = 0;
-          $('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
+          previousSaturatedKCC = 0;
+          \$('minActiveKCC').textContent = '0';
+          \$('minSaturatedKCC').textContent = '0';
+          \$('total_active_kcc').min = 0;
+          \$('total_kcc_saturated').min = 0;
+          \$('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
         }
 
-        // Load recent entries for user's district only (show only current entries)
-        const { data: recent } = await supabase
+        // Load recent entries
+        let recentQuery = supabase
           .from('kcc_entries')
-          .select('entry_date, total_active_kcc, is_current')
-          .eq('district_id', currentUser.districtId)
+          .select('entry_date, total_active_kcc, is_current, district_name')
           .eq('is_current', true)
           .order('created_at', { ascending: false })
           .limit(3);
 
+        if (currentUser.role !== 'state_admin') {
+          recentQuery = recentQuery.eq('district_id', currentUser.districtId);
+        }
+
+        const { data: recent } = await recentQuery;
+
         if (recent && recent.length) {
           $('recentEntries').innerHTML = recent.map(r => 
             `<div class="small mb-1">
-              ${r.entry_date} - ${r.total_active_kcc} accounts (current)
+              ${r.entry_date} - ${r.total_active_kcc} accounts${currentUser.role === 'state_admin' ? ` (${r.district_name})` : ''} (current)
             </div>`
           ).join('');
         } else {
@@ -471,51 +715,60 @@
       $('total_active_kcc').value = '';
       $('total_kcc_saturated').value = '';
       $('total_kcc_not_saturated').value = '';
-      $('reasons_not_saturated').value = '';
+      $('non_saturation_reason').value = '';
       $('change_reason').value = '';
       $('changeReasonRow').style.display = 'none';
       $('btnUpdate').style.display = 'none';
       loadedCurrentRecord = null;
+      hideConditionalFields();
       updateNotSaturated();
     }
 
-    // VIEW RECORDS (only for user's district with date filtering)
+    // ENHANCED VIEW RECORDS WITH PAGINATION
     async function showRecords(){
       document.querySelector('.row.g-3').style.display = 'none';
       $('viewerCard').classList.remove('hidden');
+      currentPage = 1;
       await loadRecordsTable();
     }
 
-    async function loadRecordsTable(fromDate = null, toDate = null){
+    async function loadRecordsTable(fromDate = null, toDate = null, page = 1){
       try {
-        let query = supabase
-          .from('kcc_entries')
-          .select('*')
-          .eq('district_id', currentUser.districtId)
-          .order('created_at', { ascending: false });
+        currentFilters.fromDate = fromDate;
+        currentFilters.toDate = toDate;
+        currentPage = page;
 
-        // Apply date filters if provided
-        if (fromDate) {
-          query = query.gte('entry_date', fromDate);
-        }
-        if (toDate) {
-          query = query.lte('entry_date', toDate);
-        }
+        const isAdmin = currentUser.role === 'state_admin';
+        const districtId = isAdmin ? null : currentUser.districtId;
 
-        const { data, error } = await query.limit(100);
+        const { data, error } = await supabase.rpc('get_paginated_kcc_records', {
+          p_district_id: districtId,
+          p_date_from: fromDate,
+          p_date_to: toDate,
+          p_page: page,
+          p_page_size: pageSize,
+          p_is_admin: isAdmin
+        });
         
         const tbody = $('recordsTableBody');
         tbody.innerHTML = '';
         
         if (data && data.length > 0) {
+          totalRecords = data[0].total_count;
+          totalPages = Math.ceil(totalRecords / pageSize);
+          
           data.forEach(record => {
             const row = document.createElement('tr');
+            const reasonDetails = buildReasonDetails(record);
+            
             row.innerHTML = `
               <td>${record.entry_date || '-'}</td>
+              <td>${isAdmin ? record.district_name : currentUser.districtName}</td>
               <td>${record.total_active_kcc || 0}</td>
               <td>${record.total_kcc_saturated || 0}</td>
               <td>${record.total_kcc_not_saturated || 0}</td>
-              <td class="small">${record.reasons_not_saturated || '-'}</td>
+              <td>${record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'}</td>
+              <td class="small">${reasonDetails}</td>
               <td>${record.is_current ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
               <td>${record.version_number || 1}</td>
               <td>
@@ -524,13 +777,40 @@
             `;
             tbody.appendChild(row);
           });
+          
+          updatePaginationControls();
         } else {
-          tbody.innerHTML = '<tr><td colspan="8" class="text-center">No records found</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="10" class="text-center">No records found</td></tr>';
+          totalRecords = 0;
+          totalPages = 1;
+          updatePaginationControls();
         }
       } catch (err) {
         console.error('Load records error:', err);
-        $('recordsTableBody').innerHTML = '<tr><td colspan="8" class="text-center">Error loading records</td></tr>';
+        $('recordsTableBody').innerHTML = '<tr><td colspan="10" class="text-center">Error loading records</td></tr>';
       }
+    }
+
+    function buildReasonDetails(record) {
+      if (record.non_saturation_reason === 'opt_out') {
+        return `Opt Out (${record.opt_out_holders_count || 0} holders)`;
+      } else if (record.non_saturation_reason === 'other') {
+        return record.other_reason_text || '-';
+      } else if (record.reasons_not_saturated) {
+        return record.reasons_not_saturated;
+      }
+      return '-';
+    }
+
+    function updatePaginationControls() {
+      const startRecord = (currentPage - 1) * pageSize + 1;
+      const endRecord = Math.min(currentPage * pageSize, totalRecords);
+      
+      $('recordsInfo').textContent = `Showing ${startRecord}-${endRecord} of ${totalRecords} records`;
+      $('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+      
+      $('btnPrevPage').disabled = currentPage <= 1;
+      $('btnNextPage').disabled = currentPage >= totalPages;
     }
 
     function showForm(){
@@ -538,7 +818,7 @@
       $('viewerCard').classList.add('hidden');
     }
 
-    // EDIT RECORD
+    // ENHANCED EDIT RECORD
     window.editRecord = async function(recordId){
       try {
         const { data, error } = await supabase
@@ -556,9 +836,12 @@
         $('total_active_kcc').value = data.total_active_kcc || 0;
         $('total_kcc_saturated').value = data.total_kcc_saturated || 0;
         $('total_kcc_not_saturated').value = data.total_kcc_not_saturated || 0;
-        $('reasons_not_saturated').value = data.reasons_not_saturated || '';
+        $('non_saturation_reason').value = data.non_saturation_reason || '';
+        $('opt_out_holders_count').value = data.opt_out_holders_count || 0;
+        $('other_reason_text').value = data.other_reason_text || '';
         
         updateNotSaturated();
+        handleReasonChange();
         
         $('btnUpdate').style.display = 'inline-block';
         $('changeReasonRow').style.display = 'block';
@@ -571,41 +854,215 @@
       }
     };
 
-    // EXPORT TO EXCEL (only user's district data)
+    // ENHANCED EXPORT TO EXCEL
     async function exportToExcel(){
       try {
-        const { data, error } = await supabase
+        const isAdmin = currentUser.role === 'state_admin';
+        const fromDate = $('filterFromDate').value;
+        const toDate = $('filterToDate').value;
+        
+        let query = supabase
           .from('kcc_entries')
           .select('*')
-          .eq('district_id', currentUser.districtId)
           .order('created_at', { ascending: false });
+
+        if (!isAdmin) {
+          query = query.eq('district_id', currentUser.districtId);
+        }
+
+        if (fromDate) {
+          query = query.gte('entry_date', fromDate);
+        }
+        if (toDate) {
+          query = query.lte('entry_date', toDate);
+        }
+
+        const { data, error } = await query;
 
         if (!data || !data.length || error) {
           toast('No data to export', 'warning');
           return;
         }
 
-        const worksheet = XLSX.utils.json_to_sheet(data.map(record => ({
-          'District Name': record.district_name,
-          'Entry Date': record.entry_date,
-          'Total Active KCC': record.total_active_kcc,
-          'KCC Saturated': record.total_kcc_saturated,
-          'KCC Not Saturated': record.total_kcc_not_saturated,
-          'Reasons for Non-saturation': record.reasons_not_saturated,
-          'Is Current': record.is_current ? 'Yes' : 'No',
-          'Version': record.version_number,
-          'Created At': record.created_at,
-          'Change Reason': record.change_reason
-        })));
+        // Get latest entry date for header
+        const latestEntry = data.reduce((latest, current) => 
+          new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+        );
+
+        // Create worksheet with enhanced formatting
+        const worksheetData = data.map(record => ({
+          'DISTRICT': record.district_name,
+          'DATE': record.entry_date,
+          'ACTIVE_KCC': record.total_active_kcc,
+          'SATURATED_KCC': record.total_kcc_saturated,
+          'NOT_SATURATED_KCC': record.total_kcc_not_saturated,
+          'REASONS': buildReasonDetails(record),
+          'IS_CURRENT': record.is_current ? 'YES' : 'NO',
+          'VERSION': record.version_number,
+          'CREATED_AT': new Date(record.created_at).toLocaleString(),
+          'CHANGE_REASON': record.change_reason || '-'
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        
+        // Add header information
+        const headerInfo = [
+          [`District Name: ${isAdmin ? 'ALL DISTRICTS' : currentUser.districtName}`],
+          [`Report Date and Time: ${new Date().toLocaleString()}`],
+          [`Last Entry Date/Time: ${new Date(latestEntry.created_at).toLocaleString()}`],
+          [''], // Empty row
+        ];
+
+        XLSX.utils.sheet_add_aoa(worksheet, headerInfo, { origin: 'A1' });
+        XLSX.utils.sheet_add_json(worksheet, worksheetData, { origin: 'A5', skipHeader: false });
+
+        // Style the worksheet
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        for (let row = range.s.r; row <= range.e.r; row++) {
+          for (let col = range.s.c; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+            if (!worksheet[cellAddress]) continue;
+            
+            worksheet[cellAddress].s = {
+              border: {
+                top: { style: 'thin' },
+                bottom: { style: 'thin' },
+                left: { style: 'thin' },
+                right: { style: 'thin' }
+              }
+            };
+          }
+        }
 
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'KCC Data');
-        XLSX.writeFile(workbook, `KCC_Data_${currentUser.districtName}_${new Date().toISOString().slice(0,10)}.xlsx`);
         
+        // Set page setup for A4 landscape
+        worksheet['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
+        worksheet['!printOptions'] = { orientation: 'landscape' };
+        
+        const fileName = `KCC_Data_${isAdmin ? 'All_Districts' : currentUser.districtName}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(workbook, fileName);
+        
+        await logExport('excel', isAdmin ? null : currentUser.districtId, fromDate, toDate, data.length, fileName);
         toast('Excel file downloaded', 'success');
       } catch (err) {
         console.error('Export error:', err);
         toast('Export failed', 'danger');
+      }
+    }
+
+    // PDF EXPORT (for state admin)
+    async function exportToPDF(){
+      if (currentUser.role !== 'state_admin') {
+        toast('PDF export is only available for state admin', 'warning');
+        return;
+      }
+
+      try {
+        const fromDate = $('filterFromDate').value;
+        const toDate = $('filterToDate').value;
+        
+        let query = supabase
+          .from('kcc_entries')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (fromDate) {
+          query = query.gte('entry_date', fromDate);
+        }
+        if (toDate) {
+          query = query.lte('entry_date', toDate);
+        }
+
+        const { data, error } = await query;
+
+        if (!data || !data.length || error) {
+          toast('No data to export', 'warning');
+          return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape', 'mm', 'a4');
+        
+        // Header
+        doc.setFontSize(16);
+        doc.text('KCC Data Report - All Districts', 20, 20);
+        doc.setFontSize(10);
+        doc.text(`Report Generated: ${new Date().toLocaleString()}`, 20, 30);
+        
+        if (fromDate || toDate) {
+          doc.text(`Date Range: ${fromDate || 'All'} to ${toDate || 'All'}`, 20, 35);
+        }
+
+        // Table headers
+        const headers = ['District', 'Date', 'Active KCC', 'Saturated', 'Not Saturated', 'Reason Type', 'Current', 'Version'];
+        const startY = 45;
+        let currentY = startY;
+        
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'bold');
+        
+        headers.forEach((header, index) => {
+          doc.text(header, 20 + (index * 30), currentY);
+        });
+        
+        currentY += 10;
+        doc.setFont(undefined, 'normal');
+        
+        // Table data
+        data.slice(0, 50).forEach((record, index) => { // Limit to 50 records for PDF
+          const row = [
+            record.district_name,
+            record.entry_date,
+            record.total_active_kcc.toString(),
+            record.total_kcc_saturated.toString(),
+            record.total_kcc_not_saturated.toString(),
+            record.non_saturation_reason || '-',
+            record.is_current ? 'Yes' : 'No',
+            record.version_number.toString()
+          ];
+          
+          row.forEach((cell, cellIndex) => {
+            doc.text(cell.substring(0, 15), 20 + (cellIndex * 30), currentY);
+          });
+          
+          currentY += 5;
+          
+          // Add new page if needed
+          if (currentY > 180) {
+            doc.addPage();
+            currentY = 20;
+          }
+        });
+
+        const fileName = `KCC_Report_All_Districts_${new Date().toISOString().slice(0,10)}.pdf`;
+        doc.save(fileName);
+        
+        await logExport('pdf', null, fromDate, toDate, data.length, fileName);
+        toast('PDF file downloaded', 'success');
+      } catch (err) {
+        console.error('PDF export error:', err);
+        toast('PDF export failed', 'danger');
+      }
+    }
+
+    // LOG EXPORT ACTIVITY
+    async function logExport(type, districtId, fromDate, toDate, recordCount, fileName) {
+      try {
+        await supabase
+          .from('export_logs')
+          .insert([{
+            user_id: currentUser.id,
+            export_type: type,
+            district_id: districtId,
+            date_from: fromDate,
+            date_to: toDate,
+            records_count: recordCount,
+            file_name: fileName
+          }]);
+      } catch (err) {
+        console.error('Export log error:', err);
       }
     }
 
@@ -619,24 +1076,52 @@
         return;
       }
       
-      loadRecordsTable(fromDate, toDate);
+      loadRecordsTable(fromDate, toDate, 1);
       toast('Filter applied', 'success', 1500);
     }
 
     function clearDateFilter(){
       $('filterFromDate').value = '';
       $('filterToDate').value = '';
-      loadRecordsTable();
+      loadRecordsTable(null, null, 1);
       toast('Filter cleared', 'info', 1500);
     }
 
-    // INIT
+    // PAGINATION FUNCTIONS
+    function goToPage(page) {
+      if (page >= 1 && page <= totalPages) {
+        loadRecordsTable(currentFilters.fromDate, currentFilters.toDate, page);
+      }
+    }
+
+    function previousPage() {
+      if (currentPage > 1) {
+        goToPage(currentPage - 1);
+      }
+    }
+
+    function nextPage() {
+      if (currentPage < totalPages) {
+        goToPage(currentPage + 1);
+      }
+    }
+
+    // INITIALIZATION
     document.addEventListener('DOMContentLoaded', async () => {
       $('entry_date').value = new Date().toISOString().slice(0,10);
       
       // Event listeners
       $('total_active_kcc').addEventListener('input', updateNotSaturated);
       $('total_kcc_saturated').addEventListener('input', updateNotSaturated);
+      $('non_saturation_reason').addEventListener('change', handleReasonChange);
+      $('other_reason_text').addEventListener('input', function() {
+        if (!validateEnglishOnly(this.value)) {
+          this.setCustomValidity('Only English characters are allowed');
+        } else {
+          this.setCustomValidity('');
+        }
+      });
+      
       $('btnSave').addEventListener('click', saveEntry);
       $('btnUpdate').addEventListener('click', updateEntry);
       $('btnClear').addEventListener('click', clearForm);
@@ -644,10 +1129,25 @@
       $('btnBackToForm').addEventListener('click', showForm);
       $('btnRefresh').addEventListener('click', loadDashboardData);
       $('btnExportExcel').addEventListener('click', exportToExcel);
+      $('btnExportPDF').addEventListener('click', exportToPDF);
+      
+      // State admin listeners
+      $('btnStateAdmin').addEventListener('click', () => {
+        $('stateAdminPanel').classList.toggle('hidden');
+      });
+      $('btnAdminLogin').addEventListener('click', handleStateAdminLogin);
+      $('btnCancelAdmin').addEventListener('click', () => {
+        $('stateAdminPanel').classList.add('hidden');
+        $('adminPassword').value = '';
+      });
       
       // Date filter listeners
       $('btnApplyFilter').addEventListener('click', applyDateFilter);
       $('btnClearFilter').addEventListener('click', clearDateFilter);
+      
+      // Pagination listeners
+      $('btnPrevPage').addEventListener('click', previousPage);
+      $('btnNextPage').addEventListener('click', nextPage);
       
       $('btnLogout').addEventListener('click', () => {
         if (confirm('Are you sure you want to logout?')) {
@@ -669,3 +1169,5 @@
   </script>
 </body>
 </html>
+
+          .
