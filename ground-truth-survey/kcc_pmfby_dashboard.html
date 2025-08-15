@@ -71,13 +71,13 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">Total Active KCC Accounts *</label>
-                <small class="text-muted d-block">For notified crops under PMFBY</small>
-                <input type="number" id="total_active_kcc" class="form-control" min="0" value="0" required>
+                <small class="text-muted d-block">For notified crops under PMFBY (Must be ≥ previous: <span id="minActiveKCC">0</span>)</small>
+                <input type="number" id="total_active_kcc" class="form-control" min="0" value="" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">Total KCC Accounts Saturated *</label>
-                <small class="text-muted d-block">Under PMFBY</small>
-                <input type="number" id="total_kcc_saturated" class="form-control" min="0" value="0" required>
+                <small class="text-muted d-block">Under PMFBY (Cannot exceed Active KCC)</small>
+                <input type="number" id="total_kcc_saturated" class="form-control" min="0" value="" required>
               </div>
             </div>
 
@@ -113,17 +113,17 @@
       <div class="col-md-4">
         <div class="card-panel">
           <h6>Current Summary</h6>
-          <div id="currentTotals">Loading...</div>
+          <div id="currentTotals">Ready to enter data</div>
           
           <hr/>
           
           <h6>Status</h6>
-          <div id="status">Initializing...</div>
+          <div id="status">Ready</div>
           
           <hr/>
           
           <h6>Recent Entries</h6>
-          <div id="recentEntries">Loading...</div>
+          <div id="recentEntries">No recent entries</div>
           
           <div class="mt-3">
             <button id="btnRefresh" class="btn btn-sm btn-outline-primary w-100">Refresh Data</button>
@@ -194,15 +194,16 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // STATE - User's district is fixed (simulating login)
+    // STATE
     const currentUser = { 
       id: '7b161aeb-4492-4a74-b587-306a4bb00b99',
       username: 'test_district',
-      districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99', // Fixed district
-      districtName: 'Test District' // Will be loaded from DB
+      districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99',
+      districtName: 'Test District'
     };
     
     let loadedCurrentRecord = null;
+    let previousActiveKCC = 0; // Track minimum allowed active KCC
 
     const $ = id => document.getElementById(id);
     
@@ -260,7 +261,7 @@
           $('district_name_display').value = data.name;
           $('district_id').value = data.id;
           $('districtNameInViewer').textContent = data.name;
-          $('status').textContent = `District: ${data.name}`;
+          $('status').textContent = 'Ready';
         }
       } catch (err) {
         console.error('District error:', err);
@@ -279,6 +280,13 @@
       const active = parseInt($('total_active_kcc').value) || 0;
       const saturated = parseInt($('total_kcc_saturated').value) || 0;
       
+      // Check if active KCC is less than previous
+      if (active < previousActiveKCC) {
+        toast(`Total Active KCC (${active}) cannot be less than previous value (${previousActiveKCC})`, 'warning');
+        return false;
+      }
+      
+      // Check if saturated exceeds active
       if (saturated > active) {
         toast('Saturated accounts cannot exceed total active accounts', 'warning');
         return false;
@@ -338,7 +346,6 @@
           $('status').textContent = 'Entry saved';
           clearForm();
           await loadDashboardData();
-          await loadLatestRecord();
         }
       } catch (err) {
         console.error('Save error:', err);
@@ -391,8 +398,8 @@
           toast('Entry updated successfully (previous version preserved)', 'success');
           $('status').textContent = 'Entry updated';
           $('change_reason').value = '';
+          clearForm();
           await loadDashboardData();
-          await loadLatestRecord();
         }
       } catch (err) {
         console.error('Update error:', err);
@@ -400,45 +407,6 @@
         $('status').textContent = 'Update failed';
       } finally {
         $('btnUpdate').disabled = false;
-      }
-    }
-
-    // LOAD LATEST RECORD (only for user's district)
-    async function loadLatestRecord(){
-      try {
-        const { data, error } = await supabase
-          .from('kcc_entries')
-          .select('*')
-          .eq('district_id', currentUser.districtId)
-          .eq('is_current', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (data) {
-          loadedCurrentRecord = data;
-          
-          // Pre-fill form
-          $('entry_date').value = data.entry_date;
-          $('total_active_kcc').value = data.total_active_kcc || 0;
-          $('total_kcc_saturated').value = data.total_kcc_saturated || 0;
-          $('total_kcc_not_saturated').value = data.total_kcc_not_saturated || 0;
-          $('reasons_not_saturated').value = data.reasons_not_saturated || '';
-          
-          updateNotSaturated();
-          
-          // Show update button
-          $('btnUpdate').style.display = 'inline-block';
-          $('changeReasonRow').style.display = 'block';
-          
-          toast('Loaded previous entry for editing', 'info');
-        } else {
-          loadedCurrentRecord = null;
-          $('btnUpdate').style.display = 'none';
-          $('changeReasonRow').style.display = 'none';
-        }
-      } catch (err) {
-        console.error('Load latest record error:', err);
       }
     }
 
@@ -456,27 +424,35 @@
           .maybeSingle();
 
         if (totals) {
+          previousActiveKCC = totals.total_active_kcc || 0;
+          $('minActiveKCC').textContent = previousActiveKCC;
+          $('total_active_kcc').min = previousActiveKCC;
+          
           $('currentTotals').innerHTML = `
-            <div><strong>Active KCC:</strong> \${totals.total_active_kcc || 0}</div>
-            <div><strong>Saturated:</strong> \${totals.total_kcc_saturated || 0}</div>
-            <div><strong>Not Saturated:</strong> \${totals.total_kcc_not_saturated || 0}</div>
+            <div><strong>Active KCC:</strong> ${totals.total_active_kcc || 0}</div>
+            <div><strong>Saturated:</strong> ${totals.total_kcc_saturated || 0}</div>
+            <div><strong>Not Saturated:</strong> ${totals.total_kcc_not_saturated || 0}</div>
           `;
         } else {
+          previousActiveKCC = 0;
+          $('minActiveKCC').textContent = '0';
+          $('total_active_kcc').min = 0;
           $('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
         }
 
-        // Load recent entries for user's district only
+        // Load recent entries for user's district only (show only current entries)
         const { data: recent } = await supabase
           .from('kcc_entries')
           .select('entry_date, total_active_kcc, is_current')
           .eq('district_id', currentUser.districtId)
+          .eq('is_current', true)
           .order('created_at', { ascending: false })
           .limit(3);
 
         if (recent && recent.length) {
           $('recentEntries').innerHTML = recent.map(r => 
             `<div class="small mb-1">
-              ${r.entry_date} - ${r.total_active_kcc} accounts \${r.is_current ? '(current)' : ''}
+              ${r.entry_date} - ${r.total_active_kcc} accounts (current)
             </div>`
           ).join('');
         } else {
@@ -492,9 +468,9 @@
     // CLEAR FORM
     function clearForm(){
       $('entry_date').value = new Date().toISOString().slice(0,10);
-      $('total_active_kcc').value = '0';
-      $('total_kcc_saturated').value = '0';
-      $('total_kcc_not_saturated').value = '0';
+      $('total_active_kcc').value = '';
+      $('total_kcc_saturated').value = '';
+      $('total_kcc_not_saturated').value = '';
       $('reasons_not_saturated').value = '';
       $('change_reason').value = '';
       $('changeReasonRow').style.display = 'none';
@@ -535,15 +511,15 @@
           data.forEach(record => {
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td>\${record.entry_date || '-'}</td>
-              <td>\${record.total_active_kcc || 0}</td>
-              <td>\${record.total_kcc_saturated || 0}</td>
-              <td>\${record.total_kcc_not_saturated || 0}</td>
-              <td class="small">\${record.reasons_not_saturated || '-'}</td>
-              <td>\${record.is_current ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
-              <td>\${record.version_number || 1}</td>
+              <td>${record.entry_date || '-'}</td>
+              <td>${record.total_active_kcc || 0}</td>
+              <td>${record.total_kcc_saturated || 0}</td>
+              <td>${record.total_kcc_not_saturated || 0}</td>
+              <td class="small">${record.reasons_not_saturated || '-'}</td>
+              <td>${record.is_current ? '<span class="badge bg-success">Yes</span>' : '<span class="badge bg-secondary">No</span>'}</td>
+              <td>${record.version_number || 1}</td>
               <td>
-                <button class="btn btn-sm btn-outline-primary" onclick="editRecord('\${record.id}')">Edit</button>
+                <button class="btn btn-sm btn-outline-primary" onclick="editRecord('${record.id}')">Edit</button>
               </td>
             `;
             tbody.appendChild(row);
@@ -685,7 +661,6 @@
       // Initialize app
       await loadUserDistrict();
       await loadDashboardData();
-      await loadLatestRecord();
       updateNotSaturated();
     });
 
@@ -694,4 +669,3 @@
   </script>
 </body>
 </html>
-
