@@ -426,7 +426,7 @@
       }, duration);
     }
 
-    // GET CURRENT USER FROM LOGIN SESSION STORAGE
+    // GET CURRENT USER FROM LOGIN SESSION STORAGE - FIXED
     async function getLoggedInUser() {
       try {
         console.log('LOADING LOGGED-IN USER FROM SESSION/LOCAL STORAGE...');
@@ -489,9 +489,12 @@
       if (currentUser.role === 'state_admin') {
           $('btnStateAdmin').classList.remove('hidden');
           $('btnExportPDF').classList.remove('hidden'); // Show PDF export for admin
+          $('stateAdminSummary').classList.remove('hidden'); // Show admin summary
+          loadStateAdminData(); // Load admin data if admin
       } else {
           $('btnStateAdmin').classList.add('hidden');
           $('btnExportPDF').classList.add('hidden');
+          $('stateAdminSummary').classList.add('hidden'); // Hide admin summary
       }
 
       console.log('UI updated for:', currentUser.fullName, '-', currentUser.districtName);
@@ -519,14 +522,23 @@
 
     // AUTO CALCULATION & REASONS DROPDOWN LOGIC
     function updateNotSaturated(){
-      const active = parseInt($('total_active_kcc').value) || 0;
-      const saturated = parseInt($('total_kcc_saturated').value) || 0; 
-      const notSaturated = Math.max(0, active - saturated);
-      
-      $('total_kcc_not_saturated').value = notSaturated;
-      
+      // Ensure elements exist before accessing them
+      const totalActiveKCC = $('total_active_kcc');
+      const totalKCCSaturated = $('total_kcc_saturated');
       const reasonSelect = $('non_saturation_reason');
       const reasonsLabel = $('reasonsLabel');
+      const totalKCCNotSaturated = $('total_kcc_not_saturated');
+
+      if (!totalActiveKCC || !totalKCCSaturated || !reasonSelect || !reasonsLabel || !totalKCCNotSaturated) {
+        console.warn('DOM elements not fully loaded for updateNotSaturated. Skipping.');
+        return;
+      }
+
+      const active = parseInt(totalActiveKCC.value) || 0;
+      const saturated = parseInt(totalKCCSaturated.value) || 0; 
+      const notSaturated = Math.max(0, active - saturated);
+      
+      totalKCCNotSaturated.value = notSaturated;
       
       if (notSaturated > 0) {
         reasonSelect.disabled = false;
@@ -543,7 +555,9 @@
 
     // CONDITIONAL FIELDS MANAGEMENT
     function handleReasonChange(){
-      const reason = $('non_saturation_reason').value;
+      const reasonSelect = $('non_saturation_reason');
+      if (!reasonSelect) return;
+      const reason = reasonSelect.value;
       hideConditionalFields(); // Always hide first, then show if needed
       
       if (reason === 'opt_out') {
@@ -556,12 +570,21 @@
     }
 
     function hideConditionalFields(){
-      $('optOutField').classList.add('hidden');
-      $('otherReasonField').classList.add('hidden');
-      $('opt_out_holders_count').required = false;
-      $('other_reason_text').required = false;
-      $('opt_out_holders_count').value = '0'; // Reset value
-      $('other_reason_text').value = ''; // Reset value
+      const optOutField = $('optOutField');
+      const otherReasonField = $('otherReasonField');
+      const optOutHoldersCount = $('opt_out_holders_count');
+      const otherReasonText = $('other_reason_text');
+
+      if (optOutField) optOutField.classList.add('hidden');
+      if (otherReasonField) otherReasonField.classList.add('hidden');
+      if (optOutHoldersCount) {
+        optOutHoldersCount.required = false;
+        optOutHoldersCount.value = '0'; // Reset value
+      }
+      if (otherReasonText) {
+        otherReasonText.required = false;
+        otherReasonText.value = ''; // Reset value
+      }
     }
 
     // ENGLISH ONLY VALIDATION
@@ -583,7 +606,7 @@
               .select('value')
               .eq('key', 'state_admin_password')
               .single();
-          if (settings) {
+          if (settings && settings.value) {
               adminPassFromDB = settings.value;
           }
       } catch (err) {
@@ -856,7 +879,10 @@
 
     // LOAD DASHBOARD DATA (FILTERED BY USER'S DISTRICT/ROLE)
     async function loadDashboardData(){
-      if (!currentUser) return; 
+      if (!currentUser) {
+        console.warn('loadDashboardData: currentUser not available. Skipping.');
+        return; 
+      }
       
       try {
         console.log('Loading dashboard data for district:', currentUser.districtName);
@@ -877,11 +903,11 @@
 
         if (totals) {
           previousActiveKCC = totals.total_active_kcc || 0;
-          previousSaturatedKCC = totals.total_kcc_saturated || 0; // Added previousSaturatedKCC
+          previousSaturatedKCC = totals.total_kcc_saturated || 0; 
           $('minActiveKCC').textContent = previousActiveKCC;
-          $('minSaturatedKCC').textContent = previousSaturatedKCC; // Update minSaturatedKCC
+          $('minSaturatedKCC').textContent = previousSaturatedKCC; 
           $('total_active_kcc').min = previousActiveKCC;
-          $('total_kcc_saturated').min = previousSaturatedKCC; // Update min attribute
+          $('total_kcc_saturated').min = previousSaturatedKCC; 
           
           $('currentTotals').innerHTML = `
             <div><strong>ACTIVE KCC:</strong> ${totals.total_active_kcc || 0}</div>
@@ -948,13 +974,22 @@
 
     // VIEW RECORDS (AS MODAL)
     async function showRecords(){
-      if (!currentUser) return; 
+      if (!currentUser) {
+        console.warn('showRecords: currentUser not available. Skipping.');
+        return; 
+      }
       
-      // Hide main form
+      // Hide main form (optional, modal overlays it anyway)
       $('mainFormRow').style.display = 'none';
       
       // Show the viewer modal
-      viewerModalInstance.show(); 
+      if (viewerModalInstance) {
+          viewerModalInstance.show(); 
+      } else {
+          console.error("Viewer modal instance not initialized!");
+          toast("Error opening records. Please refresh.", "danger");
+          return;
+      }
       
       currentPage = 1; // Reset to first page
       await loadRecordsTable();
@@ -962,7 +997,10 @@
 
     // LOAD RECORDS TABLE (FILTERED BY USER'S DISTRICT/ROLE)
     async function loadRecordsTable(fromDate = null, toDate = null, page = 1){
-      if (!currentUser) return; 
+      if (!currentUser) {
+        console.warn('loadRecordsTable: currentUser not available. Skipping.');
+        return; 
+      }
       
       try {
         console.log('Loading records for district:', currentUser.districtName);
@@ -1064,19 +1102,25 @@
     function showForm(){
       console.log('BACK TO FORM CLICKED');
       $('mainFormRow').style.display = 'flex'; // Show the main form
-      viewerModalInstance.hide(); // Hide the viewer modal
+      if (viewerModalInstance) {
+          viewerModalInstance.hide(); // Hide the viewer modal
+      }
     }
 
     // EDIT RECORD
     window.editRecord = async function(recordId){
       try {
+        console.log('EDITING RECORD:', recordId);
         const { data, error } = await supabase
           .from('kcc_entries')
           .select('*')
           .eq('id', recordId)
-          .single(); // Removed district_id filter here to allow admin to edit any record if needed, but validation will re-check
+          .single(); 
 
-        if (error) throw error;
+        if (error) {
+            console.error('EDIT RECORD FETCH ERROR:', error);
+            throw error;
+        }
 
         // Ensure the record belongs to the current user's district unless it's an admin
         if (currentUser.role !== 'state_admin' && data.district_id !== currentUser.districtId) {
@@ -1120,7 +1164,10 @@
 
     // EXPORT TO EXCEL (FILTERED BY USER'S DISTRICT/ROLE)
     async function exportToExcel(){
-      if (!currentUser) return; 
+      if (!currentUser) {
+        console.warn('exportToExcel: currentUser not available. Skipping.');
+        return; 
+      }
       
       try {
         const isAdmin = currentUser.role === 'state_admin';
@@ -1219,7 +1266,7 @@
 
     // PDF EXPORT (for state admin)
     async function exportToPDF(){
-      if (currentUser.role !== 'state_admin') {
+      if (!currentUser || currentUser.role !== 'state_admin') {
         toast('PDF EXPORT IS ONLY AVAILABLE FOR STATE ADMIN', 'warning');
         return;
       }
@@ -1370,58 +1417,75 @@
         return; 
       }
       
-      // Initialize Bootstrap modal instance
+      // Initialize Bootstrap modal instance AFTER DOM is ready
+      // This is crucial for "View Records" modal to work
       viewerModalInstance = new bootstrap.Modal($('viewerModal'));
 
-      // Event listeners (moved here to ensure currentUser is loaded)
-      $('total_active_kcc').addEventListener('input', updateNotSaturated);
-      $('total_kcc_saturated').addEventListener('input', updateNotSaturated);
-      $('non_saturation_reason').addEventListener('change', handleReasonChange); // Added listener for new select
-      $('other_reason_text').addEventListener('input', function() {
-        if (!validateEnglishOnly(this.value)) {
-          this.setCustomValidity('ONLY ENGLISH CHARACTERS ARE ALLOWED');
-        } else {
-          this.setCustomValidity('');
-        }
-      });
+      // Attach event listeners after currentUser is loaded and modal instance is ready
+      attachEventListeners();
       
-      // Button event listeners
-      $('btnSave').addEventListener('click', saveEntry);
-      $('btnUpdate').addEventListener('click', updateEntry);
-      $('btnClear').addEventListener('click', clearForm);
-      $('btnViewRecords').addEventListener('click', showRecords); // Triggers modal
-      $('btnBackToForm').addEventListener('click', showForm); // Hides modal
-      $('btnRefresh').addEventListener('click', loadDashboardData);
-      $('btnExportExcel').addEventListener('click', exportToExcel);
-      $('btnExportPDF').addEventListener('click', exportToPDF);
-      
-      // State admin listeners
-      $('btnStateAdmin').addEventListener('click', () => {
-        $('stateAdminPanel').classList.toggle('hidden');
-      });
-      $('btnAdminLogin').addEventListener('click', handleStateAdminLogin);
-      $('btnCancelAdmin').addEventListener('click', () => {
-        $('stateAdminPanel').classList.add('hidden');
-        $('adminPassword').value = '';
-      });
-      
-      // Date filter listeners (inside modal)
-      $('btnApplyFilter').addEventListener('click', applyDateFilter);
-      $('btnClearFilter').addEventListener('click', clearDateFilter);
-      
-      // Pagination listeners (inside modal)
-      $('btnPrevPage').addEventListener('click', previousPage);
-      $('btnNextPage').addEventListener('click', nextPage);
-      
-      // Logout listener
-      $('btnLogout').addEventListener('click', handleLogout); 
-      
-      updateNotSaturated(); // Initial call after user data is potentially loaded
+      // Initial call to update not saturated based on current form state
+      updateNotSaturated(); 
       
       console.log('KCC PORTAL INITIALIZED SUCCESSFULLY');
       if (currentUser) {
         toast(`WELCOME ${currentUser.fullName}!`, 'success');
       }
+    }
+
+    function attachEventListeners() {
+      console.log('ATTACHING EVENT LISTENERS...');
+      
+      // Form event listeners with element existence checks
+      const totalActiveKCC = $('total_active_kcc');
+      const totalKCCSaturated = $('total_kcc_saturated');
+      const nonSaturationReason = $('non_saturation_reason');
+      const otherReasonText = $('other_reason_text');
+
+      if (totalActiveKCC) totalActiveKCC.addEventListener('input', updateNotSaturated);
+      if (totalKCCSaturated) totalKCCSaturated.addEventListener('input', updateNotSaturated);
+      if (nonSaturationReason) nonSaturationReason.addEventListener('change', handleReasonChange);
+      if (otherReasonText) {
+        otherReasonText.addEventListener('input', function() {
+          if (!validateEnglishOnly(this.value)) {
+            this.setCustomValidity('ONLY ENGLISH CHARACTERS ARE ALLOWED');
+          } else {
+            this.setCustomValidity('');
+          }
+        });
+      }
+      
+      // Button event listeners with element existence checks
+      const buttonConfigs = [
+        { id: 'btnSave', handler: saveEntry },
+        { id: 'btnUpdate', handler: updateEntry },
+        { id: 'btnClear', handler: clearForm },
+        { id: 'btnViewRecords', handler: showRecords },
+        { id: 'btnBackToForm', handler: showForm }, // This button is inside the modal footer now
+        { id: 'btnRefresh', handler: loadDashboardData },
+        { id: 'btnExportExcel', handler: exportToExcel },
+        { id: 'btnExportPDF', handler: exportToPDF },
+        { id: 'btnApplyFilter', handler: applyDateFilter },
+        { id: 'btnClearFilter', handler: clearDateFilter },
+        { id: 'btnPrevPage', handler: previousPage },
+        { id: 'btnNextPage', handler: nextPage },
+        { id: 'btnStateAdmin', handler: () => $('stateAdminPanel').classList.toggle('hidden') },
+        { id: 'btnAdminLogin', handler: handleStateAdminLogin },
+        { id: 'btnCancelAdmin', handler: () => { $('stateAdminPanel').classList.add('hidden'); $('adminPassword').value = ''; } },
+        { id: 'btnLogout', handler: handleLogout }
+      ];
+      
+      buttonConfigs.forEach(({ id, handler }) => {
+        const btn = $(id);
+        if (btn) {
+          btn.addEventListener('click', handler);
+          console.log(`✓ BUTTON ${id} LISTENER ATTACHED`);
+        } else {
+          console.warn(`⚠ BUTTON ${id} NOT FOUND IN DOM.`);
+        }
+      });
+      
+      console.log('ALL EVENT LISTENERS ATTACHED SUCCESSFULLY');
     }
 
     // MAIN INITIALIZATION TRIGGER
