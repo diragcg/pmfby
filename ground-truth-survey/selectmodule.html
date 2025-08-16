@@ -139,7 +139,7 @@
         .card-header {
             background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
             color: var(--white);
-            padding: 0.8rem 2rem;
+            padding: 1.5rem 2rem;
             border-bottom: 3px solid var(--accent-green);
         }
 
@@ -628,26 +628,41 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     
     <script>
+        console.log('Script starting...');
+        
         // Supabase configuration
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
-        let supabaseClient;
+        let supabaseClient = null;
         let currentUser = null;
 
         // Initialize Supabase
-        try {
-            const { createClient } = supabase;
-            supabaseClient = createClient(supabaseUrl, supabaseKey);
-            console.log('Supabase client initialized successfully');
-        } catch (error) {
-            console.error('Failed to initialize Supabase:', error);
+        function initializeSupabase() {
+            try {
+                if (typeof supabase !== 'undefined' && supabase.createClient) {
+                    const { createClient } = supabase;
+                    supabaseClient = createClient(supabaseUrl, supabaseKey);
+                    console.log('✓ Supabase client initialized successfully');
+                    return true;
+                } else {
+                    console.error('✗ Supabase library not loaded');
+                    return false;
+                }
+            } catch (error) {
+                console.error('✗ Failed to initialize Supabase:', error);
+                return false;
+            }
         }
 
         // Utility Functions
         function showAlert(message, type, elementId = 'alertBox') {
+            console.log(`Alert: ${type} - ${message}`);
             const alertBox = document.getElementById(elementId);
-            if (!alertBox) return;
+            if (!alertBox) {
+                console.error('Alert box not found:', elementId);
+                return;
+            }
             
             alertBox.textContent = message;
             alertBox.className = `alert alert-${type} hindi`;
@@ -659,11 +674,13 @@
         }
 
         function hideLoading() {
+            console.log('Hiding loading state');
             document.getElementById('loadingState').style.display = 'none';
             document.getElementById('mainContent').style.display = 'block';
         }
 
         function showLoading() {
+            console.log('Showing loading state');
             document.getElementById('loadingState').style.display = 'flex';
             document.getElementById('mainContent').style.display = 'none';
         }
@@ -678,11 +695,17 @@
 
         // Main Application Logic
         async function initializePage() {
-            console.log('Initializing page...');
+            console.log('🚀 Initializing page...');
             
             try {
+                // Initialize Supabase first
+                if (!initializeSupabase()) {
+                    throw new Error('Supabase initialization failed');
+                }
+
+                // Get stored user
                 const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-                console.log('Stored user:', storedUser);
+                console.log('📦 Stored user data:', storedUser ? 'Found' : 'Not found');
                 
                 if (!storedUser) {
                     showAlert('सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।', 'danger');
@@ -690,26 +713,33 @@
                     return;
                 }
 
+                // Parse user data
                 currentUser = JSON.parse(storedUser);
                 currentUser.role = currentUser.role?.trim();
-                console.log('Current user:', currentUser);
+                console.log('👤 Current user:', currentUser);
                 
                 // Update UI with user info
-                document.getElementById('welcomeMessage').textContent = 
-                    `नमस्ते, ${currentUser.fullName || currentUser.username}!`;
-                document.getElementById('userInfo').textContent = 
-                    `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
+                const welcomeMsg = `नमस्ते, ${currentUser.fullName || currentUser.username}!`;
+                const userInfo = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
+                
+                document.getElementById('welcomeMessage').textContent = welcomeMsg;
+                document.getElementById('userInfo').textContent = userInfo;
+                console.log('✓ User info updated');
                 
                 // Show appropriate UI based on role
                 if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
                     document.getElementById('adminPanel').style.display = 'block';
+                    console.log('✓ Admin panel enabled');
                 }
                 
+                // Hide loading and show content
                 hideLoading();
+                
+                // Load modules
                 await loadModules();
                 
             } catch (error) {
-                console.error('Error initializing page:', error);
+                console.error('✗ Error initializing page:', error);
                 hideLoading();
                 showAlert('पृष्ठ लोड करने में त्रुटि। कृपया पुनः लॉगिन करें।', 'danger');
                 setTimeout(() => window.location.href = 'login.html', 2000);
@@ -717,7 +747,7 @@
         }
 
         async function loadModules() {
-            console.log('Loading modules...');
+            console.log('📋 Loading modules...');
             const moduleOptionsDiv = document.getElementById('moduleOptions');
             const adminModuleList = document.getElementById('adminModuleList');
             const submitBtn = document.querySelector('.submit-btn');
@@ -727,18 +757,16 @@
                     throw new Error('Supabase client not initialized');
                 }
 
-                // Fetch modules from database
-                console.log('Fetching modules from Supabase...');
+                console.log('🔍 Fetching modules from database...');
                 const { data: modules, error } = await supabaseClient
                     .from('modules')
-                    .select('*')
+                    .select('id, module_name, file_path, access_role')
                     .order('module_name', { ascending: true });
 
-                console.log('Modules data:', modules);
-                console.log('Modules error:', error);
+                console.log('📊 Database response:', { modules, error });
 
                 if (error) {
-                    console.error('Supabase error:', error);
+                    console.error('❌ Supabase error:', error);
                     throw error;
                 }
 
@@ -747,7 +775,7 @@
                 if (adminModuleList) adminModuleList.innerHTML = '';
 
                 if (!modules || modules.length === 0) {
-                    console.log('No modules found');
+                    console.log('📭 No modules found');
                     moduleOptionsDiv.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-inbox"></i>
@@ -759,19 +787,39 @@
                     return;
                 }
 
-                console.log(`Rendering \${modules.length} modules`);
+                console.log(`📋 Rendering ${modules.length} modules`);
 
                 // Render modules for selection
                 modules.forEach((module, index) => {
+                    console.log(`📄 Processing module ${index + 1}:`, module);
+                    
                     const moduleDiv = document.createElement('div');
                     moduleDiv.className = 'module-option';
-                    moduleDiv.innerHTML = `
-                        <input type="radio" name="selectedModule" id="module\${index}" 
-                               value="\${module.file_path}" required>
-                        <div class="module-title hindi">\${module.module_name}</div>
-                        <div class="module-path">\${module.file_path}</div>
-                    `;
                     
+                    // Create radio input
+                    const radioInput = document.createElement('input');
+                    radioInput.type = 'radio';
+                    radioInput.name = 'selectedModule';
+                    radioInput.id = `module\${index}`;
+                    radioInput.value = module.file_path;
+                    radioInput.required = true;
+                    
+                    // Create title div
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'module-title hindi';
+                    titleDiv.textContent = module.module_name;
+                    
+                    // Create path div
+                    const pathDiv = document.createElement('div');
+                    pathDiv.className = 'module-path';
+                    pathDiv.textContent = module.file_path;
+                    
+                    // Append elements
+                    moduleDiv.appendChild(radioInput);
+                    moduleDiv.appendChild(titleDiv);
+                    moduleDiv.appendChild(pathDiv);
+                    
+                    // Add click handler
                     moduleDiv.addEventListener('click', () => {
                         // Remove selected class from all options
                         document.querySelectorAll('.module-option').forEach(opt => 
@@ -779,7 +827,7 @@
                         // Add selected class to clicked option
                         moduleDiv.classList.add('selected');
                         // Check the radio button
-                        document.getElementById(`module\${index}`).checked = true;
+                        radioInput.checked = true;
                     });
                     
                     moduleOptionsDiv.appendChild(moduleDiv);
@@ -796,26 +844,48 @@
 
                 // Render admin module list
                 if (adminModuleList && (currentUser.role === 'admin' || currentUser.role === 'state_admin')) {
+                    console.log('🔧 Rendering admin module list');
                     modules.forEach(module => {
                         const moduleItem = document.createElement('div');
                         moduleItem.className = 'module-item';
-                        moduleItem.innerHTML = `
-                            <div class="module-info">
-                                <h5 class="hindi">\${module.module_name}</h5>
-                                <p>\${module.file_path}</p>
-                            </div>
-                            <button class="delete-btn" data-id="\${module.id}" title="मॉड्यूल हटाएं">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        `;
+                        
+                        // Create module info div
+                        const moduleInfo = document.createElement('div');
+                        moduleInfo.className = 'module-info';
+                        
+                        // Create title
+                        const titleElement = document.createElement('h5');
+                        titleElement.className = 'hindi';
+                        titleElement.textContent = module.module_name;
+                        
+                        // Create path
+                        const pathElement = document.createElement('p');
+                        pathElement.textContent = module.file_path;
+                        
+                        // Append to module info
+                        moduleInfo.appendChild(titleElement);
+                        moduleInfo.appendChild(pathElement);
+                        
+                        // Create delete button
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'delete-btn';
+                        deleteBtn.setAttribute('data-id', module.id);
+                        deleteBtn.title = 'मॉड्यूल हटाएं';
+                        deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                        
+                        // Append to module item
+                        moduleItem.appendChild(moduleInfo);
+                        moduleItem.appendChild(deleteBtn);
+                        
+                        // Append to admin list
                         adminModuleList.appendChild(moduleItem);
                     });
                 }
 
-                console.log('Modules loaded successfully');
+                console.log('✅ Modules loaded successfully');
 
             } catch (error) {
-                console.error('Error loading modules:', error);
+                console.error('❌ Error loading modules:', error);
                 showAlert('मॉड्यूल लोड करने में त्रुटि। कृपया पुनः प्रयास करें।', 'danger');
                 
                 // Show error state
@@ -834,7 +904,7 @@
 
         // Event Listeners
         document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM Content Loaded');
+            console.log('📄 DOM Content Loaded');
             initializePage();
         });
 
@@ -842,9 +912,11 @@
 
         document.getElementById('moduleSelectionForm').addEventListener('submit', function(event) {
             event.preventDefault();
+            console.log('📝 Form submitted');
             
             const selectedRadio = document.querySelector('input[name="selectedModule"]:checked');
             if (selectedRadio) {
+                console.log('🎯 Selected module:', selectedRadio.value);
                 window.location.href = selectedRadio.value;
             } else {
                 showAlert('कृपया एक मॉड्यूल का चयन करें।', 'danger');
@@ -856,14 +928,17 @@
         if (adminForm) {
             adminForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                console.log('🔧 Admin form submitted');
                 const submitBtn = e.target.querySelector('button[type="submit"]');
                 
                 try {
                     submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner"></span> जोड़ा जा रहा है...';
+                    submitBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> जोड़ा जा रहा है...';
                     
                     const moduleName = document.getElementById('moduleName').value.trim();
                     const filePath = document.getElementById('filePath').value.trim();
+
+                    console.log('📋 Adding module:', { moduleName, filePath });
 
                     // Validate inputs
                     if (!moduleName || moduleName.length < 2) {
@@ -879,22 +954,22 @@
                         .insert([{
                             module_name: moduleName,
                             file_path: filePath,
-                            access_role: 'user',
-                            created_at: new Date().toISOString()
+                            access_role: 'user'
                         }])
                         .select();
 
                     if (error) {
-                        console.error('Supabase insert error:', error);
+                        console.error('❌ Supabase insert error:', error);
                         throw error;
                     }
 
+                    console.log('✅ Module added successfully:', data);
                     showAlert('मॉड्यूल सफलतापूर्वक जोड़ा गया!', 'success', 'adminAlertBox');
                     document.getElementById('adminModuleForm').reset();
                     await loadModules();
 
                 } catch (error) {
-                    console.error('Error adding module:', error);
+                    console.error('❌ Error adding module:', error);
                     const errorMessage = error.message || 'मॉड्यूल जोड़ने में त्रुटि।';
                     showAlert(errorMessage, 'danger', 'adminAlertBox');
                 } finally {
@@ -914,10 +989,12 @@
                     const moduleItem = deleteBtn.closest('.module-item');
                     const moduleName = moduleItem.querySelector('.module-info h5').textContent;
                     
+                    console.log('🗑️ Delete button clicked for module:', { moduleId, moduleName });
+                    
                     if (confirm(`क्या आप वाकई "${moduleName}" मॉड्यूल को हटाना चाहते हैं?`)) {
                         try {
                             deleteBtn.disabled = true;
-                            deleteBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px;"></div>';
+                            deleteBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>';
 
                             const { error } = await supabaseClient
                                 .from('modules')
@@ -925,15 +1002,16 @@
                                 .eq('id', moduleId);
 
                             if (error) {
-                                console.error('Delete error:', error);
+                                console.error('❌ Delete error:', error);
                                 throw error;
                             }
 
+                            console.log('✅ Module deleted successfully');
                             showAlert('मॉड्यूल सफलतापूर्वक हटा दिया गया!', 'success', 'adminAlertBox');
                             await loadModules();
 
                         } catch (error) {
-                            console.error('Error deleting module:', error);
+                            console.error('❌ Error deleting module:', error);
                             showAlert('मॉड्यूल हटाने में त्रुटि।', 'danger', 'adminAlertBox');
                             deleteBtn.disabled = false;
                             deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
@@ -1016,11 +1094,13 @@
 
         // Handle network status
         window.addEventListener('online', () => {
+            console.log('🌐 Network online');
             showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
             loadModules();
         });
 
         window.addEventListener('offline', () => {
+            console.log('📡 Network offline');
             showAlert('इंटरनेट कनेक्शन बाधित है। कृपया कनेक्शन जांचें।', 'danger');
         });
 
@@ -1028,9 +1108,10 @@
         setInterval(async () => {
             if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'state_admin')) {
                 try {
+                    console.log('🔄 Auto-refreshing modules...');
                     await loadModules();
                 } catch (error) {
-                    console.error('Auto-refresh failed:', error);
+                    console.error('❌ Auto-refresh failed:', error);
                 }
             }
         }, 60000);
@@ -1038,18 +1119,19 @@
         // Page visibility API for auto-refresh when page becomes visible
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden && currentUser) {
+                console.log('👁️ Page became visible, refreshing modules...');
                 setTimeout(loadModules, 1000);
             }
         });
 
         // Error boundary for unhandled errors
         window.addEventListener('error', (e) => {
-            console.error('Unhandled error:', e.error);
+            console.error('💥 Unhandled error:', e.error);
             showAlert('एक अप्रत्याशित त्रुटि हुई। कृपया पृष्ठ को रीफ्रेश करें।', 'danger');
         });
 
         window.addEventListener('unhandledrejection', (e) => {
-            console.error('Unhandled promise rejection:', e.reason);
+            console.error('💥 Unhandled promise rejection:', e.reason);
             showAlert('डेटा लोड करने में समस्या हुई। कृपया पुनः प्रयास करें।', 'danger');
         });
 
@@ -1058,7 +1140,7 @@
             window.history.replaceState(null, null, window.location.href);
         }
 
-        // Session timeout warning (30 minutes)
+        // Session timeout management
         let sessionTimeout;
         
         function resetSessionTimeout() {
@@ -1082,6 +1164,7 @@
 
         // Debug function for testing
         window.debugInfo = function() {
+            console.log('🐛 Debug Information:');
             console.log('Current User:', currentUser);
             console.log('Supabase Client:', supabaseClient);
             console.log('Page State:', {
@@ -1089,11 +1172,33 @@
                 adminPanelVisible: document.getElementById('adminPanel').style.display !== 'none',
                 moduleCount: document.querySelectorAll('.module-option').length
             });
+            console.log('Local Storage User:', localStorage.getItem('user'));
+            console.log('Session Storage User:', sessionStorage.getItem('user'));
         };
 
-        // Initialize page loading
-        console.log('Script loaded, waiting for DOM...');
+        // Test Supabase connection
+        window.testSupabase = async function() {
+            try {
+                console.log('🧪 Testing Supabase connection...');
+                const { data, error } = await supabaseClient
+                    .from('modules')
+                    .select('count')
+                    .limit(1);
+                
+                if (error) {
+                    console.error('❌ Supabase test failed:', error);
+                } else {
+                    console.log('✅ Supabase connection successful:', data);
+                }
+            } catch (err) {
+                console.error('❌ Supabase test error:', err);
+            }
+        };
+
+        console.log('🎉 Script loaded successfully');
+        console.log('💡 Use debugInfo() or testSupabase() in console for debugging');
     </script>
 </body>
 </html>
 
+                
