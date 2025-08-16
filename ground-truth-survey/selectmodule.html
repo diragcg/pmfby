@@ -441,6 +441,28 @@
             opacity: 0.5;
         }
 
+        /* Loading State */
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-light);
+            border-radius: 50%;
+            border-top-color: var(--primary-green);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
         /* Footer */
         .footer {
             background: var(--gray-100);
@@ -497,40 +519,6 @@
                 width: 100%;
             }
         }
-
-        /* Loading States */
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: var(--white);
-            animation: spin 0.8s linear infinite;
-            margin-right: 0.5rem;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* Focus Styles for Accessibility */
-        .module-option:focus-within {
-            outline: 2px solid var(--accent-green);
-            outline-offset: 2px;
-        }
-
-        .submit-btn:focus,
-        .admin-btn:focus,
-        .logout-btn:focus {
-            outline: 2px solid rgba(255, 255, 255, 0.5);
-            outline-offset: 2px;
-        }
     </style>
 </head>
 
@@ -556,6 +544,12 @@
     </header>
 
     <main class="main-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-container">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Main Content -->
         <div id="mainContent" style="display: none;">
             <div class="content-grid">
                 <!-- Module Selection -->
@@ -577,7 +571,7 @@
                             </div>
                             
                             <div class="submit-container">
-                                <button type="submit" class="btn submit-btn">
+                                <button type="submit" class="btn submit-btn" disabled>
                                     <i class="fas fa-arrow-right me-2"></i>
                                     <span class="hindi">आगे बढ़ें</span>
                                 </button>
@@ -638,10 +632,17 @@
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
-        const { createClient } = supabase;
-        const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
+        let supabaseClient;
         let currentUser = null;
+
+        // Initialize Supabase
+        try {
+            const { createClient } = supabase;
+            supabaseClient = createClient(supabaseUrl, supabaseKey);
+            console.log('Supabase client initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+        }
 
         // Utility Functions
         function showAlert(message, type, elementId = 'alertBox') {
@@ -657,19 +658,14 @@
             }, 5000);
         }
 
-        function showLoading(button, show = true) {
-            if (show) {
-                button.disabled = true;
-                const originalText = button.innerHTML;
-                button.setAttribute('data-original-text', originalText);
-                button.innerHTML = '<span class="spinner"></span>' + button.textContent;
-            } else {
-                button.disabled = false;
-                const originalText = button.getAttribute('data-original-text');
-                if (originalText) {
-                    button.innerHTML = originalText;
-                }
-            }
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'flex';
+            document.getElementById('mainContent').style.display = 'none';
         }
 
         function handleLogout() {
@@ -682,17 +678,21 @@
 
         // Main Application Logic
         async function initializePage() {
-            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            console.log('Initializing page...');
             
-            if (!storedUser) {
-                showAlert('सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।', 'danger');
-                setTimeout(() => window.location.href = 'login.html', 2000);
-                return;
-            }
-
             try {
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                console.log('Stored user:', storedUser);
+                
+                if (!storedUser) {
+                    showAlert('सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।', 'danger');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                    return;
+                }
+
                 currentUser = JSON.parse(storedUser);
                 currentUser.role = currentUser.role?.trim();
+                console.log('Current user:', currentUser);
                 
                 // Update UI with user info
                 document.getElementById('welcomeMessage').textContent = 
@@ -701,31 +701,41 @@
                     `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
                 
                 // Show appropriate UI based on role
-                document.getElementById('mainContent').style.display = 'block';
-                
                 if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
                     document.getElementById('adminPanel').style.display = 'block';
                 }
                 
+                hideLoading();
                 await loadModules();
                 
             } catch (error) {
-                console.error('Error parsing user data:', error);
-                showAlert('उपयोगकर्ता डेटा लोड करने में त्रुटि। कृपया पुनः लॉगिन करें।', 'danger');
+                console.error('Error initializing page:', error);
+                hideLoading();
+                showAlert('पृष्ठ लोड करने में त्रुटि। कृपया पुनः लॉगिन करें।', 'danger');
                 setTimeout(() => window.location.href = 'login.html', 2000);
             }
         }
 
         async function loadModules() {
+            console.log('Loading modules...');
             const moduleOptionsDiv = document.getElementById('moduleOptions');
             const adminModuleList = document.getElementById('adminModuleList');
+            const submitBtn = document.querySelector('.submit-btn');
             
             try {
+                if (!supabaseClient) {
+                    throw new Error('Supabase client not initialized');
+                }
+
                 // Fetch modules from database
+                console.log('Fetching modules from Supabase...');
                 const { data: modules, error } = await supabaseClient
                     .from('modules')
                     .select('*')
                     .order('module_name', { ascending: true });
+
+                console.log('Modules data:', modules);
+                console.log('Modules error:', error);
 
                 if (error) {
                     console.error('Supabase error:', error);
@@ -737,6 +747,7 @@
                 if (adminModuleList) adminModuleList.innerHTML = '';
 
                 if (!modules || modules.length === 0) {
+                    console.log('No modules found');
                     moduleOptionsDiv.innerHTML = `
                         <div class="empty-state">
                             <i class="fas fa-inbox"></i>
@@ -744,9 +755,11 @@
                             <p class="hindi text-muted">कृपया व्यवस्थापक से संपर्क करें।</p>
                         </div>
                     `;
-                    document.querySelector('.submit-btn').disabled = true;
+                    submitBtn.disabled = true;
                     return;
                 }
+
+                console.log(`Rendering \${modules.length} modules`);
 
                 // Render modules for selection
                 modules.forEach((module, index) => {
@@ -779,33 +792,27 @@
                 }
 
                 // Enable submit button
-                document.querySelector('.submit-btn').disabled = false;
+                submitBtn.disabled = false;
 
                 // Render admin module list
                 if (adminModuleList && (currentUser.role === 'admin' || currentUser.role === 'state_admin')) {
-                    if (modules.length === 0) {
-                        adminModuleList.innerHTML = `
-                            <div class="empty-state">
-                                <p class="hindi text-muted">कोई मॉड्यूल नहीं मिला।</p>
+                    modules.forEach(module => {
+                        const moduleItem = document.createElement('div');
+                        moduleItem.className = 'module-item';
+                        moduleItem.innerHTML = `
+                            <div class="module-info">
+                                <h5 class="hindi">\${module.module_name}</h5>
+                                <p>\${module.file_path}</p>
                             </div>
+                            <button class="delete-btn" data-id="\${module.id}" title="मॉड्यूल हटाएं">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         `;
-                    } else {
-                        modules.forEach(module => {
-                            const moduleItem = document.createElement('div');
-                            moduleItem.className = 'module-item';
-                            moduleItem.innerHTML = `
-                                <div class="module-info">
-                                    <h5 class="hindi">\${module.module_name}</h5>
-                                    <p>\${module.file_path}</p>
-                                </div>
-                                <button class="delete-btn" data-id="\${module.id}" title="मॉड्यूल हटाएं">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            `;
-                            adminModuleList.appendChild(moduleItem);
-                        });
-                    }
+                        adminModuleList.appendChild(moduleItem);
+                    });
                 }
+
+                console.log('Modules loaded successfully');
 
             } catch (error) {
                 console.error('Error loading modules:', error);
@@ -821,12 +828,15 @@
                         </button>
                     </div>
                 `;
-                document.querySelector('.submit-btn').disabled = true;
+                submitBtn.disabled = true;
             }
         }
 
         // Event Listeners
-        document.addEventListener('DOMContentLoaded', initializePage);
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM Content Loaded');
+            initializePage();
+        });
 
         document.getElementById('btnLogout').addEventListener('click', handleLogout);
 
@@ -838,6 +848,7 @@
                 window.location.href = selectedRadio.value;
             } else {
                 showAlert('कृपया एक मॉड्यूल का चयन करें।', 'danger');
+            }
         });
 
         // Admin form submission
@@ -848,7 +859,8 @@
                 const submitBtn = e.target.querySelector('button[type="submit"]');
                 
                 try {
-                    showLoading(submitBtn);
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner"></span> जोड़ा जा रहा है...';
                     
                     const moduleName = document.getElementById('moduleName').value.trim();
                     const filePath = document.getElementById('filePath').value.trim();
@@ -886,7 +898,8 @@
                     const errorMessage = error.message || 'मॉड्यूल जोड़ने में त्रुटि।';
                     showAlert(errorMessage, 'danger', 'adminAlertBox');
                 } finally {
-                    showLoading(submitBtn, false);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-plus me-2"></i><span class="hindi">मॉड्यूल जोड़ें</span>';
                 }
             });
         }
@@ -904,7 +917,7 @@
                     if (confirm(`क्या आप वाकई "${moduleName}" मॉड्यूल को हटाना चाहते हैं?`)) {
                         try {
                             deleteBtn.disabled = true;
-                            deleteBtn.innerHTML = '<span class="spinner"></span>';
+                            deleteBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px;"></div>';
 
                             const { error } = await supabaseClient
                                 .from('modules')
@@ -1001,17 +1014,6 @@
             });
         }
 
-        // Auto-refresh modules every 60 seconds for admin users
-        if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'state_admin')) {
-            setInterval(async () => {
-                try {
-                    await loadModules();
-                } catch (error) {
-                    console.error('Auto-refresh failed:', error);
-                }
-            }, 60000);
-        }
-
         // Handle network status
         window.addEventListener('online', () => {
             showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
@@ -1022,18 +1024,23 @@
             showAlert('इंटरनेट कनेक्शन बाधित है। कृपया कनेक्शन जांचें।', 'danger');
         });
 
-        // Performance optimization: Debounce function
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
+        // Auto-refresh modules every 60 seconds for admin users
+        setInterval(async () => {
+            if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'state_admin')) {
+                try {
+                    await loadModules();
+                } catch (error) {
+                    console.error('Auto-refresh failed:', error);
+                }
+            }
+        }, 60000);
+
+        // Page visibility API for auto-refresh when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && currentUser) {
+                setTimeout(loadModules, 1000);
+            }
+        });
 
         // Error boundary for unhandled errors
         window.addEventListener('error', (e) => {
@@ -1046,62 +1053,46 @@
             showAlert('डेटा लोड करने में समस्या हुई। कृपया पुनः प्रयास करें।', 'danger');
         });
 
-        // Page visibility API for auto-refresh when page becomes visible
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && currentUser) {
-                debounce(loadModules, 1000)();
-            }
-        });
-
-        // Smooth page transitions
-        window.addEventListener('load', () => {
-            document.body.classList.add('loaded');
-        });
-
         // Prevent form resubmission on page refresh
         if (window.history.replaceState) {
             window.history.replaceState(null, null, window.location.href);
         }
 
-        // Initialize tooltips for better UX
-        document.querySelectorAll('[title]').forEach(element => {
-            element.addEventListener('mouseenter', function() {
-                this.setAttribute('data-original-title', this.getAttribute('title'));
-                this.removeAttribute('title');
-            });
-            
-            element.addEventListener('mouseleave', function() {
-                this.setAttribute('title', this.getAttribute('data-original-title'));
-                this.removeAttribute('data-original-title');
-            });
-        });
-
         // Session timeout warning (30 minutes)
-        let sessionTimeout = setTimeout(() => {
-            if (confirm('आपका सत्र जल्द ही समाप्त हो जाएगा। क्या आप जारी रखना चाहते हैं?')) {
-                // Reset timeout
-                clearTimeout(sessionTimeout);
-                sessionTimeout = setTimeout(arguments.callee, 30 * 60 * 1000);
-            } else {
-                handleLogout();
-            }
-        }, 30 * 60 * 1000);
+        let sessionTimeout;
+        
+        function resetSessionTimeout() {
+            clearTimeout(sessionTimeout);
+            sessionTimeout = setTimeout(() => {
+                if (confirm('आपका सत्र जल्द ही समाप्त हो जाएगा। क्या आप जारी रखना चाहते हैं?')) {
+                    resetSessionTimeout();
+                } else {
+                    handleLogout();
+                }
+            }, 30 * 60 * 1000); // 30 minutes
+        }
 
-        // Clear session timeout on user activity
+        // Initialize session timeout
+        resetSessionTimeout();
+
+        // Reset timeout on user activity
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
-            document.addEventListener(event, () => {
-                clearTimeout(sessionTimeout);
-                sessionTimeout = setTimeout(() => {
-                    if (confirm('आपका सत्र जल्द ही समाप्त हो जाएगा। क्या आप जारी रखना चाहते हैं?')) {
-                        clearTimeout(sessionTimeout);
-                        sessionTimeout = setTimeout(arguments.callee, 30 * 60 * 1000);
-                    } else {
-                        handleLogout();
-                    }
-                }, 30 * 60 * 1000);
-            }, { passive: true });
+            document.addEventListener(event, resetSessionTimeout, { passive: true });
         });
 
+        // Debug function for testing
+        window.debugInfo = function() {
+            console.log('Current User:', currentUser);
+            console.log('Supabase Client:', supabaseClient);
+            console.log('Page State:', {
+                mainContentVisible: document.getElementById('mainContent').style.display !== 'none',
+                adminPanelVisible: document.getElementById('adminPanel').style.display !== 'none',
+                moduleCount: document.querySelectorAll('.module-option').length
+            });
+        };
+
+        // Initialize page loading
+        console.log('Script loaded, waiting for DOM...');
     </script>
 </body>
 </html>
