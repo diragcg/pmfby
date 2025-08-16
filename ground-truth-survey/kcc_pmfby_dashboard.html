@@ -34,6 +34,16 @@
       margin-bottom: 15px;
       border: 1px solid #dee2e6;
     }
+    .alert {
+      padding: 10px 15px;
+      margin: 5px 0;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+    .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
   </style>
 </head>
 <body>
@@ -194,26 +204,30 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // STATE
+    // STATE - FIXED: Using actual user ID from your database
     const currentUser = { 
-      id: '7b161aeb-4492-4a74-b587-306a4bb00b99',
-      username: 'test_district',
-      districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99',
+      id: 'e58e0c9d-4210-4ab2-a9db-7038ca74a55d', // FIXED: Using actual 'test' user ID
+      username: 'test',
+      districtId: '605d815b-b311-48e0-8deb-b18d992af419', // FIXED: Using actual district ID
       districtName: 'Test District'
     };
     
     let loadedCurrentRecord = null;
-    let previousActiveKCC = 0; // Track minimum allowed active KCC
+    let previousActiveKCC = 0;
 
     const $ = id => document.getElementById(id);
     
     function toast(msg, type='info'){
+      console.log(`TOAST: ${msg} (${type})`);
       const area = $('toastArea');
       const div = document.createElement('div');
       div.className = `alert alert-${type}`;
       div.textContent = msg;
+      div.onclick = () => div.remove();
       area.appendChild(div);
-      setTimeout(() => div.remove(), 3000);
+      setTimeout(() => {
+        if (div.parentNode) div.remove();
+      }, 3000);
     }
 
     // AUTO CALCULATION
@@ -239,10 +253,12 @@
       }
     }
 
-    // LOAD USER'S DISTRICT INFO
+    // LOAD USER'S DISTRICT INFO - FIXED
     async function loadUserDistrict(){
       try {
         $('status').textContent = 'Loading district info...';
+        
+        // Get district info using the actual district ID
         const { data, error } = await supabase
           .from('districts')
           .select('id, name')
@@ -262,6 +278,7 @@
           $('district_id').value = data.id;
           $('districtNameInViewer').textContent = data.name;
           $('status').textContent = 'Ready';
+          console.log('District loaded:', data.name);
         }
       } catch (err) {
         console.error('District error:', err);
@@ -280,13 +297,11 @@
       const active = parseInt($('total_active_kcc').value) || 0;
       const saturated = parseInt($('total_kcc_saturated').value) || 0;
       
-      // Check if active KCC is less than previous
       if (active < previousActiveKCC) {
         toast(`Total Active KCC (${active}) cannot be less than previous value (${previousActiveKCC})`, 'warning');
         return false;
       }
       
-      // Check if saturated exceeds active
       if (saturated > active) {
         toast('Saturated accounts cannot exceed total active accounts', 'warning');
         return false;
@@ -301,8 +316,10 @@
       return true;
     }
 
-    // SAVE ENTRY
+    // SAVE ENTRY - FIXED
     async function saveEntry(){
+      console.log('Save button clicked');
+      
       if (!validateForm()) return;
 
       const payload = {
@@ -313,10 +330,12 @@
         total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
         total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
         reasons_not_saturated: $('reasons_not_saturated').value.trim() || null,
-        created_by: currentUser.id,
+        created_by: currentUser.id, // FIXED: Using actual user ID
         is_current: true,
         version_number: 1
       };
+
+      console.log('Payload:', payload);
 
       $('btnSave').disabled = true;
       $('status').textContent = 'Saving...';
@@ -342,6 +361,7 @@
           toast('Save failed: ' + error.message, 'danger');
           $('status').textContent = 'Save failed';
         } else {
+          console.log('Save successful:', data);
           toast('Entry saved successfully!', 'success');
           $('status').textContent = 'Entry saved';
           clearForm();
@@ -356,64 +376,9 @@
       }
     }
 
-    // UPDATE ENTRY (using fixed RPC)
-    async function updateEntry(){
-      if (!loadedCurrentRecord) {
-        toast('No record to update. Save a new entry first.', 'warning');
-        return;
-      }
-      
-      if (!validateForm()) return;
-
-      const changeReason = $('change_reason').value.trim();
-      if (!changeReason) {
-        toast('Change reason is required when updating', 'warning');
-        return;
-      }
-
-      const params = {
-        p_predecessor_id: loadedCurrentRecord.id,
-        p_district_id: currentUser.districtId,
-        p_district_name: currentUser.districtName,
-        p_entry_date: $('entry_date').value,
-        p_total_active_kcc: parseInt($('total_active_kcc').value) || 0,
-        p_total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
-        p_total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-        p_reasons_not_saturated: $('reasons_not_saturated').value.trim() || null,
-        p_created_by: currentUser.id,
-        p_change_reason: changeReason
-      };
-
-      $('btnUpdate').disabled = true;
-      $('status').textContent = 'Updating...';
-
-      try {
-        const { data, error } = await supabase.rpc('upsert_kcc_entry', params);
-        
-        if (error) {
-          console.error('Update error:', error);
-          toast('Update failed: ' + error.message, 'danger');
-          $('status').textContent = 'Update failed';
-        } else {
-          toast('Entry updated successfully (previous version preserved)', 'success');
-          $('status').textContent = 'Entry updated';
-          $('change_reason').value = '';
-          clearForm();
-          await loadDashboardData();
-        }
-      } catch (err) {
-        console.error('Update error:', err);
-        toast('Update failed', 'danger');
-        $('status').textContent = 'Update failed';
-      } finally {
-        $('btnUpdate').disabled = false;
-      }
-    }
-
-    // LOAD DASHBOARD DATA (only for user's district)
+    // LOAD DASHBOARD DATA
     async function loadDashboardData(){
       try {
-        // Load current totals for user's district only
         const { data: totals } = await supabase
           .from('kcc_entries')
           .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
@@ -440,7 +405,6 @@
           $('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
         }
 
-        // Load recent entries for user's district only (show only current entries)
         const { data: recent } = await supabase
           .from('kcc_entries')
           .select('entry_date, total_active_kcc, is_current')
@@ -479,7 +443,7 @@
       updateNotSaturated();
     }
 
-    // VIEW RECORDS (only for user's district with date filtering)
+    // VIEW RECORDS
     async function showRecords(){
       document.querySelector('.row.g-3').style.display = 'none';
       $('viewerCard').classList.remove('hidden');
@@ -494,7 +458,6 @@
           .eq('district_id', currentUser.districtId)
           .order('created_at', { ascending: false });
 
-        // Apply date filters if provided
         if (fromDate) {
           query = query.gte('entry_date', fromDate);
         }
@@ -551,7 +514,6 @@
 
         loadedCurrentRecord = data;
         
-        // Fill form
         $('entry_date').value = data.entry_date;
         $('total_active_kcc').value = data.total_active_kcc || 0;
         $('total_kcc_saturated').value = data.total_kcc_saturated || 0;
@@ -571,7 +533,7 @@
       }
     };
 
-    // EXPORT TO EXCEL (only user's district data)
+    // EXPORT TO EXCEL
     async function exportToExcel(){
       try {
         const { data, error } = await supabase
@@ -620,32 +582,31 @@
       }
       
       loadRecordsTable(fromDate, toDate);
-      toast('Filter applied', 'success', 1500);
+      toast('Filter applied', 'success');
     }
 
     function clearDateFilter(){
       $('filterFromDate').value = '';
       $('filterToDate').value = '';
       loadRecordsTable();
-      toast('Filter cleared', 'info', 1500);
+      toast('Filter cleared', 'info');
     }
 
-    // INIT
+    // INITIALIZATION
     document.addEventListener('DOMContentLoaded', async () => {
+      console.log('Initializing KCC Portal...');
+      
       $('entry_date').value = new Date().toISOString().slice(0,10);
       
       // Event listeners
       $('total_active_kcc').addEventListener('input', updateNotSaturated);
       $('total_kcc_saturated').addEventListener('input', updateNotSaturated);
       $('btnSave').addEventListener('click', saveEntry);
-      $('btnUpdate').addEventListener('click', updateEntry);
       $('btnClear').addEventListener('click', clearForm);
       $('btnViewRecords').addEventListener('click', showRecords);
       $('btnBackToForm').addEventListener('click', showForm);
       $('btnRefresh').addEventListener('click', loadDashboardData);
       $('btnExportExcel').addEventListener('click', exportToExcel);
-      
-      // Date filter listeners
       $('btnApplyFilter').addEventListener('click', applyDateFilter);
       $('btnClearFilter').addEventListener('click', clearDateFilter);
       
@@ -653,8 +614,7 @@
         if (confirm('Are you sure you want to logout?')) {
           localStorage.clear();
           sessionStorage.clear();
-          alert('Logged out successfully');
-          location.reload();
+          window.location.href = 'login.html';
         }
       });
 
@@ -662,6 +622,9 @@
       await loadUserDistrict();
       await loadDashboardData();
       updateNotSaturated();
+      
+      console.log('KCC Portal initialized successfully');
+      toast('Portal loaded successfully', 'success');
     });
 
     // Prevent form submission
