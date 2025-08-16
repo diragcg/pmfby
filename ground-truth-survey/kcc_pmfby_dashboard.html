@@ -72,9 +72,48 @@
     .alert-danger { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
     .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
     .alert-info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    .login-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .login-card {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      width: 400px;
+      max-width: 90%;
+    }
   </style>
 </head>
 <body>
+  <!-- Login Overlay -->
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <h4 class="text-center mb-4">KCC Portal Login</h4>
+      <form id="loginForm">
+        <div class="mb-3">
+          <label class="form-label">Username</label>
+          <input type="text" id="loginUsername" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input type="password" id="loginPassword" class="form-control" required>
+        </div>
+        <button type="submit" class="btn btn-success w-100">Login</button>
+      </form>
+      <div id="loginError" class="alert alert-danger mt-3 hidden"></div>
+    </div>
+  </div>
+
   <div class="topbar">
     <div style="font-weight:700;">KCC Data Entry - Directorate of Agriculture Chhattisgarh</div>
     <div style="margin-left:auto;">
@@ -287,15 +326,8 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // STATE
-    const currentUser = { 
-      id: '7b161aeb-4492-4a74-b587-306a4bb00b99',
-      username: 'test_district',
-      districtId: '7b161aeb-4492-4a74-b587-306a4bb00b99',
-      districtName: 'Test District',
-      role: 'district_user'
-    };
-    
+    // STATE - Will be populated after login
+    let currentUser = null;
     let loadedCurrentRecord = null;
     let previousActiveKCC = 0;
     let previousSaturatedKCC = 0;
@@ -319,122 +351,143 @@
       }, duration);
     }
 
-    // ENSURE USER AND DISTRICT EXIST
-    async function ensureUserExists() {
-      try {
-        console.log('Checking if user exists...');
-        
-        // Check if user exists
-        const { data: existingUser, error: userError } = await supabase
-          .from('test_user')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single();
-        
-        if (userError && userError.code === 'PGRST116') {
-          console.log('User not found, creating...');
-          
-          // First ensure district exists
-          const { data: district, error: districtError } = await supabase
-            .from('districts')
-            .select('*')
-            .eq('id', currentUser.districtId)
-            .single();
-          
-          if (districtError && districtError.code === 'PGRST116') {
-            console.log('District not found, creating...');
-            await supabase
-              .from('districts')
-              .insert([{
-                id: currentUser.districtId,
-                name: 'Test District'
-              }]);
-            console.log('District created');
-          }
-          
-          // Create user
-          const { error: createUserError } = await supabase
-            .from('test_user')
-            .insert([{
-              id: currentUser.id,
-              username: currentUser.username,
-              password_hash: '$2b$10$example_hash',
-              full_name: 'Test User',
-              role: 'district_user',
-              mobile_number: '9876543210',
-              email: 'test@example.com',
-              is_active: true,
-              district_id: currentUser.districtId
-            }]);
-          
-          if (createUserError) {
-            console.error('Error creating user:', createUserError);
-          } else {
-            console.log('User created successfully');
-          }
-        } else if (existingUser) {
-          console.log('User exists:', existingUser.username);
+    // AUTHENTICATION FUNCTIONS
+    function checkAuthentication() {
+      const savedUser = localStorage.getItem('kcc_user');
+      if (savedUser) {
+        try {
+          currentUser = JSON.parse(savedUser);
+          console.log('User loaded from localStorage:', currentUser.username);
+          return true;
+        } catch (e) {
+          console.error('Error parsing saved user:', e);
+          localStorage.removeItem('kcc_user');
         }
+      }
+      return false;
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      
+      const username = $('loginUsername').value.trim();
+      const password = $('loginPassword').value.trim();
+      
+      if (!username || !password) {
+        showLoginError('Please enter both username and password');
+        return;
+      }
+
+      try {
+        // Query user with district information
+        const { data: userData, error } = await supabase
+          .from('test_user')
+          .select(`
+            id, username, full_name, role, mobile_number, email, district_id,
+            districts (id, name)
+          `)
+          .eq('username', username)
+          .eq('is_active', true)
+          .single();
+
+        if (error || !userData) {
+          showLoginError('Invalid username or user not found');
+          return;
+        }
+
+        // For demo purposes, accept any password
+        // In production, you would verify the password hash
+        if (password.length < 3) {
+          showLoginError('Password too short');
+          return;
+        }
+
+        // Set current user
+        currentUser = {
+          id: userData.id,
+          username: userData.username,
+          fullName: userData.full_name,
+          role: userData.role,
+          districtId: userData.district_id,
+          districtName: userData.districts ? userData.districts.name : 'Unknown District'
+        };
+
+        // Save to localStorage
+        localStorage.setItem('kcc_user', JSON.stringify(currentUser));
+
+        // Hide login overlay and initialize app
+        $('loginOverlay').classList.add('hidden');
+        await initializeApp();
+        
+        toast(`Welcome ${currentUser.fullName}!`, 'success');
+        
       } catch (err) {
-        console.error('Error ensuring user exists:', err);
+        console.error('Login error:', err);
+        showLoginError('Login failed. Please try again.');
       }
     }
 
-    // LOAD USER'S DISTRICT INFO - FIXED
-    async function loadUserDistrict(){
-      try {
-        console.log('Loading district info...');
-        $('status').textContent = 'Loading district info...';
+    function showLoginError(message) {
+      const errorDiv = $('loginError');
+      errorDiv.textContent = message;
+      errorDiv.classList.remove('hidden');
+      setTimeout(() => {
+        errorDiv.classList.add('hidden');
+      }, 5000);
+    }
+
+    function handleLogout() {
+      if (confirm('Are you sure you want to logout?')) {
+        // Clear all stored data
+        localStorage.removeItem('kcc_user');
+        sessionStorage.clear();
         
-        // Try to get user info with district
-        const { data: userData, error: userError } = await supabase
-          .from('test_user')
-          .select(`
-            id, username, full_name, district_id,
-            districts (id, name)
-          `)
-          .eq('id', currentUser.id)
-          .single();
+        // Reset state
+        currentUser = null;
+        loadedCurrentRecord = null;
         
-        if (userError) {
-          console.error('User query error:', userError);
-          // Fallback - set default district
-          currentUser.districtName = 'Test District';
-          $('district_name_display').value = 'Test District';
-          $('district_id').value = currentUser.districtId;
-          $('districtNameInViewer').textContent = 'Test District';
-          $('status').textContent = 'Ready (Default)';
-          $('userInfo').textContent = `${currentUser.username} (Test District)`;
-          return;
-        }
+        // Show login overlay
+        $('loginOverlay').classList.remove('hidden');
         
-        if (userData && userData.districts) {
-          console.log('District found:', userData.districts.name);
-          currentUser.districtName = userData.districts.name;
-          currentUser.districtId = userData.districts.id;
-          $('district_name_display').value = userData.districts.name;
-          $('district_id').value = userData.districts.id;
-          $('districtNameInViewer').textContent = userData.districts.name;
-          $('status').textContent = 'Ready';
-          $('userInfo').textContent = `${currentUser.username} (${userData.districts.name})`;
-        } else {
-          console.log('No district in user data, using default');
-          currentUser.districtName = 'Test District';
-          $('district_name_display').value = 'Test District';
-          $('district_id').value = currentUser.districtId;
-          $('districtNameInViewer').textContent = 'Test District';
-          $('status').textContent = 'Ready';
-          $('userInfo').textContent = `${currentUser.username} (Test District)`;
-        }
-      } catch (err) {
-        console.error('District loading error:', err);
-        // Fallback
-        currentUser.districtName = 'Test District';
-        $('district_name_display').value = 'Test District';
-        $('district_id').value = currentUser.districtId;
-        $('status').textContent = 'Ready (Fallback)';
-        $('userInfo').textContent = `${currentUser.username} (Test District)`;
+        // Reset form
+        $('loginForm').reset();
+        $('loginError').classList.add('hidden');
+        
+        toast('Logged out successfully', 'info');
       }
+    }
+
+    // INITIALIZATION
+    async function initializeApp() {
+      if (!currentUser) {
+        console.error('No current user found');
+        return;
+      }
+
+      console.log('Initializing app for user:', currentUser.username);
+      
+      // Set initial date
+      $('entry_date').value = new Date().toISOString().slice(0,10);
+      
+      // Update UI with user info
+      updateUserInterface();
+      
+      // Load data
+      await loadDashboardData();
+      updateNotSaturated();
+      
+      // Attach event listeners
+      attachEventListeners();
+      
+      console.log('App initialized successfully');
+    }
+
+    function updateUserInterface() {
+      $('district_name_display').value = currentUser.districtName;
+      $('district_id').value = currentUser.districtId;
+      $('districtNameInViewer').textContent = currentUser.role === 'state_admin' ? 'All Districts' : currentUser.districtName;
+      $('userInfo').textContent = `${currentUser.fullName} (${currentUser.districtName})`;
+      $('status').textContent = 'Ready';
     }
 
     // ENHANCED AUTO CALCULATION WITH CONDITIONAL FIELDS
@@ -494,24 +547,18 @@
     async function handleStateAdminLogin(){
       const password = $('adminPassword').value.trim();
       
-      try {
-        // Check against hardcoded password for now
-        if (password === '9329807288') {
-          currentUser.role = 'state_admin';
-          $('stateAdminPanel').classList.add('hidden');
-          $('stateAdminSummary').classList.remove('hidden');
-          $('btnExportPDF').classList.remove('hidden');
-          $('userInfo').textContent = `${currentUser.username} (State Admin)`;
-          $('districtNameInViewer').textContent = 'All Districts';
-          
-          await loadStateAdminData();
-          toast('Successfully logged in as State Admin', 'success');
-        } else {
-          toast('Invalid admin password', 'danger');
-        }
-      } catch (err) {
-        console.error('Admin login error:', err);
-        toast('Admin login failed', 'danger');
+      if (password === '9329807288') {
+        currentUser.role = 'state_admin';
+        $('stateAdminPanel').classList.add('hidden');
+        $('stateAdminSummary').classList.remove('hidden');
+        $('btnExportPDF').classList.remove('hidden');
+        $('userInfo').textContent = `${currentUser.fullName} (State Admin)`;
+        $('districtNameInViewer').textContent = 'All Districts';
+        
+        await loadStateAdminData();
+        toast('Successfully logged in as State Admin', 'success');
+      } else {
+        toast('Invalid admin password', 'danger');
       }
       
       $('adminPassword').value = '';
@@ -519,7 +566,6 @@
 
     async function loadStateAdminData(){
       try {
-        // Get state totals manually since RPC might not exist
         const { data, error } = await supabase
           .from('kcc_entries')
           .select('*')
@@ -564,26 +610,23 @@
       const active = parseInt($('total_active_kcc').value) || 0;
       const saturated = parseInt($('total_kcc_saturated').value) || 0;
       
-      // Check if active KCC is less than previous
       if (active < previousActiveKCC) {
         toast(`Total Active KCC (${active}) cannot be less than previous value (${previousActiveKCC})`, 'warning');
         return false;
       }
       
-      // Check if saturated is less than previous
       if (saturated < previousSaturatedKCC) {
         toast(`Total Saturated KCC (${saturated}) cannot be less than previous value (${previousSaturatedKCC})`, 'warning');
         return false;
       }
       
-      // Check if saturated exceeds active
       if (saturated > active) {
         toast('Saturated accounts cannot exceed total active accounts', 'warning');
         return false;
       }
       
       const notSaturated = active - saturated;
-      const reason = $('non_saturation_reason').value;
+      const reason = \$('non_saturation_reason').value;
       
       if (notSaturated > 0) {
         if (!reason) {
@@ -592,13 +635,13 @@
         }
         
         if (reason === 'opt_out') {
-          const optOutCount = parseInt($('opt_out_holders_count').value) || 0;
+          const optOutCount = parseInt(\$('opt_out_holders_count').value) || 0;
           if (optOutCount < 0) {
             toast('Opt out count cannot be negative', 'warning');
             return false;
           }
         } else if (reason === 'other') {
-          const otherText = $('other_reason_text').value.trim();
+          const otherText = \$('other_reason_text').value.trim();
           if (!otherText) {
             toast('Please specify the other reason', 'warning');
             return false;
@@ -613,33 +656,30 @@
       return true;
     }
 
-    // ENHANCED SAVE ENTRY
+    // SAVE ENTRY
     async function saveEntry(){
-      console.log('Save button clicked');
-      
       if (!await validateForm()) return;
 
       const payload = {
         district_id: currentUser.districtId,
         district_name: currentUser.districtName,
-        entry_date: $('entry_date').value,
-        total_active_kcc: parseInt($('total_active_kcc').value) || 0,
-        total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
-        total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-        non_saturation_reason: $('non_saturation_reason').value || null,
-        opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
-        other_reason_text: $('other_reason_text').value.trim() || null,
+        entry_date: \$('entry_date').value,
+        total_active_kcc: parseInt(\$('total_active_kcc').value) || 0,
+        total_kcc_saturated: parseInt(\$('total_kcc_saturated').value) || 0,
+        total_kcc_not_saturated: parseInt(\$('total_kcc_not_saturated').value) || 0,
+        non_saturation_reason: \$('non_saturation_reason').value || null,
+        opt_out_holders_count: parseInt(\$('opt_out_holders_count').value) || 0,
+        other_reason_text: \$('other_reason_text').value.trim() || null,
         reasons_not_saturated: buildLegacyReasonsText(),
         created_by: currentUser.id,
         is_current: true,
         version_number: 1
       };
 
-      $('btnSave').disabled = true;
-      $('status').textContent = 'Saving...';
+      \$('btnSave').disabled = true;
+      \$('status').textContent = 'Saving...';
 
       try {
-        // Mark previous entries as non-current for same district+date
         await supabase
           .from('kcc_entries')
           .update({ is_current: false })
@@ -657,10 +697,10 @@
         if (error) {
           console.error('Save error:', error);
           toast('Save failed: ' + error.message, 'danger');
-          $('status').textContent = 'Save failed';
+          \$('status').textContent = 'Save failed';
         } else {
           toast('Entry saved successfully!', 'success');
-          $('status').textContent = 'Entry saved';
+          \$('status').textContent = 'Entry saved';
           clearForm();
           await loadDashboardData();
           if (currentUser.role === 'state_admin') {
@@ -670,9 +710,9 @@
       } catch (err) {
         console.error('Save error:', err);
         toast('Save failed', 'danger');
-        $('status').textContent = 'Save failed';
+        \$('status').textContent = 'Save failed';
       } finally {
-        $('btnSave').disabled = false;
+        \$('btnSave').disabled = false;
       }
     }
 
@@ -689,7 +729,7 @@
       return null;
     }
 
-    // ENHANCED UPDATE ENTRY
+    // UPDATE ENTRY
     async function updateEntry(){
       if (!loadedCurrentRecord) {
         toast('No record to update. Save a new entry first.', 'warning');
@@ -749,11 +789,9 @@
       }
     }
 
-    // ENHANCED LOAD DASHBOARD DATA
+    // LOAD DASHBOARD DATA
     async function loadDashboardData(){
       try {
-        console.log('Loading dashboard data...');
-        
         let query = supabase
           .from('kcc_entries')
           .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
@@ -835,9 +873,8 @@
       updateNotSaturated();
     }
 
-    // ENHANCED VIEW RECORDS WITH PAGINATION
+    // VIEW RECORDS WITH PAGINATION
     async function showRecords(){
-      console.log('Showing records...');
       $('mainFormRow').style.display = 'none';
       $('viewerCard').classList.remove('hidden');
       currentPage = 1;
@@ -846,7 +883,6 @@
 
     async function loadRecordsTable(fromDate = null, toDate = null, page = 1){
       try {
-        console.log('Loading records table...');
         currentFilters.fromDate = fromDate;
         currentFilters.toDate = toDate;
         currentPage = page;
@@ -943,15 +979,13 @@
     }
 
     function showForm(){
-      console.log('Showing form...');
       $('mainFormRow').style.display = 'flex';
       $('viewerCard').classList.add('hidden');
     }
 
-    // ENHANCED EDIT RECORD
+    // EDIT RECORD
     window.editRecord = async function(recordId){
       try {
-        console.log('Editing record:', recordId);
         const { data, error } = await supabase
           .from('kcc_entries')
           .select('*')
@@ -985,10 +1019,9 @@
       }
     };
 
-    // ENHANCED EXPORT TO EXCEL
+    // EXPORT TO EXCEL
     async function exportToExcel(){
       try {
-        console.log('Exporting to Excel...');
         const isAdmin = currentUser.role === 'state_admin';
         const fromDate = $('filterFromDate').value;
         const toDate = $('filterToDate').value;
@@ -1048,7 +1081,7 @@
         XLSX.utils.sheet_add_aoa(worksheet, headerInfo, { origin: 'A1' });
         XLSX.utils.sheet_add_json(worksheet, worksheetData, { origin: 'A5', skipHeader: false });
 
-        // Style the worksheet
+        // Style the worksheet with borders
         const range = XLSX.utils.decode_range(worksheet['!ref']);
         for (let row = range.s.r; row <= range.e.r; row++) {
           for (let col = range.s.c; col <= range.e.c; col++) {
@@ -1091,7 +1124,6 @@
       }
 
       try {
-        console.log('Exporting to PDF...');
         const fromDate = $('filterFromDate').value;
         const toDate = $('filterToDate').value;
         
@@ -1142,8 +1174,8 @@
         currentY += 10;
         doc.setFont(undefined, 'normal');
         
-        // Table data
-        data.slice(0, 50).forEach((record, index) => { // Limit to 50 records for PDF
+        // Table data (limit to 50 records for PDF)
+        data.slice(0, 50).forEach((record, index) => {
           const row = [
             record.district_name || 'Unknown',
             record.entry_date || '-',
@@ -1218,126 +1250,82 @@
       }
     }
 
-    // INITIALIZATION - FIXED AND COMPREHENSIVE
-    document.addEventListener('DOMContentLoaded', async () => {
-      console.log('=== STARTING INITIALIZATION ===');
+    // EVENT LISTENERS
+    function attachEventListeners() {
+      // Form event listeners
+      $('total_active_kcc').addEventListener('input', updateNotSaturated);
+      $('total_kcc_saturated').addEventListener('input', updateNotSaturated);
+      $('non_saturation_reason').addEventListener('change', handleReasonChange);
       
-      // Set initial date
-      $('entry_date').value = new Date().toISOString().slice(0,10);
-      
-      // Ensure user exists in database
-      await ensureUserExists();
-      
-      // Initialize app
-      await loadUserDistrict();
-      await loadDashboardData();
-      updateNotSaturated();
-      
-      console.log('=== ATTACHING EVENT LISTENERS ===');
-      
-      // Form event listeners with null checks
-      const activeKCCField = $('total_active_kcc');
-      const saturatedKCCField = $('total_kcc_saturated');
-      const reasonSelect = $('non_saturation_reason');
-      const otherReasonText = $('other_reason_text');
-      
-      if (activeKCCField) {
-        activeKCCField.addEventListener('input', updateNotSaturated);
-        console.log('✓ Active KCC listener attached');
-      }
-      
-      if (saturatedKCCField) {
-        saturatedKCCField.addEventListener('input', updateNotSaturated);
-        console.log('✓ Saturated KCC listener attached');
-      }
-      
-      if (reasonSelect) {
-        reasonSelect.addEventListener('change', handleReasonChange);
-        console.log('✓ Reason select listener attached');
-      }
-      
-      if (otherReasonText) {
-        otherReasonText.addEventListener('input', function() {
-          if (!validateEnglishOnly(this.value)) {
-            this.setCustomValidity('Only English characters are allowed');
-          } else {
-            this.setCustomValidity('');
-          }
-        });
-        console.log('✓ Other reason text listener attached');
-      }
-      
-      // Button event listeners with null checks
-      const buttonConfigs = [
-        { id: 'btnSave', handler: saveEntry, name: 'Save' },
-        { id: 'btnUpdate', handler: updateEntry, name: 'Update' },
-        { id: 'btnClear', handler: clearForm, name: 'Clear' },
-        { id: 'btnViewRecords', handler: showRecords, name: 'View Records' },
-        { id: 'btnBackToForm', handler: showForm, name: 'Back to Form' },
-        { id: 'btnRefresh', handler: loadDashboardData, name: 'Refresh' },
-        { id: 'btnExportExcel', handler: exportToExcel, name: 'Export Excel' },
-        { id: 'btnExportPDF', handler: exportToPDF, name: 'Export PDF' },
-        { id: 'btnApplyFilter', handler: applyDateFilter, name: 'Apply Filter' },
-        { id: 'btnClearFilter', handler: clearDateFilter, name: 'Clear Filter' },
-        { id: 'btnPrevPage', handler: previousPage, name: 'Previous Page' },
-        { id: 'btnNextPage', handler: nextPage, name: 'Next Page' }
-      ];
-      
-      buttonConfigs.forEach(({ id, handler, name }) => {
-        const btn = $(id);
-        if (btn) {
-          btn.addEventListener('click', handler);
-          console.log(`✓ ${name} button listener attached`);
+      $('other_reason_text').addEventListener('input', function() {
+        if (!validateEnglishOnly(this.value)) {
+          this.setCustomValidity('Only English characters are allowed');
         } else {
-          console.warn(`⚠ Button ${id} not found`);
+          this.setCustomValidity('');
         }
       });
       
+      // Button event listeners
+      $('btnSave').addEventListener('click', saveEntry);
+      $('btnUpdate').addEventListener('click', updateEntry);
+      $('btnClear').addEventListener('click', clearForm);
+      $('btnViewRecords').addEventListener('click', showRecords);
+      $('btnBackToForm').addEventListener('click', showForm);
+      $('btnRefresh').addEventListener('click', loadDashboardData);
+      $('btnExportExcel').addEventListener('click', exportToExcel);
+      $('btnExportPDF').addEventListener('click', exportToPDF);
+      
       // State admin listeners
-      const stateAdminBtn = $('btnStateAdmin');
-      const adminLoginBtn = $('btnAdminLogin');
-      const cancelAdminBtn = $('btnCancelAdmin');
-      const logoutBtn = $('btnLogout');
+      $('btnStateAdmin').addEventListener('click', () => {
+        $('stateAdminPanel').classList.toggle('hidden');
+      });
+      $('btnAdminLogin').addEventListener('click', handleStateAdminLogin);
+      $('btnCancelAdmin').addEventListener('click', () => {
+        $('stateAdminPanel').classList.add('hidden');
+        $('adminPassword').value = '';
+      });
       
-      if (stateAdminBtn) {
-        stateAdminBtn.addEventListener('click', () => {
-          console.log('State admin button clicked');
-          $('stateAdminPanel').classList.toggle('hidden');
-        });
-        console.log('✓ State admin button listener attached');
+      // Date filter listeners
+      $('btnApplyFilter').addEventListener('click', applyDateFilter);
+      $('btnClearFilter').addEventListener('click', clearDateFilter);
+      
+      // Pagination listeners
+      $('btnPrevPage').addEventListener('click', previousPage);
+      $('btnNextPage').addEventListener('click', nextPage);
+      
+      // Logout listener
+      $('btnLogout').addEventListener('click', handleLogout);
+      
+      // Login form listener
+      $('loginForm').addEventListener('submit', handleLogin);
+    }
+
+    // MAIN INITIALIZATION
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('=== KCC PORTAL STARTING ===');
+      
+      // Attach event listeners first
+      attachEventListeners();
+      
+      // Check if user is already logged in
+      if (checkAuthentication()) {
+        $('loginOverlay').classList.add('hidden');
+        await initializeApp();
+        toast(`Welcome back ${currentUser.fullName}!`, 'success');
+      } else {
+        // Show login overlay
+        $('loginOverlay').classList.remove('hidden');
       }
       
-      if (adminLoginBtn) {
-        adminLoginBtn.addEventListener('click', handleStateAdminLogin);
-        console.log('✓ Admin login button listener attached');
-      }
-      
-      if (cancelAdminBtn) {
-        cancelAdminBtn.addEventListener('click', () => {
-          $('stateAdminPanel').classList.add('hidden');
-          $('adminPassword').value = '';
-        });
-        console.log('✓ Cancel admin button listener attached');
-      }
-      
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-          if (confirm('Are you sure you want to logout?')) {
-            localStorage.clear();
-            sessionStorage.clear();
-            alert('Logged out successfully');
-            location.reload();
-          }
-        });
-        console.log('✓ Logout button listener attached');
-      }
-      
-      console.log('=== INITIALIZATION COMPLETE ===');
-      toast('Application loaded successfully', 'success', 2000);
+      console.log('=== KCC PORTAL READY ===');
     });
 
     // Prevent form submission
-    document.addEventListener('submit', e => e.preventDefault());
+    document.addEventListener('submit', e => {
+      if (e.target.id !== 'loginForm') {
+        e.preventDefault();
+      }
+    });
   </script>
 </body>
 </html>
