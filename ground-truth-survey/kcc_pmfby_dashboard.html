@@ -542,7 +542,7 @@
                         <span class="hindi">KCC डेटा एंट्री - संचालनालय कृषि छत्तीसगढ़</span>
                     </a>
                     <div class="user-info">
-                        <span id="userInfo" class="hindi">LOADING USER...</span>
+                        <span id="userInfo" class="hindi">Loading...</span>
                         <button id="btnStateAdmin" class="btn btn-header hindi">
                             <i class="fas fa-user-shield me-1"></i>
                             STATE ADMIN
@@ -782,8 +782,7 @@
             </div>
         </div>
     </div>
-
-    <!-- Toast Area -->
+        <!-- Toast Area -->
     <div id="toastArea" class="toast-area"></div>
 
     <!-- Scripts -->
@@ -796,7 +795,15 @@
         // CONFIG
         const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        // Initialize Supabase
+        let supabase;
+        try {
+            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            console.log('✓ Supabase initialized');
+        } catch (error) {
+            console.error('✗ Supabase initialization failed:', error);
+        }
 
         // STATE
         let currentUser = null;
@@ -810,6 +817,7 @@
         let currentFilters = { fromDate: null, toDate: null };
         let viewerModalInstance;
 
+        // Helper function
         const $ = id => document.getElementById(id);
         
         function toast(msg, type='info', duration=3000){
@@ -829,96 +837,96 @@
             }, duration);
         }
 
-        // GET CURRENT USER FROM LOGIN SESSION STORAGE
-        async function getLoggedInUser() {
+        // FIXED: Get user from session storage
+        function getCurrentUser() {
             try {
-                console.log('LOADING LOGGED-IN USER FROM SESSION/LOCAL STORAGE...');
-                $('status').textContent = 'LOADING USER INFO...';
-                
                 const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-
                 if (!storedUser) {
-                    console.error('NO USER SESSION FOUND. REDIRECTING TO LOGIN.');
-                    toast('SESSION EXPIRED OR NOT LOGGED IN. REDIRECTING TO LOGIN.', 'danger', 2000);
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
+                    console.error('No user found in storage');
                     return null;
                 }
-
-                try {
-                    currentUser = JSON.parse(storedUser);
-                    console.log('USER LOADED FROM STORAGE:', currentUser.username);
-
-                    if (!currentUser.id || !currentUser.username || !currentUser.districtId || !currentUser.districtName) {
-                        throw new Error('INCOMPLETE USER DATA IN SESSION.');
-                    }
-
-                    return currentUser;
-
-                } catch (e) {
-                    console.error('ERROR PARSING USER SESSION DATA:', e);
-                    localStorage.removeItem('user');
-                    sessionStorage.removeItem('user');
-                    toast('CORRUPTED USER SESSION. PLEASE LOGIN AGAIN.', 'danger', 2000);
-                    setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 2000);
-                    return null;
-                }
-
-            } catch (err) {
-                console.error('CRITICAL ERROR DURING USER LOAD:', err);
-                toast('CRITICAL ERROR. PLEASE REFRESH OR LOGIN AGAIN.', 'danger', 3000);
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 3000);
+                
+                const user = JSON.parse(storedUser);
+                console.log('✓ User loaded:', user.username || user.fullName);
+                return user;
+            } catch (error) {
+                console.error('Error parsing user data:', error);
                 return null;
             }
         }
 
-        // UPDATE UI WITH USER INFO
+        // FIXED: Update UI immediately
         function updateUserInterface() {
-            if (!currentUser) return;
-            
-            $('district_name_display').value = currentUser.districtName;
-            $('district_id').value = currentUser.districtId;
-            $('districtNameInViewer').textContent = currentUser.role === 'state_admin' ? 'ALL DISTRICTS' : currentUser.districtName;
-            $('userInfo').textContent = `${currentUser.fullName} (${currentUser.districtName})`;
-            $('status').textContent = 'READY';
-            
-            // Show/hide State Admin button based on role
-            if (currentUser.role === 'state_admin') {
-                $('btnExportPDF').classList.remove('hidden');
-                $('stateAdminSummary').classList.remove('hidden');
-                loadStateAdminData();
-            } else {
-                $('btnExportPDF').classList.add('hidden');
-                $('stateAdminSummary').classList.add('hidden');
+            if (!currentUser) {
+                console.warn('No current user to update UI');
+                return;
             }
+            
+            try {
+                // Update user info in header
+                const userInfoElement = $('userInfo');
+                if (userInfoElement) {
+                    userInfoElement.textContent = `${currentUser.fullName || currentUser.username} (\${currentUser.districtName || 'N/A'})`;
+                }
 
-            console.log('UI updated for:', currentUser.fullName, '-', currentUser.districtName);
+                // Update district fields
+                const districtDisplay = $('district_name_display');
+                const districtId = $('district_id');
+                if (districtDisplay) districtDisplay.value = currentUser.districtName || '';
+                if (districtId) districtId.value = currentUser.districtId || '';
+
+                // Update modal district name
+                const districtInViewer = $('districtNameInViewer');
+                if (districtInViewer) {
+                    districtInViewer.textContent = currentUser.role === 'state_admin' ? 'ALL DISTRICTS' : currentUser.districtName;
+                }
+
+                // Show/hide admin features
+                if (currentUser.role === 'state_admin') {
+                    const exportPDF = $('btnExportPDF');
+                    const adminSummary = $('stateAdminSummary');
+                    if (exportPDF) exportPDF.classList.remove('hidden');
+                    if (adminSummary) adminSummary.classList.remove('hidden');
+                    loadStateAdminData();
+                } else {
+                    const exportPDF = $('btnExportPDF');
+                    const adminSummary = $('stateAdminSummary');
+                    if (exportPDF) exportPDF.classList.add('hidden');
+                    if (adminSummary) adminSummary.classList.add('hidden');
+                }
+
+                // Update status
+                const statusElement = $('status');
+                if (statusElement) statusElement.textContent = 'READY';
+
+                console.log('✓ UI updated for:', currentUser.fullName || currentUser.username);
+            } catch (error) {
+                console.error('Error updating UI:', error);
+            }
         }
 
-        // LOGOUT FUNCTION
+        // LOGOUT FUNCTION - FIXED
         function handleLogout() {
-            console.log('LOGOUT BUTTON CLICKED');
-            
-            if (confirm('ARE YOU SURE YOU WANT TO LOGOUT?')) {
-                console.log('LOGOUT CONFIRMED');
+            try {
+                console.log('Logout clicked');
                 
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
-                
-                toast('LOGGED OUT SUCCESSFULLY', 'info', 1000);
-                
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 1000);
+                if (confirm('Are you sure you want to logout?')) {
+                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
+                    
+                    toast('Logged out successfully', 'info', 1000);
+                    
+                    setTimeout(() => {
+                        window.location.href = 'selectmodule.html';
+                    }, 1000);
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                window.location.href = 'selectmodule.html';
             }
         }
 
-        // AUTO CALCULATION & REASONS DROPDOWN LOGIC
+        // AUTO CALCULATION
         function updateNotSaturated(){
             const totalActiveKCC = $('total_active_kcc');
             const totalKCCSaturated = $('total_kcc_saturated');
@@ -927,7 +935,6 @@
             const totalKCCNotSaturated = $('total_kcc_not_saturated');
 
             if (!totalActiveKCC || !totalKCCSaturated || !reasonSelect || !reasonsLabel || !totalKCCNotSaturated) {
-                console.warn('DOM elements not fully loaded for updateNotSaturated. Skipping.');
                 return;
             }
 
@@ -950,7 +957,7 @@
             }
         }
 
-        // CONDITIONAL FIELDS MANAGEMENT
+        // CONDITIONAL FIELDS
         function handleReasonChange(){
             const reasonSelect = $('non_saturation_reason');
             if (!reasonSelect) return;
@@ -958,11 +965,15 @@
             hideConditionalFields();
             
             if (reason === 'opt_out') {
-                $('optOutField').classList.remove('hidden');
-                $('opt_out_holders_count').required = true;
+                const optOutField = $('optOutField');
+                const optOutCount = $('opt_out_holders_count');
+                if (optOutField) optOutField.classList.remove('hidden');
+                if (optOutCount) optOutCount.required = true;
             } else if (reason === 'other') {
-                $('otherReasonField').classList.remove('hidden');
-                $('other_reason_text').required = true;
+                const otherField = $('otherReasonField');
+                const otherText = $('other_reason_text');
+                if (otherField) otherField.classList.remove('hidden');
+                if (otherText) otherText.required = true;
             }
         }
 
@@ -984,50 +995,53 @@
             }
         }
 
-        // ENGLISH ONLY VALIDATION
+        // VALIDATION
         function validateEnglishOnly(text){
             const englishPattern = /^[a-zA-Z0-9\s\.,!?;:'"()-]*$/;
             return englishPattern.test(text);
         }
 
-        // STATE ADMIN FUNCTIONALITY
+        // STATE ADMIN FUNCTIONS
         async function handleStateAdminLogin(){
-            const password = $('adminPassword').value.trim();
+            const passwordInput = $('adminPassword');
+            if (!passwordInput) return;
             
+            const password = passwordInput.value.trim();
             let adminPassFromDB = '9329807288';
 
             try {
-                const { data: settings, error } = await supabase
-                    .from('system_settings')
-                    .select('value')
-                    .eq('key', 'state_admin_password')
-                    .single();
-                if (settings && settings.value) {
-                    adminPassFromDB = settings.value;
+                if (supabase) {
+                    const { data: settings } = await supabase
+                        .from('system_settings')
+                        .select('value')
+                        .eq('key', 'state_admin_password')
+                        .single();
+                    if (settings && settings.value) {
+                        adminPassFromDB = settings.value;
+                    }
                 }
             } catch (err) {
-                console.warn('Could not fetch admin password from DB, using hardcoded default.');
+                console.warn('Could not fetch admin password from DB, using default.');
             }
             
             if (password === adminPassFromDB) {
                 currentUser.role = 'state_admin';
-                $('stateAdminPanel').classList.add('hidden');
-                $('stateAdminSummary').classList.remove('hidden');
-                $('btnExportPDF').classList.remove('hidden');
-                $('userInfo').textContent = `${currentUser.fullName} (STATE ADMIN)`;
-                $('districtNameInViewer').textContent = 'ALL DISTRICTS';
+                const stateAdminPanel = $('stateAdminPanel');
+                if (stateAdminPanel) stateAdminPanel.classList.add('hidden');
                 
-                await loadStateAdminData();
-                toast('SUCCESSFULLY LOGGED IN AS STATE ADMIN', 'success');
                 updateUserInterface();
+                await loadStateAdminData();
+                toast('Successfully logged in as State Admin', 'success');
             } else {
-                toast('INVALID ADMIN PASSWORD', 'danger');
+                toast('Invalid admin password', 'danger');
             }
             
-            $('adminPassword').value = '';
+            passwordInput.value = '';
         }
 
         async function loadStateAdminData(){
+            if (!supabase) return;
+            
             try {
                 const { data, error } = await supabase
                     .from('kcc_entries')
@@ -1035,6 +1049,9 @@
                     .eq('is_current', true);
                 
                 if (error) throw error;
+                
+                const stateTotalsContent = $('stateTotalsContent');
+                if (!stateTotalsContent) return;
                 
                 if (data && data.length > 0) {
                     const districts = new Set(data.map(r => r.district_id)).size;
@@ -1045,7 +1062,7 @@
                         new Date(current.created_at) > new Date(latest.created_at) ? current : latest
                     ).entry_date;
                     
-                    $('stateTotalsContent').innerHTML = `
+                    stateTotalsContent.innerHTML = `
                         <div class="row g-3">
                             <div class="col-md-3"><strong>TOTAL DISTRICTS:</strong> \${districts}</div>
                             <div class="col-md-3"><strong>TOTAL ACTIVE KCC:</strong> \${totalActive}</div>
@@ -1055,71 +1072,81 @@
                         <div class="mt-2"><small>LAST UPDATE: \${lastUpdate || 'N/A'}</small></div>
                     `;
                 } else {
-                    $('stateTotalsContent').innerHTML = '<div class="text-muted">NO DATA AVAILABLE</div>';
+                    stateTotalsContent.innerHTML = '<div class="text-muted">NO DATA AVAILABLE</div>';
                 }
             } catch (err) {
-                console.error('STATE ADMIN DATA ERROR:', err);
-                $('stateTotalsContent').innerHTML = '<div class="text-danger">ERROR LOADING STATE DATA</div>';
+                console.error('State admin data error:', err);
+                const stateTotalsContent = $('stateTotalsContent');
+                if (stateTotalsContent) {
+                    stateTotalsContent.innerHTML = '<div class="text-danger">ERROR LOADING STATE DATA</div>';
+                }
             }
         }
 
-        // VALIDATION
+        // FORM VALIDATION
         async function validateForm(){
             if (!currentUser) {
-                toast('USER NOT LOADED. PLEASE REFRESH PAGE.', 'danger');
+                toast('User not loaded. Please refresh page.', 'danger');
                 return false;
             }
             
-            if (!$('entry_date').value) {
-                toast('PLEASE ENTER ENTRY DATE', 'warning');
+            const entryDate = $('entry_date');
+            if (!entryDate || !entryDate.value) {
+                toast('Please enter entry date', 'warning');
                 return false;
             }
             
-            const active = parseInt($('total_active_kcc').value) || 0;
-            const saturated = parseInt($('total_kcc_saturated').value) || 0;
+            const activeInput = $('total_active_kcc');
+            const saturatedInput = $('total_kcc_saturated');
+            
+            const active = parseInt(activeInput?.value) || 0;
+            const saturated = parseInt(saturatedInput?.value) || 0;
             
             if (active < previousActiveKCC) {
-                toast(`TOTAL ACTIVE KCC (${active}) CANNOT BE LESS THAN PREVIOUS VALUE (${previousActiveKCC})`, 'warning');
+                toast(`Total Active KCC (${active}) cannot be less than previous value (${previousActiveKCC})`, 'warning');
                 return false;
             }
             
             if (saturated < previousSaturatedKCC) {
-                toast(`TOTAL SATURATED KCC (${saturated}) CANNOT BE LESS THAN PREVIOUS VALUE (${previousSaturatedKCC})`, 'warning');
+                toast(`Total Saturated KCC (${saturated}) cannot be less than previous value (${previousSaturatedKCC})`, 'warning');
                 return false;
             }
             
             if (saturated > active) {
-                toast('SATURATED ACCOUNTS CANNOT EXCEED TOTAL ACTIVE ACCOUNTS', 'warning');
+                toast('Saturated accounts cannot exceed total active accounts', 'warning');
                 return false;
             }
             
             const notSaturated = active - saturated;
-            const reason = $('non_saturation_reason').value;
+            const reasonSelect = $('non_saturation_reason');
+            const reason = reasonSelect?.value;
             
             if (notSaturated > 0) {
                 if (!reason) {
-                    toast('PLEASE SELECT A REASON FOR NON-SATURATION', 'warning');
+                    toast('Please select a reason for non-saturation', 'warning');
                     return false;
                 }
                 
                 if (reason === 'opt_out') {
-                    const optOutCount = parseInt($('opt_out_holders_count').value) || 0;
+                    const optOutCountInput = $('opt_out_holders_count');
+                    const optOutCount = parseInt(optOutCountInput?.value) || 0;
                     if (optOutCount < 0) {
-                        toast('OPT OUT COUNT CANNOT BE NEGATIVE', 'warning');
+                        toast('Opt out count cannot be negative', 'warning');
                         return false;
                     }
                     if (optOutCount > notSaturated) {
-                        toast('OPT OUT COUNT CANNOT EXCEED TOTAL NOT SATURATED ACCOUNTS', 'warning');
+                        toast('Opt out count cannot exceed total not saturated accounts', 'warning');
                         return false;
                     }
                 } else if (reason === 'other') {
-                    const otherText = $('other_reason_text').value.trim();
+                    const otherTextInput = $('other_reason_text');
+                    const otherText = otherTextInput?.value?.trim();
                     if (!otherText) {
-                        toast('PLEASE SPECIFY THE OTHER REASON', 'warning');
+                        toast('Please specify the other reason', 'warning');
                         return false;
                     }
                     if (!validateEnglishOnly(otherText)) {
-                        toast('OTHER REASON MUST CONTAIN ONLY ENGLISH CHARACTERS', 'warning');
+                        toast('Other reason must contain only English characters', 'warning');
                         return false;
                     }
                 }
@@ -1130,25 +1157,28 @@
 
         // BUILD LEGACY REASONS TEXT
         function buildLegacyReasonsText(){
-            const reason = $('non_saturation_reason').value;
+            const reasonSelect = $('non_saturation_reason');
+            const reason = reasonSelect?.value;
             if (!reason) return null;
             
             if (reason === 'opt_out') {
-                const count = $('opt_out_holders_count').value;
+                const countInput = $('opt_out_holders_count');
+                const count = countInput?.value || '0';
                 return `OPT OUT (\${count} HOLDERS)`;
             } else if (reason === 'other') {
-                return $('other_reason_text').value.trim();
+                const textInput = $('other_reason_text');
+                return textInput?.value?.trim() || null;
             }
             return null;
         }
 
         // SAVE ENTRY
         async function saveEntry(){
-            console.log('SAVE BUTTON CLICKED');
+            console.log('Save button clicked');
             
             if (!await validateForm()) return;
-            if (!currentUser) {
-                toast('USER NOT LOADED. PLEASE REFRESH PAGE.', 'danger');
+            if (!currentUser || !supabase) {
+                toast('System not ready. Please refresh page.', 'danger');
                 return;
             }
 
@@ -1161,19 +1191,21 @@
                 total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
                 non_saturation_reason: $('non_saturation_reason').value || null,
                 opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
-                other_reason_text: $('other_reason_text').value.trim() || null,
+                other_reason_text: $('other_reason_text').value?.trim() || null,
                 reasons_not_saturated: buildLegacyReasonsText(),
                 created_by: currentUser.id,
                 is_current: true,
                 version_number: 1
             };
 
-            console.log('Payload:', payload);
-
-            $('btnSave').disabled = true;
-            $('status').textContent = 'SAVING...';
+            const saveBtn = $('btnSave');
+            const statusElement = $('status');
+            
+            if (saveBtn) saveBtn.disabled = true;
+            if (statusElement) statusElement.textContent = 'SAVING...';
 
             try {
+                // Mark previous entries as non-current
                 const { error: updateError } = await supabase
                     .from('kcc_entries')
                     .update({ is_current: false })
@@ -1193,13 +1225,13 @@
                     .select();
                 
                 if (insertError) {
-                    console.error('SAVE ERROR:', insertError);
-                    toast('SAVE FAILED: ' + insertError.message, 'danger');
-                    $('status').textContent = 'SAVE FAILED';
+                    console.error('Save error:', insertError);
+                    toast('Save failed: ' + insertError.message, 'danger');
+                    if (statusElement) statusElement.textContent = 'SAVE FAILED';
                 } else {
                     console.log('Save successful:', data);
-                    toast('ENTRY SAVED SUCCESSFULLY!', 'success');
-                    $('status').textContent = 'ENTRY SAVED';
+                    toast('Entry saved successfully!', 'success');
+                    if (statusElement) statusElement.textContent = 'ENTRY SAVED';
                     clearForm();
                     await loadDashboardData();
                     if (currentUser.role === 'state_admin') {
@@ -1207,78 +1239,18 @@
                     }
                 }
             } catch (err) {
-                console.error('SAVE ERROR (catch block):', err);
-                toast('SAVE FAILED', 'danger');
-                $('status').textContent = 'SAVE FAILED';
+                console.error('Save error (catch):', err);
+                toast('Save failed', 'danger');
+                if (statusElement) statusElement.textContent = 'SAVE FAILED';
             } finally {
-                $('btnSave').disabled = false;
-            }
-        }
-
-        // UPDATE ENTRY
-        async function updateEntry(){
-            if (!loadedCurrentRecord) {
-                toast('NO RECORD TO UPDATE. SAVE A NEW ENTRY FIRST.', 'warning');
-                return;
-            }
-            
-            if (!await validateForm()) return;
-
-            const changeReason = $('change_reason').value.trim();
-            if (!changeReason) {
-                toast('CHANGE REASON IS REQUIRED WHEN UPDATING', 'warning');
-                return;
-            }
-
-            const params = {
-                p_predecessor_id: loadedCurrentRecord.id,
-                p_district_id: currentUser.districtId,
-                p_district_name: currentUser.districtName,
-                p_entry_date: $('entry_date').value,
-                p_total_active_kcc: parseInt($('total_active_kcc').value) || 0,
-                p_total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
-                p_total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-                p_created_by: currentUser.id,
-                p_change_reason: changeReason,
-                p_non_saturation_reason: $('non_saturation_reason').value || null,
-                p_opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
-                p_other_reason_text: $('other_reason_text').value.trim() || null,
-                p_reasons_not_saturated: buildLegacyReasonsText()
-            };
-
-            $('btnUpdate').disabled = true;
-            $('status').textContent = 'UPDATING...';
-
-            try {
-                const { data, error } = await supabase.rpc('upsert_kcc_entry', params);
-                
-                if (error) {
-                    console.error('UPDATE ERROR:', error);
-                    toast('UPDATE FAILED: ' + error.message, 'danger');
-                    $('status').textContent = 'UPDATE FAILED';
-                } else {
-                    toast('ENTRY UPDATED SUCCESSFULLY (PREVIOUS VERSION PRESERVED)', 'success');
-                    $('status').textContent = 'ENTRY UPDATED';
-                    $('change_reason').value = '';
-                    clearForm();
-                    await loadDashboardData();
-                    if (currentUser.role === 'state_admin') {
-                        await loadStateAdminData();
-                    }
-                }
-            } catch (err) {
-                console.error('UPDATE ERROR (catch block):', err);
-                toast('UPDATE FAILED', 'danger');
-                $('status').textContent = 'UPDATE FAILED';
-            } finally {
-                $('btnUpdate').disabled = false;
+                if (saveBtn) saveBtn.disabled = false;
             }
         }
 
         // LOAD DASHBOARD DATA
         async function loadDashboardData(){
-            if (!currentUser) {
-                console.warn('loadDashboardData: currentUser not available. Skipping.');
+            if (!currentUser || !supabase) {
+                console.warn('loadDashboardData: prerequisites not available');
                 return; 
             }
             
@@ -1298,29 +1270,41 @@
 
                 const { data: totals } = await queryTotals.maybeSingle();
 
+                const currentTotalsElement = $('currentTotals');
+                const minActiveElement = $('minActiveKCC');
+                const minSaturatedElement = $('minSaturatedKCC');
+                const activeInput = $('total_active_kcc');
+                const saturatedInput = $('total_kcc_saturated');
+
                 if (totals) {
                     previousActiveKCC = totals.total_active_kcc || 0;
                     previousSaturatedKCC = totals.total_kcc_saturated || 0; 
-                    $('minActiveKCC').textContent = previousActiveKCC;
-                    $('minSaturatedKCC').textContent = previousSaturatedKCC; 
-                    $('total_active_kcc').min = previousActiveKCC;
-                    $('total_kcc_saturated').min = previousSaturatedKCC; 
                     
-                    $('currentTotals').innerHTML = `
-                        <div><strong>ACTIVE KCC:</strong> \${totals.total_active_kcc || 0}</div>
-                        <div><strong>SATURATED:</strong> \${totals.total_kcc_saturated || 0}</div>
-                        <div><strong>NOT SATURATED:</strong> \${totals.total_kcc_not_saturated || 0}</div>
-                    `;
+                    if (minActiveElement) minActiveElement.textContent = previousActiveKCC;
+                    if (minSaturatedElement) minSaturatedElement.textContent = previousSaturatedKCC;
+                    if (activeInput) activeInput.min = previousActiveKCC;
+                    if (saturatedInput) saturatedInput.min = previousSaturatedKCC;
+                    
+                    if (currentTotalsElement) {
+                        currentTotalsElement.innerHTML = `
+                            <div><strong>ACTIVE KCC:</strong> \${totals.total_active_kcc || 0}</div>
+                            <div><strong>SATURATED:</strong> \${totals.total_kcc_saturated || 0}</div>
+                            <div><strong>NOT SATURATED:</strong> \${totals.total_kcc_not_saturated || 0}</div>
+                        `;
+                    }
                 } else {
                     previousActiveKCC = 0;
                     previousSaturatedKCC = 0;
-                    $('minActiveKCC').textContent = '0';
-                    $('minSaturatedKCC').textContent = '0';
-                    $('total_active_kcc').min = 0;
-                    $('total_kcc_saturated').min = 0;
-                    $('currentTotals').innerHTML = '<div class="text-muted">NO DATA AVAILABLE</div>';
+                    if (minActiveElement) minActiveElement.textContent = '0';
+                    if (minSaturatedElement) minSaturatedElement.textContent = '0';
+                    if (activeInput) activeInput.min = 0;
+                    if (saturatedInput) saturatedInput.min = 0;
+                    if (currentTotalsElement) {
+                        currentTotalsElement.innerHTML = '<div class="text-muted">NO DATA AVAILABLE</div>';
+                    }
                 }
 
+                // Load recent entries
                 let recentQuery = supabase
                     .from('kcc_entries')
                     .select('entry_date, total_active_kcc, is_current, district_name')
@@ -1333,35 +1317,52 @@
                 }
 
                 const { data: recent } = await recentQuery;
+                const recentEntriesElement = $('recentEntries');
 
-                if (recent && recent.length) {
-                    $('recentEntries').innerHTML = recent.map(r => 
+                if (recent && recent.length && recentEntriesElement) {
+                    recentEntriesElement.innerHTML = recent.map(r => 
                         `<div class="small mb-1">
                             ${r.entry_date} - ${r.total_active_kcc} ACCOUNTS\${(currentUser.role === 'state_admin') ? ` (${r.district_name})` : ''} (CURRENT)
                         </div>`
                     ).join('');
-                } else {
-                    $('recentEntries').innerHTML = '<div class="text-muted">NO RECENT ENTRIES</div>';
+                } else if (recentEntriesElement) {
+                    recentEntriesElement.innerHTML = '<div class="text-muted">NO RECENT ENTRIES</div>';
                 }
                 
                 console.log('Dashboard data loaded successfully');
             } catch (err) {
-                console.error('DASHBOARD LOAD ERROR:', err);
-                $('currentTotals').innerHTML = '<div class="text-muted">ERROR LOADING DATA</div>';
-                $('recentEntries').innerHTML = '<div class="text-muted">ERROR LOADING ENTRIES</div>';
+                console.error('Dashboard load error:', err);
+                const currentTotalsElement = $('currentTotals');
+                const recentEntriesElement = $('recentEntries');
+                if (currentTotalsElement) {
+                    currentTotalsElement.innerHTML = '<div class="text-muted">ERROR LOADING DATA</div>';
+                }
+                if (recentEntriesElement) {
+                    recentEntriesElement.innerHTML = '<div class="text-muted">ERROR LOADING ENTRIES</div>';
+                }
             }
         }
 
         // CLEAR FORM
         function clearForm(){
-            $('entry_date').value = new Date().toISOString().slice(0,10);
-            $('total_active_kcc').value = '';
-            $('total_kcc_saturated').value = '';
-            $('total_kcc_not_saturated').value = '';
-            $('non_saturation_reason').value = '';
-            $('change_reason').value = '';
-            $('changeReasonRow').style.display = 'none';
-            $('btnUpdate').style.display = 'none';
+            const entryDate = $('entry_date');
+            const totalActive = $('total_active_kcc');
+            const totalSaturated = $('total_kcc_saturated');
+            const totalNotSaturated = $('total_kcc_not_saturated');
+            const reasonSelect = $('non_saturation_reason');
+            const changeReason = $('change_reason');
+            const changeReasonRow = $('changeReasonRow');
+            const updateBtn = $('btnUpdate');
+
+            if (entryDate) entryDate.value = new Date().toISOString().slice(0,10);
+            if (totalActive) totalActive.value = '';
+            if (totalSaturated) totalSaturated.value = '';
+            if (totalNotSaturated) totalNotSaturated.value = '';
+            if (reasonSelect) reasonSelect.value = '';
+            if (changeReason) changeReason.value = '';
+            if (changeReasonRow) changeReasonRow.style.display = 'none';
+            if (updateBtn) updateBtn.style.display = 'none';
+            
             loadedCurrentRecord = null;
             hideConditionalFields();
             updateNotSaturated();
@@ -1370,7 +1371,7 @@
         // VIEW RECORDS
         async function showRecords(){
             if (!currentUser) {
-                console.warn('showRecords: currentUser not available. Skipping.');
+                console.warn('showRecords: currentUser not available');
                 return; 
             }
             
@@ -1388,14 +1389,12 @@
 
         // LOAD RECORDS TABLE
         async function loadRecordsTable(fromDate = null, toDate = null, page = 1){
-            if (!currentUser) {
-                console.warn('loadRecordsTable: currentUser not available. Skipping.');
+            if (!currentUser || !supabase) {
+                console.warn('loadRecordsTable: prerequisites not available');
                 return; 
             }
             
             try {
-                console.log('Loading records for district:', currentUser.districtName);
-                
                 const isAdmin = currentUser.role === 'state_admin';
                 const offset = (page - 1) * pageSize;
 
@@ -1419,10 +1418,12 @@
                 const { data, error, count } = await query;
                 
                 const tbody = $('recordsTableBody');
+                if (!tbody) return;
+                
                 tbody.innerHTML = '';
                 
                 if (error) {
-                    console.error('RECORDS QUERY ERROR:', error);
+                    console.error('Records query error:', error);
                     tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">ERROR LOADING RECORDS</td></tr>';
                     return;
                 }
@@ -1430,8 +1431,8 @@
                 if (data && data.length > 0) {
                     totalRecords = count || data.length;
                     totalPages = Math.ceil(totalRecords / pageSize);
+                    currentPage = page;
                     
-                    console.log(`Found ${data.length} records for ${isAdmin ? 'ALL DISTRICTS' : currentUser.districtName}`);
                     data.forEach(record => {
                         const row = document.createElement('tr');
                         const reasonDetails = buildReasonDetails(record);
@@ -1457,18 +1458,22 @@
                     
                     updatePaginationControls();
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="10" class="text-center">NO RECORDS FOUND FOR THIS FILTER</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="10" class="text-center">NO RECORDS FOUND</td></tr>';
                     totalRecords = 0;
                     totalPages = 1;
+                    currentPage = 1;
                     updatePaginationControls();
                 }
             } catch (err) {
-                console.error('LOAD RECORDS ERROR:', err);
-                $('recordsTableBody').innerHTML = '<tr><td colspan="10" class="text-center">ERROR LOADING RECORDS</td></tr>';
+                console.error('Load records error:', err);
+                const tbody = $('recordsTableBody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="10" class="text-center">ERROR LOADING RECORDS</td></tr>';
+                }
             }
         }
 
-        // Helper to build reason details for display
+        // Helper to build reason details
         function buildReasonDetails(record) {
             if (record.non_saturation_reason === 'opt_out') {
                 return `OPT OUT (${record.opt_out_holders_count || 0} HOLDERS)`;
@@ -1484,17 +1489,23 @@
             const startRecord = totalRecords > 0 ? (currentPage - 1) * pageSize + 1 : 0;
             const endRecord = Math.min(currentPage * pageSize, totalRecords);
             
-            $('recordsInfo').textContent = `SHOWING ${startRecord}-${endRecord} OF ${totalRecords} RECORDS`;
-            $('pageInfo').textContent = `PAGE ${currentPage} OF ${totalPages}`;
+            const recordsInfo = $('recordsInfo');
+            const pageInfo = $('pageInfo');
+            const prevBtn = $('btnPrevPage');
+            const nextBtn = $('btnNextPage');
             
-            \$('btnPrevPage').disabled = currentPage <= 1;
-            \$('btnNextPage').disabled = currentPage >= totalPages;
+            if (recordsInfo) recordsInfo.textContent = `SHOWING ${startRecord}-${endRecord} OF ${totalRecords} RECORDS`;
+            if (pageInfo) pageInfo.textContent = `PAGE ${currentPage} OF ${totalPages}`;
+            if (prevBtn) prevBtn.disabled = currentPage <= 1;
+            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
         }
 
         // EDIT RECORD
-        window.editRecord = async function(recordId){
+          window.editRecord = async function(recordId){
+            if (!supabase) return;
+            
             try {
-                console.log('EDITING RECORD:', recordId);
+                console.log('Editing record:', recordId);
                 const { data, error } = await supabase
                     .from('kcc_entries')
                     .select('*')
@@ -1502,64 +1513,139 @@
                     .single(); 
 
                 if (error) {
-                    console.error('EDIT RECORD FETCH ERROR:', error);
+                    console.error('Edit record fetch error:', error);
                     throw error;
                 }
 
-                // Ensure the record belongs to the current user's district unless it's an admin
                 if (currentUser.role !== 'state_admin' && data.district_id !== currentUser.districtId) {
-                    toast('YOU DO NOT HAVE PERMISSION TO EDIT THIS RECORD.', 'danger');
+                    toast('You do not have permission to edit this record.', 'danger');
                     return;
                 }
 
                 loadedCurrentRecord = data;
                 
-                // Fill form with all enhanced fields
-                $('entry_date').value = data.entry_date;
-                $('total_active_kcc').value = data.total_active_kcc || 0;
-                $('total_kcc_saturated').value = data.total_kcc_saturated || 0;
-                $('total_kcc_not_saturated').value = data.total_kcc_not_saturated || 0;
-                $('non_saturation_reason').value = data.non_saturation_reason || '';
-                $('opt_out_holders_count').value = data.opt_out_holders_count || 0;
-                $('other_reason_text').value = data.other_reason_text || '';
+                // Fill form with data
+                const entryDate = $('entry_date');
+                const totalActive = $('total_active_kcc');
+                const totalSaturated = $('total_kcc_saturated');
+                const totalNotSaturated = $('total_kcc_not_saturated');
+                const reasonSelect = $('non_saturation_reason');
+                const optOutCount = $('opt_out_holders_count');
+                const otherText = $('other_reason_text');
+                const updateBtn = $('btnUpdate');
+                const changeReasonRow = $('changeReasonRow');
 
-                // Update previous KCC values for validation
+                if (entryDate) entryDate.value = data.entry_date;
+                if (totalActive) totalActive.value = data.total_active_kcc || 0;
+                if (totalSaturated) totalSaturated.value = data.total_kcc_saturated || 0;
+                if (totalNotSaturated) totalNotSaturated.value = data.total_kcc_not_saturated || 0;
+                if (reasonSelect) reasonSelect.value = data.non_saturation_reason || '';
+                if (optOutCount) optOutCount.value = data.opt_out_holders_count || 0;
+                if (otherText) otherText.value = data.other_reason_text || '';
+
+                // Update validation minimums
                 previousActiveKCC = data.total_active_kcc || 0;
                 previousSaturatedKCC = data.total_kcc_saturated || 0;
-                $('minActiveKCC').textContent = previousActiveKCC;
-                $('minSaturatedKCC').textContent = previousSaturatedKCC;
-                $('total_active_kcc').min = previousActiveKCC;
-                $('total_kcc_saturated').min = previousSaturatedKCC;
+                const minActiveElement = $('minActiveKCC');
+                const minSaturatedElement = $('minSaturatedKCC');
+                if (minActiveElement) minActiveElement.textContent = previousActiveKCC;
+                if (minSaturatedElement) minSaturatedElement.textContent = previousSaturatedKCC;
+                if (totalActive) totalActive.min = previousActiveKCC;
+                if (totalSaturated) totalSaturated.min = previousSaturatedKCC;
                 
                 updateNotSaturated();
                 handleReasonChange();
                 
-                $('btnUpdate').style.display = 'inline-block';
-                $('changeReasonRow').style.display = 'block';
+                if (updateBtn) updateBtn.style.display = 'inline-block';
+                if (changeReasonRow) changeReasonRow.style.display = 'block';
                 
-                // Hide modal and show main form
+                // Hide modal
                 if (viewerModalInstance) {
                     viewerModalInstance.hide();
                 }
                 
-                toast('RECORD LOADED FOR EDITING', 'info');
+                toast('Record loaded for editing', 'info');
             } catch (err) {
-                console.error('EDIT RECORD ERROR:', err);
-                toast('FAILED TO LOAD RECORD FOR EDITING', 'danger');
+                console.error('Edit record error:', err);
+                toast('Failed to load record for editing', 'danger');
             }
         };
 
+        // UPDATE ENTRY
+        async function updateEntry(){
+            if (!loadedCurrentRecord) {
+                toast('No record to update. Save a new entry first.', 'warning');
+                return;
+            }
+            
+            if (!await validateForm()) return;
+
+            const changeReasonInput = $('change_reason');
+            const changeReason = changeReasonInput?.value?.trim();
+            if (!changeReason) {
+                toast('Change reason is required when updating', 'warning');
+                return;
+            }
+
+            const params = {
+                p_predecessor_id: loadedCurrentRecord.id,
+                p_district_id: currentUser.districtId,
+                p_district_name: currentUser.districtName,
+                p_entry_date: $('entry_date').value,
+                p_total_active_kcc: parseInt($('total_active_kcc').value) || 0,
+                p_total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
+                p_total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
+                p_created_by: currentUser.id,
+                p_change_reason: changeReason,
+                p_non_saturation_reason: $('non_saturation_reason').value || null,
+                p_opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
+                p_other_reason_text: $('other_reason_text').value?.trim() || null,
+                p_reasons_not_saturated: buildLegacyReasonsText()
+            };
+
+            const updateBtn = $('btnUpdate');
+            const statusElement = $('status');
+            
+            if (updateBtn) updateBtn.disabled = true;
+            if (statusElement) statusElement.textContent = 'UPDATING...';
+
+            try {
+                const { data, error } = await supabase.rpc('upsert_kcc_entry', params);
+                
+                if (error) {
+                    console.error('Update error:', error);
+                    toast('Update failed: ' + error.message, 'danger');
+                    if (statusElement) statusElement.textContent = 'UPDATE FAILED';
+                } else {
+                    toast('Entry updated successfully (previous version preserved)', 'success');
+                    if (statusElement) statusElement.textContent = 'ENTRY UPDATED';
+                    if (changeReasonInput) changeReasonInput.value = '';
+                    clearForm();
+                    await loadDashboardData();
+                    if (currentUser.role === 'state_admin') {
+                        await loadStateAdminData();
+                    }
+                }
+            } catch (err) {
+                console.error('Update error (catch):', err);
+                toast('Update failed', 'danger');
+                if (statusElement) statusElement.textContent = 'UPDATE FAILED';
+            } finally {
+                if (updateBtn) updateBtn.disabled = false;
+            }
+        }
+
         // EXPORT TO EXCEL
         async function exportToExcel(){
-            if (!currentUser) {
-                console.warn('exportToExcel: currentUser not available. Skipping.');
+            if (!currentUser || !supabase) {
+                console.warn('exportToExcel: prerequisites not available');
                 return; 
             }
             
             try {
                 const isAdmin = currentUser.role === 'state_admin';
-                const fromDate = $('filterFromDate').value;
-                const toDate = $('filterToDate').value;
+                const fromDate = $('filterFromDate')?.value;
+                const toDate = $('filterToDate')?.value;
                 
                 let query = supabase
                     .from('kcc_entries')
@@ -1580,7 +1666,7 @@
                 const { data, error } = await query;
 
                 if (!data || !data.length || error) {
-                    toast('NO DATA TO EXPORT', 'warning');
+                    toast('No data to export', 'warning');
                     return;
                 }
 
@@ -1589,13 +1675,13 @@
                     new Date(current.created_at) > new Date(latest.created_at) ? current : latest
                 );
 
-                // Define exact column headers for Excel
+                // Define column headers
                 const columnHeaders = [
                     'DISTRICT', 'DATE', 'ACTIVE_KCC', 'SATURATED_KCC', 'NOT_SATURATED_KCC', 
                     'REASON_TYPE', 'REASON_DETAILS', 'IS_CURRENT', 'VERSION', 'CREATED_AT', 'CHANGE_REASON'
                 ];
 
-                // Map data to match defined column headers
+                // Map data
                 const worksheetData = data.map(record => ({
                     'DISTRICT': record.district_name || '-',
                     'DATE': record.entry_date || '-',
@@ -1610,10 +1696,10 @@
                     'CHANGE_REASON': record.change_reason || '-'
                 }));
 
-                // Create an empty worksheet
+                // Create worksheet
                 const newWorksheet = XLSX.utils.aoa_to_sheet([]);
 
-                // Add custom header info at the top
+                // Add header info
                 const reportDateTime = new Date().toLocaleString();
                 const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
                 const districtInfo = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
@@ -1626,18 +1712,14 @@
                     [`Report Date: ${dateRangeText}`],
                     [`Generated: ${reportDateTime}`],
                     [`Last Entry: ${lastEntryDateTime}`],
-                    [''], // Empty row for spacing
+                    [''],
                 ];
 
                 XLSX.utils.sheet_add_aoa(newWorksheet, headerInfo, { origin: 'A1' });
-                
-                // Add column headers at row 8
                 XLSX.utils.sheet_add_aoa(newWorksheet, [columnHeaders], { origin: 'A8' });
-
-                // Add data starting from row 9
                 XLSX.utils.sheet_add_json(newWorksheet, worksheetData, { origin: 'A9', skipHeader: true });
 
-                // Apply borders to all used cells
+                // Add borders
                 const range = XLSX.utils.decode_range(newWorksheet['!ref']);
                 for (let R = range.s.r; R <= range.e.r; ++R) {
                     for (let C = range.s.c; C <= range.e.c; ++C) {
@@ -1654,33 +1736,35 @@
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, newWorksheet, 'KCC_DATA');
                 
-                // Set page setup for A4 landscape
+                // Set page setup
                 newWorksheet['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
                 newWorksheet['!printOptions'] = { orientation: 'landscape' };
                 
-                // Filename with full timestamp
+                // Generate filename
                 const now = new Date();
                 const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
                 const fileName = `KCC_DATA_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.xlsx`;
                 XLSX.writeFile(workbook, fileName);
                 
-                toast('EXCEL FILE DOWNLOADED', 'success');
+                toast('Excel file downloaded', 'success');
             } catch (err) {
-                console.error('EXPORT ERROR:', err);
-                toast('EXPORT FAILED', 'danger');
+                console.error('Export error:', err);
+                toast('Export failed', 'danger');
             }
         }
 
-        // PDF EXPORT (for state admin) - Updated with proper formatting
+        // PDF EXPORT
         async function exportToPDF(){
             if (!currentUser || currentUser.role !== 'state_admin') {
-                toast('PDF EXPORT IS ONLY AVAILABLE FOR STATE ADMIN', 'warning');
+                toast('PDF export is only available for State Admin', 'warning');
                 return;
             }
 
+            if (!supabase) return;
+
             try {
-                const fromDate = $('filterFromDate').value;
-                const toDate = $('filterToDate').value;
+                const fromDate = $('filterFromDate')?.value;
+                const toDate = $('filterToDate')?.value;
                 
                 let query = supabase
                     .from('kcc_entries')
@@ -1697,21 +1781,21 @@
                 const { data, error } = await query;
 
                 if (!data || !data.length || error) {
-                    toast('NO DATA TO EXPORT', 'warning');
+                    toast('No data to export', 'warning');
                     return;
                 }
 
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('landscape', 'mm', 'a4');
                 
-                // Set font and ensure black color
+                // Set font and black color
                 doc.setFont('helvetica');
-                doc.setTextColor(0, 0, 0); // Black color
+                doc.setTextColor(0, 0, 0);
 
-                // Header as requested
+                // Header
                 doc.setFontSize(16);
                 doc.setFont(undefined, 'bold');
-                doc.text('Directorate Agriculture Chhattisgarh', 148, 20, { align: 'center' }); // Centered
+                doc.text('Directorate Agriculture Chhattisgarh', 148, 20, { align: 'center' });
                 
                 doc.setFontSize(14);
                 doc.text('Daily KCC Saturation Report Under PMFBY Season Kharif 2025', 148, 28, { align: 'center' });
@@ -1719,7 +1803,6 @@
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
                 
-                // Report date range
                 const dateRangeText = (fromDate || toDate) ? `${fromDate || 'START'} to ${toDate || 'END'}` : 'All Dates';
                 doc.text(`Report Date: ${dateRangeText}`, 20, 38);
                 doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 45);
@@ -1730,7 +1813,6 @@
                     'REASON TYPE', 'DETAILS', 'CURRENT', 'VER'
                 ];
                 
-                // Column widths - adjust as needed for landscape A4
                 const colWidths = [28, 22, 20, 20, 22, 25, 35, 16, 12];
                 const startY = 55;
                 let currentY = startY;
@@ -1742,18 +1824,16 @@
                 // Draw header row with borders
                 let cellX = startX;
                 headers.forEach((header, i) => {
-                    // Draw cell border
                     doc.rect(cellX, currentY - 5, colWidths[i], 8);
-                    // Center text in cell
                     doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' });
                     cellX += colWidths[i];
                 });
                 
-                currentY += 8; // Move down for data rows
+                currentY += 8;
                 doc.setFont(undefined, 'normal');
                 
                 // Table data with borders
-                data.slice(0, 50).forEach((record) => { // Limit to 50 records for PDF
+                data.slice(0, 50).forEach((record) => {
                     const rowData = [
                         record.district_name || '-',
                         record.entry_date || '-',
@@ -1761,28 +1841,26 @@
                         (record.total_kcc_saturated || 0).toString(),
                         (record.total_kcc_not_saturated || 0).toString(),
                         (record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'),
-                        buildReasonDetails(record).substring(0, 20), // Truncate for space
+                        buildReasonDetails(record).substring(0, 20),
                         record.is_current ? 'YES' : 'NO',
                         (record.version_number || 1).toString()
                     ];
                     
                     cellX = startX;
                     rowData.forEach((cell, i) => {
-                        // Draw cell border
                         doc.rect(cellX, currentY - 5, colWidths[i], 7);
-                        // Add text with small padding
                         doc.text(cell, cellX + 2, currentY, { maxWidth: colWidths[i] - 4 });
                         cellX += colWidths[i];
                     });
                     
-                    currentY += 7; // Row height
+                    currentY += 7;
 
                     // Add new page if needed
                     if (currentY > (doc.internal.pageSize.height - 20)) {
                         doc.addPage();
                         currentY = 20;
                         
-                        // Redraw headers on new page
+                        // Redraw headers
                         doc.setFont(undefined, 'bold');
                         cellX = startX;
                         headers.forEach((header, i) => {
@@ -1801,46 +1879,49 @@
                 const fileName = `KCC_REPORT_ALL_DISTRICTS_${timestamp}.pdf`;
                 doc.save(fileName);
                 
-                toast('PDF FILE DOWNLOADED', 'success');
+                toast('PDF file downloaded', 'success');
             } catch (err) {
-                console.error('PDF EXPORT ERROR:', err);
-                toast('PDF EXPORT FAILED', 'danger');
+                console.error('PDF export error:', err);
+                toast('PDF export failed', 'danger');
             }
         }
 
-        // DATE FILTER FUNCTIONS
+        // FILTER FUNCTIONS
         function applyDateFilter(){
-            const fromDate = $('filterFromDate');
-            const toDate = $('filterToDate');
+            const fromDateInput = $('filterFromDate');
+            const toDateInput = $('filterToDate');
             
-            if (!fromDate || !toDate) return;
+            if (!fromDateInput || !toDateInput) return;
 
-            if (fromDate.value && toDate.value && fromDate.value > toDate.value) {
-                toast('FROM DATE CANNOT BE LATER THAN TO DATE', 'warning');
+            const fromDate = fromDateInput.value;
+            const toDate = toDateInput.value;
+
+            if (fromDate && toDate && fromDate > toDate) {
+                toast('From date cannot be later than to date', 'warning');
                 return;
             }
             
-            currentFilters.fromDate = fromDate.value;
-            currentFilters.toDate = toDate.value;
+            currentFilters.fromDate = fromDate;
+            currentFilters.toDate = toDate;
             currentPage = 1;
-            loadRecordsTable(fromDate.value, toDate.value, 1);
-            toast('FILTER APPLIED', 'success', 1500);
+            loadRecordsTable(fromDate, toDate, 1);
+            toast('Filter applied', 'success', 1500);
         }
 
         function clearDateFilter(){
-            const fromDate = $('filterFromDate');
-            const toDate = $('filterToDate');
+            const fromDateInput = $('filterFromDate');
+            const toDateInput = $('filterToDate');
 
-            if (fromDate) fromDate.value = '';
-            if (toDate) toDate.value = '';
+            if (fromDateInput) fromDateInput.value = '';
+            if (toDateInput) toDateInput.value = '';
             currentFilters.fromDate = null;
             currentFilters.toDate = null;
             currentPage = 1;
             loadRecordsTable(null, null, 1);
-            toast('FILTER CLEARED', 'info', 1500);
+            toast('Filter cleared', 'info', 1500);
         }
 
-        // PAGINATION FUNCTIONS
+        // PAGINATION
         function goToPage(page) {
             if (page >= 1 && page <= totalPages) {
                 currentPage = page;
@@ -1860,54 +1941,59 @@
             }
         }
 
-        // INITIALIZATION AND EVENT LISTENERS
+        // INITIALIZATION
         async function initializeApp() {
-            console.log('INITIALIZING KCC PORTAL...');
+            console.log('🚀 Initializing KCC Portal...');
             
-            // Set initial date
-            const entryDateElement = $('entry_date');
-            if (entryDateElement) {
-                entryDateElement.value = new Date().toISOString().slice(0,10);
-            } else {
-                console.error('ENTRY DATE ELEMENT NOT FOUND. CRITICAL ERROR. ABORTING INIT.');
-                toast('INITIALIZATION FAILED: ENTRY DATE ELEMENT MISSING.', 'danger');
-                return;
-            }
-            
-            // Get current user
-            const user = await getLoggedInUser();
-            
-            if (user) {
-                updateUserInterface();
-                await loadDashboardData();
-            } else {
-                console.error('INITIALIZATION ABORTED: USER NOT LOADED.');
-                return; 
-            }
-            
-            // Initialize Bootstrap modal instance
-            const viewerModalElement = $('viewerModal');
-            if (viewerModalElement) {
-                viewerModalInstance = new bootstrap.Modal(viewerModalElement);
-            } else {
-                console.error('VIEWER MODAL ELEMENT NOT FOUND. MODAL FUNCTIONALITY WILL BE LIMITED.');
-                toast('WARNING: VIEWER MODAL ELEMENT MISSING.', 'warning');
-            }
+            try {
+                // Get current user first
+                currentUser = getCurrentUser();
+                if (!currentUser) {
+                    toast('Session expired. Redirecting to login...', 'danger', 2000);
+                    setTimeout(() => {
+                        window.location.href = 'selectmodule.html';
+                    }, 2000);
+                    return;
+                }
 
-            // Attach event listeners
-            attachEventListeners();
-            
-            // Initial call to update not saturated
-            updateNotSaturated(); 
-            
-            console.log('KCC PORTAL INITIALIZED SUCCESSFULLY');
-            if (currentUser) {
-                toast(`WELCOME ${currentUser.fullName}!`, 'success');
+                console.log('✓ User loaded:', currentUser.username || currentUser.fullName);
+
+                // Set initial date
+                const entryDateElement = $('entry_date');
+                if (entryDateElement) {
+                    entryDateElement.value = new Date().toISOString().slice(0,10);
+                }
+
+                // Update UI
+                updateUserInterface();
+
+                // Load dashboard data
+                await loadDashboardData();
+
+                // Initialize modal
+                const viewerModalElement = $('viewerModal');
+                if (viewerModalElement) {
+                    viewerModalInstance = new bootstrap.Modal(viewerModalElement);
+                    console.log('✓ Modal initialized');
+                }
+
+                // Attach event listeners
+                attachEventListeners();
+                
+                // Initial calculations
+                updateNotSaturated();
+                
+                console.log('✅ KCC Portal initialized successfully');
+                toast(`Welcome ${currentUser.fullName || currentUser.username}!`, 'success');
+                
+            } catch (error) {
+                console.error('❌ Initialization failed:', error);
+                toast('Initialization failed: ' + error.message, 'danger');
             }
         }
 
         function attachEventListeners() {
-            console.log('ATTACHING EVENT LISTENERS...');
+            console.log('🔗 Attaching event listeners...');
             
             // Form event listeners
             const totalActiveKCC = $('total_active_kcc');
@@ -1915,17 +2001,27 @@
             const nonSaturationReason = $('non_saturation_reason');
             const otherReasonText = $('other_reason_text');
 
-            if (totalActiveKCC) totalActiveKCC.addEventListener('input', updateNotSaturated);
-            if (totalKCCSaturated) totalKCCSaturated.addEventListener('input', updateNotSaturated);
-            if (nonSaturationReason) nonSaturationReason.addEventListener('change', handleReasonChange);
+            if (totalActiveKCC) {
+                totalActiveKCC.addEventListener('input', updateNotSaturated);
+                console.log('✓ Active KCC input listener attached');
+            }
+            if (totalKCCSaturated) {
+                totalKCCSaturated.addEventListener('input', updateNotSaturated);
+                console.log('✓ Saturated KCC input listener attached');
+            }
+            if (nonSaturationReason) {
+                nonSaturationReason.addEventListener('change', handleReasonChange);
+                console.log('✓ Reason change listener attached');
+            }
             if (otherReasonText) {
                 otherReasonText.addEventListener('input', function() {
                     if (!validateEnglishOnly(this.value)) {
-                        this.setCustomValidity('ONLY ENGLISH CHARACTERS ARE ALLOWED');
+                        this.setCustomValidity('Only English characters are allowed');
                     } else {
                         this.setCustomValidity('');
                     }
                 });
+                console.log('✓ Other reason validation listener attached');
             }
             
             // Button event listeners
@@ -1941,9 +2037,17 @@
                 { id: 'btnClearFilter', handler: clearDateFilter },
                 { id: 'btnPrevPage', handler: previousPage },
                 { id: 'btnNextPage', handler: nextPage },
-                { id: 'btnStateAdmin', handler: () => $('stateAdminPanel').classList.toggle('hidden') },
+                { id: 'btnStateAdmin', handler: () => {
+                    const panel = $('stateAdminPanel');
+                    if (panel) panel.classList.toggle('hidden');
+                }},
                 { id: 'btnAdminLogin', handler: handleStateAdminLogin },
-                { id: 'btnCancelAdmin', handler: () => { $('stateAdminPanel').classList.add('hidden'); $('adminPassword').value = ''; } },
+                { id: 'btnCancelAdmin', handler: () => { 
+                    const panel = $('stateAdminPanel');
+                    const password = $('adminPassword');
+                    if (panel) panel.classList.add('hidden'); 
+                    if (password) password.value = ''; 
+                }},
                 { id: 'btnLogout', handler: handleLogout }
             ];
             
@@ -1951,32 +2055,26 @@
                 const btn = $(id);
                 if (btn) {
                     btn.addEventListener('click', handler);
-                    console.log(`✓ BUTTON ${id} LISTENER ATTACHED`);
+                    console.log(`✓ ${id} listener attached`);
                 } else {
-                    console.warn(`⚠ BUTTON ${id} NOT FOUND IN DOM. Skipping listener attachment.`);
+                    console.warn(`⚠ ${id} not found`);
                 }
             });
             
-            console.log('ALL EVENT LISTENERS ATTACHED SUCCESSFULLY');
+            console.log('✅ All event listeners attached');
         }
 
-        // MAIN INITIALIZATION TRIGGER
+        // MAIN INITIALIZATION
         document.addEventListener('DOMContentLoaded', async () => {
-            console.log('=== KCC PORTAL STARTING ===');
-            
-            try {
-                await initializeApp();
-                console.log('=== KCC PORTAL READY ===');
-            } catch (error) {
-                console.error('INITIALIZATION FAILED:', error);
-                toast('CRITICAL INITIALIZATION FAILED: ' + error.message, 'danger');
-            }
+            console.log('📄 DOM loaded, starting initialization...');
+            await initializeApp();
         });
 
         // Prevent form submission
         document.addEventListener('submit', e => e.preventDefault());
+
+        console.log('📜 Script loaded successfully');
     </script>
 </body>
 </html>
-
 
