@@ -9,7 +9,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* Admin Panel Theme */
             --admin-primary: #176531;
             --admin-secondary: #388E3C;
             --admin-accent: #8BC34A;
@@ -41,14 +40,12 @@
             flex-direction: column;
         }
 
-        /* Hindi text styling */
         .hindi {
             font-weight: 500;
             letter-spacing: 0.3px;
             line-height: 1.5;
         }
 
-        /* Header and Navbar Styles */
         .header {
             background-color: var(--primary-bg-color);
             box-shadow: var(--shadow);
@@ -94,7 +91,6 @@
             background-color: rgba(255, 255, 255, 0.2);
         }
 
-        /* Main Content Container */
         .main-content-container {
             flex-grow: 1;
             display: flex;
@@ -103,10 +99,9 @@
             padding: 60px 20px;
         }
 
-        /* Card Styles */
         .card {
             width: 100%;
-            max-width: 600px; /* Wider card for modules */
+            max-width: 600px;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: var(--shadow);
@@ -136,7 +131,6 @@
             border-bottom-right-radius: 12px;
         }
 
-        /* Form Styles */
         .form-label {
             font-weight: 600;
             color: var(--text-dark);
@@ -194,7 +188,6 @@
             transform: translateY(1px);
         }
         
-        /* Alert Styles */
         .alert {
             border-radius: 8px;
             font-weight: 500;
@@ -209,7 +202,6 @@
             color: #C62828;
         }
 
-        /* Footer Styles */
         .footer {
             text-align: center;
             padding: 20px;
@@ -218,37 +210,39 @@
             font-weight: 500;
         }
 
-        /* Responsive adjustments */
+        .admin-form-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding-top: 20px;
+        }
+
+        .admin-module-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .admin-module-list li {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         @media (max-width: 768px) {
-            .navbar-brand {
-                font-size: 1.3rem;
-            }
-            
-            .navbar-brand img {
-                height: 35px;
-            }
-            
-            .card-header {
-                padding: 25px 30px;
-            }
-            
-            .card-body {
-                padding: 30px 25px;
-            }
-            
-            .card-header h2 {
-                font-size: 1.8rem;
-            }
-            
-            .submit-btn-custom {
-                width: 100%;
-            }
+            .navbar-brand { font-size: 1.3rem; }
+            .navbar-brand img { height: 35px; }
+            .card-header { padding: 25px 30px; }
+            .card-body { padding: 30px 25px; }
+            .card-header h2 { font-size: 1.8rem; }
+            .submit-btn-custom { width: 100%; }
         }
         
         @media (max-width: 576px) {
-            .main-content-container {
-                padding: 30px 15px;
-            }
+            .main-content-container { padding: 30px 15px; }
         }
     </style>
 </head>
@@ -271,7 +265,7 @@
     </header>
 
     <div class="main-content-container">
-        <div class="card">
+        <div id="mainUI" class="card" style="display: none;">
             <div class="card-header">
                 <h4 class="hindi">मॉड्यूल चयन</h4>
                 <p class="mb-0 text-light hindi" id="welcomeMessage">नमस्ते!</p>
@@ -283,14 +277,43 @@
                     <div class="mb-4">
                         <p class="hindi">कृपया वह मॉड्यूल चुनें जिसे आप एक्सेस करना चाहते हैं:</p>
                         <div id="moduleOptions" class="d-flex flex-column">
-                            <!-- Radio buttons will be dynamically inserted here -->
-                        </div>
+                            </div>
                     </div>
                     
                     <button type="submit" class="btn submit-btn-custom">
                         <i class="fas fa-arrow-right me-2"></i> <span class="hindi">आगे बढ़ें</span>
                     </button>
                 </form>
+            </div>
+        </div>
+
+        <div id="adminUI" class="card" style="display: none;">
+            <div class="card-header">
+                <h4 class="hindi">एडमिन डैशबोर्ड - मॉड्यूल प्रबंधन</h4>
+                <p class="mb-0 text-light hindi">नए मॉड्यूल बनाएं या मौजूदा प्रबंधित करें।</p>
+            </div>
+            <div class="card-body">
+                <div id="adminAlertBox" class="alert alert-info" style="display: none;"></div>
+                
+                <form id="adminModuleForm">
+                    <div class="mb-3">
+                        <label for="moduleName" class="form-label hindi">मॉड्यूल का नाम (केवल जिला उपयोगकर्ता के लिए)</label>
+                        <input type="text" class="form-control" id="moduleName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filePath" class="form-label hindi">फ़ाइल पथ (e.g., source.html)</label>
+                        <input type="text" class="form-control" id="filePath" required>
+                    </div>
+                    <button type="submit" class="btn submit-btn-custom">
+                        <i class="fas fa-plus me-2"></i> <span class="hindi">मॉड्यूल जोड़ें</span>
+                    </button>
+                </form>
+
+                <hr class="my-4">
+                
+                <h5 class="hindi mb-3">मौजूदा जिला उपयोगकर्ता मॉड्यूल</h5>
+                <ul id="adminModuleList" class="admin-module-list">
+                    </ul>
             </div>
         </div>
     </div>
@@ -302,7 +325,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <script>
-        // Supabase configuration (needed for consistency, though not directly used for module selection logic here)
+        // Supabase configuration
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
@@ -310,12 +333,11 @@
         const { createClient } = supabase;
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-        let currentUser = null; // Will store the logged-in user data
+        let currentUser = null;
 
         // --- Helper Functions ---
-
-        function showAlert(message, type) {
-            const alertBox = document.getElementById('alertBox');
+        function showAlert(message, type, elementId = 'alertBox') {
+            const alertBox = document.getElementById(elementId);
             alertBox.textContent = message;
             alertBox.className = `alert alert-${type} hindi`;
             alertBox.style.display = 'block';
@@ -327,39 +349,33 @@
 
         function handleLogout() {
             if (confirm('क्या आप लॉगआउट करना चाहते हैं?')) {
-                localStorage.removeItem('user'); // Clear user from local storage
-                sessionStorage.removeItem('user'); // Clear user from session storage
-                window.location.href = 'login.html'; // Redirect to login page
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = 'login.html';
             }
         }
-
+        
         // --- Main Logic ---
-
-        // Define module mappings based on roles
-        const moduleMapping = {
-            'district_user': [
-                { name: 'केसीसी मॉड्यूल', file: 'districtentryform.html' }
-            ],
+        const staticModules = {
             'admin': [
                 { name: 'केसीसी मॉड्यूल', file: 'districtentryform.html' },
-                { name: 'एडमिन डैशबोर्ड', file: 'admin_all.html' } // Assuming admin_all.html is the admin dashboard
+                { name: 'एडमिन डैशबोर्ड', file: 'admin_all.html' }
             ],
             'state_admin': [
                 { name: 'केसीसी मॉड्यूल', file: 'districtentryform.html' },
                 { name: 'एडमिन डैशबोर्ड', file: 'admin_all.html' },
-                { name: 'जीटीएस मॉड्यूल', file: 'gts_module.html' } // Example for GTS Module
+                { name: 'जीटीएस मॉड्यूल', file: 'gts_module.html' }
             ]
         };
 
-        // Function to load user from storage and initialize page
-        function initializePage() {
+        async function initializePage() {
             const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            const mainUI = document.getElementById('mainUI');
+            const adminUI = document.getElementById('adminUI');
 
             if (!storedUser) {
                 showAlert('सत्र समाप्त हो गया है या आप लॉग इन नहीं हैं। कृपया पुनः लॉगिन करें।', 'danger');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 1500);
+                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
                 return;
             }
 
@@ -367,69 +383,158 @@
                 currentUser = JSON.parse(storedUser);
                 document.getElementById('welcomeMessage').textContent = `नमस्ते, ${currentUser.fullName || currentUser.username}!`;
                 document.getElementById('userInfo').textContent = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
-                renderModuleOptions();
+                
+                // Show the appropriate UI based on the user's role
+                if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
+                    mainUI.style.display = 'block';
+                    adminUI.style.display = 'block';
+                    renderStaticModules();
+                    fetchAndRenderDistrictModules();
+                } else if (currentUser.role === 'district_user') {
+                    mainUI.style.display = 'block';
+                    fetchAndRenderDistrictModules();
+                } else {
+                    showAlert('आपके खाते के लिए कोई मॉड्यूल उपलब्ध नहीं है। कृपया व्यवस्थापक से संपर्क करें।', 'danger');
+                    document.querySelector('button[type="submit"]').disabled = true;
+                }
             } catch (e) {
                 showAlert('उपयोगकर्ता डेटा लोड करने में त्रुटि। कृपया पुनः लॉगिन करें।', 'danger');
                 console.error('Error parsing user data:', e);
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
-                setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 1500);
+                setTimeout(() => { window.location.href = 'login.html'; }, 1500);
             }
         }
 
-        // Function to render module radio buttons based on user role
-        function renderModuleOptions() {
+        function renderStaticModules() {
             const moduleOptionsDiv = document.getElementById('moduleOptions');
-            moduleOptionsDiv.innerHTML = ''; // Clear previous options
-
-            const userRole = currentUser.role;
-            const availableModules = moduleMapping[userRole] || [];
-
-            if (availableModules.length === 0) {
-                moduleOptionsDiv.innerHTML = '<p class="hindi text-danger">आपके खाते के लिए कोई मॉड्यूल उपलब्ध नहीं है। कृपया व्यवस्थापक से संपर्क करें।</p>';
-                document.querySelector('button[type="submit"]').disabled = true;
-                return;
-            }
+            const availableModules = staticModules[currentUser.role] || [];
 
             availableModules.forEach((module, index) => {
                 const div = document.createElement('div');
                 div.className = 'form-check';
                 div.innerHTML = `
-                    <input class="form-check-input" type="radio" name="selectedModule" id="module${index}" value="${module.file}" required>
-                    <label class="form-check-label hindi" for="module${index}">
+                    <input class="form-check-input" type="radio" name="selectedModule" id="module${module.name.replace(/\s/g, '')}" value="${module.file}" required>
+                    <label class="form-check-label hindi" for="module${module.name.replace(/\s/g, '')}">
                         ${module.name}
                     </label>
                 `;
                 moduleOptionsDiv.appendChild(div);
             });
+        }
+        
+        async function fetchAndRenderDistrictModules() {
+            const moduleOptionsDiv = document.getElementById('moduleOptions');
+            const adminModuleList = document.getElementById('adminModuleList');
             
-            // Auto-select the first option if only one
-            if (availableModules.length === 1) {
-                document.getElementById('module0').checked = true;
+            const { data, error } = await supabaseClient
+                .from('modules')
+                .select('*')
+                .order('module_name', { ascending: true });
+
+            if (error) {
+                console.error('Error fetching modules:', error.message);
+                showAlert('मॉड्यूल लोड करने में त्रुटि।', 'danger');
+                return;
+            }
+
+            // Render for the user selection
+            if (currentUser.role === 'district_user') {
+                if (data.length === 0) {
+                    moduleOptionsDiv.innerHTML = '<p class="hindi text-danger">आपके खाते के लिए कोई मॉड्यूल उपलब्ध नहीं है। कृपया व्यवस्थापक से संपर्क करें।</p>';
+                    document.querySelector('button[type="submit"]').disabled = true;
+                }
+                data.forEach((module, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'form-check';
+                    div.innerHTML = `
+                        <input class="form-check-input" type="radio" name="selectedModule" id="dynamicModule${index}" value="${module.file_path}" required>
+                        <label class="form-check-label hindi" for="dynamicModule${index}">
+                            ${module.module_name}
+                        </label>
+                    `;
+                    moduleOptionsDiv.appendChild(div);
+                });
+                if (data.length + (staticModules[currentUser.role]?.length || 0) === 1) {
+                    document.getElementById('dynamicModule0').checked = true;
+                }
+            }
+
+            // Render for the admin list
+            if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
+                adminModuleList.innerHTML = '';
+                data.forEach(module => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span>
+                            <strong>${module.module_name}</strong> - ${module.file_path}
+                        </span>
+                        <button class="btn btn-danger btn-sm delete-btn" data-id="${module.id}"><i class="fas fa-trash"></i></button>
+                    `;
+                    adminModuleList.appendChild(li);
+                });
             }
         }
 
-        // Handle form submission for module selection
+        // Handle form submission for module selection (for all users)
         document.getElementById('moduleSelectionForm').addEventListener('submit', function(event) {
             event.preventDefault();
             
             const selectedRadio = document.querySelector('input[name="selectedModule"]:checked');
             if (selectedRadio) {
-                const selectedFile = selectedRadio.value;
-                window.location.href = selectedFile; // Redirect to the selected module page
+                window.location.href = selectedRadio.value;
             } else {
                 showAlert('कृपया एक मॉड्यूल का चयन करें।', 'danger');
             }
         });
 
-        // Event listener for Logout button
+        // Handle form submission for admin to add new modules
+        document.getElementById('adminModuleForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const moduleName = document.getElementById('moduleName').value;
+            const filePath = document.getElementById('filePath').value;
+            const adminAlert = document.getElementById('adminAlertBox');
+
+            const { data, error } = await supabaseClient
+                .from('modules')
+                .insert([{
+                    module_name: moduleName,
+                    file_path: filePath,
+                    access_role: 'district_user'
+                }]);
+
+            if (error) {
+                console.error('Error adding module:', error.message);
+                showAlert('त्रुटि: मॉड्यूल जोड़ा नहीं जा सका।', 'danger', 'adminAlertBox');
+            } else {
+                showAlert('मॉड्यूल सफलतापूर्वक जोड़ा गया!', 'success', 'adminAlertBox');
+                document.getElementById('adminModuleForm').reset();
+                fetchAndRenderDistrictModules();
+            }
+        });
+
+        // Handle module deletion for admin
+        document.getElementById('adminModuleList').addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-btn')) {
+                const id = e.target.getAttribute('data-id');
+                if (confirm('क्या आप वाकई इस मॉड्यूल को हटाना चाहते हैं?')) {
+                    const { error } = await supabaseClient
+                        .from('modules')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) {
+                        console.error('Error deleting module:', error.message);
+                        showAlert('मॉड्यूल हटाते समय त्रुटि हुई।', 'danger', 'adminAlertBox');
+                    } else {
+                        fetchAndRenderDistrictModules();
+                    }
+                }
+            }
+        });
+
         document.getElementById('btnLogout').addEventListener('click', handleLogout);
-
-        // Initialize page on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', initializePage);
-
     </script>
 </body>
 </html>
