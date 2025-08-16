@@ -381,7 +381,7 @@
 
             try {
                 currentUser = JSON.parse(storedUser);
-                // Trim whitespace from the role to ensure a perfect match
+                // Trim whitespace from the role to ensure a perfect match with static values
                 currentUser.role = currentUser.role.trim(); 
                 
                 document.getElementById('welcomeMessage').textContent = `नमस्ते, ${currentUser.fullName || currentUser.username}!`;
@@ -433,7 +433,7 @@
             const { data, error } = await supabaseClient
                 .from('modules')
                 .select('*')
-                .eq('access_role', 'district_user') // Always query for the specific role
+                .ilike('access_role', 'district_user%') // Use ilike with a wildcard to handle padding
                 .order('module_name', { ascending: true });
 
             if (error) {
@@ -457,7 +457,7 @@
                             ${module.module_name}
                         </label>
                     `;
-                    moduleOptionsDiv.appendChild(div);
+                moduleOptionsDiv.appendChild(div);
                 });
                 if (data.length + (staticModules[currentUser.role]?.length || 0) === 1) {
                     document.getElementById('dynamicModule0').checked = true;
