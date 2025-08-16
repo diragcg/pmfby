@@ -196,7 +196,7 @@
     <div style="font-weight:bold;">KCC DATA ENTRY - DIRECTORATE OF AGRICULTURE CHHATTISGARH</div>
     <div style="margin-left:auto;">
       <span id="userInfo" class="me-3">LOADING USER...</span>
-      <button id="btnStateAdmin" class="btn btn-sm btn-outline-light me-2 hidden">STATE ADMIN</button>
+      <button id="btnStateAdmin" class="btn btn-sm btn-outline-light me-2">STATE ADMIN</button> <!-- Removed 'hidden' class -->
       <button id="btnLogout" class="btn btn-sm btn-outline-light">LOGOUT</button>
     </div>
   </div>
@@ -504,12 +504,12 @@
       
       // Show/hide State Admin button based on role
       if (currentUser.role === 'state_admin') {
-          $('btnStateAdmin').classList.remove('hidden');
+          // btnStateAdmin is already visible by default in HTML
           $('btnExportPDF').classList.remove('hidden'); // Show PDF export for admin
           $('stateAdminSummary').classList.remove('hidden'); // Show admin summary
           loadStateAdminData(); // Load admin data if admin
       } else {
-          $('btnStateAdmin').classList.add('hidden');
+          // btnStateAdmin is already visible by default in HTML
           $('btnExportPDF').classList.add('hidden');
           $('stateAdminSummary').classList.add('hidden'); // Hide admin summary
       }
@@ -1245,9 +1245,10 @@
           'CHANGE_REASON': record.change_reason || '-'
         }));
 
-        const worksheet = XLSX.utils.json_to_sheet(worksheetData, { header: columnHeaders });
-        
-        // Add header information above the data
+        // Create an empty worksheet
+        const newWorksheet = XLSX.utils.aoa_to_sheet([]);
+
+        // Add custom header info at the top
         const reportDateTime = new Date().toLocaleString();
         const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
         const districtInfo = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
@@ -1259,18 +1260,6 @@
           [''], // Empty row for spacing
         ];
 
-        XLSX.utils.sheet_add_aoa(worksheet, headerInfo, { origin: 'A1' });
-        // The json_to_sheet already created headers. Adjust range for existing data to start after new header
-        // Assuming original headers were at row 1, now they are at row 5.
-        // So, the data should start right after the headers (row 6)
-        // No, json_to_sheet with header option creates headers.
-        // We added custom header info at A1. The sheet_add_json adds data at A5 with its own headers.
-        // Let's re-do this logic to prevent duplication and ensure correct alignment.
-        
-        // Create an empty worksheet
-        const newWorksheet = XLSX.utils.aoa_to_sheet([]);
-
-        // Add custom header info at the top
         XLSX.utils.sheet_add_aoa(newWorksheet, headerInfo, { origin: 'A1' });
         
         // Add column headers (DOS-like) at row 5
@@ -1301,7 +1290,8 @@
         newWorksheet['!printOptions'] = { orientation: 'landscape' };
         
         // Filename with full timestamp
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // YYYY-MM-DDTHH-MM-SS-sssZ
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
         const fileName = `KCC_DATA_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.xlsx`;
         XLSX.writeFile(workbook, fileName);
         
@@ -1435,7 +1425,8 @@
         }
         doc.line(currentColumnX, startY + 3, currentColumnX, currentY - 4); // Last vertical line
 
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const now = new Date();
+        const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
         const fileName = `KCC_REPORT_ALL_DISTRICTS_${timestamp}.pdf`;
         doc.save(fileName);
         
@@ -1500,9 +1491,9 @@
       if (entryDateElement) {
         entryDateElement.value = new Date().toISOString().slice(0,10);
       } else {
-        console.error('ENTRY DATE ELEMENT NOT FOUND. CRITICAL ERROR.');
+        console.error('ENTRY DATE ELEMENT NOT FOUND. CRITICAL ERROR. ABORTING INIT.');
         toast('INITIALIZATION FAILED: ENTRY DATE ELEMENT MISSING.', 'danger');
-        return;
+        return; // Abort if critical element is missing
       }
       
       // Get current user
@@ -1567,7 +1558,7 @@
         { id: 'btnUpdate', handler: updateEntry },
         { id: 'btnClear', handler: clearForm },
         { id: 'btnViewRecords', handler: showRecords }, // Triggers modal
-        { id: 'btnBackToForm', handler: showForm }, // This button is inside the modal footer now
+        { id: 'btnBackToForm', handler: showForm }, // This button is inside the modal footer now (used by modal's close button too)
         { id: 'btnRefresh', handler: loadDashboardData },
         { id: 'btnExportExcel', handler: exportToExcel },
         { id: 'btnExportPDF', handler: exportToPDF },
