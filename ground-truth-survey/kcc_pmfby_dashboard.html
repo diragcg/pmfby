@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>KCC Data Entry - Directorate of Agriculture Chhattisgarh</title>
+  <title>KCC-PMFBY SATURATION - Directorate of Agriculture Chhattisgarh</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body{
@@ -45,7 +45,20 @@
       font-family: Arial, sans-serif;
     }
     .hidden{display:none;}
-    .toast-area{position:fixed;right:20px;bottom:20px;z-index:4000;}
+    .toast-area{
+      position:fixed;
+      top: 20px; /* Position from top */
+      left: 50%; /* Center horizontally */
+      transform: translateX(-50%); /* Adjust for exact centering */
+      z-index:4000;
+      width: auto; /* Adjust width based on content */
+      max-width: 80%; /* Max width for responsiveness */
+      text-align: center; /* Center text within toast */
+    }
+    .toast-area .alert {
+        display: block; /* Ensure each toast takes full width */
+        margin-bottom: 10px; /* Space between toasts */
+    }
     .calc-display{background:#fff3cd;border:1px solid #ffeaa7;color:#856404;}
     .form-control{
       margin-bottom:8px;
@@ -180,7 +193,7 @@
 </head>
 <body>
   <div class="topbar">
-    <div style="font-weight:bold;">KCC DATA ENTRY - DIRECTORATE OF AGRICULTURE CHHATTISGARH</div>
+    <div style="font-weight:bold;">DIRECTORATE OF AGRICULTURE CHHATTISGARH - KCC PMFBY SATURATION </div>
     <div style="margin-left:auto;">
       <span id="userInfo" class="me-3">LOADING USER...</span>
       <button id="btnStateAdmin" class="btn btn-sm btn-outline-light me-2 hidden">STATE ADMIN</button>
@@ -206,7 +219,7 @@
 
   <div class="container-app">
     <div class="card-panel mb-3">
-      <h4>KCC ACCOUNT DATA ENTRY (PMFBY)</h4>
+      <h4>KCC SATURATION UNDER PMFBY (KHARIF 2025)</h4>
       <p>ENTER KCC ACCOUNT DETAILS FOR NOTIFIED CROPS UNDER PMFBY SCHEME</p>
     </div>
 
@@ -219,7 +232,7 @@
     <div class="row g-3" id="mainFormRow">
       <div class="col-md-8">
         <div class="card-panel">
-          <button class="form-header-btn">DATA ENTRY FORM</button>
+          <button class="form-header-btn">District Entry Module</button>
           
           <form id="kccForm">
             <div class="row g-3">
@@ -416,11 +429,15 @@
     function toast(msg, type='info', duration=3000){
       console.log(`TOAST: ${msg} (${type})`);
       const area = $('toastArea');
+      if (!area) { // Fallback if toast area isn't ready
+        alert(`${type.toUpperCase()}: ${msg}`);
+        return;
+      }
       const div = document.createElement('div');
       div.className = `alert alert-${type}`;
       div.textContent = msg;
       div.onclick = () => div.remove();
-      area.appendChild(div);
+      area.prepend(div); // Use prepend to show newer toasts at the top of the area
       setTimeout(() => {
         if (div.parentNode) div.remove();
       }, duration);
@@ -779,7 +796,7 @@
 
       try {
         // Mark previous entries as non-current for same district+date
-        await supabase
+        const { error: updateError } = await supabase
           .from('kcc_entries')
           .update({ is_current: false })
           .match({ 
@@ -788,14 +805,19 @@
             is_current: true 
           });
 
-        const { data, error } = await supabase
+        if (updateError) {
+            console.error('Update previous entry error:', updateError);
+            // Don't throw, continue to insert new, but log it.
+        }
+
+        const { data, error: insertError } = await supabase
           .from('kcc_entries')
           .insert([payload])
           .select();
         
-        if (error) {
-          console.error('SAVE ERROR:', error);
-          toast('SAVE FAILED: ' + error.message, 'danger');
+        if (insertError) {
+          console.error('SAVE ERROR:', insertError);
+          toast('SAVE FAILED: ' + insertError.message, 'danger');
           $('status').textContent = 'SAVE FAILED';
         } else {
           console.log('Save successful:', data);
@@ -808,7 +830,7 @@
           }
         }
       } catch (err) {
-        console.error('SAVE ERROR:', err);
+        console.error('SAVE ERROR (catch block):', err);
         toast('SAVE FAILED', 'danger');
         $('status').textContent = 'SAVE FAILED';
       } finally {
@@ -869,7 +891,7 @@
           }
         }
       } catch (err) {
-        console.error('UPDATE ERROR:', err);
+        console.error('UPDATE ERROR (catch block):', err);
         toast('UPDATE FAILED', 'danger');
         $('status').textContent = 'UPDATE FAILED';
       } finally {
@@ -1202,59 +1224,85 @@
           new Date(current.created_at) > new Date(latest.created_at) ? current : latest
         );
 
-        // Create worksheet with DOS-like headers
+        // Define exact column headers for Excel
+        const columnHeaders = [
+            'DISTRICT', 'DATE', 'ACTIVE_KCC', 'SATURATED_KCC', 'NOT_SATURATED_KCC', 
+            'REASON_TYPE', 'REASON_DETAILS', 'IS_CURRENT', 'VERSION', 'CREATED_AT', 'CHANGE_REASON'
+        ];
+
+        // Map data to match defined column headers
         const worksheetData = data.map(record => ({
-          'DISTRICT': record.district_name,
-          'DATE': record.entry_date,
-          'ACTIVE_KCC': record.total_active_kcc,
-          'SATURATED_KCC': record.total_kcc_saturated,
-          'NOT_SATURATED_KCC': record.total_kcc_not_saturated,
-          'REASONS': buildReasonDetails(record),
+          'DISTRICT': record.district_name || '-',
+          'DATE': record.entry_date || '-',
+          'ACTIVE_KCC': record.total_active_kcc || 0,
+          'SATURATED_KCC': record.total_kcc_saturated || 0,
+          'NOT_SATURATED_KCC': record.total_kcc_not_saturated || 0,
+          'REASON_TYPE': record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-',
+          'REASON_DETAILS': buildReasonDetails(record),
           'IS_CURRENT': record.is_current ? 'YES' : 'NO',
-          'VERSION': record.version_number,
+          'VERSION': record.version_number || 1,
           'CREATED_AT': new Date(record.created_at).toLocaleString(),
           'CHANGE_REASON': record.change_reason || '-'
         }));
 
-        const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+        const worksheet = XLSX.utils.json_to_sheet(worksheetData, { header: columnHeaders });
         
-        // Add header information
+        // Add header information above the data
+        const reportDateTime = new Date().toLocaleString();
+        const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
+        const districtInfo = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
+        
         const headerInfo = [
-          [`DISTRICT NAME: ${isAdmin ? 'ALL DISTRICTS' : currentUser.districtName}`],
-          [`REPORT DATE AND TIME: ${new Date().toLocaleString()}`],
-          [`LAST ENTRY DATE/TIME: ${new Date(latestEntry.created_at).toLocaleString()}`],
-          [''], // Empty row
+          [`DISTRICT NAME: ${districtInfo}`],
+          [`REPORT DATE AND TIME: ${reportDateTime}`],
+          [`LAST ENTRY DATE/TIME: ${lastEntryDateTime}`],
+          [''], // Empty row for spacing
         ];
 
         XLSX.utils.sheet_add_aoa(worksheet, headerInfo, { origin: 'A1' });
-        XLSX.utils.sheet_add_json(worksheet, worksheetData, { origin: 'A5', skipHeader: false });
+        // The json_to_sheet already created headers. Adjust range for existing data to start after new header
+        // Assuming original headers were at row 1, now they are at row 5.
+        // So, the data should start right after the headers (row 6)
+        // No, json_to_sheet with header option creates headers.
+        // We added custom header info at A1. The sheet_add_json adds data at A5 with its own headers.
+        // Let's re-do this logic to prevent duplication and ensure correct alignment.
+        
+        // Create an empty worksheet
+        const newWorksheet = XLSX.utils.aoa_to_sheet([]);
 
-        // Add borders to all cells
-        const range = XLSX.utils.decode_range(worksheet['!ref']);
-        for (let row = range.s.r; row <= range.e.r; row++) {
-          for (let col = range.s.c; col <= range.e.c; col++) {
-            const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
-            if (!worksheet[cellAddress]) continue;
-            
-            worksheet[cellAddress].s = {
-              border: {
-                top: { style: 'thin' },
-                bottom: { style: 'thin' },
-                left: { style: 'thin' },
-                right: { style: 'thin' }
-              }
+        // Add custom header info at the top
+        XLSX.utils.sheet_add_aoa(newWorksheet, headerInfo, { origin: 'A1' });
+        
+        // Add column headers (DOS-like) at row 5
+        XLSX.utils.sheet_add_aoa(newWorksheet, [columnHeaders], { origin: 'A5' });
+
+        // Add data starting from row 6
+        XLSX.utils.sheet_add_json(newWorksheet, worksheetData, { origin: 'A6', skipHeader: true });
+
+        // Apply borders to all used cells
+        const range = XLSX.utils.decode_range(newWorksheet['!ref']);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+            if (!newWorksheet[cell_address]) newWorksheet[cell_address] = {};
+            if (!newWorksheet[cell_address].s) newWorksheet[cell_address].s = {};
+            newWorksheet[cell_address].s.border = {
+              top: { style: 'thin' }, bottom: { style: 'thin' },
+              left: { style: 'thin' }, right: { style: 'thin' }
             };
           }
         }
 
         const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'KCC_DATA');
+        XLSX.utils.book_append_sheet(workbook, newWorksheet, 'KCC_DATA');
         
         // Set page setup for A4 landscape
-        worksheet['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
-        worksheet['!printOptions'] = { orientation: 'landscape' };
+        newWorksheet['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
+        newWorksheet['!printOptions'] = { orientation: 'landscape' };
         
-        const fileName = `KCC_DATA_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${new Date().toISOString().slice(0,10)}.xlsx`;
+        // Filename with full timestamp
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-'); // YYYY-MM-DDTHH-MM-SS-sssZ
+        const fileName = `KCC_DATA_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.xlsx`;
         XLSX.writeFile(workbook, fileName);
         
         toast('EXCEL FILE DOWNLOADED', 'success');
@@ -1297,58 +1345,98 @@
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('landscape', 'mm', 'a4');
         
-        // Header
-        doc.setFontSize(16);
-        doc.text('KCC DATA REPORT - ALL DISTRICTS', 20, 20);
+        // Set font to a generic sans-serif for PDF (Arial is common) and ensure black color
+        doc.setFont('helvetica'); // Use a standard font like helvetica
+        doc.setTextColor(0, 0, 0); // Black color
+
+        // Header as requested: KARYALAY YPSANLAK KRISHI -- -THEN DISTIRCT,, REPROT DATE AND TIME ,,, DATE FROM THIS TO THAT DATE
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('KARYALAY YPSANLAK KRISHI', 20, 20); // First line
         doc.setFontSize(10);
-        doc.text(`REPORT GENERATED: ${new Date().toLocaleString()}`, 20, 30);
+        doc.setFont(undefined, 'normal');
+        doc.text(`DISTRICT: ALL DISTRICTS`, 20, 27); // District for admin view is ALL
+        doc.text(`REPORT DATE AND TIME: ${new Date().toLocaleString()}`, 20, 34);
         
         if (fromDate || toDate) {
-          doc.text(`DATE RANGE: ${fromDate || 'ALL'} TO ${toDate || 'ALL'}`, 20, 35);
+          doc.text(`DATE RANGE: ${fromDate || 'ALL'} TO ${toDate || 'ALL'}`, 20, 41);
         }
 
-        // Table headers
-        const headers = ['DISTRICT', 'DATE', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 'REASON TYPE', 'CURRENT', 'VERSION'];
-        const startY = 45;
+        // Table headers (same as Excel DOS-like headers)
+        const headers = [
+            'DISTRICT', 'DATE', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 
+            'REASON TYPE', 'DETAILS', 'CURRENT', 'VERSION'
+        ];
+        // Column widths - adjust as needed for content
+        const colWidths = [30, 25, 25, 25, 25, 30, 40, 18, 18];
+        const startY = 55; // Start table lower to accommodate header
         let currentY = startY;
-        
+        const startX = 20;
+
         doc.setFontSize(8);
         doc.setFont(undefined, 'bold');
         
-        headers.forEach((header, index) => {
-          doc.text(header, 20 + (index * 30), currentY);
+        // Draw header row and borders
+        let cellX = startX;
+        headers.forEach((header, i) => {
+            doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' }); // Centered text
+            cellX += colWidths[i];
         });
+        // Draw horizontal line after headers
+        doc.line(startX, currentY + 3, cellX, currentY + 3); 
         
-        currentY += 10;
+        currentY += 8; // Move down for data rows
+
         doc.setFont(undefined, 'normal');
         
-        // Table data (limit to 50 records for PDF)
-        data.slice(0, 50).forEach((record, index) => {
-          const row = [
-            record.district_name || 'UNKNOWN',
+        // Table data and borders
+        data.slice(0, 100).forEach((record) => { // Limit to 100 records for PDF to prevent huge files
+          const rowData = [
+            record.district_name || '-',
             record.entry_date || '-',
-            record.total_active_kcc.toString(),
-            record.total_kcc_saturated.toString(),
-            record.total_kcc_not_saturated.toString(),
-            record.non_saturation_reason || '-',
+            (record.total_active_kcc || 0).toString(),
+            (record.total_kcc_saturated || 0).toString(),
+            (record.total_kcc_not_saturated || 0).toString(),
+            (record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'),
+            buildReasonDetails(record), // Use updated function
             record.is_current ? 'YES' : 'NO',
-            record.version_number.toString()
+            (record.version_number || 1).toString()
           ];
           
-          row.forEach((cell, cellIndex) => {
-            doc.text(cell.substring(0, 15), 20 + (cellIndex * 30), currentY);
+          cellX = startX;
+          rowData.forEach((cell, i) => {
+            doc.text(cell, cellX + 2, currentY); // Text with a small left padding
+            cellX += colWidths[i];
           });
           
-          currentY += 5;
-          
+          doc.line(startX, currentY + 3, cellX, currentY + 3); // Horizontal line after each row
+          currentY += 7; // Line height
+
           // Add new page if needed
-          if (currentY > 180) {
+          if (currentY > (doc.internal.pageSize.height - 20)) { // 20mm margin from bottom
             doc.addPage();
-            currentY = 20;
+            currentY = startX; // Reset Y for new page
+            // Redraw headers on new page
+            cellX = startX;
+            headers.forEach((header, i) => {
+                doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' });
+                cellX += colWidths[i];
+            });
+            doc.line(startX, currentY + 3, cellX, currentY + 3);
+            currentY += 8;
           }
         });
 
-        const fileName = `KCC_REPORT_ALL_DISTRICTS_${new Date().toISOString().slice(0,10)}.pdf`;
+        // Draw vertical borders for the entire table
+        let currentColumnX = startX;
+        for(let i = 0; i < colWidths.length; i++) {
+            doc.line(currentColumnX, startY + 3, currentColumnX, currentY - 4); // Draw vertical line
+            currentColumnX += colWidths[i];
+        }
+        doc.line(currentColumnX, startY + 3, currentColumnX, currentY - 4); // Last vertical line
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const fileName = `KCC_REPORT_ALL_DISTRICTS_${timestamp}.pdf`;
         doc.save(fileName);
         
         toast('PDF FILE DOWNLOADED', 'success');
@@ -1360,21 +1448,26 @@
 
     // DATE FILTER FUNCTIONS
     function applyDateFilter(){
-      const fromDate = $('filterFromDate').value;
-      const toDate = $('filterToDate').value;
+      const fromDate = $('filterFromDate');
+      const toDate = $('filterToDate');
       
-      if (fromDate && toDate && fromDate > toDate) {
+      if (!fromDate || !toDate) return; // Ensure elements exist
+
+      if (fromDate.value && toDate.value && fromDate.value > toDate.value) {
         toast('FROM DATE CANNOT BE LATER THAN TO DATE', 'warning');
         return;
       }
       
-      loadRecordsTable(fromDate, toDate, 1);
+      loadRecordsTable(fromDate.value, toDate.value, 1);
       toast('FILTER APPLIED', 'success', 1500);
     }
 
     function clearDateFilter(){
-      $('filterFromDate').value = '';
-      $('filterToDate').value = '';
+      const fromDate = $('filterFromDate');
+      const toDate = $('filterToDate');
+
+      if (fromDate) fromDate.value = '';
+      if (toDate) toDate.value = '';
       loadRecordsTable(null, null, 1);
       toast('FILTER CLEARED', 'info', 1500);
     }
@@ -1403,7 +1496,14 @@
       console.log('INITIALIZING KCC PORTAL...');
       
       // Set initial date
-      $('entry_date').value = new Date().toISOString().slice(0,10);
+      const entryDateElement = $('entry_date');
+      if (entryDateElement) {
+        entryDateElement.value = new Date().toISOString().slice(0,10);
+      } else {
+        console.error('ENTRY DATE ELEMENT NOT FOUND. CRITICAL ERROR.');
+        toast('INITIALIZATION FAILED: ENTRY DATE ELEMENT MISSING.', 'danger');
+        return;
+      }
       
       // Get current user
       const user = await getLoggedInUser();
@@ -1419,7 +1519,13 @@
       
       // Initialize Bootstrap modal instance AFTER DOM is ready
       // This is crucial for "View Records" modal to work
-      viewerModalInstance = new bootstrap.Modal($('viewerModal'));
+      const viewerModalElement = $('viewerModal');
+      if (viewerModalElement) {
+          viewerModalInstance = new bootstrap.Modal(viewerModalElement);
+      } else {
+          console.error('VIEWER MODAL ELEMENT NOT FOUND. MODAL FUNCTIONALITY WILL BE LIMITED.');
+          toast('WARNING: VIEWER MODAL ELEMENT MISSING.', 'warning');
+      }
 
       // Attach event listeners after currentUser is loaded and modal instance is ready
       attachEventListeners();
@@ -1460,7 +1566,7 @@
         { id: 'btnSave', handler: saveEntry },
         { id: 'btnUpdate', handler: updateEntry },
         { id: 'btnClear', handler: clearForm },
-        { id: 'btnViewRecords', handler: showRecords },
+        { id: 'btnViewRecords', handler: showRecords }, // Triggers modal
         { id: 'btnBackToForm', handler: showForm }, // This button is inside the modal footer now
         { id: 'btnRefresh', handler: loadDashboardData },
         { id: 'btnExportExcel', handler: exportToExcel },
@@ -1481,7 +1587,7 @@
           btn.addEventListener('click', handler);
           console.log(`✓ BUTTON ${id} LISTENER ATTACHED`);
         } else {
-          console.warn(`⚠ BUTTON ${id} NOT FOUND IN DOM.`);
+          console.warn(`⚠ BUTTON ${id} NOT FOUND IN DOM. Skipping listener attachment.`);
         }
       });
       
@@ -1499,7 +1605,7 @@
         console.log('=== KCC PORTAL READY ===');
       } catch (error) {
         console.error('INITIALIZATION FAILED:', error);
-        toast('INITIALIZATION FAILED: ' + error.message, 'danger');
+        toast('CRITICAL INITIALIZATION FAILED: ' + error.message, 'danger');
       }
     });
 
