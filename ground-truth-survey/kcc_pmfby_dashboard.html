@@ -50,6 +50,7 @@
   <div class="topbar">
     <div style="font-weight:700;">KCC Data Entry - Directorate of Agriculture Chhattisgarh</div>
     <div style="margin-left:auto;">
+      <span id="userInfo" class="me-3">Loading...</span>
       <button id="btnLogout" class="btn btn-sm btn-outline-light">Logout</button>
     </div>
   </div>
@@ -204,14 +205,8 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // STATE - FIXED: Using actual user ID from your database
-    const currentUser = { 
-      id: 'e58e0c9d-4210-4ab2-a9db-7038ca74a55d', // FIXED: Using actual 'test' user ID
-      username: 'test',
-      districtId: '605d815b-b311-48e0-8deb-b18d992af419', // FIXED: Using actual district ID
-      districtName: 'Test District'
-    };
-    
+    // STATE - Will be populated dynamically from login
+    let currentUser = null;
     let loadedCurrentRecord = null;
     let previousActiveKCC = 0;
 
@@ -228,6 +223,100 @@
       setTimeout(() => {
         if (div.parentNode) div.remove();
       }, 3000);
+    }
+
+    // GET LOGGED IN USER DYNAMICALLY
+    async function getLoggedInUser() {
+      try {
+        console.log('Loading logged-in user...');
+        $('status').textContent = 'Loading user info...';
+        
+        // First, try to get from localStorage (session management)
+        const savedUser = localStorage.getItem('loggedInUser');
+        let username = null;
+        
+        if (savedUser) {
+          try {
+            const userData = JSON.parse(savedUser);
+            username = userData.username;
+            console.log('Found saved user:', username);
+          } catch (e) {
+            console.error('Error parsing saved user:', e);
+          }
+        }
+        
+        // If no saved user, you can implement a login prompt here
+        // For now, let's get the first active user with a district (fallback)
+        if (!username) {
+          console.log('No saved user found, using first available user...');
+          // You should replace this with proper login logic
+          username = 'test'; // or prompt user to login
+        }
+        
+        // Get user data from database with district info
+        const { data: userData, error } = await supabase
+          .from('test_users')
+          .select(`
+            id, username, full_name, role, mobile_number, email, district_id,
+            districts (id, name)
+          `)
+          .eq('username', username)
+          .eq('is_active', true)
+          .single();
+
+        if (error) {
+          console.error('User query error:', error);
+          throw new Error('User not found or inactive');
+        }
+
+        if (!userData.districts) {
+          throw new Error('User has no district assigned');
+        }
+
+        // Set current user with actual data
+        currentUser = {
+          id: userData.id,
+          username: userData.username,
+          fullName: userData.full_name,
+          role: userData.role,
+          districtId: userData.district_id,
+          districtName: userData.districts.name
+        };
+
+        // Save to localStorage for future sessions
+        localStorage.setItem('loggedInUser', JSON.stringify({
+          username: currentUser.username,
+          fullName: currentUser.fullName
+        }));
+
+        console.log('Current user loaded:', currentUser);
+        return currentUser;
+
+      } catch (err) {
+        console.error('Error loading user:', err);
+        toast('Error loading user: ' + err.message, 'danger');
+        $('status').textContent = 'Error loading user';
+        
+        // Redirect to login if user loading fails
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+        
+        return null;
+      }
+    }
+
+    // UPDATE UI WITH USER INFO
+    function updateUserInterface() {
+      if (!currentUser) return;
+      
+      $('district_name_display').value = currentUser.districtName;
+      $('district_id').value = currentUser.districtId;
+      $('districtNameInViewer').textContent = currentUser.districtName;
+      $('userInfo').textContent = `${currentUser.fullName} (${currentUser.districtName})`;
+      $('status').textContent = 'Ready';
+      
+      console.log('UI updated for:', currentUser.fullName, '-', currentUser.districtName);
     }
 
     // AUTO CALCULATION
@@ -253,42 +342,13 @@
       }
     }
 
-    // LOAD USER'S DISTRICT INFO - FIXED
-    async function loadUserDistrict(){
-      try {
-        $('status').textContent = 'Loading district info...';
-        
-        // Get district info using the actual district ID
-        const { data, error } = await supabase
-          .from('districts')
-          .select('id, name')
-          .eq('id', currentUser.districtId)
-          .single();
-        
-        if (error) {
-          console.error('District error:', error);
-          $('district_name_display').value = 'Unknown District';
-          $('status').textContent = 'Error loading district';
-          return;
-        }
-        
-        if (data) {
-          currentUser.districtName = data.name;
-          $('district_name_display').value = data.name;
-          $('district_id').value = data.id;
-          $('districtNameInViewer').textContent = data.name;
-          $('status').textContent = 'Ready';
-          console.log('District loaded:', data.name);
-        }
-      } catch (err) {
-        console.error('District error:', err);
-        $('district_name_display').value = 'Error Loading District';
-        $('status').textContent = 'Error loading district';
-      }
-    }
-
     // VALIDATION
     function validateForm(){
+      if (!currentUser) {
+        toast('User not loaded. Please refresh page.', 'danger');
+        return false;
+      }
+      
       if (!$('entry_date').value) {
         toast('Please enter entry date', 'warning');
         return false;
@@ -316,7 +376,7 @@
       return true;
     }
 
-    // SAVE ENTRY - FIXED
+    // SAVE ENTRY
     async function saveEntry(){
       console.log('Save button clicked');
       
@@ -330,7 +390,7 @@
         total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
         total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
         reasons_not_saturated: $('reasons_not_saturated').value.trim() || null,
-        created_by: currentUser.id, // FIXED: Using actual user ID
+        created_by: currentUser.id,
         is_current: true,
         version_number: 1
       };
@@ -376,9 +436,14 @@
       }
     }
 
-    // LOAD DASHBOARD DATA
+    // LOAD DASHBOARD DATA (FILTERED BY USER'S DISTRICT)
     async function loadDashboardData(){
+      if (!currentUser) return;
+      
       try {
+        console.log('Loading dashboard data for district:', currentUser.districtName);
+        
+        // Load current totals for ONLY user's district
         const { data: totals } = await supabase
           .from('kcc_entries')
           .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
@@ -405,6 +470,7 @@
           $('currentTotals').innerHTML = '<div class="text-muted">No data available</div>';
         }
 
+        // Load recent entries for ONLY user's district
         const { data: recent } = await supabase
           .from('kcc_entries')
           .select('entry_date, total_active_kcc, is_current')
@@ -422,6 +488,8 @@
         } else {
           $('recentEntries').innerHTML = '<div class="text-muted">No recent entries</div>';
         }
+        
+        console.log('Dashboard data loaded successfully');
       } catch (err) {
         console.error('Dashboard load error:', err);
         $('currentTotals').innerHTML = '<div class="text-muted">Error loading data</div>';
@@ -443,19 +511,25 @@
       updateNotSaturated();
     }
 
-    // VIEW RECORDS
+    // VIEW RECORDS (FILTERED BY USER'S DISTRICT)
     async function showRecords(){
+      if (!currentUser) return;
+      
       document.querySelector('.row.g-3').style.display = 'none';
       $('viewerCard').classList.remove('hidden');
       await loadRecordsTable();
     }
 
     async function loadRecordsTable(fromDate = null, toDate = null){
+      if (!currentUser) return;
+      
       try {
+        console.log('Loading records for district:', currentUser.districtName);
+        
         let query = supabase
           .from('kcc_entries')
           .select('*')
-          .eq('district_id', currentUser.districtId)
+          .eq('district_id', currentUser.districtId) // ONLY user's district
           .order('created_at', { ascending: false });
 
         if (fromDate) {
@@ -471,6 +545,7 @@
         tbody.innerHTML = '';
         
         if (data && data.length > 0) {
+          console.log(`Found ${data.length} records for ${currentUser.districtName}`);
           data.forEach(record => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -488,7 +563,7 @@
             tbody.appendChild(row);
           });
         } else {
-          tbody.innerHTML = '<tr><td colspan="8" class="text-center">No records found</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center">No records found for this district</td></tr>';
         }
       } catch (err) {
         console.error('Load records error:', err);
@@ -508,6 +583,7 @@
           .from('kcc_entries')
           .select('*')
           .eq('id', recordId)
+          .eq('district_id', currentUser.districtId) // Ensure it's from user's district
           .single();
 
         if (error) throw error;
@@ -533,13 +609,15 @@
       }
     };
 
-    // EXPORT TO EXCEL
+    // EXPORT TO EXCEL (FILTERED BY USER'S DISTRICT)
     async function exportToExcel(){
+      if (!currentUser) return;
+      
       try {
         const { data, error } = await supabase
           .from('kcc_entries')
           .select('*')
-          .eq('district_id', currentUser.districtId)
+          .eq('district_id', currentUser.districtId) // ONLY user's district
           .order('created_at', { ascending: false });
 
         if (!data || !data.length || error) {
@@ -598,6 +676,14 @@
       
       $('entry_date').value = new Date().toISOString().slice(0,10);
       
+      // Load logged-in user first
+      await getLoggedInUser();
+      
+      if (currentUser) {
+        updateUserInterface();
+        await loadDashboardData();
+      }
+      
       // Event listeners
       $('total_active_kcc').addEventListener('input', updateNotSaturated);
       $('total_kcc_saturated').addEventListener('input', updateNotSaturated);
@@ -618,13 +704,12 @@
         }
       });
 
-      // Initialize app
-      await loadUserDistrict();
-      await loadDashboardData();
       updateNotSaturated();
       
       console.log('KCC Portal initialized successfully');
-      toast('Portal loaded successfully', 'success');
+      if (currentUser) {
+        toast(`Welcome ${currentUser.fullName}!`, 'success');
+      }
     });
 
     // Prevent form submission
