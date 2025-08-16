@@ -381,6 +381,9 @@
 
             try {
                 currentUser = JSON.parse(storedUser);
+                // Trim whitespace from the role to ensure a perfect match
+                currentUser.role = currentUser.role.trim(); 
+                
                 document.getElementById('welcomeMessage').textContent = `नमस्ते, ${currentUser.fullName || currentUser.username}!`;
                 document.getElementById('userInfo').textContent = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
                 
@@ -430,6 +433,7 @@
             const { data, error } = await supabaseClient
                 .from('modules')
                 .select('*')
+                .eq('access_role', 'district_user') // Always query for the specific role
                 .order('module_name', { ascending: true });
 
             if (error) {
