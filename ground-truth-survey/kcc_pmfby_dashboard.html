@@ -160,7 +160,7 @@
 
   <!-- State Admin Panel (Hidden by default) -->
   <div id="stateAdminPanel" class="state-admin-panel hidden">
-    <h5>STATE ADMIN ACCESS</h5>
+    <h5>🔐 STATE ADMIN ACCESS</h5>
     <div class="row g-3">
       <div class="col-md-6">
         <input type="password" id="adminPassword" class="form-control" placeholder="ENTER ADMIN PASSWORD (9329807288)">
@@ -182,7 +182,7 @@
 
     <!-- State Admin Summary (Hidden by default) -->
     <div id="stateAdminSummary" class="admin-summary hidden">
-      <h5>STATE TOTAL SUMMARY</h5>
+      <h5>📊 STATE TOTAL SUMMARY</h5>
       <div id="stateTotalsContent">LOADING STATE DATA...</div>
     </div>
 
@@ -207,12 +207,12 @@
             <div class="row g-3">
               <div class="col-md-6">
                 <label class="form-label">TOTAL ACTIVE KCC ACCOUNTS *</label>
-                <small class="text-muted d-block">FOR NOTIFIED CROPS UNDER PMFBY (MUST BE >= PREVIOUS: <span id="minActiveKCC">0</span>)</small>
+                <small class="text-muted d-block">FOR NOTIFIED CROPS UNDER PMFBY (MUST BE ≥ PREVIOUS: <span id="minActiveKCC">0</span>)</small>
                 <input type="number" id="total_active_kcc" class="form-control" min="0" value="" required>
               </div>
               <div class="col-md-6">
                 <label class="form-label">TOTAL KCC ACCOUNTS SATURATED *</label>
-                <small class="text-muted d-block">UNDER PMFBY (CANNOT EXCEED ACTIVE KCC, MUST BE >= PREVIOUS: <span id="minSaturatedKCC">0</span>)</small>
+                <small class="text-muted d-block">UNDER PMFBY (CANNOT EXCEED ACTIVE KCC, MUST BE ≥ PREVIOUS: <span id="minSaturatedKCC">0</span>)</small>
                 <input type="number" id="total_kcc_saturated" class="form-control" min="0" value="" required>
               </div>
             </div>
@@ -361,7 +361,7 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // STATE
+    // STATE - Will be populated after loading user
     let currentUser = null;
     let loadedCurrentRecord = null;
     let previousActiveKCC = 0;
@@ -375,6 +375,7 @@
     const $ = id => document.getElementById(id);
     
     function toast(msg, type='info', duration=3000){
+      console.log(`TOAST: ${msg} (${type})`);
       const area = $('toastArea');
       const div = document.createElement('div');
       div.className = `alert alert-\${type}`;
@@ -386,23 +387,43 @@
       }, duration);
     }
 
-    // GET CURRENT USER FROM SESSION/LOCALSTORAGE
+    // GET CURRENT USER FROM DATABASE
     async function getCurrentUser() {
-      // First try to get from localStorage (session management)
-      const savedUser = localStorage.getItem('kcc_current_user');
-      if (savedUser) {
-        try {
-          currentUser = JSON.parse(savedUser);
-          console.log('USER LOADED FROM SESSION:', currentUser.username);
-          return currentUser;
-        } catch (e) {
-          console.error('ERROR PARSING SAVED USER:', e);
-          localStorage.removeItem('kcc_current_user');
-        }
-      }
-
-      // If no saved user, try to get a default user for demo
       try {
+        console.log('LOADING USER FROM DATABASE...');
+        
+        // Try to get user from localStorage first (session management)
+        const savedUser = localStorage.getItem('kcc_current_user');
+        if (savedUser) {
+          try {
+            currentUser = JSON.parse(savedUser);
+            console.log('USER LOADED FROM SESSION:', currentUser.username);
+            
+            // Verify user still exists and get fresh district data
+            const { data: userData, error } = await supabase
+              .from('test_users')
+              .select(`
+                id, username, full_name, role, mobile_number, email, district_id,
+                districts (id, name)
+              `)
+              .eq('id', currentUser.id)
+              .eq('is_active', true)
+              .single();
+
+            if (userData && userData.districts) {
+              currentUser.districtName = userData.districts.name;
+              currentUser.districtId = userData.district_id;
+              localStorage.setItem('kcc_current_user', JSON.stringify(currentUser));
+            }
+            
+            return currentUser;
+          } catch (e) {
+            console.error('ERROR PARSING SAVED USER:', e);
+            localStorage.removeItem('kcc_current_user');
+          }
+        }
+
+        // If no saved user, get the first active user (for demo)
         const { data: userData, error } = await supabase
           .from('test_users')
           .select(`
@@ -410,41 +431,37 @@
             districts (id, name)
           `)
           .eq('is_active', true)
+          .not('district_id', 'is', null)
           .limit(1)
           .single();
 
-        if (userData) {
+        if (error) {
+          console.error('USER QUERY ERROR:', error);
+          throw error;
+        }
+
+        if (userData && userData.districts) {
           currentUser = {
             id: userData.id,
             username: userData.username,
             fullName: userData.full_name,
             role: userData.role,
             districtId: userData.district_id,
-            districtName: userData.districts ? userData.districts.name : 'UNKNOWN DISTRICT'
+            districtName: userData.districts.name
           };
           
           // Save to localStorage
           localStorage.setItem('kcc_current_user', JSON.stringify(currentUser));
-          console.log('DEFAULT USER LOADED:', currentUser.username);
+          console.log('USER LOADED:', currentUser.username, '-', currentUser.districtName);
           return currentUser;
+        } else {
+          throw new Error('NO VALID USER FOUND WITH DISTRICT ASSIGNMENT');
         }
       } catch (err) {
         console.error('ERROR LOADING USER:', err);
+        toast('ERROR LOADING USER DATA', 'danger');
+        return null;
       }
-
-      // Fallback user if database is empty
-      currentUser = {
-        id: 'demo-user-id',
-        username: 'demo_user',
-        fullName: 'DEMO USER',
-        role: 'district_user',
-        districtId: 'demo-district-id',
-        districtName: 'DEMO DISTRICT'
-      };
-      
-      localStorage.setItem('kcc_current_user', JSON.stringify(currentUser));
-      console.log('FALLBACK USER CREATED');
-      return currentUser;
     }
 
     // LOGOUT FUNCTION
@@ -461,7 +478,7 @@
     // AUTO CALCULATION WITH CONDITIONAL FIELDS
     function updateNotSaturated(){
       const active = parseInt($('total_active_kcc').value) || 0;
-      const saturated = parseInt($('total_kcc_saturated').value) || 0;
+      const saturated = parseInt $('total_kcc_saturated').value) || 0;
       const notSaturated = Math.max(0, active - saturated);
       
       $('total_kcc_not_saturated').value = notSaturated;
@@ -568,7 +585,7 @@
       }
     }
 
-    // VALIDATION
+    // ENHANCED VALIDATION
     async function validateForm(){
       if (!$('entry_date').value) {
         toast('PLEASE ENTER ENTRY DATE', 'warning');
@@ -578,16 +595,19 @@
       const active = parseInt($('total_active_kcc').value) || 0;
       const saturated = parseInt($('total_kcc_saturated').value) || 0;
       
+      // Check if active KCC is less than previous
       if (active < previousActiveKCC) {
         toast(`TOTAL ACTIVE KCC (${active}) CANNOT BE LESS THAN PREVIOUS VALUE (${previousActiveKCC})`, 'warning');
         return false;
       }
       
+      // Check if saturated is less than previous
       if (saturated < previousSaturatedKCC) {
         toast(`TOTAL SATURATED KCC (${saturated}) CANNOT BE LESS THAN PREVIOUS VALUE (${previousSaturatedKCC})`, 'warning');
         return false;
       }
       
+      // Check if saturated exceeds active
       if (saturated > active) {
         toast('SATURATED ACCOUNTS CANNOT EXCEED TOTAL ACTIVE ACCOUNTS', 'warning');
         return false;
@@ -624,30 +644,48 @@
       return true;
     }
 
-    // SAVE ENTRY
+    // BUILD LEGACY REASONS TEXT
+    function buildLegacyReasonsText(){
+      const reason = $('non_saturation_reason').value;
+      if (!reason) return null;
+      
+      if (reason === 'opt_out') {
+        const count = $('opt_out_holders_count').value;
+        return `OPT OUT (\${count} HOLDERS)`;
+      } else if (reason === 'other') {
+        return \$('other_reason_text').value.trim();
+      }
+      return null;
+    }
+
+    // ENHANCED SAVE ENTRY
     async function saveEntry(){
       if (!await validateForm()) return;
+      if (!currentUser) {
+        toast('USER NOT LOADED. PLEASE REFRESH PAGE.', 'danger');
+        return;
+      }
 
       const payload = {
         district_id: currentUser.districtId,
         district_name: currentUser.districtName,
-        entry_date: $('entry_date').value,
-        total_active_kcc: parseInt($('total_active_kcc').value) || 0,
-        total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
-        total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-        non_saturation_reason: $('non_saturation_reason').value || null,
-        opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
-        other_reason_text: $('other_reason_text').value.trim() || null,
+        entry_date: \$('entry_date').value,
+        total_active_kcc: parseInt(\$('total_active_kcc').value) || 0,
+        total_kcc_saturated: parseInt(\$('total_kcc_saturated').value) || 0,
+        total_kcc_not_saturated: parseInt(\$('total_kcc_not_saturated').value) || 0,
+        non_saturation_reason: \$('non_saturation_reason').value || null,
+        opt_out_holders_count: parseInt(\$('opt_out_holders_count').value) || 0,
+        other_reason_text: \$('other_reason_text').value.trim() || null,
         reasons_not_saturated: buildLegacyReasonsText(),
         created_by: currentUser.id,
         is_current: true,
         version_number: 1
       };
 
-      $('btnSave').disabled = true;
-      $('status').textContent = 'SAVING...';
+      \$('btnSave').disabled = true;
+      \$('status').textContent = 'SAVING...';
 
-      try {
+        try {
         // Mark previous entries as non-current for same district+date
         await supabase
           .from('kcc_entries')
@@ -685,20 +723,7 @@
       }
     }
 
-    function buildLegacyReasonsText(){
-      const reason = $('non_saturation_reason').value;
-      if (!reason) return null;
-      
-      if (reason === 'opt_out') {
-        const count = $('opt_out_holders_count').value;
-        return `OPT OUT (${count} HOLDERS)`;
-      } else if (reason === 'other') {
-        return $('other_reason_text').value.trim();
-      }
-      return null;
-    }
-
-    // UPDATE ENTRY
+    // ENHANCED UPDATE ENTRY USING RPC
     async function updateEntry(){
       if (!loadedCurrentRecord) {
         toast('NO RECORD TO UPDATE. SAVE A NEW ENTRY FIRST.', 'warning');
@@ -713,6 +738,7 @@
         return;
       }
 
+      // Using the 13-parameter version of upsert_kcc_entry
       const params = {
         p_predecessor_id: loadedCurrentRecord.id,
         p_district_id: currentUser.districtId,
@@ -758,7 +784,7 @@
       }
     }
 
-    // LOAD DASHBOARD DATA
+    // ENHANCED LOAD DASHBOARD DATA
     async function loadDashboardData(){
       try {
         let query = supabase
@@ -842,7 +868,7 @@
       updateNotSaturated();
     }
 
-    // VIEW RECORDS WITH PAGINATION
+    // ENHANCED VIEW RECORDS WITH PAGINATION
     async function showRecords(){
       $('mainFormRow').style.display = 'none';
       $('viewerCard').classList.remove('hidden');
@@ -952,7 +978,7 @@
       $('viewerCard').classList.add('hidden');
     }
 
-    // EDIT RECORD
+    // ENHANCED EDIT RECORD
     window.editRecord = async function(recordId){
       try {
         const { data, error } = await supabase
@@ -965,7 +991,7 @@
 
         loadedCurrentRecord = data;
         
-        // Fill form
+        // Fill form with all enhanced fields
         $('entry_date').value = data.entry_date;
         $('total_active_kcc').value = data.total_active_kcc || 0;
         $('total_kcc_saturated').value = data.total_kcc_saturated || 0;
@@ -988,7 +1014,7 @@
       }
     };
 
-    // EXPORT TO EXCEL
+    // ENHANCED EXPORT TO EXCEL
     async function exportToExcel(){
       try {
         const isAdmin = currentUser.role === 'state_admin';
@@ -1219,7 +1245,32 @@
       }
     }
 
-    // EVENT LISTENERS
+    // INITIALIZATION AND EVENT LISTENERS
+    async function initializeApp() {
+      console.log('INITIALIZING KCC PORTAL...');
+      
+      // Set initial date
+      $('entry_date').value = new Date().toISOString().slice(0,10);
+      
+      // Get current user
+      await getCurrentUser();
+      
+      // Update UI with user info
+      if (currentUser) {
+        $('district_name_display').value = currentUser.districtName;
+        $('district_id').value = currentUser.districtId;
+        $('districtNameInViewer').textContent = currentUser.districtName;
+        $('userInfo').textContent = `${currentUser.fullName} (${currentUser.districtName})`;
+        $('status').textContent = 'READY';
+      }
+      
+      // Load data
+      await loadDashboardData();
+      updateNotSaturated();
+      
+      console.log('KCC PORTAL INITIALIZED SUCCESSFULLY');
+    }
+
     function attachEventListeners() {
       console.log('ATTACHING EVENT LISTENERS...');
       
@@ -1270,32 +1321,6 @@
       console.log('ALL EVENT LISTENERS ATTACHED SUCCESSFULLY');
     }
 
-    // INITIALIZATION
-    async function initializeApp() {
-      console.log('INITIALIZING KCC PORTAL...');
-      
-      // Set initial date
-      $('entry_date').value = new Date().toISOString().slice(0,10);
-      
-      // Get current user
-      await getCurrentUser();
-      
-      // Update UI with user info
-      if (currentUser) {
-        $('district_name_display').value = currentUser.districtName;
-        $('district_id').value = currentUser.districtId;
-        $('districtNameInViewer').textContent = currentUser.districtName;
-        $('userInfo').textContent = `${currentUser.fullName} (${currentUser.districtName})`;
-        $('status').textContent = 'READY';
-      }
-      
-      // Load data
-      await loadDashboardData();
-      updateNotSaturated();
-      
-      console.log('KCC PORTAL INITIALIZED SUCCESSFULLY');
-    }
-
     // MAIN INITIALIZATION
     document.addEventListener('DOMContentLoaded', async () => {
       console.log('=== KCC PORTAL STARTING ===');
@@ -1316,4 +1341,3 @@
 </body>
 </html>
 
-      
