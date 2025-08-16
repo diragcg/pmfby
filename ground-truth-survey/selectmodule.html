@@ -428,6 +428,19 @@
             border-left: 4px solid #2196F3;
         }
 
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
         /* Footer */
         .footer {
             background: var(--gray-100);
@@ -647,10 +660,15 @@
         function showLoading(button, show = true) {
             if (show) {
                 button.disabled = true;
+                const originalText = button.innerHTML;
+                button.setAttribute('data-original-text', originalText);
                 button.innerHTML = '<span class="spinner"></span>' + button.textContent;
             } else {
                 button.disabled = false;
-                button.innerHTML = button.textContent.replace(/^.*?(<i|<span class="hindi")/, '$1');
+                const originalText = button.getAttribute('data-original-text');
+                if (originalText) {
+                    button.innerHTML = originalText;
+                }
             }
         }
 
@@ -709,17 +727,21 @@
                     .select('*')
                     .order('module_name', { ascending: true });
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
 
                 // Clear existing content
                 moduleOptionsDiv.innerHTML = '';
                 if (adminModuleList) adminModuleList.innerHTML = '';
 
-                if (modules.length === 0) {
+                if (!modules || modules.length === 0) {
                     moduleOptionsDiv.innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                            <p class="hindi text-muted">कोई मॉड्यूल उपलब्ध नहीं है।</p>
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p class="hindi">कोई मॉड्यूल उपलब्ध नहीं है।</p>
+                            <p class="hindi text-muted">कृपया व्यवस्थापक से संपर्क करें।</p>
                         </div>
                     `;
                     document.querySelector('.submit-btn').disabled = true;
@@ -738,9 +760,12 @@
                     `;
                     
                     moduleDiv.addEventListener('click', () => {
+                        // Remove selected class from all options
                         document.querySelectorAll('.module-option').forEach(opt => 
                             opt.classList.remove('selected'));
+                        // Add selected class to clicked option
                         moduleDiv.classList.add('selected');
+                        // Check the radio button
                         document.getElementById(`module\${index}`).checked = true;
                     });
                     
@@ -753,27 +778,50 @@
                     document.querySelector('.module-option').classList.add('selected');
                 }
 
+                // Enable submit button
+                document.querySelector('.submit-btn').disabled = false;
+
                 // Render admin module list
                 if (adminModuleList && (currentUser.role === 'admin' || currentUser.role === 'state_admin')) {
-                    modules.forEach(module => {
-                        const moduleItem = document.createElement('div');
-                        moduleItem.className = 'module-item';
-                        moduleItem.innerHTML = `
-                            <div class="module-info">
-                                <h5 class="hindi">\${module.module_name}</h5>
-                                <p>\${module.file_path}</p>
+                    if (modules.length === 0) {
+                        adminModuleList.innerHTML = `
+                            <div class="empty-state">
+                                <p class="hindi text-muted">कोई मॉड्यूल नहीं मिला।</p>
                             </div>
-                            <button class="delete-btn" data-id="\${module.id}" title="मॉड्यूल हटाएं">
-                                <i class="fas fa-trash"></i>
-                            </button>
                         `;
-                        adminModuleList.appendChild(moduleItem);
-                    });
+                    } else {
+                        modules.forEach(module => {
+                            const moduleItem = document.createElement('div');
+                            moduleItem.className = 'module-item';
+                            moduleItem.innerHTML = `
+                                <div class="module-info">
+                                    <h5 class="hindi">\${module.module_name}</h5>
+                                    <p>\${module.file_path}</p>
+                                </div>
+                                <button class="delete-btn" data-id="\${module.id}" title="मॉड्यूल हटाएं">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            adminModuleList.appendChild(moduleItem);
+                        });
+                    }
                 }
 
             } catch (error) {
                 console.error('Error loading modules:', error);
-                showAlert('मॉड्यूल लोड करने में त्रुटि।', 'danger');
+                showAlert('मॉड्यूल लोड करने में त्रुटि। कृपया पुनः प्रयास करें।', 'danger');
+                
+                // Show error state
+                moduleOptionsDiv.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p class="hindi">मॉड्यूल लोड करने में त्रुटि।</p>
+                        <button class="btn btn-sm btn-outline-primary" onclick="loadModules()">
+                            <i class="fas fa-refresh me-1"></i> पुनः प्रयास करें
+                        </button>
+                    </div>
+                `;
+                document.querySelector('.submit-btn').disabled = true;
             }
         }
 
@@ -790,66 +838,97 @@
                 window.location.href = selectedRadio.value;
             } else {
                 showAlert('कृपया एक मॉड्यूल का चयन करें।', 'danger');
-            }
         });
 
         // Admin form submission
-        document.getElementById('adminModuleForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const submitBtn = e.target.querySelector('button[type="submit"]');
-            
-            try {
-                showLoading(submitBtn);
+        const adminForm = document.getElementById('adminModuleForm');
+        if (adminForm) {
+            adminForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = e.target.querySelector('button[type="submit"]');
                 
-                const moduleName = document.getElementById('moduleName').value.trim();
-                const filePath = document.getElementById('filePath').value.trim();
+                try {
+                    showLoading(submitBtn);
+                    
+                    const moduleName = document.getElementById('moduleName').value.trim();
+                    const filePath = document.getElementById('filePath').value.trim();
 
-                const { error } = await supabaseClient
-                    .from('modules')
-                    .insert([{
-                        module_name: moduleName,
-                        file_path: filePath,
-                        access_role: 'user'
-                    }]);
+                    // Validate inputs
+                    if (!moduleName || moduleName.length < 2) {
+                        throw new Error('मॉड्यूल का नाम कम से कम 2 अक्षर का होना चाहिए।');
+                    }
 
-                if (error) throw error;
+                    if (!filePath || !filePath.includes('.')) {
+                        throw new Error('कृपया वैध फ़ाइल पथ दर्ज करें।');
+                    }
 
-                showAlert('मॉड्यूल सफलतापूर्वक जोड़ा गया!', 'success', 'adminAlertBox');
-                document.getElementById('adminModuleForm').reset();
-                await loadModules();
+                    const { data, error } = await supabaseClient
+                        .from('modules')
+                        .insert([{
+                            module_name: moduleName,
+                            file_path: filePath,
+                            access_role: 'user',
+                            created_at: new Date().toISOString()
+                        }])
+                        .select();
 
-            } catch (error) {
-                console.error('Error adding module:', error);
-                showAlert('मॉड्यूल जोड़ने में त्रुटि।', 'danger', 'adminAlertBox');
-            } finally {
-                showLoading(submitBtn, false);
-            }
-        });
+                    if (error) {
+                        console.error('Supabase insert error:', error);
+                        throw error;
+                    }
 
-        // Module deletion
-        document.getElementById('adminModuleList')?.addEventListener('click', async (e) => {
-            if (e.target.closest('.delete-btn')) {
-                const deleteBtn = e.target.closest('.delete-btn');
-                const moduleId = deleteBtn.getAttribute('data-id');
-                
-                if (confirm('क्या आप वाकई इस मॉड्यूल को हटाना चाहते हैं?')) {
-                    try {
-                        const { error } = await supabaseClient
-                            .from('modules')
-                            .delete()
-                            .eq('id', moduleId);
-                        if (error) throw error;
+                    showAlert('मॉड्यूल सफलतापूर्वक जोड़ा गया!', 'success', 'adminAlertBox');
+                    document.getElementById('adminModuleForm').reset();
+                    await loadModules();
 
-                        showAlert('मॉड्यूल सफलतापूर्वक हटा दिया गया!', 'success', 'adminAlertBox');
-                        await loadModules();
+                } catch (error) {
+                    console.error('Error adding module:', error);
+                    const errorMessage = error.message || 'मॉड्यूल जोड़ने में त्रुटि।';
+                    showAlert(errorMessage, 'danger', 'adminAlertBox');
+                } finally {
+                    showLoading(submitBtn, false);
+                }
+            });
+        }
 
-                    } catch (error) {
-                        console.error('Error deleting module:', error);
-                        showAlert('मॉड्यूल हटाने में त्रुटि।', 'danger', 'adminAlertBox');
+        // Module deletion handler
+        const adminModuleList = document.getElementById('adminModuleList');
+        if (adminModuleList) {
+            adminModuleList.addEventListener('click', async (e) => {
+                if (e.target.closest('.delete-btn')) {
+                    const deleteBtn = e.target.closest('.delete-btn');
+                    const moduleId = deleteBtn.getAttribute('data-id');
+                    const moduleItem = deleteBtn.closest('.module-item');
+                    const moduleName = moduleItem.querySelector('.module-info h5').textContent;
+                    
+                    if (confirm(`क्या आप वाकई "${moduleName}" मॉड्यूल को हटाना चाहते हैं?`)) {
+                        try {
+                            deleteBtn.disabled = true;
+                            deleteBtn.innerHTML = '<span class="spinner"></span>';
+
+                            const { error } = await supabaseClient
+                                .from('modules')
+                                .delete()
+                                .eq('id', moduleId);
+
+                            if (error) {
+                                console.error('Delete error:', error);
+                                throw error;
+                            }
+
+                            showAlert('मॉड्यूल सफलतापूर्वक हटा दिया गया!', 'success', 'adminAlertBox');
+                            await loadModules();
+
+                        } catch (error) {
+                            console.error('Error deleting module:', error);
+                            showAlert('मॉड्यूल हटाने में त्रुटि।', 'danger', 'adminAlertBox');
+                            deleteBtn.disabled = false;
+                            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
 
         // Keyboard navigation for module options
         document.addEventListener('keydown', (e) => {
@@ -879,60 +958,71 @@
             
             if (e.key === 'Enter' && currentSelected) {
                 e.preventDefault();
-                document.getElementById('moduleSelectionForm').dispatchEvent(new Event('submit'));
+                const form = document.getElementById('moduleSelectionForm');
+                if (form) {
+                    form.dispatchEvent(new Event('submit'));
+                }
             }
         });
 
-        // Auto-refresh modules every 30 seconds for admin users
-        if (currentUser?.role === 'admin' || currentUser?.role === 'state_admin') {
+        // Form validation enhancements
+        const moduleNameInput = document.getElementById('moduleName');
+        if (moduleNameInput) {
+            moduleNameInput.addEventListener('input', (e) => {
+                const value = e.target.value.trim();
+                
+                if (value.length < 2) {
+                    e.target.setCustomValidity('मॉड्यूल का नाम कम से कम 2 अक्षर का होना चाहिए।');
+                } else if (value.length > 100) {
+                    e.target.setCustomValidity('मॉड्यूल का नाम 100 अक्षर से अधिक नहीं हो सकता।');
+                } else {
+                    e.target.setCustomValidity('');
+                }
+            });
+        }
+
+        const filePathInput = document.getElementById('filePath');
+        if (filePathInput) {
+            filePathInput.addEventListener('input', (e) => {
+                const value = e.target.value.trim();
+                const validExtensions = ['.html', '.htm', '.php', '.jsp', '.aspx'];
+                const hasValidExtension = validExtensions.some(ext => 
+                    value.toLowerCase().endsWith(ext));
+                
+                if (!value) {
+                    e.target.setCustomValidity('कृपया फ़ाइल पथ दर्ज करें।');
+                } else if (!hasValidExtension) {
+                    e.target.setCustomValidity('फ़ाइल पथ में वैध एक्सटेंशन (.html, .htm, .php, .jsp, .aspx) होना चाहिए।');
+                } else if (value.length > 200) {
+                    e.target.setCustomValidity('फ़ाइल पथ 200 अक्षर से अधिक नहीं हो सकता।');
+                } else {
+                    e.target.setCustomValidity('');
+                }
+            });
+        }
+
+        // Auto-refresh modules every 60 seconds for admin users
+        if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'state_admin')) {
             setInterval(async () => {
                 try {
                     await loadModules();
                 } catch (error) {
                     console.error('Auto-refresh failed:', error);
                 }
-            }, 30000);
+            }, 60000);
         }
 
-        // Add smooth transitions for better UX
-        window.addEventListener('load', () => {
-            document.body.classList.add('loaded');
-        });
-
-        // Handle offline/online status
+        // Handle network status
         window.addEventListener('online', () => {
             showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
+            loadModules();
         });
 
         window.addEventListener('offline', () => {
-            showAlert('इंटरनेट कनेक्शन बाधित है।', 'danger');
+            showAlert('इंटरनेट कनेक्शन बाधित है। कृपया कनेक्शन जांचें।', 'danger');
         });
 
-        // Form validation enhancements
-        document.getElementById('moduleName')?.addEventListener('input', (e) => {
-            const value = e.target.value.trim();
-            const submitBtn = document.querySelector('#adminModuleForm button[type="submit"]');
-            
-            if (value.length < 3) {
-                e.target.setCustomValidity('मॉड्यूल का नाम कम से कम 3 अक्षर का होना चाहिए।');
-            } else {
-                e.target.setCustomValidity('');
-            }
-        });
-
-        document.getElementById('filePath')?.addEventListener('input', (e) => {
-            const value = e.target.value.trim();
-            const validExtensions = ['.html', '.htm', '.php', '.jsp'];
-            const hasValidExtension = validExtensions.some(ext => value.toLowerCase().endsWith(ext));
-            
-            if (!hasValidExtension) {
-                e.target.setCustomValidity('फ़ाइल पथ में वैध एक्सटेंशन (.html, .htm, .php, .jsp) होना चाहिए।');
-            } else {
-                e.target.setCustomValidity('');
-            }
-        });
-
-        // Performance optimization: Debounce search if implemented later
+        // Performance optimization: Debounce function
         function debounce(func, wait) {
             let timeout;
             return function executedFunction(...args) {
@@ -955,6 +1045,64 @@
             console.error('Unhandled promise rejection:', e.reason);
             showAlert('डेटा लोड करने में समस्या हुई। कृपया पुनः प्रयास करें।', 'danger');
         });
+
+        // Page visibility API for auto-refresh when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && currentUser) {
+                debounce(loadModules, 1000)();
+            }
+        });
+
+        // Smooth page transitions
+        window.addEventListener('load', () => {
+            document.body.classList.add('loaded');
+        });
+
+        // Prevent form resubmission on page refresh
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, window.location.href);
+        }
+
+        // Initialize tooltips for better UX
+        document.querySelectorAll('[title]').forEach(element => {
+            element.addEventListener('mouseenter', function() {
+                this.setAttribute('data-original-title', this.getAttribute('title'));
+                this.removeAttribute('title');
+            });
+            
+            element.addEventListener('mouseleave', function() {
+                this.setAttribute('title', this.getAttribute('data-original-title'));
+                this.removeAttribute('data-original-title');
+            });
+        });
+
+        // Session timeout warning (30 minutes)
+        let sessionTimeout = setTimeout(() => {
+            if (confirm('आपका सत्र जल्द ही समाप्त हो जाएगा। क्या आप जारी रखना चाहते हैं?')) {
+                // Reset timeout
+                clearTimeout(sessionTimeout);
+                sessionTimeout = setTimeout(arguments.callee, 30 * 60 * 1000);
+            } else {
+                handleLogout();
+            }
+        }, 30 * 60 * 1000);
+
+        // Clear session timeout on user activity
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+            document.addEventListener(event, () => {
+                clearTimeout(sessionTimeout);
+                sessionTimeout = setTimeout(() => {
+                    if (confirm('आपका सत्र जल्द ही समाप्त हो जाएगा। क्या आप जारी रखना चाहते हैं?')) {
+                        clearTimeout(sessionTimeout);
+                        sessionTimeout = setTimeout(arguments.callee, 30 * 60 * 1000);
+                    } else {
+                        handleLogout();
+                    }
+                }, 30 * 60 * 1000);
+            }, { passive: true });
+        });
+
     </script>
 </body>
 </html>
+
