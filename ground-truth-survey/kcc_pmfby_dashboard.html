@@ -379,6 +379,36 @@
             opacity: 0.8;
         }
 
+        /* FIXED: Fullscreen button style */
+        .btn-fullscreen {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--white);
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-fullscreen:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* FIXED: Fullscreen modal */
+        .modal-fullscreen {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            max-width: none;
+            max-height: none;
+        }
+
+        .modal-fullscreen .modal-content {
+            height: 100vh;
+            border-radius: 0;
+        }
+
         .modal-body {
             padding: 2rem;
             background-color: var(--white);
@@ -703,6 +733,7 @@
                     <h5 class="modal-title hindi" id="viewerModalLabel">
                         KCC RECORDS - <span id="districtNameInViewer"></span>
                     </h5>
+                    <!-- FIXED: Fullscreen button instead of close -->
                     <button type="button" class="btn-fullscreen" id="btnFullscreen" title="Fullscreen">
                         <i class="fas fa-expand"></i>
                     </button>
@@ -913,10 +944,9 @@
                     entryDate.value = new Date().toISOString().slice(0, 10);
                 }
 
-                // Update modal district name - FIXED FOR ADMIN
+                // FIXED: Update modal district name - Admin sees ALL DISTRICTS
                 const districtInViewer = $('districtNameInViewer');
                 if (districtInViewer) {
-                    // ADMIN SEES ALL DISTRICTS, USER SEES THEIR DISTRICT
                     districtInViewer.textContent = (currentUser.role === 'admin' || currentUser.role === 'state_admin') ? 'ALL DISTRICTS' : currentUser.districtName;
                 }
 
@@ -1029,7 +1059,7 @@
                 }
             });
 
-            // FIXED: Fullscreen button instead of close
+            // FIXED: Fullscreen button
             const fullscreenBtn = $('btnFullscreen');
             if (fullscreenBtn) {
                 fullscreenBtn.addEventListener('click', toggleFullscreen);
@@ -1046,7 +1076,7 @@
             console.log('✅ All event listeners attached');
         }
 
-        // NEW: Fullscreen toggle function
+        // FIXED: Fullscreen toggle function
         function toggleFullscreen() {
             const modal = $('viewerModal');
             if (!modal) return;
@@ -1111,7 +1141,7 @@
             if (!supabase) return;
             
             try {
-                // GET ALL DISTRICTS DATA - NO FILTERING
+                // GET ALL DISTRICTS DATA - NO FILTERING BY DISTRICT
                 const { data, error } = await supabase
                     .from('kcc_entries')
                     .select('*')
@@ -1503,563 +1533,533 @@
             const updateBtn = \$('btnUpdate');
             const statusElement = \$('status');
             
-            if (updateBtn) updateBtn.disabled = true;
-            if (statusElement) statusElement.textContent = 'UPDATING...';
+                if (updateBtn) updateBtn.disabled = true;
+                if (statusElement) statusElement.textContent = 'UPDATING...';
 
-            try {
-                const { data, error } = await supabase.rpc('upsert_kcc_entry', params);
-                
-                if (error) {
+                try {
+                    const { data, error } = await supabase.rpc('upsert_kcc_entry', params);
+                    
+                    if (error) {
+                        console.error('Update error:', error);
+                        throw error;
+                    }
+
+                    toast('Entry updated successfully (previous version preserved)', 'success');
+                    if (statusElement) statusElement.textContent = 'ENTRY UPDATED';
+                    if (changeReasonInput) changeReasonInput.value = '';
+                    clearForm();
+                    await loadInitialData();
+                    
+                } catch (error) {
                     console.error('Update error:', error);
-                    throw error;
-                }
-
-                toast('Entry updated successfully (previous version preserved)', 'success');
-                if (statusElement) statusElement.textContent = 'ENTRY UPDATED';
-                if (changeReasonInput) changeReasonInput.value = '';
-                clearForm();
-                await loadInitialData();
-                
-            } catch (error) {
-                console.error('Update error:', error);
-                toast('Update failed: ' + error.message, 'danger');
-                if (statusElement) statusElement.textContent = 'UPDATE FAILED';
-            } finally {
-                if (updateBtn) updateBtn.disabled = false;
-            }
-        }
-
-        // Show records
-        function showRecords() {
-            if (viewerModalInstance) {
-                viewerModalInstance.show();
-                loadRecordsTable();
-            } else {
-                toast('Records viewer not available', 'danger');
-            }
-        }
-
-        // FIXED: Load records table - Admin sees ALL districts
-        async function loadRecordsTable(fromDate = null, toDate = null, page = 1) {
-            if (!currentUser || !supabase) return;
-            
-            try {
-                console.log('Loading records table...');
-                
-                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
-                const offset = (page - 1) * pageSize;
-
-                let query = supabase
-                    .from('kcc_entries')
-                    .select('*', { count: 'exact' })
-                    .order('created_at', { ascending: false })
-                    .range(offset, offset + pageSize - 1);
-
-                // FIXED: Admin sees ALL districts, user sees only their district
-                if (!isAdmin) {
-                    query = query.eq('district_id', currentUser.districtId);
-                }
-
-                if (fromDate) {
-                    query = query.gte('entry_date', fromDate);
-                }
-                if (toDate) {
-                    query = query.lte('entry_date', toDate);
-                }
-
-                const { data, error, count } = await query;
-                
-                const tbody = $('recordsTableBody');
-                if (!tbody) return;
-                
-                tbody.innerHTML = '';
-                
-                if (error) {
-                    console.error('Records query error:', error);
-                    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">ERROR LOADING RECORDS</td></tr>';
-                    return;
-                }
-                
-                if (data && data.length > 0) {
-                    totalRecords = count || data.length;
-                    totalPages = Math.ceil(totalRecords / pageSize);
-                    currentPage = page;
-                    
-                    console.log(`Found ${data.length} records for ${isAdmin ? 'ALL DISTRICTS' : currentUser.districtName}`);
-                    
-                    data.forEach(record => {
-                        const row = document.createElement('tr');
-                        const reasonDetails = buildReasonDetails(record);
-                        
-                        row.innerHTML = `
-                            <td>${record.entry_date || '-'}</td>
-                            <td>${isAdmin ? (record.district_name || 'UNKNOWN') : currentUser.districtName}</td>
-                            <td>${record.total_active_kcc || 0}</td>
-                            <td>${record.total_kcc_saturated || 0}</td>
-                            <td>${record.total_kcc_not_saturated || 0}</td>
-                            <td>${record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'}</td>
-                            <td class="small">${reasonDetails}</td>
-                            <td>${record.is_current ? '<span class="badge badge-success">YES</span>' : '<span class="badge badge-secondary">NO</span>'}</td>
-                            <td>${record.version_number || 1}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-modern" onclick="editRecord('${record.id}')" title="Edit Record">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
-                    
-                    updatePaginationControls();
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="10" class="text-center">NO RECORDS FOUND</td></tr>';
-                    totalRecords = 0;
-                    totalPages = 1;
-                    currentPage = 1;
-                    updatePaginationControls();
-                }
-                
-            } catch (error) {
-                console.error('Load records error:', error);
-                const tbody = $('recordsTableBody');
-                if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">ERROR LOADING RECORDS</td></tr>';
+                    toast('Update failed: ' + error.message, 'danger');
+                    if (statusElement) statusElement.textContent = 'UPDATE FAILED';
+                } finally {
+                    if (updateBtn) updateBtn.disabled = false;
                 }
             }
-        }
 
-        // Update pagination controls
-        function updatePaginationControls() {
-            const startRecord = totalRecords > 0 ? (currentPage - 1) * pageSize + 1 : 0;
-            const endRecord = Math.min(currentPage * pageSize, totalRecords);
-            
-            const recordsInfo = $('recordsInfo');
-            const pageInfo = $('pageInfo');
-            const prevBtn = $('btnPrevPage');
-            const nextBtn = $('btnNextPage');
-            
-            if (recordsInfo) recordsInfo.textContent = `SHOWING ${startRecord}-${endRecord} OF ${totalRecords} RECORDS`;
-            if (pageInfo) pageInfo.textContent = `PAGE ${currentPage} OF ${totalPages}`;
-            if (prevBtn) prevBtn.disabled = currentPage <= 1;
-            if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
-        }
-
-        // FIXED: Edit record - Now actually works
-        window.editRecord = async function(recordId) {
-            if (!supabase) return;
-            
-            try {
-                console.log('Editing record:', recordId);
-                const { data, error } = await supabase
-                    .from('kcc_entries')
-                    .select('*')
-                    .eq('id', recordId)
-                    .single(); 
-
-                if (error) {
-                    console.error('Edit record fetch error:', error);
-                    throw error;
-                }
-
-                // Check permissions - admin can edit any record, user can edit only their district records
-                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
-                if (!isAdmin && data.district_id !== currentUser.districtId) {
-                    toast('You do not have permission to edit this record.', 'danger');
-                    return;
-                }
-
-                loadedCurrentRecord = data;
-                
-                // Fill form with data
-                const entryDate = $('entry_date');
-                const totalActive = $('total_active_kcc');
-                const totalSaturated = $('total_kcc_saturated');
-                const totalNotSaturated = $('total_kcc_not_saturated');
-                const reasonSelect = $('non_saturation_reason');
-                const optOutCount = $('opt_out_holders_count');
-                const otherText = $('other_reason_text');
-                const updateBtn = $('btnUpdate');
-                const changeReasonRow = $('changeReasonRow');
-
-                if (entryDate) entryDate.value = data.entry_date;
-                if (totalActive) totalActive.value = data.total_active_kcc || 0;
-                if (totalSaturated) totalSaturated.value = data.total_kcc_saturated || 0;
-                if (totalNotSaturated) totalNotSaturated.value = data.total_kcc_not_saturated || 0;
-                if (reasonSelect) reasonSelect.value = data.non_saturation_reason || '';
-                if (optOutCount) optOutCount.value = data.opt_out_holders_count || 0;
-                if (otherText) otherText.value = data.other_reason_text || '';
-
-                // Update validation minimums
-                previousActiveKCC = data.total_active_kcc || 0;
-                previousSaturatedKCC = data.total_kcc_saturated || 0;
-                const minActiveElement = $('minActiveKCC');
-                const minSaturatedElement = $('minSaturatedKCC');
-                if (minActiveElement) minActiveElement.textContent = previousActiveKCC;
-                if (minSaturatedElement) minSaturatedElement.textContent = previousSaturatedKCC;
-                if (totalActive) totalActive.min = previousActiveKCC;
-                if (totalSaturated) totalSaturated.min = previousSaturatedKCC;
-                
-                updateNotSaturated();
-                handleReasonChange();
-                
-                if (updateBtn) updateBtn.style.display = 'inline-block';
-                if (changeReasonRow) changeReasonRow.style.display = 'block';
-                
-                // Hide modal
+            // Show records
+            function showRecords() {
                 if (viewerModalInstance) {
-                    viewerModalInstance.hide();
+                    viewerModalInstance.show();
+                    loadRecordsTable();
+                } else {
+                    toast('Records viewer not available', 'danger');
                 }
-                
-                toast('Record loaded for editing', 'info');
-            } catch (err) {
-                console.error('Edit record error:', err);
-                toast('Failed to load record for editing', 'danger');
             }
-        };
 
-        // FIXED: Export to Excel - Works for both user and admin
-        async function exportToExcel() {
-            if (!currentUser || !supabase) {
-                toast('System not ready for export', 'warning');
-                return; 
-            }
-            
-            try {
-                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
-                const fromDate = $('filterFromDate')?.value;
-                const toDate = $('filterToDate')?.value;
+            // FIXED: Load records table - Admin sees ALL districts
+            async function loadRecordsTable(fromDate = null, toDate = null, page = 1) {
+                if (!currentUser || !supabase) return;
                 
-                let query = supabase
-                    .from('kcc_entries')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                try {
+                    console.log('Loading records table...');
+                    
+                    const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
+                    const offset = (page - 1) * pageSize;
 
-                // FIXED: Admin gets all districts, user gets only their district
-                if (!isAdmin) {
-                    query = query.eq('district_id', currentUser.districtId);
-                }
+                    let query = supabase
+                        .from('kcc_entries')
+                        .select('*', { count: 'exact' })
+                        .order('created_at', { ascending: false })
+                        .range(offset, offset + pageSize - 1);
 
-                if (fromDate) {
-                    query = query.gte('entry_date', fromDate);
-                }
-                if (toDate) {
-                    query = query.lte('entry_date', toDate);
-                }
+                    // FIXED: Admin sees ALL districts, user sees only their district
+                    if (!isAdmin) {
+                        query = query.eq('district_id', currentUser.districtId);
+                    }
 
-                const { data, error } = await query;
+                    if (fromDate) {
+                        query = query.gte('entry_date', fromDate);
+                    }
+                    if (toDate) {
+                        query = query.lte('entry_date', toDate);
+                    }
 
-                if (!data || !data.length || error) {
-                    toast('No data to export', 'warning');
-                    return;
-                }
-
-                // Get latest entry date for header
-                const latestEntry = data.reduce((latest, current) => 
-                    new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-                );
-
-                // Define column headers
-                const columnHeaders = [
-                    'DISTRICT', 'DATE', 'ACTIVE_KCC', 'SATURATED_KCC', 'NOT_SATURATED_KCC', 
-                    'REASON_TYPE', 'REASON_DETAILS', 'IS_CURRENT', 'VERSION', 'CREATED_AT', 'CHANGE_REASON'
-                ];
-
-                // Map data
-                const worksheetData = data.map(record => ({
-                    'DISTRICT': record.district_name || '-',
-                    'DATE': record.entry_date || '-',
-                    'ACTIVE_KCC': record.total_active_kcc || 0,
-                    'SATURATED_KCC': record.total_kcc_saturated || 0,
-                    'NOT_SATURATED_KCC': record.total_kcc_not_saturated || 0,
-                    'REASON_TYPE': record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-',
-                    'REASON_DETAILS': buildReasonDetails(record),
-                    'IS_CURRENT': record.is_current ? 'YES' : 'NO',
-                    'VERSION': record.version_number || 1,
-                    'CREATED_AT': new Date(record.created_at).toLocaleString(),
-                    'CHANGE_REASON': record.change_reason || '-'
-                }));
-
-                // Create worksheet
-                const newWorksheet = XLSX.utils.aoa_to_sheet([]);
-
-                // Add header info
-                const reportDateTime = new Date().toLocaleString();
-                const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
-                const districtInfo = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
-                const dateRangeText = (fromDate || toDate) ? `${fromDate || 'ALL'} TO ${toDate || 'ALL'}` : 'ALL DATES';
-                
-                const headerInfo = [
-                    ['Directorate Agriculture Chhattisgarh'],
-                    ['Daily KCC Saturation Report Under PMFBY Season Kharif 2025'],
-                    [`District: ${districtInfo}`],
-                    [`Report Date: ${dateRangeText}`],
-                    [`Generated: ${reportDateTime}`],
-                    [`Last Entry: ${lastEntryDateTime}`],
-                    [''],
-                ];
-
-                XLSX.utils.sheet_add_aoa(newWorksheet, headerInfo, { origin: 'A1' });
-                XLSX.utils.sheet_add_aoa(newWorksheet, [columnHeaders], { origin: 'A8' });
-                XLSX.utils.sheet_add_json(newWorksheet, worksheetData, { origin: 'A9', skipHeader: true });
-
-                // Add borders
-                const range = XLSX.utils.decode_range(newWorksheet['!ref']);
-                for (let R = range.s.r; R <= range.e.r; ++R) {
-                    for (let C = range.s.c; C <= range.e.c; ++C) {
-                        const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
-                        if (!newWorksheet[cell_address]) newWorksheet[cell_address] = {};
-                        if (!newWorksheet[cell_address].s) newWorksheet[cell_address].s = {};
-                        newWorksheet[cell_address].s.border = {
-                            top: { style: 'thin' }, bottom: { style: 'thin' },
-                            left: { style: 'thin' }, right: { style: 'thin' }
-                        };
+                    const { data, error, count } = await query;
+                    
+                    const tbody = $('recordsTableBody');
+                    if (!tbody) return;
+                    
+                    tbody.innerHTML = '';
+                    
+                    if (error) {
+                        console.error('Records query error:', error);
+                        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">ERROR LOADING RECORDS</td></tr>';
+                        return;
+                    }
+                    
+                    if (data && data.length > 0) {
+                        totalRecords = count || data.length;
+                        totalPages = Math.ceil(totalRecords / pageSize);
+                        currentPage = page;
+                        
+                        console.log(`Found ${data.length} records for ${isAdmin ? 'ALL DISTRICTS' : currentUser.districtName}`);
+                        
+                        data.forEach(record => {
+                            const row = document.createElement('tr');
+                            const reasonDetails = buildReasonDetails(record);
+                            
+                            row.innerHTML = `
+                                <td>${record.entry_date || '-'}</td>
+                                <td>${isAdmin ? (record.district_name || 'UNKNOWN') : currentUser.districtName}</td>
+                                <td>${record.total_active_kcc || 0}</td>
+                                <td>${record.total_kcc_saturated || 0}</td>
+                                <td>${record.total_kcc_not_saturated || 0}</td>
+                                <td>${record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'}</td>
+                                <td class="small">${reasonDetails}</td>
+                                <td>${record.is_current ? '<span class="badge badge-success">YES</span>' : '<span class="badge badge-secondary">NO</span>'}</td>
+                                <td>${record.version_number || 1}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-modern" onclick="editRecord('${record.id}')" title="Edit Record">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                        
+                        updatePaginationControls();
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="10" class="text-center">NO RECORDS FOUND</td></tr>';
+                        totalRecords = 0;
+                        totalPages = 1;
+                        currentPage = 1;
+                        updatePaginationControls();
+                    }
+                    
+                } catch (error) {
+                    console.error('Load records error:', error);
+                    const tbody = $('recordsTableBody');
+                    if (tbody) {
+                        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-danger">ERROR LOADING RECORDS</td></tr>';
                     }
                 }
-
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, newWorksheet, 'KCC_DATA');
-                
-                // Set page setup
-                newWorksheet['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
-                newWorksheet['!printOptions'] = { orientation: 'landscape' };
-                
-                // Generate filename
-                const now = new Date();
-                const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-                const fileName = `KCC_DATA_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.xlsx`;
-                XLSX.writeFile(workbook, fileName);
-                
-                toast('Excel file downloaded successfully!', 'success');
-            } catch (err) {
-                console.error('Export error:', err);
-                toast('Export failed: ' + err.message, 'danger');
-            }
-        }
-
-        // FIXED: PDF Export - Only for admin with proper formatting
-        async function exportToPDF() {
-            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'state_admin')) {
-                toast('PDF export is only available for Admin users', 'warning');
-                return;
             }
 
-            if (!supabase) return;
-
-            try {
-                const fromDate = $('filterFromDate')?.value;
-                const toDate = $('filterToDate')?.value;
+            // Update pagination controls
+            function updatePaginationControls() {
+                const startRecord = totalRecords > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+                const endRecord = Math.min(currentPage * pageSize, totalRecords);
                 
-                // Admin gets ALL districts data
-                let query = supabase
-                    .from('kcc_entries')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                const recordsInfo = $('recordsInfo');
+                const pageInfo = $('pageInfo');
+                const prevBtn = $('btnPrevPage');
+                const nextBtn = $('btnNextPage');
+                
+                if (recordsInfo) recordsInfo.textContent = `SHOWING ${startRecord}-${endRecord} OF ${totalRecords} RECORDS`;
+                if (pageInfo) pageInfo.textContent = `PAGE ${currentPage} OF ${totalPages}`;
+                if (prevBtn) prevBtn.disabled = currentPage <= 1;
+                if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+            }
 
-                if (fromDate) {
-                    query = query.gte('entry_date', fromDate);
+            // FIXED: Edit record - Now actually works
+            window.editRecord = async function(recordId) {
+                if (!supabase) return;
+                
+                try {
+                    console.log('Editing record:', recordId);
+                    const { data, error } = await supabase
+                        .from('kcc_entries')
+                        .select('*')
+                        .eq('id', recordId)
+                        .single(); 
+
+                    if (error) {
+                        console.error('Edit record fetch error:', error);
+                        throw error;
+                    }
+
+                    // Check permissions - admin can edit any record, user can edit only their district records
+                    const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
+                    if (!isAdmin && data.district_id !== currentUser.districtId) {
+                        toast('You do not have permission to edit this record.', 'danger');
+                        return;
+                    }
+
+                    loadedCurrentRecord = data;
+                    
+                    // Fill form with data
+                    const entryDate = $('entry_date');
+                    const totalActive = $('total_active_kcc');
+                    const totalSaturated = $('total_kcc_saturated');
+                    const totalNotSaturated = $('total_kcc_not_saturated');
+                    const reasonSelect = $('non_saturation_reason');
+                    const optOutCount = $('opt_out_holders_count');
+                    const otherText = $('other_reason_text');
+                    const updateBtn = $('btnUpdate');
+                    const changeReasonRow = $('changeReasonRow');
+
+                    if (entryDate) entryDate.value = data.entry_date;
+                    if (totalActive) totalActive.value = data.total_active_kcc || 0;
+                    if (totalSaturated) totalSaturated.value = data.total_kcc_saturated || 0;
+                    if (totalNotSaturated) totalNotSaturated.value = data.total_kcc_not_saturated || 0;
+                    if (reasonSelect) reasonSelect.value = data.non_saturation_reason || '';
+                    if (optOutCount) optOutCount.value = data.opt_out_holders_count || 0;
+                    if (otherText) otherText.value = data.other_reason_text || '';
+
+                    // Update validation minimums
+                    previousActiveKCC = data.total_active_kcc || 0;
+                    previousSaturatedKCC = data.total_kcc_saturated || 0;
+                    const minActiveElement = $('minActiveKCC');
+                    const minSaturatedElement = $('minSaturatedKCC');
+                    if (minActiveElement) minActiveElement.textContent = previousActiveKCC;
+                    if (minSaturatedElement) minSaturatedElement.textContent = previousSaturatedKCC;
+                    if (totalActive) totalActive.min = previousActiveKCC;
+                    if (totalSaturated) totalSaturated.min = previousSaturatedKCC;
+                    
+                    updateNotSaturated();
+                    handleReasonChange();
+                    
+                    if (updateBtn) updateBtn.style.display = 'inline-block';
+                    if (changeReasonRow) changeReasonRow.style.display = 'block';
+                    
+                    // Hide modal
+                    if (viewerModalInstance) {
+                        viewerModalInstance.hide();
+                    }
+                    
+                    toast('Record loaded for editing', 'info');
+                } catch (err) {
+                    console.error('Edit record error:', err);
+                    toast('Failed to load record for editing', 'danger');
                 }
-                if (toDate) {
-                    query = query.lte('entry_date', toDate);
+            };
+
+            // FIXED: Export to Excel - Works for both user and admin
+            async function exportToExcel() {
+                if (!currentUser || !supabase) {
+                    toast('System not ready for export', 'warning');
+                    return; 
                 }
+                
+                try {
+                    const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
+                    const fromDate = $('filterFromDate')?.value;
+                    const toDate = $('filterToDate')?.value;
+                    
+                    let query = supabase
+                        .from('kcc_entries')
+                        .select('*')
+                        .order('created_at', { ascending: false });
 
-                const { data, error } = await query;
+                    // FIXED: Admin gets all districts, user gets only their district
+                    if (!isAdmin) {
+                        query = query.eq('district_id', currentUser.districtId);
+                    }
 
-                if (!data || !data.length || error) {
-                    toast('No data to export', 'warning');
+                    if (fromDate) {
+                        query = query.gte('entry_date', fromDate);
+                    }
+                    if (toDate) {
+                        query = query.lte('entry_date', toDate);
+                    }
+
+                    const { data, error } = await query;
+
+                    if (!data || !data.length || error) {
+                        toast('No data to export', 'warning');
+                        return;
+                    }
+
+                    // Get latest entry date for header
+                    const latestEntry = data.reduce((latest, current) => 
+                        new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+                    );
+
+                    // Define column headers
+                    const columnHeaders = [
+                        'DISTRICT', 'DATE', 'ACTIVE_KCC', 'SATURATED_KCC', 'NOT_SATURATED_KCC', 
+                        'REASON_TYPE', 'REASON_DETAILS', 'IS_CURRENT', 'VERSION', 'CREATED_AT', 'CHANGE_REASON'
+                    ];
+
+                    // Map data
+                    const worksheetData = data.map(record => ({
+                        'DISTRICT': record.district_name || '-',
+                        'DATE': record.entry_date || '-',
+                        'ACTIVE_KCC': record.total_active_kcc || 0,
+                        'SATURATED_KCC': record.total_kcc_saturated || 0,
+                        'NOT_SATURATED_KCC': record.total_kcc_not_saturated || 0,
+                        'REASON_TYPE': record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-',
+                        'REASON_DETAILS': buildReasonDetails(record),
+                        'IS_CURRENT': record.is_current ? 'YES' : 'NO',
+                        'VERSION': record.version_number || 1,
+                        'CREATED_AT': new Date(record.created_at).toLocaleString(),
+                        'CHANGE_REASON': record.change_reason || '-'
+                    }));
+
+                    // Create worksheet
+                    const newWorksheet = XLSX.utils.aoa_to_sheet([]);
+
+                    // Add header info
+                    const reportDateTime = new Date().toLocaleString();
+                    const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
+                    const districtInfo = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
+                    const dateRangeText = (fromDate || toDate) ? `${fromDate || 'ALL'} TO ${toDate || 'ALL'}` : 'ALL DATES';
+                    
+                    const headerInfo = [
+                        ['Directorate Agriculture Chhattisgarh'],
+                        ['Daily KCC Saturation Report Under PMFBY Season Kharif 2025'],
+                        [`District: ${districtInfo}`],
+                        [`Report Date: ${dateRangeText}`],
+                        [`Generated: ${reportDateTime}`],
+                        [`Last Entry: ${lastEntryDateTime}`],
+                        [''],
+                    ];
+
+                    XLSX.utils.sheet_add_aoa(newWorksheet, headerInfo, { origin: 'A1' });
+                    XLSX.utils.sheet_add_aoa(newWorksheet, [columnHeaders], { origin: 'A8' });
+                    XLSX.utils.sheet_add_json(newWorksheet, worksheetData, { origin: 'A9', skipHeader: true });
+
+                    // Add borders
+                    const range = XLSX.utils.decode_range(newWorksheet['!ref']);
+                    for (let R = range.s.r; R <= range.e.r; ++R) {
+                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                            const cell_address = XLSX.utils.encode_cell({ r: R, c: C });
+                            if (!newWorksheet[cell_address]) newWorksheet[cell_address] = {};
+                            if (!newWorksheet[cell_address].s) newWorksheet[cell_address].s = {};
+                            newWorksheet[cell_address].s.border = {
+                                top: { style: 'thin' }, bottom: { style: 'thin' },
+                                left: { style: 'thin' }, right: { style: 'thin' }
+                            };
+                        }
+                    }
+
+                    const workbook = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(workbook, newWorksheet, 'KCC_DATA');
+                    
+                    // Set page setup
+                    newWorksheet['!margins'] = { left: 0.7, right: 0.7, top: 0.75, bottom: 0.75, header: 0.3, footer: 0.3 };
+                    newWorksheet['!printOptions'] = { orientation: 'landscape' };
+                    
+                    // Generate filename
+                    const now = new Date();
+                    const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+                    const fileName = `KCC_DATA_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.xlsx`;
+                    XLSX.writeFile(workbook, fileName);
+                    
+                    toast('Excel file downloaded successfully!', 'success');
+                } catch (err) {
+                    console.error('Export error:', err);
+                    toast('Export failed: ' + err.message, 'danger');
+                }
+            }
+
+            // FIXED: PDF Export - Only for admin with proper formatting
+            async function exportToPDF() {
+                if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'state_admin')) {
+                    toast('PDF export is only available for Admin users', 'warning');
                     return;
                 }
 
-                const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('landscape', 'mm', 'a4');
-                
-                // Set font and black color
-                doc.setFont('helvetica');
-                doc.setTextColor(0, 0, 0);
+                if (!supabase) return;
 
-                // Header as requested
-                doc.setFontSize(16);
-                doc.setFont(undefined, 'bold');
-                doc.text('Directorate Agriculture Chhattisgarh', 148, 20, { align: 'center' });
-                
-                doc.setFontSize(14);
-                doc.text('Daily KCC Saturation Report Under PMFBY Season Kharif 2025', 148, 28, { align: 'center' });
-                
-                doc.setFontSize(10);
-                doc.setFont(undefined, 'normal');
-                
-                const dateRangeText = (fromDate || toDate) ? `${fromDate || 'START'} to ${toDate || 'END'}` : 'All Dates';
-                doc.text(`Report Date: ${dateRangeText}`, 20, 38);
-                doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 45);
+                try {
+                    const fromDate = $('filterFromDate')?.value;
+                    const toDate = $('filterToDate')?.value;
+                    
+                    // Admin gets ALL districts data
+                    let query = supabase
+                        .from('kcc_entries')
+                        .select('*')
+                        .order('created_at', { ascending: false });
 
-                // Table headers
-                const headers = [
-                    'DISTRICT', 'DATE', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 
-                    'REASON TYPE', 'DETAILS', 'CURRENT', 'VER'
-                ];
-                
-                const colWidths = [28, 22, 20, 20, 22, 25, 35, 16, 12];
-                const startY = 55;
-                let currentY = startY;
-                const startX = 20;
+                    if (fromDate) {
+                        query = query.gte('entry_date', fromDate);
+                    }
+                    if (toDate) {
+                        query = query.lte('entry_date', toDate);
+                    }
 
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'bold');
-                
-                // Draw header row with borders
-                let cellX = startX;
-                headers.forEach((header, i) => {
-                    doc.rect(cellX, currentY - 5, colWidths[i], 8);
-                    doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' });
-                    cellX += colWidths[i];
-                });
-                
-                currentY += 8;
-                doc.setFont(undefined, 'normal');
-                
-                // Table data with borders - limit to 100 records for PDF
-                data.slice(0, 100).forEach((record) => {
-                    const rowData = [
-                        record.district_name || '-',
-                        record.entry_date || '-',
-                        (record.total_active_kcc || 0).toString(),
-                        (record.total_kcc_saturated || 0).toString(),
-                        (record.total_kcc_not_saturated || 0).toString(),
-                        (record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'),
-                        buildReasonDetails(record).substring(0, 20),
-                        record.is_current ? 'YES' : 'NO',
-                        (record.version_number || 1).toString()
+                    const { data, error } = await query;
+
+                    if (!data || !data.length || error) {
+                        toast('No data to export', 'warning');
+                        return;
+                    }
+
+                    const { jsPDF } = window.jspdf;
+                    const doc = new jsPDF('landscape', 'mm', 'a4');
+                    
+                    // Set font and black color
+                    doc.setFont('helvetica');
+                    doc.setTextColor(0, 0, 0);
+
+                    // Header as requested
+                    doc.setFontSize(16);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Directorate Agriculture Chhattisgarh', 148, 20, { align: 'center' });
+                    
+                    doc.setFontSize(14);
+                    doc.text('Daily KCC Saturation Report Under PMFBY Season Kharif 2025', 148, 28, { align: 'center' });
+                    
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'normal');
+                    
+                    const dateRangeText = (fromDate || toDate) ? `${fromDate || 'START'} to ${toDate || 'END'}` : 'All Dates';
+                    doc.text(`Report Date: ${dateRangeText}`, 20, 38);
+                    doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 45);
+
+                    // Table headers
+                    const headers = [
+                        'DISTRICT', 'DATE', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 
+                        'REASON TYPE', 'DETAILS', 'CURRENT', 'VER'
                     ];
                     
-                    cellX = startX;
-                    rowData.forEach((cell, i) => {
-                        doc.rect(cellX, currentY - 5, colWidths[i], 7);
-                        doc.text(cell, cellX + 2, currentY, { maxWidth: colWidths[i] - 4 });
+                    const colWidths = [28, 22, 20, 20, 22, 25, 35, 16, 12];
+                    const startY = 55;
+                    let currentY = startY;
+                    const startX = 20;
+
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, 'bold');
+                    
+                    // Draw header row with borders
+                    let cellX = startX;
+                    headers.forEach((header, i) => {
+                        doc.rect(cellX, currentY - 5, colWidths[i], 8);
+                        doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' });
                         cellX += colWidths[i];
                     });
                     
-                    currentY += 7;
-
-                    // Add new page if needed
-                    if (currentY > (doc.internal.pageSize.height - 20)) {
-                        doc.addPage();
-                        currentY = 20;
+                    currentY += 8;
+                    doc.setFont(undefined, 'normal');
+                    
+                    // Table data with borders - limit to 100 records for PDF
+                    data.slice(0, 100).forEach((record) => {
+                        const rowData = [
+                            record.district_name || '-',
+                            record.entry_date || '-',
+                            (record.total_active_kcc || 0).toString(),
+                            (record.total_kcc_saturated || 0).toString(),
+                            (record.total_kcc_not_saturated || 0).toString(),
+                            (record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'),
+                            buildReasonDetails(record).substring(0, 20),
+                            record.is_current ? 'YES' : 'NO',
+                            (record.version_number || 1).toString()
+                        ];
                         
-                        // Redraw headers
-                        doc.setFont(undefined, 'bold');
                         cellX = startX;
-                        headers.forEach((header, i) => {
-                            doc.rect(cellX, currentY - 5, colWidths[i], 8);
-                            doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' });
+                        rowData.forEach((cell, i) => {
+                            doc.rect(cellX, currentY - 5, colWidths[i], 7);
+                            doc.text(cell, cellX + 2, currentY, { maxWidth: colWidths[i] - 4 });
                             cellX += colWidths[i];
                         });
-                        currentY += 8;
-                        doc.setFont(undefined, 'normal');
-                    }
-                });
+                        
+                        currentY += 7;
 
-                // Generate filename
-                const now = new Date();
-                const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-                const fileName = `KCC_REPORT_ALL_DISTRICTS_${timestamp}.pdf`;
-                doc.save(fileName);
+                        // Add new page if needed
+                        if (currentY > (doc.internal.pageSize.height - 20)) {
+                            doc.addPage();
+                            currentY = 20;
+                            
+                            // Redraw headers
+                            doc.setFont(undefined, 'bold');
+                            cellX = startX;
+                            headers.forEach((header, i) => {
+                                doc.rect(cellX, currentY - 5, colWidths[i], 8);
+                                doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' });
+                                cellX += colWidths[i];
+                            });
+                            currentY += 8;
+                            doc.setFont(undefined, 'normal');
+                        }
+                    });
+
+                    // Generate filename
+                    const now = new Date();
+                    const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+                    const fileName = `KCC_REPORT_ALL_DISTRICTS_${timestamp}.pdf`;
+                    doc.save(fileName);
+                    
+                    toast('PDF file downloaded successfully!', 'success');
+                } catch (err) {
+                    console.error('PDF export error:', err);
+                    toast('PDF export failed: ' + err.message, 'danger');
+                }
+            }
+
+            // Date filter functions
+            function applyDateFilter() {
+                const fromDateInput = $('filterFromDate');
+                const toDateInput = $('filterToDate');
                 
-                toast('PDF file downloaded successfully!', 'success');
-            } catch (err) {
-                console.error('PDF export error:', err);
-                toast('PDF export failed: ' + err.message, 'danger');
+                if (!fromDateInput || !toDateInput) return;
+
+                const fromDate = fromDateInput.value;
+                const toDate = toDateInput.value;
+
+                if (fromDate && toDate && fromDate > toDate) {
+                    toast('From date cannot be later than to date', 'warning');
+                    return;
+                }
+                
+                currentFilters.fromDate = fromDate;
+                currentFilters.toDate = toDate;
+                currentPage = 1;
+                loadRecordsTable(fromDate, toDate, 1);
+                toast('Filter applied', 'success', 1500);
             }
-        }
 
-        // Date filter functions
-        function applyDateFilter() {
-            const fromDateInput = $('filterFromDate');
-            const toDateInput = $('filterToDate');
-            
-            if (!fromDateInput || !toDateInput) return;
+            function clearDateFilter() {
+                const fromDateInput = $('filterFromDate');
+                const toDateInput = $('filterToDate');
 
-            const fromDate = fromDateInput.value;
-            const toDate = toDateInput.value;
-
-            if (fromDate && toDate && fromDate > toDate) {
-                toast('From date cannot be later than to date', 'warning');
-                return;
+                if (fromDateInput) fromDateInput.value = '';
+                if (toDateInput) toDateInput.value = '';
+                currentFilters.fromDate = null;
+                currentFilters.toDate = null;
+                currentPage = 1;
+                loadRecordsTable(null, null, 1);
+                toast('Filter cleared', 'info', 1500);
             }
-            
-            currentFilters.fromDate = fromDate;
-            currentFilters.toDate = toDate;
-            currentPage = 1;
-            loadRecordsTable(fromDate, toDate, 1);
-            toast('Filter applied', 'success', 1500);
-        }
 
-        function clearDateFilter() {
-            const fromDateInput = $('filterFromDate');
-            const toDateInput = $('filterToDate');
-
-            if (fromDateInput) fromDateInput.value = '';
-            if (toDateInput) toDateInput.value = '';
-            currentFilters.fromDate = null;
-            currentFilters.toDate = null;
-            currentPage = 1;
-            loadRecordsTable(null, null, 1);
-            toast('Filter cleared', 'info', 1500);
-        }
-
-        // Pagination functions
-        function goToPage(page) {
-            if (page >= 1 && page <= totalPages) {
-                currentPage = page;
-                loadRecordsTable(currentFilters.fromDate, currentFilters.toDate, page);
+            // Pagination functions
+            function goToPage(page) {
+                if (page >= 1 && page <= totalPages) {
+                    currentPage = page;
+                    loadRecordsTable(currentFilters.fromDate, currentFilters.toDate, page);
+                }
             }
-        }
 
-        function previousPage() {
-            if (currentPage > 1) {
-                goToPage(currentPage - 1);
+            function previousPage() {
+                if (currentPage > 1) {
+                    goToPage(currentPage - 1);
+                }
             }
-        }
 
-        function nextPage() {
-            if (currentPage < totalPages) {
-                goToPage(currentPage + 1);
+            function nextPage() {
+                if (currentPage < totalPages) {
+                    goToPage(currentPage + 1);
+                }
             }
-        }
 
-        // Prevent form submission
-        document.addEventListener('submit', e => e.preventDefault());
+            // Prevent form submission
+            document.addEventListener('submit', e => e.preventDefault());
 
-        // Add CSS for fullscreen modal
-        const style = document.createElement('style');
-        style.textContent = `
-            .modal-fullscreen {
-                width: 100vw;
-                height: 100vh;
-                margin: 0;
-                max-width: none;
-                max-height: none;
-            }
-            .modal-fullscreen .modal-content {
-                height: 100vh;
-                border-radius: 0;
-            }
-            .btn-fullscreen {
-                background: rgba(255, 255, 255, 0.1);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-                color: var(--white);
-                padding: 0.5rem;
-                border-radius: 4px;
-                transition: all 0.2s ease;
-                cursor: pointer;
-            }
-            .btn-fullscreen:hover {
-                background: rgba(255, 255, 255, 0.2);
-            }
-        `;
-        document.head.appendChild(style);
+            console.log('📜 Script loaded successfully');
+        </script>
+    </body>
+    </html>
 
-        console.log('📜 Script loaded successfully');
-    </script>
-</body>
-</html>
-
-    
