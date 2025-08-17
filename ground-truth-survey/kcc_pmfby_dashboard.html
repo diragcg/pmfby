@@ -1482,6 +1482,33 @@
             return true;
         }
 
+        // Clear the form fields and reset state
+        function clearForm(){
+            const entryDateElement = $('entry_date');
+            const totalActiveKCCInput = $('total_active_kcc');
+            const totalKCCSaturatedInput = $('total_kcc_saturated');
+            const totalKCCNotSaturatedInput = $('total_kcc_not_saturated');
+            const nonSaturationReasonSelect = $('non_saturation_reason');
+            const changeReasonInput = $('change_reason');
+            const changeReasonRow = $('changeReasonRow');
+            const btnUpdate = $('btnUpdate');
+
+            if (entryDateElement) entryDateElement.value = new Date().toISOString().slice(0,10);
+            if (totalActiveKCCInput) totalActiveKCCInput.value = '';
+            if (totalKCCSaturatedInput) totalKCCSaturatedInput.value = '';
+            if (totalKCCNotSaturatedInput) totalKCCNotSaturatedInput.value = '';
+            if (nonSaturationReasonSelect) nonSaturationReasonSelect.value = '';
+            if (changeReasonInput) changeReasonInput.value = '';
+            
+            // Hide and clear update-specific elements
+            if (changeReasonRow) changeReasonRow.style.display = 'none';
+            if (btnUpdate) btnUpdate.style.display = 'none';
+            
+            loadedCurrentRecord = null; // Reset loaded record
+            hideConditionalFields(); // Hide and clear new conditional fields
+            updateNotSaturated(); // Recalculate and update reasons field state
+        }
+
         // Save a new KCC entry
         async function saveEntry(){
             console.log('SAVE button clicked.');
@@ -1674,6 +1701,16 @@
                 return;
             }
             
+            // NEW: Set date filters to current date when modal opens
+            const today = new Date().toISOString().slice(0, 10);
+            const filterFromDateInput = $('filterFromDate');
+            const filterToDateInput = $('filterToDate');
+            if (filterFromDateInput) filterFromDateInput.value = today;
+            if (filterToDateInput) filterToDateInput.value = today;
+            
+            currentFilters.fromDate = today;
+            currentFilters.toDate = today;
+
             currentPage = 1; // Reset to first page when opening modal
             await loadRecordsTable(currentFilters.fromDate, currentFilters.toDate, currentPage); // Load data for the table
         }
@@ -1898,6 +1935,9 @@
                 // Filter by district for regular users, no filter for admin
                 if (!isAdmin) {
                     query = query.eq('district_id', currentUser.districtId);
+                } else {
+                    // NEW: Admin Excel export - only latest record per district
+                    query = query.eq('is_current', true); // Ensure only current records are considered
                 }
 
                 // Apply date filters
@@ -1915,8 +1955,25 @@
                     return;
                 }
 
-                // Get latest entry date for header information
-                const latestEntry = data.reduce((latest, current) => 
+                let processedData = data;
+
+                // If admin, filter to only the latest record per district
+                if (isAdmin) {
+                    const latestRecordsMap = new Map();
+                    data.forEach(record => {
+                        // Use district_id as key, if a newer record (by created_at) is found, update it
+                        if (!latestRecordsMap.has(record.district_id) || new Date(record.created_at) > new Date(latestRecordsMap.get(record.district_id).created_at)) {
+                            latestRecordsMap.set(record.district_id, record);
+                        }
+                    });
+                    processedData = Array.from(latestRecordsMap.values());
+                    // Sort by district name alphabetically for admin report
+                    processedData.sort((a, b) => (a.district_name || '').localeCompare(b.district_name || ''));
+                }
+
+
+                // Get latest entry date from the processed data for header information
+                const latestEntry = processedData.reduce((latest, current) => 
                     new Date(current.created_at) > new Date(latest.created_at) ? current : latest
                 );
 
@@ -1927,7 +1984,7 @@
                 ];
 
                 // Map fetched data to match defined column headers structure
-                const worksheetData = data.map(record => ({
+                const worksheetData = processedData.map(record => ({
                     'DISTRICT': record.district_name || '-',
                     'DATE': record.entry_date || '-',
                     'ACTIVE_KCC': record.total_active_kcc || 0,
@@ -2003,30 +2060,32 @@
             }
         }
 
-        // FIXED: Export data to PDF file (only for admin)
+        // FIXED: Export data to PDF file (for user and admin, with specific formatting)
         async function exportToPDF(){
-            // Check if user is an admin
-            if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'state_admin')) {
-                toast('PDF export is only available for Admin users.', 'warning');
-                return;
-            }
-
-            if (!supabase) {
-                toast('Database not connected for PDF export.', 'warning');
+            if (!currentUser || !supabase) {
+                toast('System not ready for PDF export.', 'warning');
                 return;
             }
 
             try {
+                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
                 const fromDate = $('filterFromDate')?.value;
                 const toDate = $('filterToDate')?.value;
                 
-                // Fetch all KCC entries for admin (no district filter)
                 let query = supabase
                     .from('kcc_entries')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                // Apply date filters if provided
+                // Filter by district for regular users, no filter for admin
+                if (!isAdmin) {
+                    query = query.eq('district_id', currentUser.districtId);
+                } else {
+                    // NEW: Admin PDF export - only latest record per district
+                    query = query.eq('is_current', true); // Ensure only current records are considered
+                }
+
+                // Apply date filters
                 if (fromDate) {
                     query = query.gte('entry_date', fromDate);
                 }
@@ -2041,75 +2100,135 @@
                     return;
                 }
 
+                let processedData = data;
+
+                // If admin, filter to only the latest record per district and sort alphabetically
+                if (isAdmin) {
+                    const latestRecordsMap = new Map();
+                    data.forEach(record => {
+                        if (!latestRecordsMap.has(record.district_id) || new Date(record.created_at) > new Date(latestRecordsMap.get(record.district_id).created_at)) {
+                            latestRecordsMap.set(record.district_id, record);
+                        }
+                    });
+                    processedData = Array.from(latestRecordsMap.values());
+                    processedData.sort((a, b) => (a.district_name || '').localeCompare(b.district_name || ''));
+                }
+                
                 const { jsPDF } = window.jspdf;
-                // Create a new jsPDF instance with landscape A4 orientation
                 const doc = new jsPDF('landscape', 'mm', 'a4');
                 
-                // Set font to a generic sans-serif (helvetica) and ensure black color for plain text
+                // Set font and black color for plain text
                 doc.setFont('helvetica');
-                doc.setTextColor(0, 0, 0); // Black color
+                doc.setTextColor(0, 0, 0);
 
-                // Add header content as requested
+                // --- PDF HEADER ---
                 doc.setFontSize(16);
                 doc.setFont(undefined, 'bold');
-                // Centered main title
                 doc.text('Directorate Agriculture Chhattisgarh', doc.internal.pageSize.width / 2, 20, { align: 'center' });
                 
                 doc.setFontSize(14);
-                // Centered sub-title
-                doc.text('Daily KCC Saturation Report Under PMFBY Season Kharif 2025', doc.internal.pageSize.width / 2, 28, { align: 'center' });
+                // Title based on user or admin
+                if (isAdmin) {
+                    doc.text('Daily KCC Saturation Report Under PMFBY Season Kharif 2025', doc.internal.pageSize.width / 2, 28, { align: 'center' });
+                } else {
+                    doc.text('KCC Saturation under PMFBY During Kharif 2025', doc.internal.pageSize.width / 2, 28, { align: 'center' });
+                }
                 
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
                 
-                // Report date range and generation timestamp
+                // District name
+                const districtHeader = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
+                doc.text(`Office of the Deputy Director Agriculture - ${districtHeader}`, 20, 38);
+                
+                // Report Date Range
                 const dateRangeText = (fromDate || toDate) ? `${fromDate || 'START'} to ${toDate || 'END'}` : 'All Dates';
-                doc.text(`Report Date: ${dateRangeText}`, 20, 38);
-                doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 45);
+                doc.text(`Report Date: ${dateRangeText}`, 20, 45);
+                doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 52);
 
-                // Define table headers and column widths for PDF
-                const headers = [
-                    'DISTRICT', 'DATE', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 
-                    'REASON TYPE', 'DETAILS', 'CURRENT', 'VER'
-                ];
-                // Column widths adjusted for landscape A4 and content
-                const colWidths = [28, 22, 20, 20, 22, 25, 35, 16, 12];
-                const startY = 55; // Starting Y position for the table
+                // --- PDF TABLE ---
+                let headers;
+                let colWidths;
+                
+                if (isAdmin) {
+                    // Admin specific columns
+                    headers = ['DISTRICT', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 'REASON TYPE', 'DETAILS'];
+                    colWidths = [40, 25, 25, 25, 30, 60]; // Adjusted for admin columns
+                } else {
+                    // User specific columns (all original table columns)
+                    headers = ['DATE', 'DISTRICT', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 'REASON TYPE', 'DETAILS', 'CURRENT', 'VER'];
+                    colWidths = [22, 28, 20, 20, 22, 25, 35, 16, 12];
+                }
+                
+                const startY = 65; // Starting Y position for the table, lower to accommodate headers
                 let currentY = startY;
-                const startX = 20; // Starting X position for the table
+                const tableWidth = colWidths.reduce((sum, width) => sum + width, 0);
+                const startX = (doc.internal.pageSize.width - tableWidth) / 2; // Center the table
 
                 doc.setFontSize(8);
                 doc.setFont(undefined, 'bold');
                 
-                // Draw table header row with borders
+                // Draw table header row with borders and centered text
                 let cellX = startX;
                 headers.forEach((header, i) => {
                     doc.rect(cellX, currentY - 5, colWidths[i], 8); // Draw cell border (x, y, width, height)
-                    doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' }); // Centered text in cell
+                    doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' }); // Centered text
                     cellX += colWidths[i];
                 });
                 
                 currentY += 8; // Move Y position down for data rows
                 doc.setFont(undefined, 'normal'); // Set font back to normal for data rows
                 
-                // Iterate through data to populate table rows (limit to 100 records for PDF to prevent huge files)
-                data.slice(0, 100).forEach((record) => {
-                    const rowData = [
-                        record.district_name || '-',
-                        record.entry_date || '-',
-                        (record.total_active_kcc || 0).toString(),
-                        (record.total_kcc_saturated || 0).toString(),
-                        (record.total_kcc_not_saturated || 0).toString(),
-                        (record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'),
-                        buildReasonDetails(record).substring(0, 20), // Truncate details for PDF cell space
-                        record.is_current ? 'YES' : 'NO',
-                        (record.version_number || 1).toString()
-                    ];
+                // Iterate through processedData to populate table rows (limit to 100 records for PDF to prevent huge files)
+                processedData.slice(0, 100).forEach((record) => {
+                    let rowData;
+                    if (isAdmin) {
+                        // Admin specific row data
+                        rowData = [
+                            record.district_name || '-',
+                            (record.total_active_kcc || 0).toString(),
+                            (record.total_kcc_saturated || 0).toString(),
+                            (record.total_kcc_not_saturated || 0).toString(),
+                            (record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'),
+                            buildReasonDetails(record) // Pass full details, it will be truncated by maxWidth
+                        ];
+                    } else {
+                        // User specific row data
+                        rowData = [
+                            record.entry_date || '-',
+                            record.district_name || '-',
+                            (record.total_active_kcc || 0).toString(),
+                            (record.total_kcc_saturated || 0).toString(),
+                            (record.total_kcc_not_saturated || 0).toString(),
+                            (record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'),
+                            buildReasonDetails(record),
+                            record.is_current ? 'YES' : 'NO',
+                            (record.version_number || 1).toString()
+                        ];
+                    }
                     
                     cellX = startX; // Reset X position for each row
                     rowData.forEach((cell, i) => {
                         doc.rect(cellX, currentY - 5, colWidths[i], 7); // Draw cell border
-                        doc.text(cell, cellX + 2, currentY, { maxWidth: colWidths[i] - 4 }); // Add text with small left padding
+                        // Text aligned center for numerical/short values, or left with max width for strings
+                        let textX = cellX + 2; // Default left alignment with padding
+                        let align = 'left';
+                        if (i === 1 && isAdmin) { // District name in admin report (first column)
+                            // No change, keep left
+                        } else if (i === 0 && !isAdmin) { // Date column in user report (first column)
+                            // No change, keep left
+                        } else if (i >= 1 && i <= 3 && isAdmin) { // Active, Saturated, Not Saturated for admin
+                            align = 'center';
+                            textX = cellX + colWidths[i] / 2;
+                        } else if (i >= 2 && i <= 4 && !isAdmin) { // Active, Saturated, Not Saturated for user
+                            align = 'center';
+                            textX = cellX + colWidths[i] / 2;
+                        } else if (i === headers.length - 1 || i === headers.length - 2) { // CURRENT, VER columns
+                            align = 'center';
+                            textX = cellX + colWidths[i] / 2;
+                        }
+                        
+                        doc.text(cell, textX, currentY, { maxWidth: colWidths[i] - 4, align: align });
                         cellX += colWidths[i];
                     });
                     
@@ -2136,7 +2255,7 @@
                 // Generate a unique filename with timestamp
                 const now = new Date();
                 const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-                const fileName = `KCC_REPORT_ALL_DISTRICTS_${timestamp}.pdf`;
+                const fileName = `KCC_REPORT_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.pdf`;
                 doc.save(fileName); // Download the PDF file
                 
                 toast('PDF file downloaded successfully!', 'success');
