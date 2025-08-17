@@ -81,7 +81,6 @@
         .navbar-brand img {
             height: 45px;
             margin-right: 15px;
-            /* filter: brightness(0) invert(1); */
         }
 
         .navbar-brand img.cg-logo {
@@ -112,7 +111,7 @@
 
         /* Custom Nav Link Colors */
         .nav-link.services-link {
-            background-color: #DC3545 !important; /* Bright red */
+            background-color: #DC3545 !important;
             color: var(--text-light) !important;
             padding: 8px 16px !important;
             border-radius: 8px;
@@ -124,7 +123,7 @@
         }
 
         .nav-link.contact-link {
-            background-color: #FFC107 !important; /* Yellow */
+            background-color: #FFC107 !important;
             color: #000 !important;
             padding: 8px 16px !important;
             border-radius: 8px;
@@ -137,7 +136,7 @@
         }
 
         .nav-link.help-link {
-            background-color: #000000 !important; /* Black */
+            background-color: #000000 !important;
             color: var(--text-light) !important;
             padding: 8px 16px !important;
             border-radius: 8px;
@@ -817,8 +816,7 @@
     <div class="modal fade" id="activeUsersModal" tabindex="-1" aria-labelledby="activeUsersModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title hindi" id="activeUsersModalLabel">सक्रिय उपयोगकर्ता विवरण</h5>
+                <div class="modal-header">                    <h5 class="modal-title hindi" id="activeUsersModalLabel">सक्रिय उपयोगकर्ता विवरण</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -1074,7 +1072,7 @@
         async function updateUserOnlineStatus(userId, isOnline = true) {
             try {
                 await supabaseClient
-                    .from('test_users')
+                    .from('portal_users')  // ← Using portal_users table
                     .update({ 
                         is_online: isOnline,
                         last_activity: new Date().toISOString()
@@ -1129,7 +1127,7 @@
                 const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
                 
                 const { data, error, count } = await supabaseClient
-                    .from('test_users')
+                    .from('portal_users')  // ← Using portal_users table
                     .select('id', { count: 'exact' })
                     .eq('is_online', true)
                     .gte('last_activity', twoMinutesAgo);
@@ -1169,7 +1167,7 @@
                 const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
                 
                 const { data, error } = await supabaseClient
-                    .from('test_users')
+                    .from('portal_users')  // ← Using portal_users table
                     .select(`
                         id, 
                         full_name, 
@@ -1373,7 +1371,7 @@
                 if (data) {
                     data.forEach(district => {
                         const option = document.createElement('option');
-                        option.value = district.id; // Use district ID as value
+                        option.value = district.id; // Use district UUID as value
                         option.textContent = district.name; // Use district name as display text
                         districtSelect.appendChild(option);
                     });
@@ -1428,7 +1426,7 @@
                 
                 // Check user credentials
                 const { data, error } = await supabaseClient
-                    .from('test_users')
+                    .from('portal_users')  // ← Using portal_users table
                     .select('id, username, full_name, role, district_id, mobile_number, email, districts(id, name)')
                     .eq('username', username)
                     .eq('password_hash', hashedPassword)
@@ -1443,14 +1441,14 @@
                     throw new Error('अमान्य यूजरनेम या पासवर्ड');
                 }
                 
-                // If district is required, verify district matches
+                // If district is required, verify district matches (UUID comparison)
                 if (districtId && data.district_id && data.district_id !== districtId) {
                     throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
                 }
                 
                 // Update last login time
                 await supabaseClient
-                    .from('test_users')
+                    .from('portal_users')  // ← Using portal_users table
                     .update({ 
                         last_login: new Date().toISOString(),
                         district_id: districtId || data.district_id
@@ -1524,6 +1522,27 @@
             // Redirect to login
             window.location.href = 'login.html';
         }
+
+        // Cleanup function for offline users (run periodically)
+        async function cleanupOfflineUsers() {
+            try {
+                // Mark users as offline if they haven't been active for more than 3 minutes
+                const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+                
+                await supabaseClient
+                    .from('portal_users')  // ← Using portal_users table
+                    .update({ is_online: false })
+                    .lt('last_activity', threeMinutesAgo)
+                    .eq('is_online', true);
+                    
+                console.log('Cleaned up offline users');
+            } catch (error) {
+                console.error('Error cleaning up offline users:', error);
+            }
+        }
+
+        // Run cleanup every 2 minutes
+        setInterval(cleanupOfflineUsers, 2 * 60 * 1000);
         
         // Check for existing login on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
@@ -1583,27 +1602,6 @@
             }
         });
 
-        // Cleanup function for offline users (run periodically)
-        async function cleanupOfflineUsers() {
-            try {
-                // Mark users as offline if they haven't been active for more than 3 minutes
-                const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
-                
-                await supabaseClient
-                    .from('test_users')
-                    .update({ is_online: false })
-                    .lt('last_activity', threeMinutesAgo)
-                    .eq('is_online', true);
-                    
-                console.log('Cleaned up offline users');
-            } catch (error) {
-                console.error('Error cleaning up offline users:', error);
-            }
-        }
-
-        // Run cleanup every 2 minutes
-        setInterval(cleanupOfflineUsers, 2 * 60 * 1000);
-
         // Add keyboard shortcuts
         document.addEventListener('keydown', function(e) {
             // Ctrl + Alt + A to show active users modal
@@ -1620,18 +1618,6 @@
                     if (modalInstance) {
                         modalInstance.hide();
                     }
-                });
-            }
-        });
-
-        // Add tooltip for active users counter
-        document.addEventListener('DOMContentLoaded', function() {
-            const activeUsersElement = document.getElementById('activeUsersNavItem');
-            if (activeUsersElement) {
-                // Initialize Bootstrap tooltip
-                new bootstrap.Tooltip(activeUsersElement, {
-                    title: 'Click to view detailed list of active users',
-                    placement: 'bottom'
                 });
             }
         });
@@ -1750,6 +1736,7 @@
         ║  🌾 Real-time Active Users Tracking Enabled                 ║
         ║  🔒 CAPTCHA Security Implemented                             ║
         ║  📊 User Activity Monitoring Active                         ║
+        ║  📋 Using portal_users table (UUID districts)               ║
         ║                                                              ║
         ║  For technical support: diagri-cg@cg.gov.in                ║
         ╚══════════════════════════════════════════════════════════════╝
@@ -1765,15 +1752,24 @@
                 getActiveUsersCount: getActiveUsersCount,
                 forceLogout: handleLogout,
                 showActiveUsers: () => document.getElementById('activeUsersNavItem').click(),
-                resetCaptcha: () => drawCaptcha()
+                resetCaptcha: () => drawCaptcha(),
+                testUserActivity: () => {
+                    console.log('Current user active:', isUserActive);
+                    console.log('Current user ID:', currentUserId);
+                },
+                forceCleanup: cleanupOfflineUsers
             };
             
             console.log('🛠️ Debug helpers available in window.debugHelpers');
+            console.log('Available commands:');
+            console.log('- debugHelpers.getCurrentUser()');
+            console.log('- debugHelpers.getActiveUsersCount()');
+            console.log('- debugHelpers.showActiveUsers()');
+            console.log('- debugHelpers.testUserActivity()');
+            console.log('- debugHelpers.forceCleanup()');
         }
 
     </script>
 </body>
 </html>
-
-            
 
