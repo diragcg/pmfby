@@ -718,192 +718,195 @@
             }, 5000);
         }
 
-// Hash password with SHA-256
-async function hashPassword(password) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(password);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
+        // Hash password with SHA-256
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
 
-// Toggle password visibility
-document.getElementById('togglePassword').addEventListener('click', function() {
-    const passwordInput = document.getElementById('password');
-    const icon = this.querySelector('i');
-    
-    if (passwordInput.type === 'password') {
-        passwordInput.type = 'text';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-    } else {
-        passwordInput.type = 'password';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-    }
-});
-
-// Services link handler
-document.getElementById('servicesLink').addEventListener('click', function(e) {
-    e.preventDefault();
-    const servicesModal = new bootstrap.Modal(document.getElementById('servicesModal'));
-    servicesModal.show();
-});
-
-// Contact link handler
-document.getElementById('contactLink').addEventListener('click', function(e) {
-    e.preventDefault();
-    const contactModal = new bootstrap.Modal(document.getElementById('contactModal'));
-    contactModal.show();
-});
-
-// Function to load districts from Supabase
-async function loadDistricts() {
-    try {
-        const districtSelect = document.getElementById('district');
-        
-        // Add loading class
-        districtSelect.classList.add('select-loading');
-        
-        // Fetch districts from the districts table
-        const { data, error } = await supabaseClient
-            .from('districts')
-            .select('id, name')
-            .order('name', { ascending: true });
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const icon = this.querySelector('i');
             
-        if (error) throw error;
-        
-        // Clear existing options except the first one
-        while (districtSelect.options.length > 1) {
-            districtSelect.remove(1);
-        }
-        
-        // Add districts to dropdown
-        if (data) {
-            data.forEach(district => {
-                const option = document.createElement('option');
-                option.value = district.id; // Use district ID as value
-                option.textContent = district.name; // Use district name as display text
-                districtSelect.appendChild(option);
-            });
-        }
-        
-        // Remove loading class
-        districtSelect.classList.remove('select-loading');
-    } catch (error) {
-        console.error('Error loading districts:', error);
-        const districtSelect = document.getElementById('district');
-        districtSelect.classList.remove('select-loading');
-        
-        // Add a default option indicating error
-        const errorOption = document.createElement('option');
-        errorOption.value = "";
-        errorOption.textContent = "जिला लोड करने में त्रुटि";
-        errorOption.style.color = "#C62828";
-        districtSelect.appendChild(errorOption);
-    }
-}
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            } else {
+                passwordInput.type = 'password';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            }
+        });
 
-// Handle login form submission
-document.getElementById('loginForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
-    
-    try {
-        // Show loading state
-        const submitBtn = this.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">प्रवेश हो रहा है...</span>';
-        submitBtn.disabled = true;
-        
-        // Get form values
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const districtId = document.getElementById('district').value;
-        const rememberMe = document.getElementById('rememberMe').checked;
-        
-        // Hash the password
-        const hashedPassword = await hashPassword(password);
-        
-        // Check user credentials
-        const { data, error } = await supabaseClient
-            .from('test_users') // Using test_users table
-            .select('id, username, full_name, role, district_id, mobile_number, email, districts(id, name)') // Select districts relationship
-            .eq('username', username)
-            .eq('password_hash', hashedPassword)
-            .eq('is_active', true)
-            .single();
-        
-        if (error) {
-            throw new Error('अमान्य यूजरनेम या पासवर्ड');
-        }
-        
-        if (!data) {
-            throw new Error('अमान्य यूजरनेम या पासवर्ड');
-        }
-        
-        // If district is required, verify district matches
-        if (districtId && data.district_id && data.district_id !== districtId) {
-            throw new Error('आपके द्वारा चयनित जिला आपके खाते से मेल नहीं खाता');
-        }
-        
-        // Update last login time
-        await supabaseClient
-            .from('test_users')
-            .update({ 
-                last_login: new Date().toISOString(),
-                district_id: districtId || data.district_id // Update district if selected
-            })
-            .eq('id', data.id);
-        
-        // Construct userData for storage
-        const userData = {
-            id: data.id,
-            username: data.username,
-            fullName: data.full_name,
-            role: data.role,
-            districtId: data.district_id, // Use the ID from DB
-            districtName: data.districts ? data.districts.name : 'UNKNOWN DISTRICT', // Use the name from DB relationship
-            mobileNumber: data.mobile_number,
-            email: data.email,
-            last_login: new Date().toISOString()
-        };
-        
-        // Use localStorage if rememberMe is checked, otherwise sessionStorage
-        if (rememberMe) {
-            localStorage.setItem('user', JSON.stringify(userData));
-        } else {
-            sessionStorage.setItem('user', JSON.stringify(userData));
-        }
-        
-        // Show success message
-        showAlert('लॉगिन सफल! पुनर्निर्देशित किया जा रहा है...', 'success');
-        
-        // REDIRECT TO SELECT MODULE PAGE
-        setTimeout(() => {
-            window.location.href = 'selectmodule.html'; 
-        }, 1500);
-        
-    } catch (error) {
-        console.error('Login error:', error);
-        showAlert(error.message || 'लॉगिन विफल। कृपया पुनः प्रयास करें।', 'danger');
-        
-        // Reset button
-        const submitBtn = document.querySelector('button[type="submit"]');
-        submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> <span class="hindi">लॉगिन करें</span>';
-        submitBtn.disabled = false;
-    }
-});
+        // Services link handler
+        document.getElementById('servicesLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            const servicesModal = new bootstrap.Modal(document.getElementById('servicesModal'));
+            servicesModal.show();
+        });
 
-// Check for existing login on DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Check localStorage and sessionStorage for existing user
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    
-    if (storedUser) {
-        // If user is already logged in, redirect to selectmodule.html
-        window.location.href = 'selectmodule.html';
-    }
-    
-    // Load districts for the dropdown
-    loadDistricts();
-});
+        // Contact link handler
+        document.getElementById('contactLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            const contactModal = new bootstrap.Modal(document.getElementById('contactModal'));
+            contactModal.show();
+        });
+
+        // Function to load districts from Supabase
+        async function loadDistricts() {
+            try {
+                const districtSelect = document.getElementById('district');
+                
+                // Add loading class
+                districtSelect.classList.add('select-loading');
+                
+                // Fetch districts from the districts table
+                const { data, error } = await supabaseClient
+                    .from('districts')
+                    .select('id, name')
+                    .order('name', { ascending: true });
+                    
+                if (error) throw error;
+                
+                // Clear existing options except the first one
+                while (districtSelect.options.length > 1) {
+                    districtSelect.remove(1);
+                }
+                
+                // Add districts to dropdown
+                if (data) {
+                    data.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id; // Use district ID as value
+                        option.textContent = district.name; // Use district name as display text
+                        districtSelect.appendChild(option);
+                    });
+                }
+                
+                // Remove loading class
+                districtSelect.classList.remove('select-loading');
+            } catch (error) {
+                console.error('Error loading districts:', error);
+                const districtSelect = document.getElementById('district');
+                districtSelect.classList.remove('select-loading');
+                
+                // Add a default option indicating error
+                const errorOption = document.createElement('option');
+                errorOption.value = "";
+                errorOption.textContent = "जिला लोड करने में त्रुटि";
+                errorOption.style.color = "#C62828";
+                districtSelect.appendChild(errorOption);
+            }
+        }
+
+        // Handle login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            try {
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">प्रवेश हो रहा है...</span>';
+                submitBtn.disabled = true;
+                
+                // Get form values
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                const districtId = document.getElementById('district').value;
+                const rememberMe = document.getElementById('rememberMe').checked;
+                
+                // Hash the password
+                const hashedPassword = await hashPassword(password);
+                
+                // Check user credentials
+                const { data, error } = await supabaseClient
+                    .from('test_users') // Using test_users table
+                    .select('id, username, full_name, role, district_id, mobile_number, email, districts(id, name)') // Select districts relationship
+                    .eq('username', username)
+                    .eq('password_hash', hashedPassword)
+                    .eq('is_active', true)
+                    .single();
+                
+                if (error) {
+                    throw new Error('अमान्य यूजरनेम या पासवर्ड');
+                }
+                
+                if (!data) {
+                    throw new Error('अमान्य यूजरनेम या पासवर्ड');
+                }
+                
+                // If district is required, verify district matches
+                if (districtId && data.district_id && data.district_id !== districtId) {
+                    throw new Error('आपके द्वारा चयनित जिला आपके खाते से मेल नहीं खाता');
+                }
+                
+                // Update last login time
+                await supabaseClient
+                    .from('test_users')
+                    .update({ 
+                        last_login: new Date().toISOString(),
+                        district_id: districtId || data.district_id // Update district if selected
+                    })
+                    .eq('id', data.id);
+                
+                // Construct userData for storage
+                const userData = {
+                    id: data.id,
+                    username: data.username,
+                    fullName: data.full_name,
+                    role: data.role,
+                    districtId: data.district_id, // Use the ID from DB
+                    districtName: data.districts ? data.districts.name : 'UNKNOWN DISTRICT', // Use the name from DB relationship
+                    mobileNumber: data.mobile_number,
+                    email: data.email,
+                    last_login: new Date().toISOString()
+                };
+                
+                // Use localStorage if rememberMe is checked, otherwise sessionStorage
+                if (rememberMe) {
+                    localStorage.setItem('user', JSON.stringify(userData));
+                } else {
+                    sessionStorage.setItem('user', JSON.stringify(userData));
+                }
+                
+                // Show success message
+                showAlert('लॉगिन सफल! पुनर्निर्देशित किया जा रहा है...', 'success');
+                
+                // REDIRECT TO SELECT MODULE PAGE
+                setTimeout(() => {
+                    window.location.href = 'selectmodule.html'; 
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showAlert(error.message || 'लॉगिन विफल। कृपया पुनः प्रयास करें।', 'danger');
+                
+                // Reset button
+                const submitBtn = document.querySelector('button[type="submit"]');
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i> <span class="hindi">लॉगिन करें</span>';
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Check for existing login on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check localStorage and sessionStorage for existing user
+            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            
+            if (storedUser) {
+                // If user is already logged in, redirect to selectmodule.html
+                window.location.href = 'selectmodule.html';
+            }
+            
+            // Load districts for the dropdown
+            loadDistricts();
+        });
+    </script>
+</body>
+</html>
