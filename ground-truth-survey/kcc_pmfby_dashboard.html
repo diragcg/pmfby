@@ -1009,7 +1009,7 @@
             if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
                 if (btnExportPDF) btnExportPDF.classList.remove('hidden');
                 if (stateAdminSummary) stateAdminSummary.classList.remove('hidden');
-                if (stateAdminPanel) stateAdminPanel.classList.remove('hidden'); // Ensure admin panel is visible
+                if (stateAdminPanel) stateAdminPanel.classList.add('hidden'); // NEW: Hide admin panel by default even if admin, it's toggleable
             } else {
                 if (btnExportPDF) btnExportPDF.classList.add('hidden');
                 if (stateAdminSummary) stateAdminSummary.classList.add('hidden');
@@ -1839,7 +1839,17 @@
             if (btnNextPage) btnNextPage.disabled = currentPage >= totalPages;
         }
 
-        // FIXED: Edit record function - Loads data into form
+        // NEW: Date formatting utility
+        function formatDateToDDMMYYYY(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+            const year = date.getFullYear();
+            return `${day}-${month}-${year}`;
+        }
+
+        // FIXED: Edit record function - Loads data into form, then hides modal
         window.editRecord = async function(recordId){
             if (!supabase || !currentUser) {
                 toast('System not ready for editing.', 'danger');
@@ -1908,7 +1918,7 @@
                     viewerModalInstance.hide();
                 }
                 
-                toast('Record loaded for editing.', 'info');
+                toast('Record loaded for editing in the main form.', 'info');
             } catch (err) {
                 console.error('EDIT RECORD ERROR:', err);
                 toast('Failed to load record for editing.', 'danger');
@@ -1957,7 +1967,7 @@
 
                 let processedData = data;
 
-                // If admin, filter to only the latest record per district
+                // If admin, filter to only the latest record per district and sort alphabetically
                 if (isAdmin) {
                     const latestRecordsMap = new Map();
                     data.forEach(record => {
@@ -1986,7 +1996,7 @@
                 // Map fetched data to match defined column headers structure
                 const worksheetData = processedData.map(record => ({
                     'DISTRICT': record.district_name || '-',
-                    'DATE': record.entry_date || '-',
+                    'DATE': formatDateToDDMMYYYY(record.entry_date), // NEW: Formatted date
                     'ACTIVE_KCC': record.total_active_kcc || 0,
                     'SATURATED_KCC': record.total_kcc_saturated || 0,
                     'NOT_SATURATED_KCC': record.total_kcc_not_saturated || 0,
@@ -1998,6 +2008,33 @@
                     'CHANGE_REASON': record.change_reason || '-'
                 }));
 
+                // Calculate totals row
+                let totalActive = 0;
+                let totalSaturated = 0;
+                let totalNotSaturated = 0;
+
+                worksheetData.forEach(row => {
+                    totalActive += row['ACTIVE_KCC'];
+                    totalSaturated += row['SATURATED_KCC'];
+                    totalNotSaturated += row['NOT_SATURATED_KCC'];
+                });
+
+                const totalsRow = {
+                    'DISTRICT': 'TOTAL',
+                    'DATE': '',
+                    'ACTIVE_KCC': totalActive,
+                    'SATURATED_KCC': totalSaturated,
+                    'NOT_SATURATED_KCC': totalNotSaturated,
+                    'REASON_TYPE': '',
+                    'REASON_DETAILS': '',
+                    'IS_CURRENT': '',
+                    'VERSION': '',
+                    'CREATED_AT': '',
+                    'CHANGE_REASON': ''
+                };
+                worksheetData.push(totalsRow); // Add totals row to data
+
+
                 // Create a new worksheet
                 const newWorksheet = XLSX.utils.aoa_to_sheet([]);
 
@@ -2005,7 +2042,7 @@
                 const reportDateTime = new Date().toLocaleString();
                 const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
                 const districtInfo = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
-                const dateRangeText = (fromDate || toDate) ? `${fromDate || 'ALL'} TO ${toDate || 'ALL'}` : 'ALL DATES';
+                const dateRangeText = (fromDate || toDate) ? `${formatDateToDDMMYYYY(fromDate || 'ALL')} TO ${formatDateToDDMMYYYY(toDate || 'ALL')}` : 'ALL DATES'; // NEW: Formatted date range
                 
                 const headerInfo = [
                     ['Directorate Agriculture Chhattisgarh'],
@@ -2036,8 +2073,33 @@
                             top: { style: 'thin' }, bottom: { style: 'thin' },
                             left: { style: 'thin' }, right: { style: 'thin' }
                         };
+                        // NEW: Center alignment for all cells in table data
+                        if (R >= 8) { // Assuming table data starts from row 9 (index 8)
+                            newWorksheet[cell_address].s.alignment = { horizontal: 'center', vertical: 'center', wrapText: false };
+                        } else {
+                            // Headers and other info can be left-aligned or default
+                            newWorksheet[cell_address].s.alignment = { horizontal: 'left', vertical: 'center', wrapText: false };
+                        }
                     }
                 }
+
+                // Auto-fit column widths
+                const max_width = worksheetData.reduce((w, r) => Math.max(w, r['DISTRICT']?.length || 0), 10); // Example for DISTRICT
+                newWorksheet['!cols'] = [ { wch: max_width } ]; // Apply to first column, need to extend for all
+                
+                // Better auto-fit all columns
+                const colSizes = columnHeaders.map((header, i) => {
+                    let maxWidth = header.length; // Start with header width
+                    worksheetData.forEach(row => {
+                        const cellValue = row[header]; // Use header name to access property
+                        if (cellValue && String(cellValue).length > maxWidth) {
+                            maxWidth = String(cellValue).length;
+                        }
+                    });
+                    return { wch: maxWidth + 2 }; // Add a little padding
+                });
+                newWorksheet['!cols'] = colSizes;
+
 
                 // Create a new workbook and append the sheet
                 const workbook = XLSX.utils.book_new();
@@ -2117,9 +2179,9 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('landscape', 'mm', 'a4');
                 
-                // Set font and black color for plain text
+                // Set font to a generic sans-serif (helvetica) and ensure black color for plain text
                 doc.setFont('helvetica');
-                doc.setTextColor(0, 0, 0);
+                doc.setTextColor(0, 0, 0); // Black color
 
                 // --- PDF HEADER ---
                 doc.setFontSize(16);
@@ -2139,10 +2201,16 @@
                 
                 // District name
                 const districtHeader = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
-                doc.text(`Office of the Deputy Director Agriculture - ${districtHeader}`, 20, 38);
+                // NEW: Removed "Office of the Deputy Director Agriculture" for admin, kept for user
+                if (!isAdmin) {
+                    doc.text(`Office of the Deputy Director Agriculture - ${districtHeader}`, 20, 38);
+                } else {
+                    // Adjusted Y position for admin to compensate for removed line
+                    doc.text(`District: ${districtHeader}`, 20, 38); 
+                }
                 
                 // Report Date Range
-                const dateRangeText = (fromDate || toDate) ? `${fromDate || 'START'} to ${toDate || 'END'}` : 'All Dates';
+                const dateRangeText = (fromDate || toDate) ? `${formatDateToDDMMYYYY(fromDate || 'START')} to ${formatDateToDDMMYYYY(toDate || 'END')}` : 'All Dates'; // NEW: Formatted date range
                 doc.text(`Report Date: ${dateRangeText}`, 20, 45);
                 doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 52);
 
@@ -2172,7 +2240,7 @@
                 let cellX = startX;
                 headers.forEach((header, i) => {
                     doc.rect(cellX, currentY - 5, colWidths[i], 8); // Draw cell border (x, y, width, height)
-                    doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' }); // Centered text
+                    doc.text(header, cellX + colWidths[i] / 2, currentY, { align: 'center' }); // Centered text in cell
                     cellX += colWidths[i];
                 });
                 
@@ -2195,7 +2263,7 @@
                     } else {
                         // User specific row data
                         rowData = [
-                            record.entry_date || '-',
+                            formatDateToDDMMYYYY(record.entry_date), // NEW: Formatted date
                             record.district_name || '-',
                             (record.total_active_kcc || 0).toString(),
                             (record.total_kcc_saturated || 0).toString(),
@@ -2213,19 +2281,18 @@
                         // Text aligned center for numerical/short values, or left with max width for strings
                         let textX = cellX + 2; // Default left alignment with padding
                         let align = 'left';
-                        if (i === 1 && isAdmin) { // District name in admin report (first column)
-                            // No change, keep left
-                        } else if (i === 0 && !isAdmin) { // Date column in user report (first column)
-                            // No change, keep left
-                        } else if (i >= 1 && i <= 3 && isAdmin) { // Active, Saturated, Not Saturated for admin
-                            align = 'center';
-                            textX = cellX + colWidths[i] / 2;
-                        } else if (i >= 2 && i <= 4 && !isAdmin) { // Active, Saturated, Not Saturated for user
-                            align = 'center';
-                            textX = cellX + colWidths[i] / 2;
-                        } else if (i === headers.length - 1 || i === headers.length - 2) { // CURRENT, VER columns
-                            align = 'center';
-                            textX = cellX + colWidths[i] / 2;
+                        
+                        // Apply center alignment for numerical/badge-like columns
+                        if (isAdmin) {
+                            if (i >= 1 && i <= 3 || i === headers.length - 1 || i === headers.length - 2) { // Active, Sat, Not Sat, Current, Ver
+                                align = 'center';
+                                textX = cellX + colWidths[i] / 2;
+                            }
+                        } else { // User
+                            if (i >= 2 && i <= 4 || i === headers.length - 1 || i === headers.length - 2) { // Active, Sat, Not Sat, Current, Ver
+                                align = 'center';
+                                textX = cellX + colWidths[i] / 2;
+                            }
                         }
                         
                         doc.text(cell, textX, currentY, { maxWidth: colWidths[i] - 4, align: align });
@@ -2251,6 +2318,73 @@
                         doc.setFont(undefined, 'normal');
                     }
                 });
+
+                // Calculate and add totals row
+                let totalActive = 0;
+                let totalSaturated = 0;
+                let totalNotSaturated = 0;
+
+                processedData.forEach(record => {
+                    totalActive += record.total_active_kcc || 0;
+                    totalSaturated += record.total_kcc_saturated || 0;
+                    totalNotSaturated += record.total_kcc_not_saturated || 0;
+                });
+
+                // Prepare totals row data
+                let totalsRowData;
+                if (isAdmin) {
+                    totalsRowData = [
+                        'TOTAL',
+                        totalActive.toString(),
+                        totalSaturated.toString(),
+                        totalNotSaturated.toString(),
+                        '', // Reason Type
+                        ''  // Details
+                    ];
+                } else {
+                    totalsRowData = [
+                        'TOTAL',
+                        '', // District
+                        totalActive.toString(),
+                        totalSaturated.toString(),
+                        totalNotSaturated.toString(),
+                        '', // Reason Type
+                        '', // Details
+                        '', // Current
+                        ''  // Ver
+                    ];
+                }
+
+                // Draw totals row
+                cellX = startX;
+                doc.setFont(undefined, 'bold'); // Make totals bold
+                totalsRowData.forEach((cell, i) => {
+                    doc.rect(cellX, currentY - 5, colWidths[i], 7); // Draw cell border
+                    let textX = cellX + 2; // Default left alignment with padding
+                    let align = 'left';
+                    
+                    // Apply center alignment for numerical totals
+                    if (isAdmin) {
+                        if (i >= 1 && i <= 3) { // Active, Sat, Not Sat totals
+                            align = 'center';
+                            textX = cellX + colWidths[i] / 2;
+                        }
+                    } else { // User
+                        if (i >= 2 && i <= 4) { // Active, Sat, Not Sat totals
+                            align = 'center';
+                            textX = cellX + colWidths[i] / 2;
+                        }
+                    }
+
+                    if (cell === 'TOTAL') { // Explicitly left align 'TOTAL' text
+                        align = 'left';
+                        textX = cellX + 2;
+                    }
+                    
+                    doc.text(cell, textX, currentY, { maxWidth: colWidths[i] - 4, align: align });
+                    cellX += colWidths[i];
+                });
+                doc.setFont(undefined, 'normal'); // Reset font
 
                 // Generate a unique filename with timestamp
                 const now = new Date();
