@@ -148,6 +148,58 @@
             transform: translateY(-1px);
         }
 
+        /* Active Users Counter Styles */
+        #activeUsersCount {
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 15px;
+            animation: pulse 2s infinite;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        #activeUsersCount:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .online-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #28a745;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        .active-users-nav {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 600;
+            padding: 8px 15px !important;
+            margin: 0 5px;
+            border-radius: 8px;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .active-users-nav:hover {
+            color: var(--text-light) !important;
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
         /* Login Container */
         .login-container {
             display: flex;
@@ -563,6 +615,20 @@
             border-color: var(--admin-accent);
         }
 
+        /* Active Users Modal Styles */
+        .active-users-table {
+            font-size: 0.9rem;
+        }
+
+        .active-users-table .badge {
+            font-size: 0.75rem;
+        }
+
+        .time-ago {
+            color: var(--text-medium);
+            font-size: 0.8rem;
+        }
+
         /* Animation for fade in/out */
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -603,6 +669,16 @@
             .login-btn-custom {
                 width: 100%;
             }
+
+            .active-users-nav {
+                padding: 6px 10px !important;
+                font-size: 0.85rem;
+            }
+
+            #activeUsersCount {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
         }
         
         @media (max-width: 576px) {
@@ -639,6 +715,14 @@
                                 <a class="nav-link help-link hindi" href="#" data-bs-toggle="modal" data-bs-target="#helpModal">
                                     <i class="fas fa-question-circle me-1"></i> सहायता
                                 </a>
+                            </li>
+                            <!-- Active Users Counter -->
+                            <li class="nav-item">
+                                <span class="nav-link active-users-nav" id="activeUsersNavItem" style="cursor: pointer;" title="Click to view active users details">
+                                    <i class="fas fa-users text-success me-1"></i>
+                                    <span class="hindi">सक्रिय: </span>
+                                    <span id="activeUsersCount" class="badge bg-success">0</span>
+                                </span>
                             </li>
                         </ul>
                     </div>
@@ -724,6 +808,48 @@
                 <div class="modal-footer justify-content-center">
                     <button type="button" class="btn btn-secondary hindi" id="cancelCaptcha">रद्द करें</button>
                     <button type="button" class="btn btn-primary hindi" id="verifyCaptcha">सत्यापित करें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Users Detail Modal -->
+    <div class="modal fade" id="activeUsersModal" tabindex="-1" aria-labelledby="activeUsersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="activeUsersModalLabel">सक्रिय उपयोगकर्ता विवरण</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="hindi mb-0">कुल सक्रिय उपयोगकर्ता: <span id="totalActiveUsers" class="text-success fw-bold">0</span></h6>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshActiveUsers()">
+                            <i class="fas fa-sync-alt me-1"></i> <span class="hindi">रिफ्रेश</span>
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm active-users-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="hindi">नाम</th>
+                                    <th class="hindi">जिला</th>
+                                    <th class="hindi">भूमिका</th>
+                                    <th class="hindi">अंतिम गतिविधि</th>
+                                    <th class="hindi">स्थिति</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activeUsersTable">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted hindi">लोड हो रहा है...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary hindi" data-bs-dismiss="modal">बंद करें</button>
                 </div>
             </div>
         </div>
@@ -864,6 +990,11 @@
         const { createClient } = supabase;
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
+        // Active Users Tracking Variables
+        let heartbeatInterval;
+        let isUserActive = true;
+        let currentUserId = null;
+
         // CAPTCHA functionality
         let currentCaptcha = '';
 
@@ -928,11 +1059,188 @@
             }
         }
 
+        // Active Users Tracking Functions
+        function trackUserActivity() {
+            isUserActive = true;
+        }
+
+        // Add activity listeners
+        document.addEventListener('mousemove', trackUserActivity);
+        document.addEventListener('keypress', trackUserActivity);
+        document.addEventListener('click', trackUserActivity);
+        document.addEventListener('scroll', trackUserActivity);
+
+        // Function to update user online status
+        async function updateUserOnlineStatus(userId, isOnline = true) {
+            try {
+                await supabaseClient
+                    .from('test_users')
+                    .update({ 
+                        is_online: isOnline,
+                        last_activity: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+                
+                console.log(`User ${userId} status updated: \${isOnline ? 'online' : 'offline'}`);
+            } catch (error) {
+                console.error('Error updating online status:', error);
+            }
+        }
+
+        // Heartbeat function to keep user marked as online
+        async function sendHeartbeat(userId) {
+            if (isUserActive) {
+                await updateUserOnlineStatus(userId, true);
+                isUserActive = false; // Reset activity flag
+            }
+        }
+
+        // Start user session tracking
+        function startUserSession(userData) {
+            currentUserId = userData.id;
+            
+            // Update user as online
+            updateUserOnlineStatus(userData.id, true);
+            
+            // Send heartbeat every 30 seconds
+            heartbeatInterval = setInterval(() => {
+                sendHeartbeat(userData.id);
+            }, 30000);
+            
+            // Handle page unload/close
+            window.addEventListener('beforeunload', () => {
+                updateUserOnlineStatus(userData.id, false);
+            });
+            
+            // Handle page visibility change
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    updateUserOnlineStatus(userData.id, false);
+                } else {
+                    updateUserOnlineStatus(userData.id, true);
+                }
+            });
+        }
+
+        // Function to get active users count
+        async function getActiveUsersCount() {
+            try {
+                // Get users who were active in last 2 minutes
+                const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+                
+                const { data, error, count } = await supabaseClient
+                    .from('test_users')
+                    .select('id', { count: 'exact' })
+                    .eq('is_online', true)
+                    .gte('last_activity', twoMinutesAgo);
+                    
+                if (error) throw error;
+                
+                return count || 0;
+            } catch (error) {
+                console.error('Error getting active users count:', error);
+                return 0;
+            }
+        }
+
+        // Function to update the counter display
+        async function updateActiveUsersDisplay() {
+            const count = await getActiveUsersCount();
+            const counterElement = document.getElementById('activeUsersCount');
+            
+            if (counterElement) {
+                const currentCount = parseInt(counterElement.textContent) || 0;
+                counterElement.textContent = count;
+                
+                // Add visual feedback when count changes
+                if (count !== currentCount) {
+                    counterElement.style.transform = 'scale(1.3)';
+                    counterElement.style.transition = 'transform 0.2s ease';
+                    setTimeout(() => {
+                        counterElement.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            }
+        }
+
+        // Function to get detailed active users list
+        async function getActiveUsersList() {
+            try {
+                const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+                
+                const { data, error } = await supabaseClient
+                    .from('test_users')
+                    .select(`
+                        id, 
+                        full_name, 
+                        role, 
+                        last_activity,
+                        districts(name)
+                    `)
+                    .eq('is_online', true)
+                    .gte('last_activity', twoMinutesAgo)
+                    .order('last_activity', { ascending: false });
+                    
+                if (error) throw error;
+                return data || [];
+            } catch (error) {
+                console.error('Error getting active users list:', error);
+                return [];
+            }
+        }
+
+        // Function to display active users in modal
+        async function showActiveUsersModal() {
+            const users = await getActiveUsersList();
+            const tableBody = document.getElementById('activeUsersTable');
+            const totalElement = document.getElementById('totalActiveUsers');
+            
+            totalElement.textContent = users.length;
+            
+            if (users.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-muted hindi">कोई सक्रिय उपयोगकर्ता नहीं मिला</td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = users.map(user => {
+                    const lastActivity = new Date(user.last_activity);
+                    const timeAgo = Math.floor((Date.now() - lastActivity.getTime()) / 1000);
+                    
+                    let timeDisplay;
+                    if (timeAgo < 60) {
+                        timeDisplay = timeAgo + 's ago';
+                    } else if (timeAgo < 3600) {
+                        timeDisplay = Math.floor(timeAgo/60) + 'm ago';
+                    } else {
+                        timeDisplay = Math.floor(timeAgo/3600) + 'h ago';
+                    }
+                    
+                    return `
+                        <tr>
+                            <td>\${user.full_name || 'N/A'}</td>
+                            <td>\${user.districts?.name || 'N/A'}</td>
+                            <td><span class="badge bg-info">\${user.role || 'User'}</span></td>
+                            <td><span class="time-ago">\${timeDisplay}</span></td>
+                            <td><span class="online-indicator"></span><small class="text-success hindi">ऑनलाइन</small></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Refresh active users function
+        async function refreshActiveUsers() {
+            await showActiveUsersModal();
+            await updateActiveUsersDisplay();
+        }
+
         // Show alert message
         function showAlert(message, type) {
             const alertBox = document.getElementById('alertBox');
             alertBox.textContent = message;
-            alertBox.className = `alert alert-${type} hindi`;
+            alertBox.className = `alert alert-\${type} hindi`;
             alertBox.style.display = 'block';
             
             // Add animation
@@ -1031,6 +1339,13 @@
             e.preventDefault();
             const contactModal = new bootstrap.Modal(document.getElementById('contactModal'));
             contactModal.show();
+        });
+
+        // Active Users Counter Click Handler
+        document.getElementById('activeUsersNavItem').addEventListener('click', function() {
+            showActiveUsersModal();
+            const modal = new bootstrap.Modal(document.getElementById('activeUsersModal'));
+            modal.show();
         });
 
         // Function to load districts from Supabase
@@ -1162,6 +1477,9 @@
                     sessionStorage.setItem('user', JSON.stringify(userData));
                 }
                 
+                // Start user session tracking
+                startUserSession(userData);
+                
                 // Show success message
                 showAlert('लॉगिन Successful! Redirecting to Module Selection...', 'success');
                 
@@ -1183,6 +1501,29 @@
                 tempLoginData = {};
             }
         }
+
+        // Function to handle logout (for future use)
+        async function handleLogout() {
+            if (currentUserId) {
+                // Mark user as offline
+                await updateUserOnlineStatus(currentUserId, false);
+                
+                // Clear heartbeat
+                if (heartbeatInterval) {
+                    clearInterval(heartbeatInterval);
+                }
+            }
+            
+            // Clear storage
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('user');
+            
+            // Reset current user ID
+            currentUserId = null;
+            
+            // Redirect to login
+            window.location.href = 'login.html';
+        }
         
         // Check for existing login on DOMContentLoaded
         document.addEventListener('DOMContentLoaded', function() {
@@ -1196,7 +1537,243 @@
             
             // Load districts for the dropdown
             loadDistricts();
+            
+            // Start updating active users counter
+            updateActiveUsersDisplay();
+            
+            // Update counter every 30 seconds
+            setInterval(updateActiveUsersDisplay, 30000);
         });
+
+        // Handle page unload to mark user offline
+        window.addEventListener('beforeunload', function() {
+            if (currentUserId) {
+                // Use sendBeacon for reliable offline status update during page unload
+                const data = JSON.stringify({
+                    userId: currentUserId,
+                    isOnline: false,
+                    lastActivity: new Date().toISOString()
+                });
+                
+                // Try to send beacon, fallback to synchronous request
+                if (navigator.sendBeacon) {
+                    navigator.sendBeacon('/api/update-status', data);
+                } else {
+                    // Fallback: synchronous request (not recommended but necessary for logout)
+                    updateUserOnlineStatus(currentUserId, false);
+                }
+            }
+        });
+
+        // Handle visibility change
+        document.addEventListener('visibilitychange', function() {
+            if (currentUserId) {
+                if (document.hidden) {
+                    updateUserOnlineStatus(currentUserId, false);
+                } else {
+                    updateUserOnlineStatus(currentUserId, true);
+                    // Restart heartbeat when page becomes visible again
+                    if (heartbeatInterval) {
+                        clearInterval(heartbeatInterval);
+                    }
+                    heartbeatInterval = setInterval(() => {
+                        sendHeartbeat(currentUserId);
+                    }, 30000);
+                }
+            }
+        });
+
+        // Cleanup function for offline users (run periodically)
+        async function cleanupOfflineUsers() {
+            try {
+                // Mark users as offline if they haven't been active for more than 3 minutes
+                const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+                
+                await supabaseClient
+                    .from('test_users')
+                    .update({ is_online: false })
+                    .lt('last_activity', threeMinutesAgo)
+                    .eq('is_online', true);
+                    
+                console.log('Cleaned up offline users');
+            } catch (error) {
+                console.error('Error cleaning up offline users:', error);
+            }
+        }
+
+        // Run cleanup every 2 minutes
+        setInterval(cleanupOfflineUsers, 2 * 60 * 1000);
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + Alt + A to show active users modal
+            if (e.ctrlKey && e.altKey && e.key === 'a') {
+                e.preventDefault();
+                document.getElementById('activeUsersNavItem').click();
+            }
+            
+            // Escape key to close modals
+            if (e.key === 'Escape') {
+                const openModals = document.querySelectorAll('.modal.show');
+                openModals.forEach(modal => {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                });
+            }
+        });
+
+        // Add tooltip for active users counter
+        document.addEventListener('DOMContentLoaded', function() {
+            const activeUsersElement = document.getElementById('activeUsersNavItem');
+            if (activeUsersElement) {
+                // Initialize Bootstrap tooltip
+                new bootstrap.Tooltip(activeUsersElement, {
+                    title: 'Click to view detailed list of active users',
+                    placement: 'bottom'
+                });
+            }
+        });
+
+        // Network status monitoring
+        window.addEventListener('online', function() {
+            showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
+            if (currentUserId) {
+                updateUserOnlineStatus(currentUserId, true);
+            }
+        });
+
+        window.addEventListener('offline', function() {
+            showAlert('इंटरनेट कनेक्शन नहीं है। कृपया कनेक्शन जांचें।', 'warning');
+        });
+
+        // Performance monitoring
+        function logPerformance() {
+            if (window.performance && window.performance.timing) {
+                const timing = window.performance.timing;
+                const loadTime = timing.loadEventEnd - timing.navigationStart;
+                console.log(`Page load time: ${loadTime}ms`);
+            }
+        }
+
+        // Log performance on load
+        window.addEventListener('load', logPerformance);
+
+        // Add error boundary for unhandled errors
+        window.addEventListener('error', function(e) {
+            console.error('Unhandled error:', e.error);
+            showAlert('एक तकनीकी त्रुटि हुई है। कृपया पेज को रिफ्रेश करें।', 'danger');
+        });
+
+        // Add promise rejection handler
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            showAlert('डेटा लोड करने में समस्या हुई है। कृपया पुनः प्रयास करें।', 'warning');
+        });
+
+        // Add focus/blur handlers for better user activity tracking
+        window.addEventListener('focus', function() {
+            if (currentUserId) {
+                isUserActive = true;
+                updateUserOnlineStatus(currentUserId, true);
+            }
+        });
+
+        window.addEventListener('blur', function() {
+            if (currentUserId) {
+                // Don't immediately mark as offline on blur, let heartbeat handle it
+                isUserActive = false;
+            }
+        });
+
+        // Add mouse leave/enter handlers for browser tab
+        document.addEventListener('mouseenter', function() {
+            if (currentUserId) {
+                isUserActive = true;
+            }
+        });
+
+        document.addEventListener('mouseleave', function() {
+            if (currentUserId) {
+                isUserActive = false;
+            }
+        });
+
+        // Add session storage backup
+        function backupSessionData() {
+            if (currentUserId) {
+                const sessionData = {
+                    userId: currentUserId,
+                    timestamp: Date.now(),
+                    isActive: isUserActive
+                };
+                sessionStorage.setItem('activeSession', JSON.stringify(sessionData));
+            }
+        }
+
+        // Backup session data every minute
+        setInterval(backupSessionData, 60000);
+
+        // Restore session on page load if needed
+        function restoreSessionData() {
+            const sessionData = sessionStorage.getItem('activeSession');
+            if (sessionData) {
+                try {
+                    const data = JSON.parse(sessionData);
+                    const timeDiff = Date.now() - data.timestamp;
+                    
+                    // If session data is less than 5 minutes old, restore it
+                    if (timeDiff < 5 * 60 * 1000) {
+                        currentUserId = data.userId;
+                        isUserActive = data.isActive;
+                    } else {
+                        // Clear old session data
+                        sessionStorage.removeItem('activeSession');
+                    }
+                } catch (error) {
+                    console.error('Error restoring session data:', error);
+                    sessionStorage.removeItem('activeSession');
+                }
+            }
+        }
+
+        // Initialize session restoration
+        document.addEventListener('DOMContentLoaded', restoreSessionData);
+
+        // Add console welcome message
+        console.log(`
+        ╔══════════════════════════════════════════════════════════════╗
+        ║                संचालनालय कृषि छत्तीसगढ़                      ║
+        ║                Agriculture Department Portal                  ║
+        ║                                                              ║
+        ║  🌾 Real-time Active Users Tracking Enabled                 ║
+        ║  🔒 CAPTCHA Security Implemented                             ║
+        ║  📊 User Activity Monitoring Active                         ║
+        ║                                                              ║
+        ║  For technical support: diagri-cg@cg.gov.in                ║
+        ╚══════════════════════════════════════════════════════════════╝
+        `);
+
+        // Add development mode helpers (remove in production)
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            console.log('🔧 Development Mode Active');
+            
+            // Add global helper functions for debugging
+            window.debugHelpers = {
+                getCurrentUser: () => currentUserId,
+                getActiveUsersCount: getActiveUsersCount,
+                forceLogout: handleLogout,
+                showActiveUsers: () => document.getElementById('activeUsersNavItem').click(),
+                resetCaptcha: () => drawCaptcha()
+            };
+            
+            console.log('🛠️ Debug helpers available in window.debugHelpers');
+        }
+
     </script>
 </body>
 </html>
+
+            
+
