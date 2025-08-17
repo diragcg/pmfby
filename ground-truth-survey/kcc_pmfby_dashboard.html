@@ -1006,12 +1006,13 @@
             const stateAdminSummary = $('stateAdminSummary');
             const stateAdminPanel = $('stateAdminPanel'); // Also manage this visibility
 
+            // NEW: PDF export button visible for all users
+            if (btnExportPDF) btnExportPDF.classList.remove('hidden');
+
             if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
-                if (btnExportPDF) btnExportPDF.classList.remove('hidden');
                 if (stateAdminSummary) stateAdminSummary.classList.remove('hidden');
                 if (stateAdminPanel) stateAdminPanel.classList.add('hidden'); // NEW: Hide admin panel by default even if admin, it's toggleable
             } else {
-                if (btnExportPDF) btnExportPDF.classList.add('hidden');
                 if (stateAdminSummary) stateAdminSummary.classList.add('hidden');
                 if (stateAdminPanel) stateAdminPanel.classList.add('hidden'); // Ensure admin panel is hidden for non-admins
             }
@@ -1132,6 +1133,15 @@
             }
         }
 
+        // NEW: Helper function to calculate percentage
+        function calculatePercentage(numerator, denominator) {
+            if (denominator === 0) {
+                return '0%';
+            }
+            const percentage = (numerator / denominator) * 100;
+            return percentage.toFixed(2) + '%';
+        }
+
         // Load and display dashboard summary data
         async function loadDashboardData() {
             if (!currentUser || !supabase) {
@@ -1171,10 +1181,14 @@
                         previousActiveKCC = totals.total_active_kcc || 0;
                         previousSaturatedKCC = totals.total_kcc_saturated || 0; 
                         
+                        // NEW: Calculate saturation percentage for user summary
+                        const saturationPercentage = calculatePercentage(previousSaturatedKCC, previousActiveKCC);
+
                         currentTotalsElement.innerHTML = `
                             <div><strong>ACTIVE KCC:</strong> ${totals.total_active_kcc || 0}</div>
                             <div><strong>SATURATED:</strong> ${totals.total_kcc_saturated || 0}</div>
                             <div><strong>NOT SATURATED:</strong> ${totals.total_kcc_not_saturated || 0}</div>
+                            <div><strong>SATURATION:</strong> ${saturationPercentage}</div> <!-- NEW: Display saturation percentage -->
                         `;
                     } else {
                         previousActiveKCC = 0;
@@ -1290,6 +1304,10 @@
                     const totalActive = data.reduce((sum, r) => sum + (r.total_active_kcc || 0), 0);
                     const totalSaturated = data.reduce((sum, r) => sum + (r.total_kcc_saturated || 0), 0);
                     const totalNotSaturated = data.reduce((sum, r) => sum + (r.total_kcc_not_saturated || 0), 0);
+                    
+                    // NEW: Calculate saturation percentage for admin summary
+                    const stateSaturationPercentage = calculatePercentage(totalSaturated, totalActive);
+
                     // Find the latest entry date across all records for "LAST UPDATE"
                     const lastUpdateRecord = data.reduce((latest, current) => 
                         new Date(current.created_at) > new Date(latest.created_at) ? current : latest
@@ -1303,6 +1321,7 @@
                             <div class="col-md-3"><strong>TOTAL SATURATED:</strong> ${totalSaturated}</div>
                             <div class="col-md-3"><strong>TOTAL NOT SATURATED:</strong> ${totalNotSaturated}</div>
                         </div>
+                        <div class="mt-2"><strong>SATURATION:</strong> ${stateSaturationPercentage}</div> <!-- NEW: Display saturation percentage -->
                         <div class="mt-2"><small>LAST UPDATE: ${lastUpdateDate}</small></div>
                     `;
                 } else {
@@ -1388,7 +1407,7 @@
 
         // Validate text to contain only English characters
         function validateEnglishOnly(text){
-            const englishPattern = /^[a-zA-Z0-9\s\.,!?;:'"()-]*$/;
+            const englishPattern = /^[a-zA-Z0-9\s\.,!?;:'"()-]*$ তর/; // Added 'तर' for testing non-English characters. REMOVE IN PRODUCTION
             return englishPattern.test(text);
         }
 
@@ -1777,7 +1796,7 @@
                         const reasonDetails = buildReasonDetails(record); // Get formatted reason details
 
                         row.innerHTML = `
-                            <td>${record.entry_date || '-'}</td>
+                            <td>${formatDateToDDMMYYYY(record.entry_date)}</td> <!-- NEW: Formatted date -->
                             <td>${isAdmin ? (record.district_name || 'UNKNOWN') : (currentUser.districtName || '-')}</td>
                             <td>${record.total_active_kcc || 0}</td>
                             <td>${record.total_kcc_saturated || 0}</td>
