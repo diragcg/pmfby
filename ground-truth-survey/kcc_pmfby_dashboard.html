@@ -759,7 +759,7 @@
                     <h5 class="modal-title hindi" id="viewerModalLabel">
                         KCC RECORDS - <span id="districtNameInViewer"></span>
                     </h5>
-                    <!-- NEW: Fullscreen button -->
+                    <!-- NEW: Fullscreen button instead of close -->
                     <button type="button" class="btn-fullscreen" id="btnFullscreen" title="Fullscreen">
                         <i class="fas fa-expand"></i>
                     </button>
@@ -902,41 +902,72 @@
             }
         }
 
-        // Initialize Supabase client
-        function initializeSupabase() {
+        // Main application initialization function
+        async function initializeApp() {
+            console.log('Starting initializeApp()...');
+
+            // Step 1: Initialize Supabase client
             try {
                 if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
                     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                    console.log('✓ Supabase client initialized successfully');
-                    return true;
+                    console.log('✓ Supabase client initialized.');
                 } else {
-                    console.error('✗ Supabase library not loaded correctly.');
-                    return false;
+                    throw new Error('Supabase library not loaded correctly.');
                 }
             } catch (error) {
                 console.error('✗ Failed to initialize Supabase:', error);
-                return false;
+                toast('Database connection failed. Please try again.', 'danger');
+                return; // Stop initialization if Supabase fails
             }
-        }
 
-        // Get current logged-in user from storage
-        function getLoggedInUser() {
+            // Step 2: Get current logged-in user from storage
+            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            if (!storedUser) {
+                console.error('No user session found. Redirecting to login.');
+                toast('Session expired or not logged in. Redirecting...', 'danger', 2000);
+                setTimeout(() => window.location.href = 'selectmodule.html', 2000);
+                return; // Stop initialization if no user
+            }
+
             try {
-                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-                if (!storedUser) {
-                    console.error('No user session found in storage.');
-                    return null;
-                }
-                const user = JSON.parse(storedUser);
+                currentUser = JSON.parse(storedUser);
                 // Ensure role is trimmed to prevent matching issues with static values
-                user.role = user.role ? user.role.trim() : 'user'; 
-                return user;
+                currentUser.role = currentUser.role ? currentUser.role.trim() : 'user'; 
+                console.log('✓ Current user loaded:', currentUser.username || currentUser.fullName);
             } catch (e) {
-                console.error('Error parsing user session data:', e);
+                console.error('✗ Error parsing user session data:', e);
                 localStorage.removeItem('user'); // Clear potentially corrupted data
                 sessionStorage.removeItem('user');
-                return null;
+                toast('Corrupted user session. Please login again.', 'danger', 2000);
+                setTimeout(() => window.location.href = 'selectmodule.html', 2000);
+                return; // Stop initialization if user data is corrupt
             }
+
+            // Step 3: Update UI elements based on current user info
+            updateUI();
+
+            // Step 4: Attach event listeners to all interactive elements
+            attachEventListeners();
+
+            // Step 5: Initialize Bootstrap modal instance (must be after DOM is ready)
+            const viewerModalElement = $('viewerModal');
+            if (viewerModalElement) {
+                viewerModalInstance = new bootstrap.Modal(viewerModalElement);
+                console.log('✓ Bootstrap viewer modal initialized.');
+            } else {
+                console.warn('Viewer modal element not found. Modal functionality may be limited.');
+            }
+
+            // Step 6: Load initial dashboard data (current totals, recent entries)
+            await loadDashboardData();
+            
+            // Step 7: Load state admin summary data if current user is an admin
+            if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
+                await loadStateAdminData();
+            }
+
+            console.log('✅ KCC Portal initialization complete.');
+            toast(`Welcome ${currentUser.fullName || currentUser.username}!`, 'success');
         }
 
         // Update UI elements based on current user info
@@ -973,21 +1004,135 @@
             // Show/hide admin-specific panels and buttons
             const btnExportPDF = $('btnExportPDF');
             const stateAdminSummary = $('stateAdminSummary');
+            const stateAdminPanel = $('stateAdminPanel'); // Also manage this visibility
 
             if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
                 if (btnExportPDF) btnExportPDF.classList.remove('hidden');
                 if (stateAdminSummary) stateAdminSummary.classList.remove('hidden');
-                // Load admin summary data immediately if admin
-                loadStateAdminData();
+                if (stateAdminPanel) stateAdminPanel.classList.remove('hidden'); // Ensure admin panel is visible
             } else {
                 if (btnExportPDF) btnExportPDF.classList.add('hidden');
                 if (stateAdminSummary) stateAdminSummary.classList.add('hidden');
+                if (stateAdminPanel) stateAdminPanel.classList.add('hidden'); // Ensure admin panel is hidden for non-admins
             }
 
             console.log('✓ UI elements updated based on user role.');
         }
 
-        // Load initial dashboard data (current totals, recent entries)
+        // Attach all event listeners
+        function attachEventListeners() {
+            console.log('Attaching event listeners...');
+            
+            // Logout button
+            const logoutBtn = $('btnLogout');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', handleLogout);
+                console.log('✓ Logout listener attached.');
+            }
+
+            // State admin button (to toggle admin login panel)
+            const btnStateAdmin = $('btnStateAdmin');
+            if (btnStateAdmin) {
+                btnStateAdmin.addEventListener('click', function() {
+                    const panel = $('stateAdminPanel');
+                    if (panel) panel.classList.toggle('hidden');
+                });
+                console.log('✓ State Admin toggle listener attached.');
+            }
+
+            // Admin login button
+            const btnAdminLogin = $('btnAdminLogin');
+            if (btnAdminLogin) {
+                btnAdminLogin.addEventListener('click', handleStateAdminLogin);
+                console.log('✓ Admin login listener attached.');
+            }
+
+            // Admin cancel button
+            const btnCancelAdmin = $('btnCancelAdmin');
+            if (btnCancelAdmin) {
+                btnCancelAdmin.addEventListener('click', function() {
+                    const panel = $('stateAdminPanel');
+                    const passwordInput = $('adminPassword');
+                    if (panel) panel.classList.add('hidden');
+                    if (passwordInput) passwordInput.value = ''; // Clear password field
+                });
+                console.log('✓ Admin cancel listener attached.');
+            }
+
+            // Form input listeners for auto-calculation and validation
+            const totalActiveKCCInput = $('total_active_kcc');
+            const totalKCCSaturatedInput = $('total_kcc_saturated');
+            const nonSaturationReasonSelect = $('non_saturation_reason');
+            const otherReasonTextInput = $('other_reason_text');
+
+            if (totalActiveKCCInput) totalActiveKCCInput.addEventListener('input', updateNotSaturated);
+            if (totalKCCSaturatedInput) totalKCCSaturatedInput.addEventListener('input', updateNotSaturated);
+            if (nonSaturationReasonSelect) nonSaturationReasonSelect.addEventListener('change', handleReasonChange);
+            // Validation for English-only input in "other reason" field
+            if (otherReasonTextInput) {
+                otherReasonTextInput.addEventListener('input', function() {
+                    if (!validateEnglishOnly(this.value)) {
+                        this.setCustomValidity('ONLY ENGLISH CHARACTERS ARE ALLOWED');
+                    } else {
+                        this.setCustomValidity('');
+                    }
+                });
+            }
+
+            // General action buttons
+            const buttonsConfig = [
+                { id: 'btnSave', handler: saveEntry },
+                { id: 'btnUpdate', handler: updateEntry },
+                { id: 'btnClear', handler: clearForm },
+                { id: 'btnViewRecords', handler: showRecords },
+                { id: 'btnRefresh', handler: loadDashboardData }, // Refresh dashboard data
+                { id: 'btnExportExcel', handler: exportToExcel },
+                { id: 'btnExportPDF', handler: exportToPDF },
+                { id: 'btnApplyFilter', handler: applyDateFilter },
+                { id: 'btnClearFilter', handler: clearDateFilter },
+                { id: 'btnPrevPage', handler: previousPage },
+                { id: 'btnNextPage', handler: nextPage }
+            ];
+
+            buttonsConfig.forEach(({ id, handler }) => {
+                const btn = $(id);
+                if (btn) {
+                    btn.addEventListener('click', handler);
+                } else {
+                    console.warn(`Button with ID '${id}' not found. Listener not attached.`);
+                }
+            });
+
+            // NEW: Fullscreen button for modal
+            const btnFullscreen = $('btnFullscreen');
+            if (btnFullscreen) {
+                btnFullscreen.addEventListener('click', toggleFullscreen);
+            } else {
+                console.warn('Fullscreen button not found.');
+            }
+            
+            console.log('✅ All event listeners attached.');
+        }
+
+        // Toggle fullscreen mode for the modal
+        function toggleFullscreen() {
+            const modalDialog = document.querySelector('#viewerModal .modal-dialog');
+            const btnFullscreen = $('btnFullscreen');
+
+            if (!modalDialog || !btnFullscreen) return;
+
+            if (modalDialog.classList.contains('modal-fullscreen')) {
+                modalDialog.classList.remove('modal-fullscreen');
+                btnFullscreen.innerHTML = '<i class="fas fa-expand"></i>';
+                btnFullscreen.title = 'Fullscreen';
+            } else {
+                modalDialog.classList.add('modal-fullscreen');
+                btnFullscreen.innerHTML = '<i class="fas fa-compress"></i>';
+                btnFullscreen.title = 'Exit Fullscreen';
+            }
+        }
+
+        // Load and display dashboard summary data
         async function loadDashboardData() {
             if (!currentUser || !supabase) {
                 console.warn('loadDashboardData: Prerequisites (currentUser or supabase) not met.');
@@ -998,7 +1143,7 @@
                 console.log(`Loading dashboard data for ${currentUser.role === 'admin' || currentUser.role === 'state_admin' ? 'all districts (admin)' : currentUser.districtName + ' (user)'}...`);
                 
                 // Query for current totals (latest entry for the relevant district/all districts)
-                let queryTotals = supabase
+                let totalsQuery = supabase
                     .from('kcc_entries')
                     .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
                     .eq('is_current', true)
@@ -1007,10 +1152,10 @@
 
                 // Apply district filter only for regular users
                 if (currentUser.role !== 'admin' && currentUser.role !== 'state_admin') {
-                    queryTotals = queryTotals.eq('district_id', currentUser.districtId);
+                    totalsQuery = totalsQuery.eq('district_id', currentUser.districtId);
                 }
 
-                const { data: totals, error: totalsError } = await queryTotals.maybeSingle();
+                const { data: totals, error: totalsError } = await totalsQuery.maybeSingle();
 
                 if (totalsError) throw totalsError;
 
@@ -1083,84 +1228,6 @@
                 if ($('currentTotals')) $('currentTotals').innerHTML = '<div class="text-muted">ERROR LOADING DATA</div>';
                 if ($('recentEntries')) $('recentEntries').innerHTML = '<div class="text-muted">ERROR LOADING ENTRIES</div>';
             }
-        }
-
-        // Update calculated "not saturated" value and toggle reason fields
-        function updateNotSaturated(){
-            const totalActiveKCC = $('total_active_kcc');
-            const totalKCCSaturated = $('total_kcc_saturated');
-            const totalKCCNotSaturated = $('total_kcc_not_saturated');
-            const reasonSelect = $('non_saturation_reason');
-            const reasonsLabel = $('reasonsLabel');
-
-            if (!totalActiveKCC || !totalKCCSaturated || !totalKCCNotSaturated || !reasonSelect || !reasonsLabel) {
-                console.warn('updateNotSaturated: Missing DOM elements.');
-                return;
-            }
-
-            const active = parseInt(totalActiveKCC.value) || 0;
-            const saturated = parseInt(totalKCCSaturated.value) || 0; 
-            const notSaturated = Math.max(0, active - saturated);
-            
-            totalKCCNotSaturated.value = notSaturated;
-            
-            if (notSaturated > 0) {
-                reasonSelect.disabled = false;
-                reasonSelect.required = true;
-                reasonsLabel.innerHTML = 'REASONS FOR NON-SATURATION *';
-            } else {
-                reasonSelect.disabled = true;
-                reasonSelect.required = false;
-                reasonSelect.value = ''; // Clear selection
-                reasonsLabel.innerHTML = 'REASONS FOR NON-SATURATION';
-                hideConditionalFields(); // Hide conditional fields if not saturated
-            }
-        }
-
-        // Handle change in non-saturation reason dropdown
-        function handleReasonChange(){
-            const reasonSelect = $('non_saturation_reason');
-            if (!reasonSelect) return;
-            const reason = reasonSelect.value;
-            hideConditionalFields(); // Always hide first, then show if needed
-            
-            if (reason === 'opt_out') {
-                const optOutField = $('optOutField');
-                const optOutHoldersCount = $('opt_out_holders_count');
-                if (optOutField) optOutField.classList.remove('hidden');
-                if (optOutHoldersCount) optOutHoldersCount.required = true;
-            } else if (reason === 'other') {
-                const otherReasonField = $('otherReasonField');
-                const otherReasonText = $('other_reason_text');
-                if (otherReasonField) otherReasonField.classList.remove('hidden');
-                if (otherReasonText) otherReasonText.required = true;
-            }
-        }
-
-        // Hide all conditional reason fields and reset their values/required status
-        function hideConditionalFields(){
-            const optOutField = $('optOutField');
-            const otherReasonField = $('otherReasonField');
-            const optOutHoldersCount = $('opt_out_holders_count');
-            const otherReasonText = $('other_reason_text');
-
-            if (optOutField) optOutField.classList.add('hidden');
-            if (otherReasonField) otherReasonField.classList.add('hidden');
-            
-            if (optOutHoldersCount) {
-                optOutHoldersCount.required = false;
-                optOutHoldersCount.value = '0'; // Reset value
-            }
-            if (otherReasonText) {
-                otherReasonText.required = false;
-                otherReasonText.value = ''; // Reset value
-            }
-        }
-
-        // Validate text to contain only English characters
-        function validateEnglishOnly(text){
-            const englishPattern = /^[a-zA-Z0-9\s\.,!?;:'"()-]*$/;
-            return englishPattern.test(text);
         }
 
         // Handle State Admin login
@@ -1247,6 +1314,99 @@
             }
         }
 
+        // Update calculated "not saturated" value and toggle reason fields
+        function updateNotSaturated(){
+            const totalActiveKCC = $('total_active_kcc');
+            const totalKCCSaturated = $('total_kcc_saturated');
+            const totalKCCNotSaturated = $('total_kcc_not_saturated');
+            const nonSaturationReasonSelect = $('non_saturation_reason');
+            const reasonsLabel = $('reasonsLabel');
+
+            if (!totalActiveKCC || !totalKCCSaturated || !totalKCCNotSaturated || !nonSaturationReasonSelect || !reasonsLabel) {
+                console.warn('updateNotSaturated: Missing DOM elements.');
+                return;
+            }
+
+            const active = parseInt(totalActiveKCC.value) || 0;
+            const saturated = parseInt(totalKCCSaturated.value) || 0; 
+            const notSaturated = Math.max(0, active - saturated);
+            
+            totalKCCNotSaturated.value = notSaturated;
+            
+            if (notSaturated > 0) {
+                nonSaturationReasonSelect.disabled = false;
+                nonSaturationReasonSelect.required = true;
+                reasonsLabel.innerHTML = 'REASONS FOR NON-SATURATION *';
+            } else {
+                nonSaturationReasonSelect.disabled = true;
+                nonSaturationReasonSelect.required = false;
+                nonSaturationReasonSelect.value = ''; // Clear selection
+                reasonsLabel.innerHTML = 'REASONS FOR NON-SATURATION';
+                hideConditionalFields(); // Hide conditional fields if not saturated
+            }
+        }
+
+        // Handle change in non-saturation reason dropdown
+        function handleReasonChange(){
+            const nonSaturationReasonSelect = $('non_saturation_reason');
+            if (!nonSaturationReasonSelect) return;
+            const reason = nonSaturationReasonSelect.value;
+            hideConditionalFields(); // Always hide first, then show if needed
+            
+            if (reason === 'opt_out') {
+                const optOutField = $('optOutField');
+                const optOutHoldersCount = $('opt_out_holders_count');
+                if (optOutField) optOutField.classList.remove('hidden');
+                if (optOutHoldersCount) optOutHoldersCount.required = true;
+            } else if (reason === 'other') {
+                const otherReasonField = $('otherReasonField');
+                const otherReasonText = $('other_reason_text');
+                if (otherReasonField) otherReasonField.classList.remove('hidden');
+                if (otherReasonText) otherReasonText.required = true;
+            }
+        }
+
+        // Hide all conditional reason fields and reset their values/required status
+        function hideConditionalFields(){
+            const optOutField = $('optOutField');
+            const otherReasonField = $('otherReasonField');
+            const optOutHoldersCount = $('opt_out_holders_count');
+            const otherReasonText = $('other_reason_text');
+
+            if (optOutField) optOutField.classList.add('hidden');
+            if (otherReasonField) otherReasonField.classList.add('hidden');
+            
+            if (optOutHoldersCount) {
+                optOutHoldersCount.required = false;
+                optOutHoldersCount.value = '0'; // Reset value
+            }
+            if (otherReasonText) {
+                otherReasonText.required = false;
+                otherReasonText.value = ''; // Reset value
+            }
+        }
+
+        // Validate text to contain only English characters
+        function validateEnglishOnly(text){
+            const englishPattern = /^[a-zA-Z0-9\s\.,!?;:'"()-]*$/;
+            return englishPattern.test(text);
+        }
+
+        // Build string for 'reasons_not_saturated' column (for legacy/display purposes)
+        function buildLegacyReasonsText(){
+            const nonSaturationReasonSelect = $('non_saturation_reason');
+            if (!nonSaturationReasonSelect) return null;
+            const reason = nonSaturationReasonSelect.value;
+            
+            if (reason === 'opt_out') {
+                const count = $('opt_out_holders_count').value;
+                return `OPT OUT (${count} HOLDERS)`;
+            } else if (reason === 'other') {
+                return $('other_reason_text').value.trim();
+            }
+            return null;
+        }
+
         // Validate form inputs
         async function validateForm(){
             if (!currentUser) {
@@ -1320,21 +1480,6 @@
             }
             
             return true;
-        }
-
-        // Build string for 'reasons_not_saturated' column (for legacy/display purposes)
-        function buildLegacyReasonsText(){
-            const reasonSelect = $('non_saturation_reason');
-            if (!reasonSelect) return null;
-            const reason = reasonSelect.value;
-            
-            if (reason === 'opt_out') {
-                const count = $('opt_out_holders_count').value;
-                return `OPT OUT (${count} HOLDERS)`;
-            } else if (reason === 'other') {
-                return $('other_reason_text').value.trim();
-            }
-            return null;
         }
 
         // Save a new KCC entry
@@ -2062,6 +2207,9 @@
 
         // Prevent default form submission for all forms on the page
         document.addEventListener('submit', e => e.preventDefault());
+
+        // Call the main initialization function when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
 
         console.log('📜 Script loaded successfully.');
     </script>
