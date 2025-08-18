@@ -1,0 +1,1861 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBT डेटा Entry - संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- External Libraries for PDF/Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.0/jspdf.plugin.autotable.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-green: #1B5E20;
+            --secondary-green: #2E7D32;
+            --accent-green: #4CAF50;
+            --light-green: #E8F5E8;
+            --text-primary: #1A1A1A;
+            --text-secondary: #666666;
+            --text-muted: #999999;
+            --white: #FFFFFF;
+            --gray-50: #FAFAFA;
+            --gray-100: #F5F5F5;
+            --gray-200: #EEEEEE;
+            --gray-300: #E0E0E0;
+            --border-light: #E5E5E5;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --radius-sm: 6px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, var(--gray-50) 0%, var(--white) 100%);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .hindi {
+            font-family: 'Noto Sans Devanagari', 'Inter', sans-serif;
+            font-weight: 500;
+        }
+
+        /* Header Styles (from selectmodule.html) */
+        .header {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 3px solid var(--accent-green);
+        }
+
+        .navbar {
+            padding: 1rem 0;
+            min-height: 70px;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.4rem;
+            color: var(--white);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+        }
+
+        .navbar-brand:hover {
+            color: var(--white);
+            transform: translateX(2px);
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            margin-right: 12px;
+        }
+
+        .navbar-brand img.cg-logo {
+            filter: none !important;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            font-weight: 500;
+        }
+
+        /* User Info (Yellow) */
+        #userInfo {
+            background-color: #FFD700 !important;
+            color: #000000 !important;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            border: 2px solid #FFC107;
+            box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        /* KCC Stats Dropdown (Green) */
+        .stats-dropdown {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: var(--white) !important;
+            padding: 0.5rem 1rem !important;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid #66BB6A;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stats-dropdown:hover {
+            background: linear-gradient(135deg, #45a049 0%, #388e3c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .quick-preview {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: var(--white);
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            min-width: 25px;
+            text-align: center;
+        }
+
+        .stats-menu {
+            min-width: 320px;
+            padding: 1.2rem;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, var(--gray-50) 0%, #f8f9fa 100%);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+            transition: var(--transition);
+        }
+
+        .stats-grid .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+            background: linear-gradient(135deg, #f8f9fa 0%, var(--white) 100%);
+        }
+
+        .stats-grid .stat-item i {
+            font-size: 1.4rem;
+            padding: 0.5rem;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.1rem;
+        }
+
+        .stat-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary-green);
+            display: block;
+            line-height: 1;
+        }
+
+        .percentage-stats, .additional-stats {
+            background-color: var(--light-green);
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            margin: 0.5rem 0;
+        }
+
+        .percentage-stats .fw-bold, .additional-stats .fw-bold {
+            color: var(--primary-green);
+            font-size: 0.9rem;
+        }
+
+        /* Active Users Counter (Blue) */
+        .active-users-nav {
+            background-color: #2196F3 !important;
+            color: var(--white) !important;
+            font-weight: 600;
+            padding: 0.5rem 0.75rem;
+            border-radius: var(--radius-md);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            cursor: pointer;
+            border: 2px solid #1976D2;
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+        }
+
+        .active-users-nav:hover {
+            background-color: #1976D2 !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
+        }
+
+        #activeUsersCount {
+            font-size: 0.9rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 15px;
+            animation: pulse 2s infinite;
+            transition: var(--transition);
+            background-color: var(--white) !important;
+            color: #2196F3 !important;
+            font-weight: 700;
+        }
+
+        #activeUsersCount:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        /* Logout Button (Black) */
+        .logout-btn {
+            background-color: #000000 !important;
+            border: 2px solid #333333 !important;
+            color: var(--white) !important;
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            transition: var(--transition);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .logout-btn:hover {
+            background-color: #333333 !important;
+            border-color: #555555 !important;
+            color: var(--white) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .online-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #28a745;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: blink 1.5s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        /* Main Content */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            min-height: calc(100vh - 140px);
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+            margin-bottom: 2rem; /* Added margin for separation */
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+            color: var(--white);
+            padding: 1.5rem 2rem;
+            border-bottom: 3px solid var(--accent-green);
+        }
+
+        .card-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .card-header p {
+            opacity: 0.9;
+            margin: 0;
+            font-size: 0.95rem;
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .form-section-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--primary-green);
+            margin-top: 2.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-light);
+        }
+        .form-section-title:first-of-type {
+            margin-top: 0;
+        }
+
+        .form-group-custom {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label-custom {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+
+        .form-control-custom, .form-select-custom {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--border-light);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            transition: var(--transition);
+            background: var(--white);
+            color: var(--text-primary);
+        }
+
+        .form-control-custom:focus, .form-select-custom:focus {
+            outline: none;
+            border-color: var(--accent-green);
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+        }
+
+        /* Action Buttons */
+        .form-actions {
+            margin-top: 2.5rem;
+            text-align: center;
+        }
+
+        .btn-custom {
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+            border: none;
+            color: var(--white);
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 1rem;
+            min-width: 160px;
+            transition: var(--transition);
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+            margin: 0 0.5rem;
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-custom:active {
+            transform: translateY(0);
+        }
+
+        .btn-custom:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-draft {
+            background: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-draft:hover {
+            background: #5a6268;
+            border-color: #545b62;
+        }
+
+        .btn-download {
+            background: #007bff;
+            border-color: #007bff;
+        }
+        .btn-download:hover {
+            background: #0069d9;
+            border-color: #0062cc;
+        }
+
+        /* Data Display Table */
+        .data-table-container {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            padding: 2rem;
+        }
+
+        .data-table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .data-table-header h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-green);
+        }
+
+        .table-responsive-custom {
+            overflow-x: auto;
+        }
+
+        .table-custom {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .table-custom th, .table-custom td {
+            padding: 0.8rem;
+            border: 1px solid var(--border-light);
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .table-custom th {
+            background-color: var(--gray-100);
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap; /* Prevent wrapping in headers */
+        }
+
+        .table-custom tbody tr:nth-child(even) {
+            background-color: var(--gray-50);
+        }
+
+        .table-custom tbody tr:hover {
+            background-color: var(--light-green);
+        }
+
+        .table-actions .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+            margin-right: 0.25rem;
+        }
+
+        .btn-edit { background-color: #ffc107; border-color: #ffc107; color: #000; }
+        .btn-edit:hover { background-color: #e0a800; border-color: #d39e00; color: #000; }
+        .btn-delete { background-color: #dc3545; border-color: #dc3545; }
+        .btn-delete:hover { background-color: #c82333; border-color: #bd2130; }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        /* Loading State */
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 3rem;
+            min-height: 50vh;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-light);
+            border-radius: 50%;
+            border-top-color: var(--primary-green);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Footer (from selectmodule.html) */
+        .footer {
+            background: var(--gray-100);
+            border-top: 1px solid var(--border-light);
+            padding: 1.5rem 0;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 3rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .main-container {
+                padding: 1.5rem;
+            }
+            .card-body {
+                padding: 1.5rem;
+            }
+        }
+
+        @media (max-width: 992px) {
+            .user-info {
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 0.5rem;
+            }
+            .navbar-brand {
+                font-size: 1.3rem;
+            }
+            .navbar-brand img {
+                height: 35px;
+            }
+            .form-section-title {
+                font-size: 1.2rem;
+            }
+            .btn-custom {
+                width: 100%;
+                margin: 0.5rem 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 1rem;
+            }
+            .card-body {
+                padding: 1rem;
+            }
+            .navbar-brand {
+                font-size: 1.1rem;
+            }
+            .navbar-brand img {
+                height: 30px;
+            }
+            .user-info {
+                flex-direction: column;
+                align-items: flex-end;
+            }
+            #userInfo, .stats-dropdown, .active-users-nav, .logout-btn {
+                padding: 0.4rem 0.7rem;
+                font-size: 0.8rem;
+            }
+            .quick-preview {
+                font-size: 0.7rem;
+                padding: 0.1rem 0.3rem;
+            }
+            .stats-dropdown span.hindi {
+                display: none; /* Hide text for smaller screens */
+            }
+            .active-users-nav span.hindi {
+                display: none; /* Hide text for smaller screens */
+            }
+            .stats-menu {
+                min-width: unset;
+                width: 250px;
+                right: 0 !important;
+                left: auto !important;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .card-header h2 {
+                font-size: 1.3rem;
+            }
+            .form-control-custom, .form-select-custom {
+                font-size: 0.9rem;
+            }
+            .table-custom th, .table-custom td {
+                font-size: 0.8rem;
+                padding: 0.6rem;
+            }
+            .data-table-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <div class="container-fluid">
+            <nav class="navbar">
+                <div class="container-fluid px-3">
+                    <a class="navbar-brand" href="selectmodule.html">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                        <span class="hindi">संचालनालय कृषि छत्तीसगढ़</span>
+                    </a>
+                    <div class="user-info">
+                        <!-- User Info with Yellow Background -->
+                        <span id="userInfo" class="hindi"></span>
+                        
+                        <!-- KCC Data Stats Dropdown with Green Background -->
+                        <div class="dropdown">
+                            <span class="nav-link stats-dropdown" data-bs-toggle="dropdown" title="KCC डेटा आंकड़े">
+                                <i class="fas fa-chart-bar me-1"></i>
+                                <span class="hindi">KCC डेटा</span>
+                                <span id="quickStatsPreview" class="quick-preview">0</span>
+                                <i class="fas fa-chevron-down ms-1"></i>
+                            </span>
+                            <div class="dropdown-menu dropdown-menu-end stats-menu">
+                                <div class="dropdown-header hindi">KCC डेटा आंकड़े</div>
+                                
+                                <!-- Latest Entry Data -->
+                                <div class="stats-grid">
+                                    <div class="stat-item">
+                                        <i class="fas fa-users text-success"></i>
+                                        <div>
+                                            <span class="stat-label hindi">कुल सक्रिय KCC</span>
+                                            <span id="totalActiveKCC" class="stat-value">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-check-circle text-primary"></i>
+                                        <div>
+                                            <span class="stat-label hindi">संतृप्त KCC</span>
+                                            <span id="totalSaturatedKCC" class="stat-value">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-times-circle text-warning"></i>
+                                        <div>
+                                            <span class="stat-label hindi">असंतृप्त KCC</span>
+                                            <span id="totalNotSaturatedKCC" class="stat-value">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-user-times text-danger"></i>
+                                        <div>
+                                            <span class="stat-label hindi">Opt-out धारक</span>
+                                            <span id="optOutHolders" class="stat-value">0</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="dropdown-divider"></div>
+                                
+                                <!-- Percentage Analysis -->
+                                <div class="percentage-stats">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted hindi">संतृप्तता दर:</small><br>
+                                            <span id="saturationRate" class="fw-bold text-success">0%</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted hindi">Opt-out दर:</small><br>
+                                            <span id="optOutRate" class="fw-bold text-danger">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="dropdown-divider"></div>
+                                
+                                <!-- Entry Information -->
+                                <div class="additional-stats">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted hindi">क्षेत्र:</small><br>
+                                            <span id="currentLocation" class="fw-bold">--</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted hindi">Entry तारीख:</small><br>
+                                            <span id="lastEntryDate" class="fw-bold">--</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="dropdown-divider"></div>
+                                
+                                <a class="dropdown-item text-center hindi" href="#" onclick="showDetailedKCCReport()">
+                                    <i class="fas fa-external-link-alt me-1"></i>विस्तृत KCC रिपोर्ट देखें
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Active Users Counter (Blue) -->
+                        <span class="active-users-nav" id="activeUsersNavItem" title="Click to view active users details">
+                            <i class="fas fa-users me-1"></i>
+                            <span class="hindi">सक्रिय: </span>
+                            <span id="activeUsersCount" class="badge">0</span>
+                        </span>
+                        
+                        <!-- Logout Button (Black) -->
+                        <button id="btnLogout" class="btn logout-btn hindi">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            लॉगआउट
+                        </button>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-container">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" style="display: none;">
+            <!-- DBT Data Entry Form -->
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="hindi">DBT डेटा Entry</h2>
+                    <p class="hindi">नवीनतम DBT डेटा दर्ज करें या मौजूदा एंट्री अपडेट करें।</p>
+                </div>
+                <div class="card-body">
+                    <div id="formAlertBox" class="alert" style="display: none;"></div>
+                    <form id="dbtEntryForm">
+                        <input type="hidden" id="entryId" value="">
+                        <input type="hidden" id="entryVersion" value="1">
+                        <input type="hidden" id="predecessorId" value="">
+
+                        <!-- A) FY Scheme & Budget -->
+                        <h4 class="form-section-title hindi">A) FY स्कीम और बजट</h4>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="schemeNameCode" class="form-label-custom hindi">स्कीम का नाम और कोड</label>
+                                <select id="schemeNameCode" class="form-select-custom hindi" required>
+                                    <option value="">-- स्कीम चुनें --</option>
+                                    <!-- Options will be loaded dynamically or hardcoded -->
+                                    <option value="Scheme A (101)">Scheme A (101)</option>
+                                    <option value="Scheme B (102)">Scheme B (102)</option>
+                                    <option value="Scheme C (103)">Scheme C (103)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="entryDate" class="form-label-custom hindi">DBT डेटा जोड़ने की तारीख</label>
+                                <input type="date" id="entryDate" class="form-control-custom hindi" required>
+                            </div>
+                        </div>
+
+                        <h5 class="form-section-title hindi">A.2) बजट आवंटन</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="centralAllocation" class="form-label-custom hindi">राज्य के लिए केंद्रीय आवंटन (INR)</label>
+                                <input type="number" id="centralAllocation" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="stateNormativeAllocation" class="form-label-custom hindi">राज्य मानक आवंटन (INR)</label>
+                                <input type="number" id="stateNormativeAllocation" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="additionalStateAllocation" class="form-label-custom hindi">अतिरिक्त राज्य आवंटन (यदि कोई हो) (INR)</label>
+                                <input type="number" id="additionalStateAllocation" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="budgetRemarks" class="form-label-custom hindi">टिप्पणियाँ (यदि बजट आवंटन से संबंधित हों)</label>
+                                <textarea id="budgetRemarks" class="form-control-custom" rows="2" placeholder="टिप्पणियाँ दर्ज करें"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- B) DBT Data Reporting -->
+                        <h4 class="form-section-title hindi">B) DBT डेटा रिपोर्टिंग</h4>
+                        <h5 class="form-section-title hindi">B.1) लाभ हस्तांतरित</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="totalAmountDisbursed" class="form-label-custom hindi">कुल वितरित राशि</label>
+                                <input type="number" id="totalAmountDisbursed" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="centralShareFundTransferred" class="form-label-custom hindi">केंद्रीय शेयर फंड हस्तांतरित</label>
+                                <input type="number" id="centralShareFundTransferred" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="normativeStateShareFundTransferred" class="form-label-custom hindi">मानक - राज्य शेयर फंड हस्तांतरित</label>
+                                <input type="number" id="normativeStateShareFundTransferred" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="additionalStateContributedFundTransferred" class="form-label-custom hindi">अतिरिक्त राज्य योगदान फंड हस्तांतरित</label>
+                                <input type="number" id="additionalStateContributedFundTransferred" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="stateShareFundTransferredAdditionalBeneficiaries" class="form-label-custom hindi">राज्य द्वारा समर्थित अतिरिक्त लाभार्थियों को राज्य शेयर फंड हस्तांतरित</label>
+                                <input type="number" id="stateShareFundTransferredAdditionalBeneficiaries" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="totalAmountDisbursedNonElectronic" class="form-label-custom hindi">गैर-इलेक्ट्रॉनिक मोड (नकद, चेक, डीडी, एमओ...) के माध्यम से कुल वितरित राशि</label>
+                                <input type="number" id="totalAmountDisbursedNonElectronic" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="totalAmountDisbursedElectronic" class="form-label-custom hindi">इलेक्ट्रॉनिक मोड (एबीपी, एनईएफटी, आरटीजीएस, एईपीएस आदि) के माध्यम से कुल वितरित राशि</label>
+                                <input type="number" id="totalAmountDisbursedElectronic" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                        </div>
+
+                        <h5 class="form-section-title hindi">B.2) लाभार्थी विवरण</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="totalNumberOfBeneficiaries" class="form-label-custom hindi">लाभार्थियों की कुल संख्या</label>
+                                <input type="number" id="totalNumberOfBeneficiaries" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numAdditionalBeneficiariesCSS" class="form-label-custom hindi">राज्य द्वारा समर्थित अतिरिक्त लाभार्थियों की संख्या (CSS के लिए लागू)</label>
+                                <input type="number" id="numAdditionalBeneficiariesCSS" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numAdditionalBeneficiariesStateScheme" class="form-label-custom hindi">राज्य द्वारा समर्थित अतिरिक्त लाभार्थियों की संख्या (राज्य योजना के लिए लागू)</label>
+                                <input type="number" id="numAdditionalBeneficiariesStateScheme" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numBeneficiariesDigitized" class="form-label-custom hindi">लाभार्थियों की संख्या - डिजिटाइज्ड</label>
+                                <input type="number" id="numBeneficiariesDigitized" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numBeneficiariesBankDetailsAvailable" class="form-label-custom hindi">लाभार्थियों की संख्या - बैंक खाते का विवरण विभाग के पास उपलब्ध</label>
+                                <input type="number" id="numBeneficiariesBankDetailsAvailable" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numBeneficiariesAadhaarSeeded" class="form-label-custom hindi">लाभार्थियों की संख्या - आधार सीडेड (आधार संख्या विभाग के पास उपलब्ध लाभार्थियों की संख्या के साथ)</label>
+                                <input type="number" id="numBeneficiariesAadhaarSeeded" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numBeneficiariesAadhaarAuthenticated" class="form-label-custom hindi">लाभार्थियों की संख्या - आधार प्रमाणित</label>
+                                <input type="number" id="numBeneficiariesAadhaarAuthenticated" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numBeneficiariesMobileAvailable" class="form-label-custom hindi">लाभार्थियों की संख्या - मोबाइल नंबर विभाग के पास उपलब्ध</label>
+                                <input type="number" id="numBeneficiariesMobileAvailable" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numBeneficiariesAmountDisbursedNonElectronic" class="form-label-custom hindi">लाभार्थियों की संख्या - गैर-इलेक्ट्रॉनिक मोड के माध्यम से वितरित राशि (नकद चेक, डिमांड ड्राफ्ट, मनी ऑर्डर...)</label>
+                                <input type="number" id="numBeneficiariesAmountDisbursedNonElectronic" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numTransactionsNonElectronic" class="form-label-custom hindi">गैर-इलेक्ट्रॉनिक मोड (नकद चेक, डिमांड ड्राफ्ट, मनी ऑर्डर...) के माध्यम से लेनदेन की संख्या</label>
+                                <input type="number" id="numTransactionsNonElectronic" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numTransactionsElectronic" class="form-label-custom hindi">इलेक्ट्रॉनिक मोड (एबीपी, एनईएफटी, आरटीजीएस, एईपीएस आदि) के माध्यम से लेनदेन की संख्या</label>
+                                <input type="number" id="numTransactionsElectronic" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                        </div>
+
+                        <h5 class="form-section-title hindi">B.3) DBT बचत डेटा</h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numBeneficiariesRemovedDeduplication" class="form-label-custom hindi">आधार का उपयोग करके डी-डुप्लीकेशन के कारण हटाए गए लाभार्थियों की संख्या</label>
+                                <input type="number" id="numBeneficiariesRemovedDeduplication" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="numGhostFakeBeneficiariesRemoved" class="form-label-custom hindi">भूत/नकली लाभार्थियों की संख्या हटाई गई</label>
+                                <input type="number" id="numGhostFakeBeneficiariesRemoved" class="form-control-custom" placeholder="0" value="0" min="0">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="otherSavingsProcessImprovement" class="form-label-custom hindi">प्रक्रिया सुधार दक्षता के कारण अन्य बचत</label>
+                                <input type="number" id="otherSavingsProcessImprovement" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3 form-group-custom">
+                                <label for="savingAmountINR" class="form-label-custom hindi">बचत राशि (INR में)</label>
+                                <input type="number" id="savingAmountINR" class="form-control-custom" placeholder="0" value="0" min="0" step="0.01">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" id="saveAsDraftBtn" class="btn btn-custom btn-draft hindi">
+                                <i class="fas fa-save me-2"></i>ड्राफ्ट के रूप में सहेजें
+                            </button>
+                            <button type="submit" id="updateDbtDataBtn" class="btn btn-custom hindi">
+                                <i class="fas fa-upload me-2"></i>DBT डेटा अपडेट करें
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Existing DBT Data Table -->
+            <div class="data-table-container">
+                <div class="data-table-header">
+                    <h3 class="hindi">मौजूदा DBT डेटा</h3>
+                    <div class="data-table-actions">
+                        <button class="btn btn-outline-primary btn-sm hindi" onclick="loadDbtEntries()">
+                            <i class="fas fa-sync-alt me-1"></i>रिफ्रेश
+                        </button>
+                        <button class="btn btn-download btn-sm hindi" id="downloadDataBtn">
+                            <i class="fas fa-download me-1"></i>डाउनलोड
+                        </button>
+                    </div>
+                </div>
+                <div id="dataTableAlertBox" class="alert" style="display: none;"></div>
+                <div class="table-responsive-custom">
+                    <table class="table-custom" id="dbtEntriesTable">
+                        <thead>
+                            <tr>
+                                <th class="hindi">तारीख</th>
+                                <th class="hindi">स्कीम</th>
+                                <th class="hindi">जिला</th>
+                                <th class="hindi">कुल सक्रिय KCC</th>
+                                <th class="hindi">संतृप्त KCC</th>
+                                <th class="hindi">असंतृप्त KCC</th>
+                                <th class="hindi">स्थिति</th>
+                                <th class="hindi">एक्शन</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dbtEntriesTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center text-muted hindi">लोड हो रहा है...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="noDataFound" class="empty-state" style="display: none;">
+                    <i class="fas fa-inbox"></i>
+                    <p class="hindi">कोई DBT डेटा नहीं मिला।</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Active Users Detail Modal (from selectmodule.html) -->
+    <div class="modal fade" id="activeUsersModal" tabindex="-1" aria-labelledby="activeUsersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%); color: white;">
+                    <h5 class="modal-title hindi" id="activeUsersModalLabel">सक्रिय उपयोगकर्ता विवरण</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="hindi mb-0">कुल सक्रिय उपयोगकर्ता: <span id="totalActiveUsers" class="text-success fw-bold">0</span></h6>
+                        <button class="btn btn-sm btn-outline-primary hindi" onclick="refreshActiveUsers()">
+                            <i class="fas fa-sync-alt me-1"></i>रिफ्रेश
+                        </button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="hindi">नाम</th>
+                                    <th class="hindi">जिला</th>
+                                    <th class="hindi">भूमिका</th>
+                                    <th class="hindi">अंतिम गतिविधि</th>
+                                    <th class="hindi">स्थिति</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activeUsersTable">
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted hindi">लोड हो रहा है...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary hindi" data-bs-dismiss="modal">बंद करें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Options Modal -->
+    <div class="modal fade" id="downloadOptionsModal" tabindex="-1" aria-labelledby="downloadOptionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%); color: white;">
+                    <h5 class="modal-title hindi" id="downloadOptionsModalLabel">डाउनलोड विकल्प</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="hindi mb-4">आप डेटा किस फॉर्मेट में डाउनलोड करना चाहते हैं?</p>
+                    <button class="btn btn-custom hindi me-3" id="downloadPdfBtn">
+                        <i class="fas fa-file-pdf me-2"></i>PDF डाउनलोड करें
+                    </button>
+                    <button class="btn btn-custom btn-draft hindi" id="downloadExcelBtn">
+                        <i class="fas fa-file-excel me-2"></i>Excel (CSV) डाउनलोड करें
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0 hindi">&copy; 2025 संचालनालय कृषि छत्तीसगढ़. सर्वाधिकार सुरक्षित.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    
+    <script>
+        console.log('DBT Data Entry Script starting...');
+        
+        // Supabase configuration
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        
+        let supabaseClient = null;
+        let currentUser = null;
+        let currentEditingEntryId = null; // To track which entry is being edited
+
+        // Active Users Tracking Variables
+        let heartbeatInterval;
+        let isUserActive = true;
+
+        // Initialize Supabase
+        function initializeSupabase() {
+            try {
+                if (typeof supabase !== 'undefined' && supabase.createClient) {
+                    const { createClient } = supabase;
+                    supabaseClient = createClient(supabaseUrl, supabaseKey);
+                    console.log('✓ Supabase client initialized successfully');
+                    return true;
+                } else {
+                    console.error('✗ Supabase library not loaded');
+                    return false;
+                }
+            } catch (error) {
+                console.error('✗ Failed to initialize Supabase: ', error);
+                return false;
+            }
+        }
+
+        // Active Users Tracking Functions
+        function trackUserActivity() {
+            isUserActive = true;
+        }
+
+        document.addEventListener('mousemove', trackUserActivity);
+        document.addEventListener('keypress', trackUserActivity);
+        document.addEventListener('click', trackUserActivity);
+        document.addEventListener('scroll', trackUserActivity);
+
+        async function updateUserOnlineStatus(userId, isOnline = true) {
+            try {
+                await supabaseClient
+                    .from('test_users')
+                    .update({ 
+                        is_online: isOnline,
+                        last_activity: new Date().toISOString()
+                    })
+                    .eq('id', userId);
+                console.log(`User ${userId} status updated: ${isOnline ? 'online' : 'offline'}`);
+            } catch (error) {
+                console.error('Error updating online status: ', error);
+            }
+        }
+
+        async function sendHeartbeat(userId) {
+            if (isUserActive) {
+                await updateUserOnlineStatus(userId, true);
+                isUserActive = false;
+            }
+        }
+
+        function startUserSession(userData) {
+            updateUserOnlineStatus(userData.id, true);
+            heartbeatInterval = setInterval(() => {
+                sendHeartbeat(userData.id);
+            }, 30000);
+            window.addEventListener('beforeunload', () => {
+                updateUserOnlineStatus(userData.id, false);
+            });
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    updateUserOnlineStatus(userData.id, false);
+                } else {
+                    updateUserOnlineStatus(userData.id, true);
+                }
+            });
+        }
+
+        async function getActiveUsersCount() {
+            try {
+                const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+                const { count } = await supabaseClient
+                    .from('test_users')
+                    .select('id', { count: 'exact' })
+                    .eq('is_online', true)
+                    .gte('last_activity', twoMinutesAgo);
+                return count || 0;
+            } catch (error) {
+                console.error('Error getting active users count: ', error);
+                return 0;
+            }
+        }
+
+        async function updateActiveUsersDisplay() {
+            const count = await getActiveUsersCount();
+            const counterElement = document.getElementById('activeUsersCount');
+            if (counterElement) {
+                const currentCount = parseInt(counterElement.textContent) || 0;
+                counterElement.textContent = count;
+                if (count !== currentCount) {
+                    counterElement.style.transform = 'scale(1.3)';
+                    counterElement.style.transition = 'transform 0.2s ease';
+                    setTimeout(() => {
+                        counterElement.style.transform = 'scale(1)';
+                    }, 200);
+                }
+            }
+        }
+
+        async function getActiveUsersList() {
+            try {
+                const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+                const { data } = await supabaseClient
+                    .from('test_users')
+                    .select(`id, full_name, role, last_activity, districts(name)`)
+                    .eq('is_online', true)
+                    .gte('last_activity', twoMinutesAgo)
+                    .order('last_activity', { ascending: false });
+                return data || [];
+            } catch (error) {
+                console.error('Error getting active users list: ', error);
+                return [];
+            }
+        }
+
+        async function showActiveUsersModal() {
+            const users = await getActiveUsersList();
+            const tableBody = document.getElementById('activeUsersTable');
+            const totalElement = document.getElementById('totalActiveUsers');
+            totalElement.textContent = users.length;
+            if (users.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="5" class="text-center text-muted hindi">कोई सक्रिय उपयोगकर्ता नहीं मिला</td></tr>`;
+            } else {
+                tableBody.innerHTML = users.map(user => {
+                    const lastActivity = new Date(user.last_activity);
+                    const timeAgo = Math.floor((Date.now() - lastActivity.getTime()) / 1000);
+                    let timeDisplay;
+                    if (timeAgo < 60) timeDisplay = timeAgo + 's ago';
+                    else if (timeAgo < 3600) timeDisplay = Math.floor(timeAgo/60) + 'm ago';
+                    else timeDisplay = Math.floor(timeAgo/3600) + 'h ago';
+                    return `
+                        <tr>
+                            <td>${user.full_name || 'N/A'}</td>
+                            <td>${user.districts?.name || 'N/A'}</td>
+                            <td><span class="badge bg-info">${user.role || 'User'}</span></td>
+                            <td><span style="color: var(--text-secondary); font-size: 0.8rem;">${timeDisplay}</span></td>
+                            <td><span class="online-indicator"></span><small class="text-success hindi">ऑनलाइन</small></td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function refreshActiveUsers() {
+            await showActiveUsersModal();
+            await updateActiveUsersDisplay();
+        }
+
+        document.getElementById('activeUsersNavItem').addEventListener('click', function() {
+            showActiveUsersModal();
+            const modal = new bootstrap.Modal(document.getElementById('activeUsersModal'));
+            modal.show();
+        });
+
+        async function cleanupOfflineUsers() {
+            try {
+                const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+                await supabaseClient
+                    .from('test_users')
+                    .update({ is_online: false })
+                    .lt('last_activity', threeMinutesAgo)
+                    .eq('is_online', true);
+                console.log('Cleaned up offline users');
+            } catch (error) {
+                console.error('Error cleaning up offline users: ', error);
+            }
+        }
+        setInterval(cleanupOfflineUsers, 2 * 60 * 1000);
+
+        // KCC Data Stats Functions (from selectmodule.html, adjusted for this page)
+        async function getKCCDataStats() {
+            try {
+                const userId = currentUser.id;
+                const userRole = currentUser.role?.toLowerCase();
+                const isAdmin = userRole === 'admin' || userRole === 'state_admin';
+
+                if (isAdmin) {
+                    const { data: stateData, error } = await supabaseClient
+                        .from('kcc_entries')
+                        .select(`total_active_kcc, total_kcc_saturated, total_kcc_not_saturated, opt_out_holders_count, entry_date, district_name`)
+                        .eq('is_current', true)
+                        .order('entry_date', { ascending: false });
+
+                    if (error) throw error;
+
+                    let stateTotals = {
+                        total_active_kcc: 0,
+                        total_kcc_saturated: 0,
+                        total_kcc_not_saturated: 0,
+                        opt_out_holders_count: 0,
+                        district_count: 0,
+                        latest_date: null
+                    };
+
+                    const districtMap = new Map();
+                    stateData.forEach(entry => {
+                        const district = entry.district_name;
+                        const entryDate = new Date(entry.entry_date);
+                        if (!districtMap.has(district) || entryDate > new Date(districtMap.get(district).entry_date)) {
+                            districtMap.set(district, entry);
+                        }
+                    });
+
+                    districtMap.forEach(entry => {
+                        stateTotals.total_active_kcc += entry.total_active_kcc || 0;
+                        stateTotals.total_kcc_saturated += entry.total_kcc_saturated || 0;
+                        stateTotals.total_kcc_not_saturated += entry.total_kcc_not_saturated || 0;
+                        stateTotals.opt_out_holders_count += entry.opt_out_holders_count || 0;
+                        stateTotals.district_count++;
+                        if (!stateTotals.latest_date || new Date(entry.entry_date) > new Date(stateTotals.latest_date)) {
+                            stateTotals.latest_date = entry.entry_date;
+                        }
+                    });
+
+                    return { latest: stateTotals, isStateData: true, districtCount: stateTotals.district_count };
+
+                } else {
+                    const { data: userEntries, error } = await supabaseClient
+                        .from('kcc_entries')
+                        .select(`id, district_name, entry_date, total_active_kcc, total_kcc_saturated, total_kcc_not_saturated, opt_out_holders_count, non_saturation_reason, created_at`)
+                        .eq('created_by', userId)
+                        .eq('is_current', true)
+                        .order('created_at', { ascending: false })
+                        .limit(1);
+
+                    if (error) throw error;
+                    return { latest: userEntries?.[0] || null, isStateData: false };
+                }
+            } catch (error) {
+                console.error('Error fetching KCC data stats: ', error);
+                return { latest: null, isStateData: false };
+            }
+        }
+
+        async function updateKCCDataStats() {
+            try {
+                console.log('🔄 Updating KCC data statistics...');
+                const stats = await getKCCDataStats();
+                const userRole = currentUser.role?.toLowerCase();
+                const isAdmin = userRole === 'admin' || userRole === 'state_admin';
+
+                if (stats.latest) {
+                    const data = stats.latest;
+                    document.getElementById('totalActiveKCC').textContent = data.total_active_kcc || 0;
+                    document.getElementById('totalSaturatedKCC').textContent = data.total_kcc_saturated || 0;
+                    document.getElementById('totalNotSaturatedKCC').textContent = data.total_kcc_not_saturated || 0;
+                    document.getElementById('optOutHolders').textContent = data.opt_out_holders_count || 0;
+                    
+                    const totalActive = data.total_active_kcc || 0;
+                    const saturated = data.total_kcc_saturated || 0;
+                    const optOut = data.opt_out_holders_count || 0;
+                    
+                    const saturationRate = totalActive > 0 ? Math.round((saturated / totalActive) * 100) : 0;
+                    const optOutRate = totalActive > 0 ? Math.round((optOut / totalActive) * 100) : 0;
+                    
+                    document.getElementById('saturationRate').textContent = saturationRate + '%';
+                    document.getElementById('optOutRate').textContent = optOutRate + '%';
+                    
+                    if (isAdmin) {
+                        document.getElementById('currentLocation').textContent = `छत्तीसगढ़ राज्य (${stats.districtCount} जिले)`;
+                        const entryDate = new Date(data.latest_date);
+                        document.getElementById('lastEntryDate').textContent = entryDate.toLocaleDateString('hi-IN', {day: '2-digit', month: '2-digit', year: 'numeric'});
+                    } else {
+                        document.getElementById('currentLocation').textContent = data.district_name || 'N/A';
+                        const entryDate = new Date(data.entry_date);
+                        document.getElementById('lastEntryDate').textContent = entryDate.toLocaleDateString('hi-IN', {day: '2-digit', month: '2-digit', year: 'numeric'});
+                    }
+                    
+                    document.getElementById('quickStatsPreview').textContent = totalActive;
+                    
+                    const satRateElement = document.getElementById('saturationRate');
+                    if (saturationRate >= 80) satRateElement.className = 'fw-bold text-success';
+                    else if (saturationRate >= 60) satRateElement.className = 'fw-bold text-warning';
+                    else satRateElement.className = 'fw-bold text-danger';
+                    
+                    console.log(`✅ KCC ${isAdmin ? 'state' : 'district'} stats updated:`, data);
+                } else {
+                    document.getElementById('totalActiveKCC').textContent = '0';
+                    document.getElementById('totalSaturatedKCC').textContent = '0';
+                    document.getElementById('totalNotSaturatedKCC').textContent = '0';
+                    document.getElementById('optOutHolders').textContent = '0';
+                    document.getElementById('saturationRate').textContent = '0%';
+                    document.getElementById('optOutRate').textContent = '0%';
+                    document.getElementById('currentLocation').textContent = isAdmin ? 'कोई राज्य डेटा नहीं' : 'कोई डेटा नहीं';
+                    document.getElementById('lastEntryDate').textContent = '--';
+                    document.getElementById('quickStatsPreview').textContent = '0';
+                }
+            } catch (error) {
+                console.error('❌ Error updating KCC data stats: ', error);
+            }
+        }
+
+        function showDetailedKCCReport() {
+            const userRole = currentUser.role?.toLowerCase();
+            const isAdmin = userRole === 'admin' || userRole === 'state_admin';
+            
+            const totalActive = document.getElementById('totalActiveKCC').textContent;
+            const saturated = document.getElementById('totalSaturatedKCC').textContent;
+            const notSaturated = document.getElementById('totalNotSaturatedKCC').textContent;
+            const optOut = document.getElementById('optOutHolders').textContent;
+            const satRate = document.getElementById('saturationRate').textContent;
+            const location = document.getElementById('currentLocation').textContent;
+            
+            const reportTitle = isAdmin ? '🏛️ राज्य-व्यापी KCC रिपोर्ट:' : '📊 जिला KCC रिपोर्ट:';
+            const locationLabel = isAdmin ? '🗺️ क्षेत्र:' : '🏢 जिला:';
+            
+            const reportText = `${reportTitle}\n\n` +
+                `${locationLabel} ${location}\n` +
+                `👥 कुल सक्रिय KCC: ${totalActive}\n` +
+                `✅ संतृप्त KCC: ${saturated}\n` +
+                `❌ असंतृप्त KCC: ${notSaturated}\n` +
+                `🚫 Opt-out धारक: ${optOut}\n` +
+                `📈 संतृप्तता दर: ${satRate}\n\n` +
+                `${isAdmin ? '💡 यह सभी जिलों का संयुक्त डेटा है।' : '💡 यह आपकी नवीनतम DBT entry का डेटा है।'}`;
+            
+            alert(reportText);
+            console.log(`${isAdmin ? 'State-wide' : 'District'} KCC report for:`, currentUser.username);
+        }
+
+        // Utility Functions
+        function showAlert(message, type, elementId = 'formAlertBox') {
+            console.log(`Alert: ${type} - ${message}`);
+            const alertBox = document.getElementById(elementId);
+            if (!alertBox) {
+                console.error('Alert box not found: ', elementId);
+                return;
+            }
+            alertBox.textContent = message;
+            alertBox.className = `alert alert-${type} hindi`;
+            alertBox.style.display = 'block';
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        function hideLoading() {
+            console.log('Hiding loading state');
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+        }
+
+        function showLoading() {
+            console.log('Showing loading state');
+            document.getElementById('loadingState').style.display = 'flex';
+            document.getElementById('mainContent').style.display = 'none';
+        }
+
+        function handleLogout() {
+            if (confirm('क्या आप लॉगआउट करना चाहते हैं?')) {
+                if (currentUser && currentUser.id) {
+                    updateUserOnlineStatus(currentUser.id, false);
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                }
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Main Application Logic
+        async function initializePage() {
+            console.log('🚀 Initializing DBT Data Entry page...');
+            try {
+                if (!initializeSupabase()) {
+                    throw new Error('Supabase initialization failed');
+                }
+
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                if (!storedUser) {
+                    showAlert('सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।', 'danger');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                    return;
+                }
+
+                currentUser = JSON.parse(storedUser);
+                currentUser.role = currentUser.role?.trim();
+                console.log('👤 Current user: ', currentUser);
+                
+                const userInfo = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
+                document.getElementById('userInfo').textContent = userInfo;
+                console.log('✓ User info updated');
+                
+                startUserSession(currentUser);
+                updateActiveUsersDisplay();
+                setInterval(updateActiveUsersDisplay, 30000);
+
+                updateKCCDataStats();
+                setInterval(updateKCCDataStats, 2 * 60 * 1000);
+                
+                // Set default entry date to today
+                document.getElementById('entryDate').valueAsDate = new Date();
+
+                await loadDbtEntries(); // Load existing entries
+                hideLoading();
+                
+            } catch (error) {
+                console.error('✗ Error initializing page: ', error);
+                hideLoading();
+                showAlert('पृष्ठ लोड करने में त्रुटि। कृपया पुनः लॉगिन करें।', 'danger');
+                setTimeout(() => window.location.href = 'login.html', 2000);
+            }
+        }
+
+        // DBT Form Submission
+        document.getElementById('dbtEntryForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            await saveDbtEntry('submitted');
+        });
+
+        document.getElementById('saveAsDraftBtn').addEventListener('click', async function() {
+            await saveDbtEntry('draft');
+        });
+
+        async function saveDbtEntry(status) {
+            const form = document.getElementById('dbtEntryForm');
+            if (!form.checkValidity()) {
+                form.reportValidity(); // Show native browser validation messages
+                showAlert('कृपया सभी आवश्यक फ़ील्ड भरें।', 'danger', 'formAlertBox');
+                return;
+            }
+
+            const submitBtn = document.getElementById('updateDbtDataBtn');
+            const draftBtn = document.getElementById('saveAsDraftBtn');
+            const originalSubmitBtnText = submitBtn.innerHTML;
+            const originalDraftBtnText = draftBtn.innerHTML;
+
+            submitBtn.disabled = true;
+            draftBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ${status === 'submitted' ? 'अपडेट हो रहा है...' : 'सहेजा जा रहा है...'}`;
+            draftBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> ${status === 'submitted' ? 'अपडेट हो रहा है...' : 'सहेजा जा रहा है...'}`;
+
+            try {
+                const entryData = {
+                    scheme_name_code: document.getElementById('schemeNameCode').value,
+                    entry_date: document.getElementById('entryDate').value,
+                    central_allocation: parseFloat(document.getElementById('centralAllocation').value) || 0,
+                    state_normative_allocation: parseFloat(document.getElementById('stateNormativeAllocation').value) || 0,
+                    additional_state_allocation: parseFloat(document.getElementById('additionalStateAllocation').value) || 0,
+                    budget_remarks: document.getElementById('budgetRemarks').value,
+
+                    total_amount_disbursed: parseFloat(document.getElementById('totalAmountDisbursed').value) || 0,
+                    central_share_fund_transferred: parseFloat(document.getElementById('centralShareFundTransferred').value) || 0,
+                    normative_state_share_fund_transferred: parseFloat(document.getElementById('normativeStateShareFundTransferred').value) || 0,
+                    additional_state_contributed_fund_transferred: parseFloat(document.getElementById('additionalStateContributedFundTransferred').value) || 0,
+                    state_share_fund_transferred_additional_beneficiaries: parseFloat(document.getElementById('stateShareFundTransferredAdditionalBeneficiaries').value) || 0,
+                    total_amount_disbursed_non_electronic: parseFloat(document.getElementById('totalAmountDisbursedNonElectronic').value) || 0,
+                    total_amount_disbursed_electronic: parseFloat(document.getElementById('totalAmountDisbursedElectronic').value) || 0,
+
+                    total_number_of_beneficiaries: parseInt(document.getElementById('totalNumberOfBeneficiaries').value) || 0,
+                    num_additional_beneficiaries_css: parseInt(document.getElementById('numAdditionalBeneficiariesCSS').value) || 0,
+                    num_additional_beneficiaries_state_scheme: parseInt(document.getElementById('numAdditionalBeneficiariesStateScheme').value) || 0,
+                    num_beneficiaries_digitized: parseInt(document.getElementById('numBeneficiariesDigitized').value) || 0,
+                    num_beneficiaries_bank_details_available: parseInt(document.getElementById('numBeneficiariesBankDetailsAvailable').value) || 0,
+                    num_beneficiaries_aadhaar_seeded: parseInt(document.getElementById('numBeneficiariesAadhaarSeeded').value) || 0,
+                    num_beneficiaries_aadhaar_authenticated: parseInt(document.getElementById('numBeneficiariesAadhaarAuthenticated').value) || 0,
+                    num_beneficiaries_mobile_available: parseInt(document.getElementById('numBeneficiariesMobileAvailable').value) || 0,
+                    num_beneficiaries_amount_disbursed_non_electronic: parseInt(document.getElementById('numBeneficiariesAmountDisbursedNonElectronic').value) || 0,
+                    num_transactions_non_electronic: parseInt(document.getElementById('numTransactionsNonElectronic').value) || 0,
+                    num_transactions_electronic: parseInt(document.getElementById('numTransactionsElectronic').value) || 0,
+
+                    num_beneficiaries_removed_deduplication: parseInt(document.getElementById('numBeneficiariesRemovedDeduplication').value) || 0,
+                    num_ghost_fake_beneficiaries_removed: parseInt(document.getElementById('numGhostFakeBeneficiariesRemoved').value) || 0,
+                    other_savings_process_improvement: parseFloat(document.getElementById('otherSavingsProcessImprovement').value) || 0,
+                    saving_amount_inr: parseFloat(document.getElementById('savingAmountINR').value) || 0,
+                    
+                    status: status,
+                    district_id: currentUser.districtId,
+                    district_name: currentUser.districtName,
+                    created_by: currentUser.id
+                };
+
+                let response;
+                if (currentEditingEntryId) {
+                    // Update existing entry (set old to is_current=false, insert new)
+                    const oldEntryId = currentEditingEntryId;
+                    const oldVersion = parseInt(document.getElementById('entryVersion').value);
+                    const predecessorId = document.getElementById('predecessorId').value || oldEntryId;
+
+                    // 1. Mark old entry as not current
+                    const { error: updateError } = await supabaseClient
+                        .from('dbt_entries')
+                        .update({ is_current: false, updated_at: new Date().toISOString() })
+                        .eq('id', oldEntryId);
+
+                    if (updateError) throw updateError;
+
+                    // 2. Insert new version
+                    entryData.version_number = oldVersion + 1;
+                    entryData.predecessor_id = predecessorId;
+                    entryData.is_current = true;
+                    entryData.change_reason = `Updated from version ${oldVersion}`; // You can add a field for change reason
+
+                    response = await supabaseClient
+                        .from('dbt_entries')
+                        .insert([entryData])
+                        .select();
+
+                    currentEditingEntryId = null; // Clear editing state
+                } else {
+                    // Insert new entry
+                    entryData.is_current = true;
+                    entryData.version_number = 1;
+                    entryData.predecessor_id = null;
+
+                    response = await supabaseClient
+                        .from('dbt_entries')
+                        .insert([entryData])
+                        .select();
+                }
+
+                if (response.error) throw response.error;
+
+                showAlert(`DBT डेटा सफलतापूर्वक ${status === 'submitted' ? 'अपडेट' : 'सहेजा'} गया!`, 'success', 'formAlertBox');
+                form.reset();
+                document.getElementById('entryDate').valueAsDate = new Date(); // Reset date
+                loadDbtEntries(); // Refresh table
+            } catch (error) {
+                console.error('Error saving DBT entry: ', error);
+                showAlert(`DBT डेटा सहेजने में त्रुटि: ${error.message}`, 'danger', 'formAlertBox');
+            } finally {
+                submitBtn.disabled = false;
+                draftBtn.disabled = false;
+                submitBtn.innerHTML = originalSubmitBtnText;
+                draftBtn.innerHTML = originalDraftBtnText;
+            }
+        }
+
+        // Load existing DBT entries into the table
+        async function loadDbtEntries() {
+            console.log('📋 Loading DBT entries...');
+            const tableBody = document.getElementById('dbtEntriesTableBody');
+            const noDataFound = document.getElementById('noDataFound');
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-muted hindi">लोड हो रहा है...</td></tr>`;
+            noDataFound.style.display = 'none';
+
+            try {
+                const userRole = currentUser.role?.toLowerCase();
+                const isAdmin = userRole === 'admin' || userRole === 'state_admin';
+
+                let query = supabaseClient
+                    .from('dbt_entries')
+                    .select(`
+                        id, 
+                        scheme_name_code, 
+                        entry_date, 
+                        district_name,
+                        total_active_kcc,
+                        total_kcc_saturated,
+                        total_kcc_not_saturated,
+                        status,
+                        is_current,
+                        version_number,
+                        predecessor_id,
+                        created_by,
+                        created_at,
+                        -- Select all other columns for edit functionality
+                        central_allocation, state_normative_allocation, additional_state_allocation, budget_remarks,
+                        total_amount_disbursed, central_share_fund_transferred, normative_state_share_fund_transferred, 
+                        additional_state_contributed_fund_transferred, state_share_fund_transferred_additional_beneficiaries, 
+                        total_amount_disbursed_non_electronic, total_amount_disbursed_electronic,
+                        total_number_of_beneficiaries, num_additional_beneficiaries_css, num_additional_beneficiaries_state_scheme, 
+                        num_beneficiaries_digitized, num_beneficiaries_bank_details_available, num_beneficiaries_aadhaar_seeded, 
+                        num_beneficiaries_aadhaar_authenticated, num_beneficiaries_mobile_available, 
+                        num_beneficiaries_amount_disbursed_non_electronic, num_transactions_non_electronic, num_transactions_electronic,
+                        num_beneficiaries_removed_deduplication, num_ghost_fake_beneficiaries_removed, 
+                        other_savings_process_improvement, saving_amount_inr
+                    `)
+                    .order('entry_date', { ascending: false })
+                    .order('created_at', { ascending: false }); // Order by creation time for latest version
+
+                if (!isAdmin) {
+                    query = query.eq('created_by', currentUser.id); // Filter by user for non-admins
+                }
+                
+                // Only show current versions in the main table
+                query = query.eq('is_current', true);
+
+                const { data: entries, error } = await query;
+
+                if (error) throw error;
+
+                if (!entries || entries.length === 0) {
+                    tableBody.innerHTML = ''; // Clear loading message
+                    noDataFound.style.display = 'block';
+                    showAlert('कोई DBT डेटा नहीं मिला।', 'info', 'dataTableAlertBox');
+                    return;
+                }
+
+                tableBody.innerHTML = ''; // Clear loading message
+
+                entries.forEach(entry => {
+                    const row = document.createElement('tr');
+                    const entryDate = new Date(entry.entry_date).toLocaleDateString('hi-IN');
+                    const statusBadge = entry.status === 'submitted' 
+                        ? `<span class="badge bg-success hindi">जमा</span>` 
+                        : `<span class="badge bg-secondary hindi">ड्राफ्ट</span>`;
+
+                    row.innerHTML = `
+                        <td>${entryDate}</td>
+                        <td>${entry.scheme_name_code || 'N/A'}</td>
+                        <td>${entry.district_name || 'N/A'}</td>
+                        <td>${entry.total_active_kcc || 0}</td>
+                        <td>${entry.total_kcc_saturated || 0}</td>
+                        <td>${entry.total_kcc_not_saturated || 0}</td>
+                        <td>${statusBadge}</td>
+                        <td class="table-actions">
+                            <button class="btn btn-edit btn-sm hindi" onclick="editDbtEntry('${entry.id}')">
+                                <i class="fas fa-edit"></i> संपादित करें
+                            </button>
+                            <button class="btn btn-danger btn-sm hindi" onclick="deleteDbtEntry('${entry.id}')">
+                                <i class="fas fa-trash"></i> हटाएं
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                console.log('✅ DBT entries loaded successfully.');
+                showAlert(`कुल ${entries.length} एंट्री मिलीं।`, 'success', 'dataTableAlertBox');
+
+            } catch (error) {
+                console.error('❌ Error loading DBT entries: ', error);
+                tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-danger hindi">डेटा लोड करने में त्रुटि।</td></tr>`;
+                showAlert(`डेटा लोड करने में त्रुटि: ${error.message}`, 'danger', 'dataTableAlertBox');
+            }
+        }
+
+        // Edit DBT Entry
+        async function editDbtEntry(entryId) {
+            console.log('✏️ Editing entry: ', entryId);
+            const { data: entry, error } = await supabaseClient
+                .from('dbt_entries')
+                .select('*')
+                .eq('id', entryId)
+                .single();
+
+            if (error) {
+                console.error('Error fetching entry for edit: ', error);
+                showAlert('एंट्री प्राप्त करने में त्रुटि।', 'danger', 'formAlertBox');
+                return;
+            }
+
+            // Populate the form fields
+            document.getElementById('entryId').value = entry.id;
+            document.getElementById('entryVersion').value = entry.version_number;
+            document.getElementById('predecessorId').value = entry.predecessor_id || entry.id; // Store original ID as predecessor
+            
+            document.getElementById('schemeNameCode').value = entry.scheme_name_code;
+            document.getElementById('entryDate').value = entry.entry_date; // Date input handles YYYY-MM-DD
+            document.getElementById('centralAllocation').value = entry.central_allocation;
+            document.getElementById('stateNormativeAllocation').value = entry.state_normative_allocation;
+            document.getElementById('additionalStateAllocation').value = entry.additional_state_allocation;
+            document.getElementById('budgetRemarks').value = entry.budget_remarks;
+
+            document.getElementById('totalAmountDisbursed').value = entry.total_amount_disbursed;
+            document.getElementById('centralShareFundTransferred').value = entry.central_share_fund_transferred;
+            document.getElementById('normativeStateShareFundTransferred').value = entry.normative_state_share_fund_transferred;
+            document.getElementById('additionalStateContributedFundTransferred').value = entry.additional_state_contributed_fund_transferred;
+            document.getElementById('stateShareFundTransferredAdditionalBeneficiaries').value = entry.state_share_fund_transferred_additional_beneficiaries;
+            document.getElementById('totalAmountDisbursedNonElectronic').value = entry.total_amount_disbursed_non_electronic;
+            document.getElementById('totalAmountDisbursedElectronic').value = entry.total_amount_disbursed_electronic;
+
+            document.getElementById('totalNumberOfBeneficiaries').value = entry.total_number_of_beneficiaries;
+            document.getElementById('numAdditionalBeneficiariesCSS').value = entry.num_additional_beneficiaries_css;
+            document.getElementById('numAdditionalBeneficiariesStateScheme').value = entry.num_additional_beneficiaries_state_scheme;
+            document.getElementById('numBeneficiariesDigitized').value = entry.num_beneficiaries_digitized;
+            document.getElementById('numBeneficiariesBankDetailsAvailable').value = entry.num_beneficiaries_bank_details_available;
+            document.getElementById('numBeneficiariesAadhaarSeeded').value = entry.num_beneficiaries_aadhaar_seeded;
+            document.getElementById('numBeneficiariesAadhaarAuthenticated').value = entry.num_beneficiaries_aadhaar_authenticated;
+            document.getElementById('numBeneficiariesMobileAvailable').value = entry.num_beneficiaries_mobile_available;
+            document.getElementById('numBeneficiariesAmountDisbursedNonElectronic').value = entry.num_beneficiaries_amount_disbursed_non_electronic;
+            document.getElementById('numTransactionsNonElectronic').value = entry.num_transactions_non_electronic;
+            document.getElementById('numTransactionsElectronic').value = entry.num_transactions_electronic;
+
+            document.getElementById('numBeneficiariesRemovedDeduplication').value = entry.num_beneficiaries_removed_deduplication;
+            document.getElementById('numGhostFakeBeneficiariesRemoved').value = entry.num_ghost_fake_beneficiaries_removed;
+            document.getElementById('otherSavingsProcessImprovement').value = entry.other_savings_process_improvement;
+            document.getElementById('savingAmountINR').value = entry.saving_amount_inr;
+
+            currentEditingEntryId = entryId; // Set editing state
+            showAlert('आप एक मौजूदा एंट्री को संपादित कर रहे हैं।', 'info', 'formAlertBox');
+            // Scroll to top of form
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Delete DBT Entry
+        async function deleteDbtEntry(entryId) {
+            console.log('🗑️ Deleting entry: ', entryId);
+            if (confirm('क्या आप वाकई इस एंट्री को हटाना चाहते हैं? यह कार्रवाई अपरिवर्तनीय है।')) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('dbt_entries')
+                        .delete()
+                        .eq('id', entryId);
+
+                    if (error) throw error;
+
+                    showAlert('एंट्री सफलतापूर्वक हटाई गई!', 'success', 'dataTableAlertBox');
+                    loadDbtEntries(); // Refresh table
+                } catch (error) {
+                    console.error('Error deleting entry: ', error);
+                    showAlert(`एंट्री हटाने में त्रुटि: ${error.message}`, 'danger', 'dataTableAlertBox');
+                }
+            }
+        }
+
+        // Download Functionality
+        document.getElementById('downloadDataBtn').addEventListener('click', function() {
+            const downloadModal = new bootstrap.Modal(document.getElementById('downloadOptionsModal'));
+            downloadModal.show();
+        });
+
+        document.getElementById('downloadPdfBtn').addEventListener('click', async function() {
+            const downloadModal = bootstrap.Modal.getInstance(document.getElementById('downloadOptionsModal'));
+            downloadModal.hide();
+            await downloadTableAsPdf();
+        });
+
+        document.getElementById('downloadExcelBtn').addEventListener('click', async function() {
+            const downloadModal = bootstrap.Modal.getInstance(document.getElementById('downloadOptionsModal'));
+            downloadModal.hide();
+            await downloadTableAsCsv();
+        });
+
+        async function downloadTableAsPdf() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape'); // 'landscape' for wider tables
+
+            const table = document.getElementById('dbtEntriesTable');
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            const body = Array.from(table.querySelectorAll('tbody tr')).map(row => 
+                Array.from(row.querySelectorAll('td')).map(td => td.textContent.trim())
+            );
+
+            // Filter out action column from PDF
+            const filteredHeaders = headers.slice(0, -1); // Remove last column (Action)
+            const filteredBody = body.map(row => row.slice(0, -1));
+
+            doc.autoTable({
+                head: [filteredHeaders],
+                body: filteredBody,
+                startY: 20,
+                headStyles: { fillColor: [27, 94, 32], textColor: [255, 255, 255], font: 'NotoSansDevanagari', fontStyle: 'bold' },
+                styles: { font: 'NotoSansDevanagari', fontSize: 8, cellPadding: 3 },
+                columnStyles: {
+                    0: { cellWidth: 20 }, // Date
+                    1: { cellWidth: 40 }, // Scheme
+                    2: { cellWidth: 30 }, // District
+                    3: { cellWidth: 25 }, // Active KCC
+                    4: { cellWidth: 25 }, // Saturated
+                    5: { cellWidth: 25 }, // Not Saturated
+                    6: { cellWidth: 20 }  // Status
+                },
+                didDrawPage: function(data) {
+                    doc.text("DBT डेटा रिपोर्ट - संचालनालय कृषि छत्तीसगढ़", data.settings.margin.left, 10);
+                }
+            });
+            doc.save('DBT_Data_Report.pdf');
+            showAlert('PDF सफलतापूर्वक डाउनलोड किया गया!', 'success', 'dataTableAlertBox');
+        }
+
+        async function downloadTableAsCsv() {
+            const table = document.getElementById('dbtEntriesTable');
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+
+            // Filter out action column from CSV
+            const filteredHeaders = headers.slice(0, -1);
+            const csvRows = [];
+            csvRows.push(filteredHeaders.join(',')); // Add headers
+
+            rows.forEach(row => {
+                const rowData = Array.from(row.querySelectorAll('td')).map(td => {
+                    let text = td.textContent.trim();
+                    // Handle commas in text by enclosing in quotes
+                    if (text.includes(',')) {
+                        text = `"${text}"`;
+                    }
+                    return text;
+                });
+                csvRows.push(rowData.slice(0, -1).join(',')); // Remove last column (Action)
+            });
+
+            const csvString = csvRows.join('\n');
+            const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute('download', 'DBT_Data_Report.csv');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showAlert('Excel (CSV) सफलतापूर्वक डाउनलोड किया गया!', 'success', 'dataTableAlertBox');
+        }
+
+        // Error boundary for unhandled errors
+        window.addEventListener('error', (e) => {
+            console.error('💥 Unhandled error: ', e.error);
+            showAlert('एक अप्रत्याशित त्रुटि हुई। कृपया पृष्ठ को रीफ्रेश करें।', 'danger', 'formAlertBox');
+        });
+
+        window.addEventListener('unhandledrejection', (e) => {
+            console.error('💥 Unhandled promise rejection: ', e.reason);
+            showAlert('डेटा लोड करने में समस्या हुई। कृपया पुनः प्रयास करें।', 'danger', 'formAlertBox');
+        });
+
+        // Initialize page on DOMContentLoaded
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+</html>
