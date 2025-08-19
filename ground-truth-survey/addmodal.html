@@ -364,10 +364,6 @@
             padding: 0.75rem 0.5rem;
             vertical-align: middle;
         }
-
-        .table-modern tbody tr:hover {
-            background-color: var(--light-green);
-        }
         
         /* NEW: Styles for table status rows */
         .table-success td { background-color: var(--light-green) !important; color: var(--primary-green) !important; }
@@ -2324,9 +2320,10 @@
                         textColor: 0
                     },
                     headStyles: {
-                        fillColor: 255, // White background
+                        fillColor: '#fff', // White background
                         fontStyle: 'bold'
                     },
+                    bodyStyles: { fillColor: '#fff', textColor: '#000', lineWidth: 0.1, lineColor: '#000' },
                     columnStyles: {
                         0: { cellWidth: 'auto', fontStyle: 'bold' }, // Auto-fit width for District column
                         1: { cellWidth: 'auto' },
@@ -2439,7 +2436,7 @@
                 // Fetch all entries for the selected date
                 const { data: submittedEntries, error: entriesError } = await supabase
                     .from('kcc_entries')
-                    .select('district_id, district_name')
+                    .select('district_id, district_name, total_active_kcc, total_kcc_saturated') // Fetch required data
                     .eq('entry_date', statusDate)
                     .eq('is_current', true);
                 if (entriesError) throw entriesError;
@@ -2448,16 +2445,36 @@
 
                 let html = '';
                 allDistricts.forEach(district => {
-                    const status = submittedMap.has(district.id) ? 'SUBMITTED ✅' : 'NOT SUBMITTED ❌';
-                    const rowClass = submittedMap.has(district.id) ? 'table-success' : 'table-danger';
-                    const remarks = submittedMap.has(district.id) ? 'Data Entry Done' : 'No Entry Found';
+                    const entry = submittedMap.get(district.id);
+                    const statusText = entry ? 'SUBMITTED ✅' : 'NOT SUBMITTED ❌';
+                    const rowClass = entry ? 'table-success' : 'table-danger';
+                    const remarks = entry ? 'Data Entry Done' : 'No Entry Found';
+
+                    const totalKcc = entry ? (entry.total_active_kcc || 0) : 0;
+                    const saturatedKcc = entry ? (entry.total_kcc_saturated || 0) : 0;
+                    const saturationPercentage = calculatePercentage(saturatedKcc, totalKcc);
+                    
                     html += `<tr class="${rowClass}">
                                 <td>${district.name}</td>
-                                <td>${status}</td>
+                                <td>${statusText}</td>
+                                <td>${totalKcc}</td>
+                                <td>${saturatedKcc}</td>
+                                <td>${saturationPercentage}</td>
                                 <td>${remarks}</td>
                             </tr>`;
                 });
+                // NEW: Update table headers for the modal view
                 tbody.innerHTML = html;
+                document.querySelector('#districtStatusModal thead').innerHTML = `
+                    <tr>
+                        <th>DISTRICT</th>
+                        <th>STATUS</th>
+                        <th>TOTAL KCC</th>
+                        <th>SATURATED KCC</th>
+                        <th>% SATURATION</th>
+                        <th>REMARKS</th>
+                    </tr>
+                `;
                 downloadBtn.classList.remove('hidden');
 
             } catch (err) {
@@ -2469,33 +2486,108 @@
 
         // NEW FUNCTION: Download the district status report as a PDF
         async function downloadStatusPDF() {
+            const statusDate = $('statusDate').value;
+            if (!statusDate) {
+                toast('Please select a date first.', 'warning');
+                return;
+            }
+
+            // Fetch a fresh list of all districts and their entries for the selected date
+            const { data: allDistricts, error: districtsError } = await supabase
+                .from('districts')
+                .select('id, name')
+                .order('name');
+            if (districtsError) {
+                toast('Failed to fetch district data for PDF.', 'danger');
+                return;
+            }
+
+            const { data: submittedEntries, error: entriesError } = await supabase
+                .from('kcc_entries')
+                .select('district_id, district_name, total_active_kcc, total_kcc_saturated')
+                .eq('entry_date', statusDate)
+                .eq('is_current', true);
+            if (entriesError) {
+                toast('Failed to fetch entry data for PDF.', 'danger');
+                return;
+            }
+
+            const submittedMap = new Map(submittedEntries.map(e => [e.district_id, e]));
+
+            const tableData = [];
+            allDistricts.forEach(district => {
+                const entry = submittedMap.get(district.id);
+                const totalKcc = entry ? (entry.total_active_kcc || 0) : 0;
+                const saturatedKcc = entry ? (entry.total_kcc_saturated || 0) : 0;
+                const saturationPercentage = calculatePercentage(saturatedKcc, totalKcc);
+                const status = entry ? 'SUBMITTED' : 'NOT SUBMITTED';
+                const why = entry ? '' : 'No Entry Found';
+
+                tableData.push([
+                    `${district.name} - ${status}`,
+                    totalKcc,
+                    saturatedKcc,
+                    saturationPercentage,
+                    why
+                ]);
+            });
+
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('portrait', 'mm', 'a4');
             
-            // Header
+            // Set font to Poppins and ensure black color
             doc.setFont('Poppins', 'normal');
             doc.setTextColor(0, 0, 0);
+
+            // --- PDF HEADER ---
             doc.setFontSize(16);
-            doc.text('Daily KCC Saturation Report Under PMFBY Kharif 2025', 105, 20, { align: 'center' });
+            doc.text('Directorate of Agriculture Chhattisgarh Raipur', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+            
             doc.setFontSize(12);
-            doc.text(`Date: ${formatDateToDDMMYYYY($('statusDate').value)}`, 105, 28, { align: 'center' });
-            doc.text(`Generated On: ${new Date().toLocaleString()}`, 105, 35, { align: 'center' });
+            const reportTitle = 'Daily KCC Saturation Report Under PMFBY Kharif 2025';
+            const dateText = `Date: ${formatDateToDDMMYYYY($('statusDate').value)}`;
+            doc.setFont(undefined, 'bold');
+            doc.text(reportTitle, doc.internal.pageSize.width / 2, 28, { align: 'center' });
+            doc.text(dateText, doc.internal.pageSize.width / 2, 35, { align: 'center' });
 
-            const table = $('districtStatusTableBody');
-            const tableData = [];
-            const headers = ['DISTRICT', 'STATUS', 'REMARKS'];
-
-            table.querySelectorAll('tr').forEach(row => {
-                const rowData = Array.from(row.querySelectorAll('td')).map(td => td.textContent.trim());
-                if (rowData.length === headers.length) {
-                    tableData.push(rowData);
-                }
+            const headers = [['District Status', 'TOTAL KCC', 'SATURATED KCC', '% SATURATION', 'WHY']];
+            const body = [];
+            allDistricts.forEach(district => {
+                const entry = submittedMap.get(district.id);
+                const statusText = entry ? 'SUBMITTED' : 'NOT SUBMITTED';
+                const totalKcc = entry ? (entry.total_active_kcc || 0) : 0;
+                const saturatedKcc = entry ? (entry.total_kcc_saturated || 0) : 0;
+                const saturationPercentage = calculatePercentage(saturatedKcc, totalKcc);
+                const why = entry ? '' : 'No Entry Found';
+                
+                body.push([
+                    `${district.name} - ${statusText}`,
+                    totalKcc,
+                    saturatedKcc,
+                    saturationPercentage,
+                    why
+                ]);
             });
 
+            // Calculate totals for the report
+            const grandTotalActive = allDistricts.reduce((sum, d) => {
+                const entry = submittedMap.get(d.id);
+                return sum + (entry ? (entry.total_active_kcc || 0) : 0);
+            }, 0);
+            const grandTotalSaturated = allDistricts.reduce((sum, d) => {
+                const entry = submittedMap.get(d.id);
+                return sum + (entry ? (entry.total_kcc_saturated || 0) : 0);
+            }, 0);
+            const grandTotalSaturation = calculatePercentage(grandTotalSaturated, grandTotalActive);
+
+            body.push(['TOTAL', grandTotalActive, grandTotalSaturated, grandTotalSaturation, '']);
+
+
             doc.autoTable({
-                head: [headers],
-                body: tableData,
-                startY: 50,
+                head: headers,
+                body: body,
+                startY: 45,
+                theme: 'plain',
                 styles: { 
                     font: 'Poppins', 
                     fontSize: 10, 
@@ -2507,13 +2599,21 @@
                 headStyles: { fillColor: '#fff', textColor: '#000', fontStyle: 'bold', lineWidth: 0.1, lineColor: '#000' },
                 bodyStyles: { fillColor: '#fff', textColor: '#000', lineWidth: 0.1, lineColor: '#000' },
                 columnStyles: {
-                    0: { cellWidth: 70 },
-                    1: { cellWidth: 60, halign: 'center' },
-                    2: { cellWidth: 60 }
-                }
+                    0: { cellWidth: 'auto', fontStyle: 'bold' },
+                    1: { cellWidth: 'auto' },
+                    2: { cellWidth: 'auto' },
+                    3: { cellWidth: 'auto' },
+                    4: { cellWidth: 'auto' }
+                },
+                margin: { top: 40 }
             });
 
-            doc.save(`District_Status_Report_${$('statusDate').value}.pdf`);
+            // Generate a unique filename with timestamp
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+            const fileName = `District_Status_Report_${$('statusDate').value}_${timestamp}.pdf`;
+            doc.save(fileName);
+            
             toast('PDF report downloaded!', 'success');
         }
 
