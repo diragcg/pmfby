@@ -932,7 +932,7 @@
 
         // CONFIG
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImexccCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
         // Global variables
         let supabaseClient = null;
@@ -1011,15 +1011,25 @@
             return percentage.toFixed(2) + '%';
         }
 
-        // Date formatting utility
-        function formatDateToDDMMYYYY(dateString) {
-            if (!dateString) return '-';
-            const date = new Date(dateString);
+        // Date formatting utility for displaying YYYY-MM-DD as DD-MM-YYYY
+        function formatDateToDDMMYYYY(dateStringYYYYMMDD) {
+            if (!dateStringYYYYMMDD) return '-';
+            // Ensure input is YYYY-MM-DD for consistent parsing
+            const date = new Date(dateStringYYYYMMDD);
             const day = String(date.getDate()).padStart(2, '0');
-            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
             const year = date.getFullYear();
             return `${day}-${month}-${year}`;
         }
+
+        // NEW HELPER FUNCTION: Convert YYYY-MM-DD to M/D/YYYY for DB interaction
+        function formatDateToMDYYYY(dateStringYYYYMMDD) {
+            if (!dateStringYYYYMMDD) return null;
+            const [year, month, day] = dateStringYYYYMMDD.split('-');
+            // Convert to M/D/YYYY, stripping leading zeros as per your DB data example (8/18/2025)
+            return `${parseInt(month)}/${parseInt(day)}/${year}`;
+        }
+
 
         // FETCH REAL DISTRICTS FROM DATABASE
         async function fetchAllDistricts() {
@@ -1056,7 +1066,7 @@
                         fullName: parsedUser.full_name || parsedUser.username, // Use full_name if available
                         role: parsedUser.role ? parsedUser.role.trim() : 'user',
                         districtId: parsedUser.district_id, // Ensure district_id is correctly set
-                        districtName: parsedUser.districtName || 'STATE LEVEL' // Fallback for district name
+                        districtName: parsedUser.districtName || 'STATE LEVEL' // Fallback for district name if not provided
                     };
                     console.log('✓ User loaded from session:', currentUser.fullName);
                     return true;
@@ -1071,13 +1081,13 @@
             console.log('⚠ No valid user session found or parsing failed, creating test user');
             currentUser = {
                 id: 'test-user-123',
-                username: 'test_user',
+                username: 'test_user_fallback',
                 fullName: 'Test User (Fallback)',
                 districtName: 'Test District (Fallback)',
-                districtId: 'test-district-123',
+                districtId: 'test-district-123', // Use a dummy UUID for district_id
                 role: 'user' // Default to 'user' role for fallback
             };
-            toast('Loaded with a fallback test user. Please ensure proper login flow.', 'warning');
+            toast('Loaded with a fallback test user. Please ensure proper login flow.', 'warning', 5000);
             return true;
         }
 
@@ -1086,15 +1096,15 @@
             return currentUser.role === 'user';
         }
 
-        function isAdmin() {
+        function isAdmin() { // Any role that has administrative privileges
             return ['admin', 'division_admin', 'manager', 'super_admin'].includes(currentUser.role);
         }
 
-        function isStateLevelAdmin() { // Specific for roles that can see state-wide data/features
+        function isStateLevelAdmin() { // Roles that can view/manage state-wide data
             return ['admin', 'division_admin', 'manager', 'super_admin'].includes(currentUser.role);
         }
 
-        function isSuperAdmin() {
+        function isSuperAdmin() { // Highest level admin
             return currentUser.role === 'super_admin';
         }
         // --- End Role-based Access Control Helpers ---
@@ -1194,7 +1204,7 @@
             if (isAdmin()) { // Any admin role can see admin summary and access elevated panel
                 if (adminSummary) adminSummary.classList.remove('hidden');
                 if (btnDistrictStatus) btnDistrictStatus.style.display = 'inline-block'; // Show District Status button
-                if (btnStateAdmin) btnStateAdmin.style.display = 'inline-block'; // Show State Admin button
+                if (btnStateAdmin) btnStateAdmin.style.display = 'inline-block'; // Show State Admin button (for elevated access)
             } else {
                 if (adminSummary) adminSummary.classList.add('hidden');
                 if (stateAdminPanel) stateAdminPanel.classList.add('hidden'); // Ensure hidden if not admin
@@ -1375,18 +1385,20 @@
                 return;
             }
 
-            const checkDate = statusCheckDateInput.value;
+            const checkDateYYYYMMDD = statusCheckDateInput.value; // Date from input (YYYY-MM-DD)
+            const checkDateMDYYYY = formatDateToMDYYYY(checkDateYYYYMMDD); // Convert to M/D/YYYY for DB query
+
             const statusDateDisplay = $('statusDateDisplay');
             if (statusDateDisplay) {
-                statusDateDisplay.textContent = formatDateToDDMMYYYY(checkDate);
+                statusDateDisplay.textContent = formatDateToDDMMYYYY(checkDateYYYYMMDD); // Display in DD-MM-YYYY
             }
 
             try {
-                // Fetch all entries for the selected date
+                // Fetch all entries for the selected date using M/D/YYYY
                 const { data: entries, error } = await supabaseClient
                     .from('kcc_entries')
                     .select('*')
-                    .eq('entry_date', checkDate)
+                    .eq('entry_date', checkDateMDYYYY) // <--- Use M/D/YYYY here
                     .eq('is_current', true);
 
                 if (error) throw error;
@@ -1428,9 +1440,10 @@
                             <td>${index + 1}</td>
                             <td>${district.name}</td>
                             <td><span class="badge badge-success">DATA ENTERED</span></td>
-                            <td>${formatDateToDDMMYYYY(entry.entry_date)}</td>
+                            <td>${entry.entry_date}</td> <!-- Display as stored in DB (M/D/YYYY) -->
                             <td>${entry.total_active_kcc || 0}</td>
                             <td>${entry.total_kcc_saturated || 0}</td>
+                            <td>${entry.total_kcc_not_saturated || 0}</td>
                             <td>${saturationPercentage}</td>
                             <td class="text-success">✓ Complete</td>
                         `;
@@ -1471,7 +1484,7 @@
                     statusSummary.style.display = 'block';
                 }
 
-                toast(`Status checked for ${formatDateToDDMMYYYY(checkDate)}. ${enteredCount} districts entered data, ${notEnteredCount} pending.`, 'info');
+                toast(`Status checked for ${formatDateToDDMMYYYY(checkDateYYYYMMDD)}. ${enteredCount} districts entered data, ${notEnteredCount} pending.`, 'info');
 
             } catch (err) {
                 console.error('CHECK STATUS ERROR:', err);
@@ -1490,8 +1503,9 @@
                 return;
             }
 
-            const checkDate = statusCheckDateInput.value;
-
+            const checkDateYYYYMMDD = statusCheckDateInput.value;
+            const checkDateMDYYYY = formatDateToMDYYYY(checkDateYYYYMMDD); // Convert for query if needed, but here we use table data
+            
             try {
                 const tbody = $('districtStatusTableBody');
                 if (!tbody || tbody.children.length === 0) {
@@ -1514,7 +1528,7 @@
                 
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
-                doc.text(`Report Date: ${formatDateToDDMMYYYY(checkDate)}`, 20, 38);
+                doc.text(`Report Date: ${formatDateToDDMMYYYY(checkDateYYYYMMDD)}`, 20, 38);
                 doc.text(`Generated On: ${new Date().toLocaleString()}`, 20, 45);
 
                 const statusSummaryContent = $('statusSummaryContent');
@@ -1589,7 +1603,7 @@
 
                 const now = new Date();
                 const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
-                const fileName = `DISTRICT_STATUS_${formatDateToDDMMYYYY(checkDate).replace(/-/g, '')}_${timestamp}.pdf`;
+                const fileName = `DISTRICT_STATUS_${formatDateToDDMMYYYY(checkDateYYYYMMDD).replace(/-/g, '')}_${timestamp}.pdf`;
                 
                 doc.save(fileName);
                 toast('District status PDF downloaded successfully!', 'success');
@@ -2002,10 +2016,13 @@
                 return;
             }
 
+            const entryDateYYYYMMDD = $('entry_date').value;
+            const entryDateMDYYYY = formatDateToMDYYYY(entryDateYYYYMMDD); // Convert for DB storage/query
+
             const payload = {
                 district_id: currentUser.districtId,
                 district_name: currentUser.districtName,
-                entry_date: $('entry_date').value,
+                entry_date: entryDateMDYYYY, // <--- Use M/D/YYYY here
                 total_active_kcc: parseInt($('total_active_kcc').value) || 0,
                 total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
                 total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
@@ -2032,7 +2049,7 @@
                     .update({ is_current: false })
                     .match({ 
                         district_id: payload.district_id, 
-                        entry_date: payload.entry_date, 
+                        entry_date: payload.entry_date, // <--- Use M/D/YYYY here
                         is_current: true 
                     });
 
@@ -2085,11 +2102,14 @@
                 return;
             }
 
+            const entryDateYYYYMMDD = $('entry_date').value;
+            const entryDateMDYYYY = formatDateToMDYYYY(entryDateYYYYMMDD); // Convert for DB storage/query
+
             const params = {
                 p_predecessor_id: loadedCurrentRecord.id,
                 p_district_id: currentUser.districtId,
                 p_district_name: currentUser.districtName,
-                p_entry_date: $('entry_date').value,
+                p_entry_date: entryDateMDYYYY, // <--- Use M/D/YYYY here
                 p_total_active_kcc: parseInt($('total_active_kcc').value) || 0,
                 p_total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
                 p_total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
@@ -2168,7 +2188,7 @@
         }
 
         // Load records into the table within the viewer modal
-        async function loadRecordsTable(fromDate = null, toDate = null, page = 1){
+        async function loadRecordsTable(fromDateYYYYMMDD = null, toDateYYYYMMDD = null, page = 1){
             if (!currentUser || !supabaseClient) {
                 console.warn('loadRecordsTable: Prerequisites not met.');
                 return;
@@ -2177,7 +2197,7 @@
             try {
                 console.log(`Loading records for ${isAdmin() ? 'all districts (admin)' : currentUser.districtName + ' (user)'}...`);
                 
-                const isAdminUser = isAdmin(); // Use the helper function here
+                const isAdminUser = isAdmin();
                 const offset = (page - 1) * pageSize;
 
                 let query = supabaseClient
@@ -2186,15 +2206,18 @@
                     .order('created_at', { ascending: false })
                     .range(offset, offset + pageSize - 1);
 
-                if (!isAdminUser) { // Filter by district only for non-admin roles
+                if (!isAdminUser) {
                     query = query.eq('district_id', currentUser.districtId);
                 }
 
-                if (fromDate) {
-                    query = query.gte('entry_date', fromDate);
+                // Convert filter dates to M/D/YYYY for the query
+                if (fromDateYYYYMMDD) {
+                    const fromDateMDYYYY = formatDateToMDYYYY(fromDateYYYYMMDD);
+                    query = query.gte('entry_date', fromDateMDYYYY); // <--- Use M/D/YYYY here
                 }
-                if (toDate) {
-                    query = query.lte('entry_date', toDate);
+                if (toDateYYYYMMDD) {
+                    const toDateMDYYYY = formatDateToMDYYYY(toDateYYYYMMDD);
+                    query = query.lte('entry_date', toDateMDYYYY); // <--- Use M/D/YYYY here
                 }
 
                 const { data, error, count } = await query;
@@ -2226,7 +2249,7 @@
                         const reasonDetails = buildReasonDetails(record);
 
                         row.innerHTML = `
-                            <td>${formatDateToDDMMYYYY(record.entry_date)}</td>
+                            <td>${record.entry_date}</td> <!-- Display as stored in DB (M/D/YYYY) -->
                             <td>${isAdminUser ? (record.district_name || 'UNKNOWN') : (currentUser.districtName || '-')}</td>
                             <td>${record.total_active_kcc || 0}</td>
                             <td>${record.total_kcc_saturated || 0}</td>
@@ -2326,7 +2349,10 @@
                 const changeReasonRow = $('changeReasonRow');
                 const btnUpdate = $('btnUpdate');
 
-                if (entryDateElement) entryDateElement.value = data.entry_date;
+                // When loading for edit, convert DB format (M/D/YYYY) to HTML input format (YYYY-MM-DD)
+                const entryDateForInput = new Date(data.entry_date).toISOString().slice(0,10); 
+                if (entryDateElement) entryDateElement.value = entryDateForInput;
+                
                 if (totalActiveKCCInput) totalActiveKCCInput.value = data.total_active_kcc || 0;
                 if (totalKCCSaturatedInput) totalKCCSaturatedInput.value = data.total_kcc_saturated || 0;
                 if (totalKCCNotSaturatedInput) totalKCCNotSaturatedInput.value = data.total_kcc_not_saturated || 0;
@@ -2366,26 +2392,29 @@
             }
             
             try {
-                const isAdminUser = isAdmin(); // Use the helper function here
-                const fromDate = $('filterFromDate')?.value;
-                const toDate = $('filterToDate')?.value;
+                const isAdminUser = isAdmin();
+                const fromDateYYYYMMDD = $('filterFromDate')?.value;
+                const toDateYYYYMMDD = $('filterToDate')?.value;
                 
                 let query = supabaseClient
                     .from('kcc_entries')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (!isAdminUser) { // Filter by district only for non-admin roles
+                if (!isAdminUser) {
                     query = query.eq('district_id', currentUser.districtId);
                 } else {
                     query = query.eq('is_current', true);
                 }
 
-                if (fromDate) {
-                    query = query.gte('entry_date', fromDate);
+                // Convert filter dates to M/D/YYYY for the query
+                if (fromDateYYYYMMDD) {
+                    const fromDateMDYYYY = formatDateToMDYYYY(fromDateYYYYMMDD);
+                    query = query.gte('entry_date', fromDateMDYYYY); // <--- Use M/D/YYYY here
                 }
-                if (toDate) {
-                    query = query.lte('entry_date', toDate);
+                if (toDateYYYYMMDD) {
+                    const toDateMDYYYY = formatDateToMDYYYY(toDateYYYYMMDD);
+                    query = query.lte('entry_date', toDateMDYYYY); // <--- Use M/D/YYYY here
                 }
 
                 const { data, error } = await query;
@@ -2419,7 +2448,7 @@
 
                 const worksheetData = processedData.map(record => ({
                     'DISTRICT': record.district_name || '-',
-                    'DATE': formatDateToDDMMYYYY(record.entry_date),
+                    'DATE': record.entry_date, // Display as stored in DB (M/D/YYYY)
                     'ACTIVE_KCC': record.total_active_kcc || 0,
                     'SATURATED_KCC': record.total_kcc_saturated || 0,
                     'NOT_SATURATED_KCC': record.total_kcc_not_saturated || 0,
@@ -2461,7 +2490,7 @@
                 const reportDateTime = new Date().toLocaleString();
                 const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
                 const districtInfo = isAdminUser ? 'ALL DISTRICTS' : currentUser.districtName;
-                const dateRangeText = (fromDate || toDate) ? `${formatDateToDDMMYYYY(fromDate || 'ALL')} TO ${formatDateToDDMMYYYY(toDate || 'ALL')}` : 'ALL DATES';
+                const dateRangeText = (fromDateYYYYMMDD || toDateYYYYMMDD) ? `${formatDateToDDMMYYYY(fromDateYYYYMMDD || 'ALL')} TO ${formatDateToDDMMYYYY(toDateYYYYMMDD || 'ALL')}` : 'ALL DATES';
                 
                 const headerInfo = [
                     ['Directorate Agriculture Chhattisgarh'],
@@ -2533,26 +2562,29 @@
             }
 
             try {
-                const isAdminUser = isAdmin(); // Use the helper function here
-                const fromDate = $('filterFromDate')?.value;
-                const toDate = $('filterToDate')?.value;
+                const isAdminUser = isAdmin();
+                const fromDateYYYYMMDD = $('filterFromDate')?.value;
+                const toDateYYYYMMDD = $('filterToDate')?.value;
                 
                 let query = supabaseClient
                     .from('kcc_entries')
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (!isAdminUser) { // Filter by district only for non-admin roles
+                if (!isAdminUser) {
                     query = query.eq('district_id', currentUser.districtId);
                 } else {
                     query = query.eq('is_current', true);
                 }
 
-                if (fromDate) {
-                    query = query.gte('entry_date', fromDate);
+                // Convert filter dates to M/D/YYYY for the query
+                if (fromDateYYYYMMDD) {
+                    const fromDateMDYYYY = formatDateToMDYYYY(fromDateYYYYMMDD);
+                    query = query.gte('entry_date', fromDateMDYYYY); // <--- Use M/D/YYYY here
                 }
-                if (toDate) {
-                    query = query.lte('entry_date', toDate);
+                if (toDateYYYYMMDD) {
+                    const toDateMDYYYY = formatDateToMDYYYY(toDateYYYYMMDD);
+                    query = query.lte('entry_date', toDateMDYYYY); // <--- Use M/D/YYYY here
                 }
 
                 const { data, error } = await query;
@@ -2602,7 +2634,7 @@
                     doc.text(`District: ${districtHeader}`, 20, 38); 
                 }
                 
-                const dateRangeText = (fromDate || toDate) ? `${formatDateToDDMMYYYY(fromDate || 'START')} to ${formatDateToDDMMYYYY(toDate || 'END')}` : 'All Dates';
+                const dateRangeText = (fromDateYYYYMMDD || toDateYYYYMMDD) ? `${formatDateToDDMMYYYY(fromDateYYYYMMDD || 'START')} to ${formatDateToDDMMYYYY(toDateYYYYMMDD || 'END')}` : 'All Dates';
                 doc.text(`Report Date: ${dateRangeText}`, 20, 45);
                 doc.text(`Generated On: ${new Date().toLocaleString()}`, 20, 52);
 
@@ -2648,7 +2680,7 @@
                         ];
                     } else {
                         rowData = [
-                            formatDateToDDMMYYYY(record.entry_date),
+                            record.entry_date, // Display as stored in DB (M/D/YYYY)
                             record.district_name || '-',
                             (record.total_active_kcc || 0).toString(),
                             (record.total_kcc_saturated || 0).toString(),
@@ -2782,18 +2814,18 @@
             
             if (!fromDateInput || !toDateInput) return;
 
-            const fromDate = fromDateInput.value;
-            const toDate = toDateInput.value;
+            const fromDateYYYYMMDD = fromDateInput.value;
+            const toDateYYYYMMDD = toDateInput.value;
 
-            if (fromDate && toDate && fromDate > toDate) {
+            if (fromDateYYYYMMDD && toDateYYYYMMDD && fromDateYYYYMMDD > toDateYYYYMMDD) {
                 toast('FROM DATE cannot be later than TO DATE', 'warning');
                 return;
             }
             
-            currentFilters.fromDate = fromDate;
-            currentFilters.toDate = toDate;
+            currentFilters.fromDate = fromDateYYYYMMDD;
+            currentFilters.toDate = toDateYYYYMMDD;
             currentPage = 1;
-            loadRecordsTable(fromDate, toDate, currentPage);
+            loadRecordsTable(fromDateYYYYMMDD, toDateYYYYMMDD, currentPage);
             toast('Filter applied.', 'success', 1500);
         }
 
@@ -2854,7 +2886,7 @@
 
         // Test function for debugging
         window.testApp = function() {
-            console.log('=== TESTING FULL APP WITH ACTUAL ROLES ===');
+            console.log('=== TESTING FULL APP WITH ACTUAL ROLES AND DATE FIX ===');
             
             const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
             console.log('Stored user:', storedUser ? 'Found' : 'Not found');
@@ -2885,10 +2917,10 @@
             return 'Full app test complete - check console for results';
         };
 
-        console.log('📜 COMPLETE KCC Portal with ACTUAL ROLES loaded successfully!');
+        console.log('📜 COMPLETE KCC Portal with ACTUAL ROLES and DATE FIX loaded successfully!');
         console.log('💡 Type testApp() in console to check full app status and role logic');
         console.log('🎯 Features enabled based on roles: user, admin, division_admin, manager, super_admin');
+        console.log('✅ Date format mismatch for kcc_entries table should now be resolved!');
     </script>
 </body>
 </html>
-                                    
