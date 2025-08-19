@@ -867,6 +867,7 @@
               <table class="table table-bordered table-modern">
                 <thead>
                   <tr>
+                    <th>S.No.</th>
                     <th>District</th>
                     <th>Entry Status</th>
                     <th>TOTAL KCC</th>
@@ -875,7 +876,7 @@
                   </tr>
                 </thead>
                 <tbody id="districtStatusTableBody">
-                  <tr><td colspan="5" class="text-center">SELECT A DATE TO VIEW STATUS</td></tr>
+                  <tr><td colspan="6" class="text-center">SELECT A DATE TO VIEW STATUS</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2046,7 +2047,7 @@
 
             const { data: submittedEntries, error: entriesError } = await supabase
                 .from('kcc_entries')
-                .select('district_id, district_name, total_active_kcc, total_kcc_saturated')
+                .select('district_id, total_active_kcc, total_kcc_saturated')
                 .eq('entry_date', statusDate)
                 .eq('is_current', true);
             if (entriesError) {
@@ -2069,14 +2070,15 @@
             
             doc.setFontSize(12);
             doc.text('Daily KCC Saturation Report Under PMFBY Kharif 2025', doc.internal.pageSize.width / 2, 28, { align: 'center' });
+            doc.setFont(undefined, 'normal'); // Reset font to normal for date
             doc.text(`Date: ${formatDateToDDMMYYYY($('statusDate').value)}`, doc.internal.pageSize.width / 2, 35, { align: 'center' });
             
             // --- PDF TABLE ---
-            const headers = [['S.No.', 'District', 'Entry Status', 'TOTAL KCC', 'SATURATED KCC', '% SATURATION']];
+            const headers = [['S.No.', 'District', 'Entry Status', 'Total KCC', 'Saturated KCC', '% Saturation']];
             const body = [];
             allDistricts.forEach((district, index) => {
                 const entry = submittedMap.get(district.id);
-                const statusText = entry ? 'SUBMITTED' : 'NOT SUBMITTED';
+                const statusText = entry ? 'Submitted' : 'Not Submitted';
                 const totalKcc = entry ? (entry.total_active_kcc || 0) : 0;
                 const saturatedKcc = entry ? (entry.total_kcc_saturated || 0) : 0;
                 const saturationPercentage = calculatePercentage(saturatedKcc, totalKcc);
