@@ -708,9 +708,112 @@
                                 <div class="col-md-12">
                                     <label class="form-label hindi">CHANGE REASON *</label>
                                     <input type="text" id="change_reason" class="form-control" placeholder="REASON FOR THIS UPDATE">
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 mt-4">
+                                <button type="button" id="btnClear" class="btn btn-outline-modern btn-modern">
+                                    <i class="fas fa-eraser me-2"></i>CLEAR FORM
+                                </button>
+                                <button type="button" id="btnSave" class="btn btn-success-modern btn-modern">
+                                    <i class="fas fa-save me-2"></i>SUBMIT
+                                </button>
+                                <button type="button" id="btnUpdate" class="btn btn-warning-modern btn-modern" style="display:none;">
+                                    <i class="fas fa-edit me-2"></i>UPDATE EXISTING DATA
+                                </button>
+                                <button type="button" id="btnViewRecords" class="btn btn-primary-modern btn-modern">
+                                    <i class="fas fa-table me-2"></i>VIEW DATA 
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Summary Panel -->
+            <div class="col-lg-4">
+                <div class="summary-panel">
+                    <h6 class="hindi">CURRENT SUMMARY</h6>
+                    <div id="currentTotals" class="summary-content">READY TO ENTER DATA</div>
+                    
+                    <hr style="border-color: var(--warning-border);">
+                    
+                    <h6 class="hindi">STATUS</h6>
+                    <div id="status" class="summary-content">READY</div>
+                    
+                    <hr style="border-color: var(--warning-border);">
+                    
+                    <h6 class="hindi">RECENT ENTRIES</h6>
+                    <div id="recentEntries" class="summary-content">NO RECENT ENTRIES</div>
+                    
+                    <div class="mt-3">
+                        <button id="btnRefresh" class="btn btn-outline-modern btn-modern w-100">
+                            <i class="fas fa-refresh me-2"></i>REFRESH DATA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Records Viewer Modal -->
+    <div class="modal fade" id="viewerModal" tabindex="-1" aria-labelledby="viewerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="viewerModalLabel">
+                        District KCC Saturataion Table - <span id="districtNameInViewer"></span>
+                    </h5>
+                    <!-- NEW: Fullscreen button instead of close -->
+                    <button type="button" class="btn-fullscreen" id="btnFullscreen" title="Fullscreen">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Date Range Filter -->
+                    <div class="date-filter-panel">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label hindi">FROM DATE</label>
+                                <input type="date" id="filterFromDate" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label hindi">TO DATE</label>
+                                <input type="date" id="filterToDate" class="form-control">
+                            </div>
+                            <div class="col-md-3">
+                                <button id="btnApplyFilter" class="btn btn-primary-modern btn-modern w-100">
+                                    <i class="fas fa-filter me-2"></i>APPLY FILTER
+                                </button>
+                            </div>
+                            <div class="col-md-3">
+                                <button id="btnClearFilter" class="btn btn-outline-modern btn-modern w-100">
+                                    <i class="fas fa-times me-2"></i>CLEAR FILTER
                                 </button>
                             </div>
                         </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover table-modern">
+                            <thead>
+                                <tr>
+                                    <th>DATE</th>
+                                    <th>DISTRICT</th>
+                                    <th>ACTIVE KCC</th>
+                                    <th>SATURATED</th>
+                                    <th>NOT SATURATED</th>
+                                    <th>REASON TYPE</th>
+                                    <th>DETAILS</th>
+                                    <th>CURRENT</th>
+                                    <th>VERSION</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsTableBody">
+                                <tr><td colspan="10" class="text-center">LOADING...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
 
                     <!-- Pagination Controls -->
@@ -761,18 +864,16 @@
                 </button>
             </div>
             <div class="table-responsive">
-              <table class="table table-bordered table-modern">
+              <table class="table table-striped table-hover table-modern">
                 <thead>
                   <tr>
-                    <th>District</th>
-                    <th>Entry Status</th>
-                    <th>TOTAL KCC</th>
-                    <th>SATURATED KCC</th>
-                    <th>% SATURATION</th>
+                    <th>DISTRICT</th>
+                    <th>STATUS</th>
+                    <th>REMARKS</th>
                   </tr>
                 </thead>
                 <tbody id="districtStatusTableBody">
-                  <tr><td colspan="5" class="text-center">SELECT A DATE TO VIEW STATUS</td></tr>
+                  <tr><td colspan="3" class="text-center">SELECT A DATE TO VIEW STATUS</td></tr>
                 </tbody>
               </table>
             </div>
@@ -2095,84 +2196,307 @@
 
         // FIXED: Export data to PDF file (for user and admin, with specific formatting)
         async function exportToPDF(){
+            if (!currentUser || !supabase) {
+                toast('System not ready for PDF export.', 'warning');
+                return;
+            }
+
+            try {
+                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
+                const fromDate = $('filterFromDate')?.value;
+                const toDate = $('filterToDate')?.value;
+                
+                let query = supabase
+                    .from('kcc_entries')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                // Filter by district for regular users, no filter for admin
+                if (!isAdmin) {
+                    query = query.eq('district_id', currentUser.districtId);
+                } else {
+                    // NEW: Admin PDF export - only latest record per district
+                    query = query.eq('is_current', true); // Ensure only current records are considered
+                }
+
+                // Apply date filters
+                if (fromDate) {
+                    query = query.gte('entry_date', fromDate);
+                }
+                if (toDate) {
+                    query = query.lte('entry_date', toDate);
+                }
+
+                const { data, error } = await query;
+
+                if (!data || !data.length || error) {
+                    toast('No data to export for the selected filters.', 'warning');
+                    return;
+                }
+
+                let processedData = data;
+
+                // If admin, filter to only the latest record per district and sort alphabetically
+                if (isAdmin) {
+                    const latestRecordsMap = new Map();
+                    data.forEach(record => {
+                        if (!latestRecordsMap.has(record.district_id) || new Date(record.created_at) > new Date(latestRecordsMap.get(record.district_id).created_at)) {
+                            latestRecordsMap.set(record.district_id, record);
+                        }
+                    });
+                    processedData = Array.from(latestRecordsMap.values());
+                    processedData.sort((a, b) => (a.district_name || '').localeCompare(b.district_name || ''));
+                }
+                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('landscape', 'mm', 'a4');
+                
+                // Set font to Poppins and ensure black color
+                doc.setFont('Poppins', 'normal');
+                doc.setTextColor(0, 0, 0);
+
+                // --- PDF HEADER ---
+                doc.setFontSize(16);
+                doc.text('Daily KCC Saturation Report Under PMFBY Kharif 2025', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+                
+                doc.setFontSize(10);
+                doc.text(`Generated On: ${new Date().toLocaleString()}`, doc.internal.pageSize.width / 2, 28, { align: 'center' });
+
+                // --- PDF TABLE ---
+                let headers;
+                let body;
+                
+                if (isAdmin) {
+                    headers = [['DISTRICT', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 'REASON TYPE', 'DETAILS']];
+                    body = processedData.map(record => [
+                        record.district_name || '-',
+                        (record.total_active_kcc || 0).toString(),
+                        (record.total_kcc_saturated || 0).toString(),
+                        (record.total_kcc_not_saturated || 0).toString(),
+                        record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-',
+                        buildReasonDetails(record)
+                    ]);
+                } else {
+                    headers = [['DATE', 'DISTRICT', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 'REASON TYPE', 'DETAILS', 'CURRENT', 'VER']];
+                    body = processedData.map(record => [
+                        formatDateToDDMMYYYY(record.entry_date),
+                        record.district_name || '-',
+                        (record.total_active_kcc || 0).toString(),
+                        (record.total_kcc_saturated || 0).toString(),
+                        (record.total_kcc_not_saturated || 0).toString(),
+                        record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-',
+                        buildReasonDetails(record),
+                        record.is_current ? 'YES' : 'NO',
+                        (record.version_number || 1).toString()
+                    ]);
+                }
+
+                // Add totals row to the body
+                const totalActive = processedData.reduce((sum, r) => sum + (r.total_active_kcc || 0), 0);
+                const totalSaturated = processedData.reduce((sum, r) => sum + (r.total_kcc_saturated || 0), 0);
+                const totalNotSaturated = processedData.reduce((sum, r) => sum + (r.total_kcc_not_saturated || 0), 0);
+                
+                let totalsRow;
+                if (isAdmin) {
+                    totalsRow = ['TOTAL', totalActive.toString(), totalSaturated.toString(), totalNotSaturated.toString(), '', ''];
+                } else {
+                    totalsRow = ['TOTAL', '', totalActive.toString(), totalSaturated.toString(), totalNotSaturated.toString(), '', '', '', ''];
+                }
+                body.push(totalsRow);
+
+                doc.autoTable({
+                    head: headers,
+                    body: body,
+                    startY: 40,
+                    theme: 'plain',
+                    styles: {
+                        font: 'Poppins',
+                        halign: 'center',
+                        valign: 'middle',
+                        fontSize: 8,
+                        cellPadding: 2,
+                        lineColor: 0,
+                        lineWidth: 0.1,
+                        textColor: 0
+                    },
+                    headStyles: {
+                        fillColor: '#fff', // White background
+                        fontStyle: 'bold'
+                    },
+                    bodyStyles: { fillColor: '#fff', textColor: '#000', lineWidth: 0.1, lineColor: '#000' },
+                    columnStyles: {
+                        0: { cellWidth: 'auto', fontStyle: 'bold' }, // Auto-fit width for District column
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 'auto' },
+                        3: { cellWidth: 'auto' },
+                        4: { cellWidth: 'auto' },
+                        5: { cellWidth: 'auto' },
+                        6: { cellWidth: 'auto' },
+                        7: { cellWidth: 'auto' },
+                        8: { cellWidth: 'auto' },
+                    },
+                    margin: { left: 10, right: 10 }
+                });
+
+                // Generate a unique filename with timestamp
+                const now = new Date();
+                const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
+                const fileName = `KCC_REPORT_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.pdf`;
+                doc.save(fileName);
+                
+                toast('PDF file downloaded successfully!', 'success');
+            } catch (err) {
+                console.error('PDF EXPORT ERROR:', err);
+                toast('PDF export failed: ' + err.message, 'danger');
+            }
+        }
+
+        // Apply date range filter to records table
+        function applyDateFilter() {
+            const fromDateInput = $('filterFromDate');
+            const toDateInput = $('filterToDate');
+            
+            if (!fromDateInput || !toDateInput) return;
+
+            const fromDate = fromDateInput.value;
+            const toDate = toDateInput.value;
+
+            if (fromDate && toDate && fromDate > toDate) {
+                toast('FROM DATE cannot be later than TO DATE', 'warning');
+                return;
+            }
+            
+            currentFilters.fromDate = fromDate; // Store current filters
+            currentFilters.toDate = toDate;
+            currentPage = 1; // Reset to first page
+            loadRecordsTable(fromDate, toDate, currentPage); // Reload table with filters
+            toast('Filter applied.', 'success', 1500);
+        }
+
+        // Clear date range filter and reload table
+        function clearDateFilter() {
+            const fromDateInput = $('filterFromDate');
+            const toDateInput = $('filterToDate');
+
+            if (fromDateInput) fromDateInput.value = '';
+            if (toDateInput) toDateInput.value = '';
+            
+            currentFilters.fromDate = null; // Clear stored filters
+            currentFilters.toDate = null;
+            currentPage = 1; // Reset to first page
+            loadRecordsTable(null, null, currentPage); // Reload table without filters
+            toast('Filter cleared.', 'info', 1500);
+        }
+
+        // Navigate to a specific page in the records table
+        function goToPage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page; // Update current page state
+                loadRecordsTable(currentFilters.fromDate, currentFilters.toDate, currentPage); // Reload table for new page
+            }
+        }
+
+        // Navigate to the previous page
+        function previousPage() {
+            if (currentPage > 1) {
+                goToPage(currentPage - 1);
+            }
+        }
+
+        // Navigate to the next page
+        function nextPage() {
+            if (currentPage < totalPages) {
+                goToPage(currentPage + 1);
+            }
+        }
+
+        // NEW FUNCTION: Show district data entry status for a selected date
+        async function showDistrictStatus() {
             const statusDate = $('statusDate').value;
             if (!statusDate) {
-                toast('Please select a date first.', 'warning');
+                toast('Please select a date.', 'warning');
                 return;
             }
 
-            // Fetch a fresh list of all districts and their entries for the selected date
-            const { data: allDistricts, error: districtsError } = await supabase
-                .from('districts')
-                .select('id, name')
-                .order('name');
-            if (districtsError) {
-                toast('Failed to fetch district data for PDF.', 'danger');
-                return;
-            }
+            const tbody = $('districtStatusTableBody');
+            const downloadBtn = $('btnDownloadStatusPDF');
+            if (!tbody || !downloadBtn) return;
 
-            const { data: submittedEntries, error: entriesError } = await supabase
-                .from('kcc_entries')
-                .select('district_id, district_name, total_active_kcc, total_kcc_saturated')
-                .eq('entry_date', statusDate)
-                .eq('is_current', true);
-            if (entriesError) {
-                toast('Failed to fetch entry data for PDF.', 'danger');
-                return;
-            }
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading...</td></tr>';
+            downloadBtn.classList.add('hidden');
 
-            const submittedMap = new Map(submittedEntries.map(e => [e.district_id, e]));
-            
+            try {
+                // Fetch a distinct list of all districts
+                const { data: allDistricts, error: districtsError } = await supabase
+                    .from('districts')
+                    .select('id, name')
+                    .order('name');
+                if (districtsError) throw districtsError;
+
+                // Fetch all entries for the selected date
+                const { data: submittedEntries, error: entriesError } = await supabase
+                    .from('kcc_entries')
+                    .select('district_id, district_name')
+                    .eq('entry_date', statusDate)
+                    .eq('is_current', true);
+                if (entriesError) throw entriesError;
+
+                const submittedMap = new Map(submittedEntries.map(e => [e.district_id, e]));
+
+                let html = '';
+                allDistricts.forEach(district => {
+                    const status = submittedMap.has(district.id) ? 'SUBMITTED ✅' : 'NOT SUBMITTED ❌';
+                    const rowClass = submittedMap.has(district.id) ? 'table-success' : 'table-danger';
+                    const remarks = submittedMap.has(district.id) ? 'Data Entry Done' : 'No Entry Found';
+                    html += `<tr class="${rowClass}">
+                                <td>${district.name}</td>
+                                <td>${status}</td>
+                                <td>${remarks}</td>
+                            </tr>`;
+                });
+                tbody.innerHTML = html;
+                downloadBtn.classList.remove('hidden');
+
+            } catch (err) {
+                console.error('DISTRICT STATUS ERROR:', err);
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger">ERROR LOADING STATUS</td></tr>';
+                toast('Error loading district status.', 'danger');
+            }
+        }
+
+        // NEW FUNCTION: Download the district status report as a PDF
+        async function downloadStatusPDF() {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('portrait', 'mm', 'a4');
             
+            // Header
             doc.setFont('Poppins', 'normal');
             doc.setTextColor(0, 0, 0);
-            
-            // --- PDF HEADER ---
             doc.setFontSize(16);
-            doc.setFont(undefined, 'bold');
             doc.text('Directorate of Agriculture Chhattisgarh Raipur', doc.internal.pageSize.width / 2, 20, { align: 'center' });
             
             doc.setFontSize(12);
-            doc.text('Daily KCC Saturation Report Under PMFBY Kharif 2025', doc.internal.pageSize.width / 2, 28, { align: 'center' });
-            doc.text(`Date: ${formatDateToDDMMYYYY($('statusDate').value)}`, doc.internal.pageSize.width / 2, 35, { align: 'center' });
-            
-            // --- PDF TABLE ---
-            const headers = [['District', 'Entry Status', 'TOTAL KCC', 'SATURATED KCC', '% SATURATION']];
-            const body = [];
-            allDistricts.forEach(district => {
-                const entry = submittedMap.get(district.id);
-                const statusText = entry ? 'SUBMITTED' : 'NOT SUBMITTED';
-                const totalKcc = entry ? (entry.total_active_kcc || 0) : 0;
-                const saturatedKcc = entry ? (entry.total_kcc_saturated || 0) : 0;
-                const saturationPercentage = calculatePercentage(saturatedKcc, totalKcc);
-                
-                body.push([
-                    district.name,
-                    statusText,
-                    totalKcc,
-                    saturatedKcc,
-                    saturationPercentage,
-                ]);
+            const reportTitle = 'Daily KCC Saturation Report Under PMFBY Kharif 2025';
+            const dateText = `Date: ${formatDateToDDMMYYYY($('statusDate').value)}`;
+            doc.text(reportTitle, doc.internal.pageSize.width / 2, 28, { align: 'center' });
+            doc.setFont(undefined, 'bold');
+            doc.text(dateText, doc.internal.pageSize.width / 2, 35, { align: 'center' });
+
+            const table = $('districtStatusTableBody');
+            const tableData = [];
+            const headers = ['DISTRICT', 'STATUS', 'WHY'];
+
+            table.querySelectorAll('tr').forEach(row => {
+                const district = row.cells[0].textContent.trim();
+                const status = row.cells[1].textContent.trim();
+                const remarks = row.cells[2].textContent.trim();
+                const why = status === 'SUBMITTED ✅' ? '' : remarks;
+                tableData.push([district, status, why]);
             });
 
-            // Calculate totals for the report
-            const grandTotalActive = allDistricts.reduce((sum, d) => {
-                const entry = submittedMap.get(d.id);
-                return sum + (entry ? (entry.total_active_kcc || 0) : 0);
-            }, 0);
-            const grandTotalSaturated = allDistricts.reduce((sum, d) => {
-                const entry = submittedMap.get(d.id);
-                return sum + (entry ? (entry.total_kcc_saturated || 0) : 0);
-            }, 0);
-            const grandTotalSaturation = calculatePercentage(grandTotalSaturated, grandTotalActive);
-
-            body.push(['TOTAL', '', grandTotalActive, grandTotalSaturated, grandTotalSaturation]);
-
             doc.autoTable({
-                head: headers,
-                body: body,
+                head: [headers],
+                body: tableData,
                 startY: 45,
                 theme: 'plain',
                 styles: { 
@@ -2181,30 +2505,18 @@
                     cellPadding: 2, 
                     overflow: 'linebreak',
                     halign: 'center',
-                    valign: 'middle',
-                    lineWidth: 0.1,
-                    lineColor: '#000',
-                    textColor: '#000'
+                    valign: 'middle'
                 },
-                headStyles: { 
-                    fillColor: '#fff', 
-                    fontStyle: 'bold' 
-                },
+                headStyles: { fillColor: '#fff', textColor: '#000', fontStyle: 'bold', lineWidth: 0.1, lineColor: '#000' },
+                bodyStyles: { fillColor: '#fff', textColor: '#000', lineWidth: 0.1, lineColor: '#000' },
                 columnStyles: {
-                    0: { cellWidth: 'auto', halign: 'left' },
-                    1: { cellWidth: 'auto' },
-                    2: { cellWidth: 'auto' },
-                    3: { cellWidth: 'auto' },
-                    4: { cellWidth: 'auto' }
-                },
-                margin: { top: 40, left: 10, right: 10 }
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 'auto', halign: 'center' },
+                    2: { cellWidth: 'auto' }
+                }
             });
 
-            const now = new Date();
-            const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-            const fileName = `District_Status_Report_${$('statusDate').value}_${timestamp}.pdf`;
-            doc.save(fileName);
-            
+            doc.save(`District_Status_Report_${$('statusDate').value}.pdf`);
             toast('PDF report downloaded!', 'success');
         }
 
