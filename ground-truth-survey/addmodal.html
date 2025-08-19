@@ -1583,176 +1583,6 @@
             updateNotSaturated(); // Recalculate and update reasons field state
         }
 
-        // Save a new KCC entry
-        async function saveEntry(){
-            console.log('SAVE button clicked.');
-            
-            if (!await validateForm()) return; // Run validation
-            if (!currentUser || !supabase) {
-                toast('System not ready. Please refresh page.', 'danger');
-                return;
-            }
-
-            const payload = {
-                district_id: currentUser.districtId,
-                district_name: currentUser.districtName,
-                entry_date: $('entry_date').value,
-                total_active_kcc: parseInt($('total_active_kcc').value) || 0,
-                total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
-                total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-                non_saturation_reason: $('non_saturation_reason').value || null, // New field
-                opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0, // New field
-                other_reason_text: $('other_reason_text').value.trim() || null, // New field
-                reasons_not_saturated: buildLegacyReasonsText(), // Legacy field populated from new fields
-                created_by: currentUser.id,
-                is_current: true,
-                version_number: 1
-            };
-
-            console.log('Payload:', payload);
-
-            const btnSave = $('btnSave');
-            const statusElement = $('status');
-            if (btnSave) btnSave.disabled = true;
-            if (statusElement) statusElement.textContent = 'SAVING...';
-
-            try {
-                // Mark previous entries for the same district and date as non-current
-                const { error: updateError } = await supabase
-                    .from('kcc_entries')
-                    .update({ is_current: false })
-                    .match({ 
-                        district_id: payload.district_id, 
-                        entry_date: payload.entry_date, 
-                        is_current: true 
-                    });
-
-                if (updateError) {
-                    console.error('Error marking previous entry as non-current:', updateError);
-                    // Don't throw, continue to insert new, but log it.
-                }
-
-                // Insert the new entry
-                const { data, error: insertError } = await supabase
-                    .from('kcc_entries')
-                    .insert([payload])
-                    .select(); // Select the inserted data to confirm
-
-                if (insertError) {
-                    console.error('SAVE ERROR:', insertError);
-                    toast('SAVE FAILED: ' + insertError.message, 'danger');
-                    if (statusElement) statusElement.textContent = 'SAVE FAILED';
-                } else {
-                    console.log('Save successful:', data);
-                    toast('ENTRY SAVED SUCCESSFULLY!', 'success');
-                    if (statusElement) statusElement.textContent = 'ENTRY SAVED';
-                    clearForm(); // Clear the form after successful save
-                    await loadDashboardData(); // Reload dashboard summary
-                    if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
-                        await loadStateAdminData(); // Reload state admin summary if applicable
-                    }
-                }
-            } catch (err) {
-                console.error('SAVE ERROR (catch block):', err);
-                toast('SAVE FAILED unexpectedly.', 'danger');
-                if (statusElement) statusElement.textContent = 'SAVE FAILED';
-            } finally {
-                if (btnSave) btnSave.disabled = false; // Re-enable save button
-            }
-        }
-
-        // Update an existing KCC entry (using RPC for versioning)
-        async function updateEntry(){
-            if (!loadedCurrentRecord) {
-                toast('No record to update. Save a new entry first.', 'warning');
-                return;
-            }
-            
-            if (!await validateForm()) return; // Run validation
-
-            const changeReasonInput = $('change_reason');
-            const changeReason = changeReasonInput.value.trim();
-            if (!changeReason) {
-                toast('CHANGE REASON is required when updating', 'warning');
-                return;
-            }
-
-            // Parameters for the upsert_kcc_entry RPC function (assumes this function exists in Supabase)
-            const params = {
-                p_predecessor_id: loadedCurrentRecord.id,
-                p_district_id: currentUser.districtId,
-                p_district_name: currentUser.districtName,
-                p_entry_date: $('entry_date').value,
-                p_total_active_kcc: parseInt($('total_active_kcc').value) || 0,
-                p_total_kcc_saturated: parseInt($('total_kcc_saturated').value) || 0,
-                p_total_kcc_not_saturated: parseInt($('total_kcc_not_saturated').value) || 0,
-                p_created_by: currentUser.id,
-                p_change_reason: changeReason,
-                p_non_saturation_reason: $('non_saturation_reason').value || null,
-                p_opt_out_holders_count: parseInt($('opt_out_holders_count').value) || 0,
-                p_other_reason_text: $('other_reason_text').value.trim() || null,
-                p_reasons_not_saturated: buildLegacyReasonsText()
-            };
-
-            const btnUpdate = $('btnUpdate');
-            const statusElement = $('status');
-            if (btnUpdate) btnUpdate.disabled = true;
-            if (statusElement) statusElement.textContent = 'UPDATING...';
-
-            try {
-                const { data, error } = await supabase.rpc('upsert_kcc_entry', params);
-                
-                if (error) {
-                    console.error('UPDATE ERROR:', error);
-                    toast('UPDATE FAILED: ' + error.message, 'danger');
-                    if (statusElement) statusElement.textContent = 'UPDATE FAILED';
-                } else {
-                    console.log('Update successful:', data);
-                    toast('ENTRY UPDATED SUCCESSFULLY (previous version preserved)!', 'success');
-                    if (statusElement) statusElement.textContent = 'ENTRY UPDATED';
-                    if (changeReasonInput) changeReasonInput.value = ''; // Clear change reason field
-                    clearForm(); // Clear form and reset state
-                    await loadDashboardData(); // Reload dashboard summary
-                    if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
-                        await loadStateAdminData(); // Reload state admin summary if applicable
-                    }
-                }
-            } catch (err) {
-                console.error('UPDATE ERROR (catch block):', err);
-                toast('UPDATE FAILED unexpectedly.', 'danger');
-                if (statusElement) statusElement.textContent = 'UPDATE FAILED';
-            } finally {
-                if (btnUpdate) btnUpdate.disabled = false; // Re-enable update button
-            }
-        }
-
-        // Clear the form fields and reset state
-        function clearForm(){
-            const entryDateElement = $('entry_date');
-            const totalActiveKCCInput = $('total_active_kcc');
-            const totalKCCSaturatedInput = $('total_kcc_saturated');
-            const totalKCCNotSaturatedInput = $('total_kcc_not_saturated');
-            const nonSaturationReasonSelect = $('non_saturation_reason');
-            const changeReasonInput = $('change_reason');
-            const changeReasonRow = $('changeReasonRow');
-            const btnUpdate = $('btnUpdate');
-
-            if (entryDateElement) entryDateElement.value = new Date().toISOString().slice(0,10);
-            if (totalActiveKCCInput) totalActiveKCCInput.value = '';
-            if (totalKCCSaturatedInput) totalKCCSaturatedInput.value = '';
-            if (totalKCCNotSaturatedInput) totalKCCNotSaturatedInput.value = '';
-            if (nonSaturationReasonSelect) nonSaturationReasonSelect.value = '';
-            if (changeReasonInput) changeReasonInput.value = '';
-            
-            // Hide and clear update-specific elements
-            if (changeReasonRow) changeReasonRow.style.display = 'none';
-            if (btnUpdate) btnUpdate.style.display = 'none';
-            
-            loadedCurrentRecord = null; // Reset loaded record
-            hideConditionalFields(); // Hide and clear new conditional fields
-            updateNotSaturated(); // Recalculate and update reasons field state
-        }
-
         // Show the records viewer modal
         async function showRecords(){
             if (!currentUser || !supabase) {
@@ -2242,9 +2072,9 @@
             doc.text(`Date: ${formatDateToDDMMYYYY($('statusDate').value)}`, doc.internal.pageSize.width / 2, 35, { align: 'center' });
             
             // --- PDF TABLE ---
-            const headers = [['District', 'Entry Status', 'TOTAL KCC', 'SATURATED KCC', '% SATURATION']];
+            const headers = [['S.No.', 'District', 'Entry Status', 'TOTAL KCC', 'SATURATED KCC', '% SATURATION']];
             const body = [];
-            allDistricts.forEach(district => {
+            allDistricts.forEach((district, index) => {
                 const entry = submittedMap.get(district.id);
                 const statusText = entry ? 'SUBMITTED' : 'NOT SUBMITTED';
                 const totalKcc = entry ? (entry.total_active_kcc || 0) : 0;
@@ -2252,6 +2082,7 @@
                 const saturationPercentage = calculatePercentage(saturatedKcc, totalKcc);
                 
                 body.push([
+                    (index + 1).toString(),
                     district.name,
                     statusText,
                     totalKcc,
@@ -2271,7 +2102,7 @@
             }, 0);
             const grandTotalSaturation = calculatePercentage(grandTotalSaturated, grandTotalActive);
 
-            body.push(['TOTAL', '', grandTotalActive, grandTotalSaturated, grandTotalSaturation]);
+            body.push(['TOTAL', '', '', grandTotalActive, grandTotalSaturated, grandTotalSaturation]);
 
             doc.autoTable({
                 head: headers,
@@ -2294,11 +2125,12 @@
                     fontStyle: 'bold' 
                 },
                 columnStyles: {
-                    0: { cellWidth: 'auto', halign: 'left' },
-                    1: { cellWidth: 'auto' },
-                    2: { cellWidth: 'auto' },
-                    3: { cellWidth: 'auto' },
-                    4: { cellWidth: 'auto' }
+                    0: { cellWidth: 15 }, // S.No.
+                    1: { halign: 'left' }, // District
+                    2: { cellWidth: 30 }, // Entry Status
+                    3: { cellWidth: 30 }, // TOTAL KCC
+                    4: { cellWidth: 30 }, // SATURATED KCC
+                    5: { cellWidth: 30 }  // % SATURATION
                 },
                 margin: { top: 40, left: 10, right: 10 }
             });
