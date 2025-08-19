@@ -364,10 +364,6 @@
             padding: 0.75rem 0.5rem;
             vertical-align: middle;
         }
-
-        .table-modern tbody tr:hover {
-            background-color: var(--light-green);
-        }
         
         /* NEW: Styles for table status rows */
         .table-success td { background-color: var(--light-green) !important; color: var(--primary-green) !important; }
@@ -2324,9 +2320,10 @@
                         textColor: 0
                     },
                     headStyles: {
-                        fillColor: 255, // White background
+                        fillColor: '#fff', // White background
                         fontStyle: 'bold'
                     },
+                    bodyStyles: { fillColor: '#fff', textColor: '#000', lineWidth: 0.1, lineColor: '#000' },
                     columnStyles: {
                         0: { cellWidth: 'auto', fontStyle: 'bold' }, // Auto-fit width for District column
                         1: { cellWidth: 'auto' },
@@ -2476,26 +2473,32 @@
             doc.setFont('Poppins', 'normal');
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(16);
-            doc.text('Daily KCC Saturation Report Under PMFBY Kharif 2025', 105, 20, { align: 'center' });
+            doc.text('Directorate of Agriculture Chhattisgarh Raipur', doc.internal.pageSize.width / 2, 20, { align: 'center' });
+            
             doc.setFontSize(12);
-            doc.text(`Date: ${formatDateToDDMMYYYY($('statusDate').value)}`, 105, 28, { align: 'center' });
-            doc.text(`Generated On: ${new Date().toLocaleString()}`, 105, 35, { align: 'center' });
+            const reportTitle = 'Daily KCC Saturation Report Under PMFBY Kharif 2025';
+            const dateText = `Date: ${formatDateToDDMMYYYY($('statusDate').value)}`;
+            doc.text(reportTitle, doc.internal.pageSize.width / 2, 28, { align: 'center' });
+            doc.setFont(undefined, 'bold');
+            doc.text(dateText, doc.internal.pageSize.width / 2, 35, { align: 'center' });
 
             const table = $('districtStatusTableBody');
             const tableData = [];
-            const headers = ['DISTRICT', 'STATUS', 'REMARKS'];
+            const headers = ['DISTRICT', 'STATUS', 'WHY'];
 
             table.querySelectorAll('tr').forEach(row => {
-                const rowData = Array.from(row.querySelectorAll('td')).map(td => td.textContent.trim());
-                if (rowData.length === headers.length) {
-                    tableData.push(rowData);
-                }
+                const district = row.cells[0].textContent.trim();
+                const status = row.cells[1].textContent.trim();
+                const remarks = row.cells[2].textContent.trim();
+                const why = status === 'SUBMITTED ✅' ? '' : remarks;
+                tableData.push([district, status, why]);
             });
 
             doc.autoTable({
                 head: [headers],
                 body: tableData,
-                startY: 50,
+                startY: 45,
+                theme: 'plain',
                 styles: { 
                     font: 'Poppins', 
                     fontSize: 10, 
@@ -2507,9 +2510,9 @@
                 headStyles: { fillColor: '#fff', textColor: '#000', fontStyle: 'bold', lineWidth: 0.1, lineColor: '#000' },
                 bodyStyles: { fillColor: '#fff', textColor: '#000', lineWidth: 0.1, lineColor: '#000' },
                 columnStyles: {
-                    0: { cellWidth: 70 },
-                    1: { cellWidth: 60, halign: 'center' },
-                    2: { cellWidth: 60 }
+                    0: { cellWidth: 'auto' },
+                    1: { cellWidth: 'auto', halign: 'center' },
+                    2: { cellWidth: 'auto' }
                 }
             });
 
