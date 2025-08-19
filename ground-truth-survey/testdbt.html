@@ -594,10 +594,12 @@
                     </a>
                     <div class="user-info">
                         <span id="userInfo" class="hindi">Loading...</span>
+                        <!-- District Status Button - Added and controlled by JS -->
                         <button id="btnDistrictStatus" class="btn btn-header hindi" style="display: none;">
                             <i class="fas fa-chart-line me-1"></i>
                             DISTRICT STATUS
                         </button>
+                        <!-- State Admin Button - Added and controlled by JS -->
                         <button id="btnStateAdmin" class="btn btn-header hindi" style="display: none;">
                             <i class="fas fa-user-shield me-1"></i>
                             STATE ADMIN
@@ -932,10 +934,10 @@
 
         // CONFIG
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImexccCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
         // Global variables
-        let supabaseClient = null;
+        let supabaseClient = null; // Renamed from 'supabase' for clarity with global window.supabase
         let currentUser = null;
         let loadedCurrentRecord = null;
         let previousActiveKCC = 0;
@@ -961,17 +963,16 @@
         // Initialize Supabase
         function initializeSupabase() {
             try {
-                if (typeof supabase !== 'undefined' && supabase.createClient) {
-                    const { createClient } = supabase;
-                    supabaseClient = createClient(supabaseUrl, supabaseKey);
+                if (typeof window.supabase !== 'undefined' && window.supabase.createClient) {
+                    supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey); // Use supabaseClient
                     console.log('✓ Supabase client initialized successfully');
                     return true;
                 } else {
-                    console.error('✗ Supabase library not loaded');
-                    return false;
+                    throw new Error('Supabase library not loaded correctly.');
                 }
             } catch (error) {
                 console.error('✗ Failed to initialize Supabase:', error);
+                toast('Database connection failed. Please try again.', 'danger');
                 return false;
             }
         }
@@ -1012,10 +1013,10 @@
         }
 
         // Date formatting utility for displaying YYYY-MM-DD as DD-MM-YYYY
-        function formatDateToDDMMYYYY(dateStringYYYYMMDD) {
-            if (!dateStringYYYYMMDD) return '-';
+        function formatDateToDDMMYYYY(dateString) {
+            if (!dateString) return '-';
             // Ensure input is YYYY-MM-DD for consistent parsing
-            const date = new Date(dateStringYYYYMMDD);
+            const date = new Date(dateString);
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
             const year = date.getFullYear();
@@ -1035,7 +1036,7 @@
         async function fetchAllDistricts() {
             try {
                 console.log('🏢 Fetching districts from database...');
-                const { data: districts, error } = await supabaseClient
+                const { data: districts, error } = await supabaseClient // Use supabaseClient
                     .from('districts')
                     .select('id, name')
                     .order('name', { ascending: true });
@@ -1066,7 +1067,7 @@
                         fullName: parsedUser.full_name || parsedUser.username, // Use full_name if available
                         role: parsedUser.role ? parsedUser.role.trim() : 'user',
                         districtId: parsedUser.district_id, // Ensure district_id is correctly set
-                        districtName: parsedUser.districtName || 'STATE LEVEL' // Fallback for district name if not provided
+                        districtName: parsedUser.districts?.name || parsedUser.districtName || 'UNKNOWN DISTRICT' // Use nested district name if available, then fallback
                     };
                     console.log('✓ User loaded from session:', currentUser.fullName);
                     return true;
@@ -1198,7 +1199,7 @@
             // Show/hide admin-specific elements based on actual roles
             const adminSummary = $('adminSummary'); // Renamed from stateAdminSummary
             const stateAdminPanel = $('stateAdminPanel');
-            const btnDistrictStatus = $('btnDistrictStatus');
+            const btnDistrictStatus = $('btnDistrictStatus'); // The button that was missing
             const btnStateAdmin = $('btnStateAdmin');
 
             if (isAdmin()) { // Any admin role can see admin summary and access elevated panel
@@ -1228,7 +1229,7 @@
             }
 
             // District Status button (only visible for admin roles)
-            const btnDistrictStatus = $('btnDistrictStatus');
+            const btnDistrictStatus = $('btnDistrictStatus'); // The button that was missing
             if (btnDistrictStatus) {
                 btnDistrictStatus.addEventListener('click', showDistrictStatus);
                 console.log('✓ District Status listener attached.');
@@ -1325,7 +1326,7 @@
             if (btnStatusFullscreen) {
                 btnStatusFullscreen.addEventListener('click', function() {
                     const modalDialog = document.querySelector('#districtStatusModal .modal-dialog');
-                    const btn = $('btnStatusFullscreen'); // Use a different variable name to avoid conflict
+                    const btn = $('btnStatusFullscreen');
                     
                     if (!modalDialog || !btn) return;
                     
@@ -1346,7 +1347,7 @@
 
         // Show District Status Modal (only for admin roles)
         async function showDistrictStatus() {
-            if (!currentUser || !supabaseClient) {
+            if (!currentUser || !supabaseClient) { // Use supabaseClient
                 toast('System not ready. Please refresh.', 'danger');
                 return;
             }
@@ -1395,7 +1396,7 @@
 
             try {
                 // Fetch all entries for the selected date using M/D/YYYY
-                const { data: entries, error } = await supabaseClient
+                const { data: entries, error } = await supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('*')
                     .eq('entry_date', checkDateMDYYYY) // <--- Use M/D/YYYY here
@@ -1504,8 +1505,8 @@
             }
 
             const checkDateYYYYMMDD = statusCheckDateInput.value;
-            const checkDateMDYYYY = formatDateToMDYYYY(checkDateYYYYMMDD); // Convert for query if needed, but here we use table data
-            
+            // No need to convert to MDYYYY here, as we are just using the string for display/filename
+
             try {
                 const tbody = $('districtStatusTableBody');
                 if (!tbody || tbody.children.length === 0) {
@@ -1634,7 +1635,7 @@
 
         // Load and display dashboard summary data
         async function loadDashboardData() {
-            if (!currentUser || !supabaseClient) {
+            if (!currentUser || !supabaseClient) { // Use supabaseClient
                 console.warn('loadDashboardData: Prerequisites not met.');
                 return;
             }
@@ -1642,7 +1643,7 @@
             try {
                 console.log(`Loading dashboard data for ${isAdmin() ? 'all districts (admin)' : currentUser.districtName + ' (user)'}...`);
                 
-                let totalsQuery = supabaseClient
+                let totalsQuery = supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
                     .eq('is_current', true)
@@ -1688,7 +1689,7 @@
                 if (totalActiveKCCInput) totalActiveKCCInput.min = previousActiveKCC;
                 if (totalKCCSaturatedInput) totalKCCSaturatedInput.min = previousSaturatedKCC;
 
-                let recentEntriesQuery = supabaseClient
+                let recentEntriesQuery = supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('entry_date, total_active_kcc, district_name')
                     .eq('is_current', true)
@@ -1737,7 +1738,7 @@
 
             try {
                 // Attempt to fetch password from Supabase (optional, for dynamic password)
-                const { data: settings, error } = await supabaseClient
+                const { data: settings, error } = await supabaseClient // Use supabaseClient
                     .from('system_settings') // Assuming you have a 'system_settings' table
                     .select('value')
                     .eq('key', 'elevated_access_password') // Or 'state_admin_password'
@@ -1769,11 +1770,11 @@
 
         // Load and display administrative summary data (for admin roles)
         async function loadAdminSummaryData(){ // Renamed from loadStateAdminData
-            if (!supabaseClient) return;
+            if (!supabaseClient) return; // Use supabaseClient
             
             try {
                 // Fetch all current KCC entries (no district filter for admin roles)
-                const { data, error } = await supabaseClient
+                const { data, error } = await supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('*')
                     .eq('is_current', true);
@@ -2011,7 +2012,7 @@
             console.log('SAVE button clicked.');
             
             if (!await validateForm()) return;
-            if (!currentUser || !supabaseClient) {
+            if (!currentUser || !supabaseClient) { // Use supabaseClient
                 toast('System not ready. Please refresh page.', 'danger');
                 return;
             }
@@ -2044,7 +2045,7 @@
 
             try {
                 // Mark previous entries for the same district and date as non-current
-                const { error: updateError } = await supabaseClient
+                const { error: updateError } = await supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .update({ is_current: false })
                     .match({ 
@@ -2058,7 +2059,7 @@
                 }
 
                 // Insert the new entry
-                const { data, error: insertError } = await supabaseClient
+                const { data, error: insertError } = await supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .insert([payload])
                     .select();
@@ -2127,7 +2128,7 @@
             if (statusElement) statusElement.textContent = 'UPDATING...';
 
             try {
-                const { data, error } = await supabaseClient.rpc('upsert_kcc_entry', params);
+                const { data, error } = await supabaseClient.rpc('upsert_kcc_entry', params); // Use supabaseClient
                 
                 if (error) {
                     console.error('UPDATE ERROR:', error);
@@ -2155,7 +2156,7 @@
 
         // Show the records viewer modal
         async function showRecords(){
-            if (!currentUser || !supabaseClient) {
+            if (!currentUser || !supabaseClient) { // Use supabaseClient
                 console.warn('showRecords: Prerequisites not met.');
                 toast('System not ready. Please refresh.', 'danger');
                 return; 
@@ -2189,7 +2190,7 @@
 
         // Load records into the table within the viewer modal
         async function loadRecordsTable(fromDateYYYYMMDD = null, toDateYYYYMMDD = null, page = 1){
-            if (!currentUser || !supabaseClient) {
+            if (!currentUser || !supabaseClient) { // Use supabaseClient
                 console.warn('loadRecordsTable: Prerequisites not met.');
                 return;
             }
@@ -2200,7 +2201,7 @@
                 const isAdminUser = isAdmin();
                 const offset = (page - 1) * pageSize;
 
-                let query = supabaseClient
+                let query = supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('*', { count: 'exact' })
                     .order('created_at', { ascending: false })
@@ -2313,14 +2314,14 @@
 
         // Edit record function - Loads data into form, then hides modal
         window.editRecord = async function(recordId){
-            if (!supabaseClient || !currentUser) {
+            if (!supabaseClient || !currentUser) { // Use supabaseClient
                 toast('System not ready for editing.', 'danger');
                 return;
             }
             
             try {
                 console.log('Attempting to edit record with ID:', recordId);
-                const { data, error } = await supabaseClient
+                const { data, error } = await supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('*')
                     .eq('id', recordId)
@@ -2350,6 +2351,7 @@
                 const btnUpdate = $('btnUpdate');
 
                 // When loading for edit, convert DB format (M/D/YYYY) to HTML input format (YYYY-MM-DD)
+                // This assumes entry_date in DB is M/D/YYYY and needs parsing for Date object.
                 const entryDateForInput = new Date(data.entry_date).toISOString().slice(0,10); 
                 if (entryDateElement) entryDateElement.value = entryDateForInput;
                 
@@ -2386,7 +2388,7 @@
 
         // Export data to Excel file
         async function exportToExcel(){
-            if (!currentUser || !supabaseClient) {
+            if (!currentUser || !supabaseClient) { // Use supabaseClient
                 toast('System not ready for export.', 'warning');
                 return; 
             }
@@ -2396,7 +2398,7 @@
                 const fromDateYYYYMMDD = $('filterFromDate')?.value;
                 const toDateYYYYMMDD = $('filterToDate')?.value;
                 
-                let query = supabaseClient
+                let query = supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -2410,11 +2412,11 @@
                 // Convert filter dates to M/D/YYYY for the query
                 if (fromDateYYYYMMDD) {
                     const fromDateMDYYYY = formatDateToMDYYYY(fromDateYYYYMMDD);
-                    query = query.gte('entry_date', fromDateMDYYYY); // <--- Use M/D/YYYY here
+                    query = query.gte('entry_date', fromDateMDYYYY);
                 }
                 if (toDateYYYYMMDD) {
                     const toDateMDYYYY = formatDateToMDYYYY(toDateYYYYMMDD);
-                    query = query.lte('entry_date', toDateMDYYYY); // <--- Use M/D/YYYY here
+                    query = query.lte('entry_date', toDateMDYYYY);
                 }
 
                 const { data, error } = await query;
@@ -2556,7 +2558,7 @@
 
         // Export data to PDF file
         async function exportToPDF(){
-            if (!currentUser || !supabaseClient) {
+            if (!currentUser || !supabaseClient) { // Use supabaseClient
                 toast('System not ready for PDF export.', 'warning');
                 return;
             }
@@ -2566,7 +2568,7 @@
                 const fromDateYYYYMMDD = $('filterFromDate')?.value;
                 const toDateYYYYMMDD = $('filterToDate')?.value;
                 
-                let query = supabaseClient
+                let query = supabaseClient // Use supabaseClient
                     .from('kcc_entries')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -2580,11 +2582,11 @@
                 // Convert filter dates to M/D/YYYY for the query
                 if (fromDateYYYYMMDD) {
                     const fromDateMDYYYY = formatDateToMDYYYY(fromDateYYYYMMDD);
-                    query = query.gte('entry_date', fromDateMDYYYY); // <--- Use M/D/YYYY here
+                    query = query.gte('entry_date', fromDateMDYYYY);
                 }
                 if (toDateYYYYMMDD) {
                     const toDateMDYYYY = formatDateToMDYYYY(toDateYYYYMMDD);
-                    query = query.lte('entry_date', toDateMDYYYY); // <--- Use M/D/YYYY here
+                    query = query.lte('entry_date', toDateMDYYYY);
                 }
 
                 const { data, error } = await query;
@@ -2825,7 +2827,7 @@
             currentFilters.fromDate = fromDateYYYYMMDD;
             currentFilters.toDate = toDateYYYYMMDD;
             currentPage = 1;
-            loadRecordsTable(fromDateYYYYMMDD, toDateYYYYMMDD, currentPage);
+            loadRecordsTable(currentFilters.fromDate, currentFilters.toDate, currentPage);
             toast('Filter applied.', 'success', 1500);
         }
 
@@ -2869,58 +2871,10 @@
         // Prevent default form submission for all forms on the page
         document.addEventListener('submit', e => e.preventDefault());
 
-        // Initialize the application when DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initializeApp);
-        } else {
-            setTimeout(initializeApp, 100);
-        }
+        // Call the main initialization function when the DOM is fully loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
 
-        // Fallback initialization (in case DOMContentLoaded was missed)
-        window.addEventListener('load', function() {
-            if (!currentUser || !supabaseClient) { // Only re-initialize if core components aren't ready
-                console.log('Fallback initialization triggered by window.load');
-                initializeApp();
-            }
-        });
-
-        // Test function for debugging
-        window.testApp = function() {
-            console.log('=== TESTING FULL APP WITH ACTUAL ROLES AND DATE FIX ===');
-            
-            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-            console.log('Stored user:', storedUser ? 'Found' : 'Not found');
-            
-            const testElements = [
-                'userInfo', 'btnLogout', 'btnSave', 'btnViewRecords', 
-                'total_active_kcc', 'total_kcc_saturated', 'btnDistrictStatus',
-                'btnStateAdmin', 'btnExportPDF', 'btnExportExcel',
-                'stateAdminPanel', 'adminSummary', 'currentTotals', 'status'
-            ];
-            
-            testElements.forEach(id => {
-                const element = document.getElementById(id);
-                console.log(`Element ${id}:`, element ? 'Found' : 'NOT FOUND');
-            });
-            
-            console.log('Supabase client:', supabaseClient ? 'Initialized' : 'NOT INITIALIZED');
-            console.log('Current user object:', currentUser);
-            console.log('Current user role:', currentUser ? currentUser.role : 'N/A');
-            console.log('All districts loaded:', allDistricts.length, 'districts');
-            
-            console.log('Role checks:');
-            console.log('  isRegularUser():', isRegularUser());
-            console.log('  isAdmin():', isAdmin());
-            console.log('  isStateLevelAdmin():', isStateLevelAdmin());
-            console.log('  isSuperAdmin():', isSuperAdmin());
-
-            return 'Full app test complete - check console for results';
-        };
-
-        console.log('📜 COMPLETE KCC Portal with ACTUAL ROLES and DATE FIX loaded successfully!');
-        console.log('💡 Type testApp() in console to check full app status and role logic');
-        console.log('🎯 Features enabled based on roles: user, admin, division_admin, manager, super_admin');
-        console.log('✅ Date format mismatch for kcc_entries table should now be resolved!');
+        console.log('📜 Script loaded successfully. (End of file)');
     </script>
 </body>
 </html>
