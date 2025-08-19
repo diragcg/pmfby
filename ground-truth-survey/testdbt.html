@@ -594,11 +594,11 @@
                     </a>
                     <div class="user-info">
                         <span id="userInfo" class="hindi">Loading...</span>
-                        <button id="btnDistrictStatus" class="btn btn-header hindi">
+                        <button id="btnDistrictStatus" class="btn btn-header hindi" style="display: none;">
                             <i class="fas fa-chart-line me-1"></i>
                             DISTRICT STATUS
                         </button>
-                        <button id="btnStateAdmin" class="btn btn-header hindi">
+                        <button id="btnStateAdmin" class="btn btn-header hindi" style="display: none;">
                             <i class="fas fa-user-shield me-1"></i>
                             STATE ADMIN
                         </button>
@@ -615,13 +615,13 @@
     <!-- State Admin Panel -->
     <div class="main-container">
         <div id="stateAdminPanel" class="admin-panel hidden">
-            <h5 class="hindi">🔐 STATE ADMIN ACCESS</h5>
+            <h5 class="hindi">🔐 ELEVATED ACCESS PANEL</h5>
             <div class="row g-3">
                 <div class="col-md-6">
-                    <input type="password" id="adminPassword" class="form-control" placeholder="ENTER ADMIN PASSWORD (xxxxxxxxxx)">
+                    <input type="password" id="adminPassword" class="form-control" placeholder="ENTER ADMIN PASSWORD">
                 </div>
                 <div class="col-md-3">
-                    <button id="btnAdminLogin" class="btn btn-primary-modern btn-modern w-100">LOGIN AS ADMIN</button>
+                    <button id="btnAdminLogin" class="btn btn-primary-modern btn-modern w-100">ELEVATE ACCESS</button>
                 </div>
                 <div class="col-md-3">
                     <button id="btnCancelAdmin" class="btn btn-outline-modern btn-modern w-100">CANCEL</button>
@@ -629,10 +629,10 @@
             </div>
         </div>
 
-        <!-- State Admin Summary -->
-        <div id="stateAdminSummary" class="admin-summary hidden">
-            <h5 class="hindi">📊 STATE TOTAL SUMMARY</h5>
-            <div id="stateTotalsContent" class="summary-content">LOADING STATE DATA...</div>
+        <!-- Admin Summary -->
+        <div id="adminSummary" class="admin-summary hidden">
+            <h5 class="hindi">📊 ADMINISTRATIVE SUMMARY</h5>
+            <div id="adminSummaryContent" class="summary-content">LOADING ADMINISTRATIVE DATA...</div>
         </div>
 
         <!-- Main Content -->
@@ -1000,7 +1000,7 @@
             if (confirm('Are you sure you want to logout?')) {
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
-                window.location.href = 'selectmodule1708.html';
+                window.location.href = 'selectmodule1708.html'; // Redirect to your login/module selection page
             }
         }
 
@@ -1048,9 +1048,17 @@
             
             if (storedUser) {
                 try {
-                    currentUser = JSON.parse(storedUser);
-                    currentUser.role = currentUser.role ? currentUser.role.trim() : 'user';
-                    console.log('✓ User loaded from session:', currentUser.fullName || currentUser.username);
+                    const parsedUser = JSON.parse(storedUser);
+                    // Ensure full_name and districtName are present, and district_id is used
+                    currentUser = {
+                        id: parsedUser.id,
+                        username: parsedUser.username,
+                        fullName: parsedUser.full_name || parsedUser.username, // Use full_name if available
+                        role: parsedUser.role ? parsedUser.role.trim() : 'user',
+                        districtId: parsedUser.district_id, // Ensure district_id is correctly set
+                        districtName: parsedUser.districtName || 'STATE LEVEL' // Fallback for district name
+                    };
+                    console.log('✓ User loaded from session:', currentUser.fullName);
                     return true;
                 } catch (e) {
                     console.error('✗ Error parsing user session data:', e);
@@ -1059,18 +1067,38 @@
                 }
             }
             
-            // Create test user if no session found
-            console.log('⚠ No user session found, creating test user');
+            // Fallback: Create a test user if no session found or parsing failed
+            console.log('⚠ No valid user session found or parsing failed, creating test user');
             currentUser = {
                 id: 'test-user-123',
                 username: 'test_user',
-                fullName: 'Test User',
-                districtName: 'Test District',
+                fullName: 'Test User (Fallback)',
+                districtName: 'Test District (Fallback)',
                 districtId: 'test-district-123',
-                role: 'user'
+                role: 'user' // Default to 'user' role for fallback
             };
+            toast('Loaded with a fallback test user. Please ensure proper login flow.', 'warning');
             return true;
         }
+
+        // --- Role-based Access Control Helpers ---
+        function isRegularUser() {
+            return currentUser.role === 'user';
+        }
+
+        function isAdmin() {
+            return ['admin', 'division_admin', 'manager', 'super_admin'].includes(currentUser.role);
+        }
+
+        function isStateLevelAdmin() { // Specific for roles that can see state-wide data/features
+            return ['admin', 'division_admin', 'manager', 'super_admin'].includes(currentUser.role);
+        }
+
+        function isSuperAdmin() {
+            return currentUser.role === 'super_admin';
+        }
+        // --- End Role-based Access Control Helpers ---
+
 
         // Main application initialization function
         async function initializeApp() {
@@ -1090,7 +1118,7 @@
                 // Step 3: Fetch real districts from database
                 await fetchAllDistricts();
 
-                // Step 4: Update UI elements based on current user info
+                // Step 4: Update UI elements based on current user info and roles
                 updateUI();
 
                 // Step 5: Attach event listeners to all interactive elements
@@ -1112,9 +1140,9 @@
                 // Step 7: Load initial dashboard data
                 await loadDashboardData();
                 
-                // Step 8: Load state admin summary data if current user is an admin
-                if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
-                    await loadStateAdminData();
+                // Step 8: Load admin summary data if current user has admin-level role
+                if (isStateLevelAdmin()) {
+                    await loadAdminSummaryData(); // Renamed from loadStateAdminData
                 }
 
                 console.log('✅ KCC Portal initialization complete.');
@@ -1126,7 +1154,7 @@
             }
         }
 
-        // Update UI elements based on current user info
+        // Update UI elements based on current user info and roles
         function updateUI() {
             if (!currentUser) {
                 console.warn('updateUI: No current user, skipping UI update.');
@@ -1154,27 +1182,33 @@
             // Update modal title for viewer
             const districtNameInViewer = $('districtNameInViewer');
             if (districtNameInViewer) {
-                districtNameInViewer.textContent = (currentUser.role === 'admin' || currentUser.role === 'state_admin') ? 'ALL DISTRICTS' : currentUser.districtName;
+                districtNameInViewer.textContent = isAdmin() ? 'ALL DISTRICTS' : currentUser.districtName;
             }
 
-            // Show/hide admin-specific elements
-            const stateAdminSummary = $('stateAdminSummary');
+            // Show/hide admin-specific elements based on actual roles
+            const adminSummary = $('adminSummary'); // Renamed from stateAdminSummary
             const stateAdminPanel = $('stateAdminPanel');
+            const btnDistrictStatus = $('btnDistrictStatus');
+            const btnStateAdmin = $('btnStateAdmin');
 
-            if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
-                if (stateAdminSummary) stateAdminSummary.classList.remove('hidden');
-                if (stateAdminPanel) stateAdminPanel.classList.add('hidden');
+            if (isAdmin()) { // Any admin role can see admin summary and access elevated panel
+                if (adminSummary) adminSummary.classList.remove('hidden');
+                if (btnDistrictStatus) btnDistrictStatus.style.display = 'inline-block'; // Show District Status button
+                if (btnStateAdmin) btnStateAdmin.style.display = 'inline-block'; // Show State Admin button
             } else {
-                if (stateAdminSummary) stateAdminSummary.classList.add('hidden');
-                if (stateAdminPanel) stateAdminPanel.classList.add('hidden');
+                if (adminSummary) adminSummary.classList.add('hidden');
+                if (stateAdminPanel) stateAdminPanel.classList.add('hidden'); // Ensure hidden if not admin
+                if (btnDistrictStatus) btnDistrictStatus.style.display = 'none'; // Hide for non-admins
+                if (btnStateAdmin) btnStateAdmin.style.display = 'none'; // Hide for non-admins
             }
+            // For regular users, the main form is always visible. Admin panel is hidden by default and toggled.
 
-            console.log('✓ UI elements updated based on user role.');
+            console.log('✓ UI elements updated based on user role:', currentUser.role);
         }
 
         // Attach all event listeners
         function attachEventListeners() {
-            console.log('Attaching event listeners...');
+            console.log('Attaching event listeners... Current User Role:', currentUser.role);
             
             // Logout button
             const logoutBtn = $('btnLogout');
@@ -1183,14 +1217,14 @@
                 console.log('✓ Logout listener attached.');
             }
 
-            // District Status button
+            // District Status button (only visible for admin roles)
             const btnDistrictStatus = $('btnDistrictStatus');
             if (btnDistrictStatus) {
                 btnDistrictStatus.addEventListener('click', showDistrictStatus);
                 console.log('✓ District Status listener attached.');
             }
 
-            // State admin button
+            // State admin button (only visible for admin roles)
             const btnStateAdmin = $('btnStateAdmin');
             if (btnStateAdmin) {
                 btnStateAdmin.addEventListener('click', function() {
@@ -1198,6 +1232,25 @@
                     if (panel) panel.classList.toggle('hidden');
                 });
                 console.log('✓ State Admin toggle listener attached.');
+            }
+
+            // Admin login button (part of the elevated access panel)
+            const btnAdminLogin = $('btnAdminLogin');
+            if (btnAdminLogin) {
+                btnAdminLogin.addEventListener('click', handleElevateAccess); // Renamed from handleStateAdminLogin
+                console.log('✓ Admin login listener attached.');
+            }
+
+            // Admin cancel button
+            const btnCancelAdmin = $('btnCancelAdmin');
+            if (btnCancelAdmin) {
+                btnCancelAdmin.addEventListener('click', function() {
+                    const panel = $('stateAdminPanel');
+                    const passwordInput = $('adminPassword');
+                    if (panel) panel.classList.add('hidden');
+                    if (passwordInput) passwordInput.value = '';
+                });
+                console.log('✓ Admin cancel listener attached.');
             }
 
             // Form input listeners
@@ -1219,50 +1272,40 @@
                 });
             }
 
-            // Button handlers
-            const buttonHandlers = {
-                'btnSave': saveEntry,
-                'btnUpdate': updateEntry,
-                'btnClear': clearForm,
-                'btnViewRecords': showRecords,
-                'btnRefresh': loadDashboardData,
-                'btnAdminLogin': handleStateAdminLogin,
-                'btnCancelAdmin': function() {
-                    const panel = $('stateAdminPanel');
-                    const passwordInput = $('adminPassword');
-                    if (panel) panel.classList.add('hidden');
-                    if (passwordInput) passwordInput.value = '';
-                },
-                'btnExportExcel': exportToExcel,
-                'btnExportPDF': exportToPDF,
-                'btnApplyFilter': applyDateFilter,
-                'btnClearFilter': clearDateFilter,
-                'btnPrevPage': previousPage,
-                'btnNextPage': nextPage,
-                'btnCheckStatus': checkDistrictStatus,
-                'btnDownloadStatusPDF': downloadDistrictStatusPDF
-            };
+            // General action buttons
+            const buttonsConfig = [
+                { id: 'btnSave', handler: saveEntry },
+                { id: 'btnUpdate', handler: updateEntry },
+                { id: 'btnClear', handler: clearForm },
+                { id: 'btnViewRecords', handler: showRecords },
+                { id: 'btnRefresh', handler: loadDashboardData },
+                { id: 'btnExportExcel', handler: exportToExcel },
+                { id: 'btnExportPDF', handler: exportToPDF },
+                { id: 'btnApplyFilter', handler: applyDateFilter },
+                { id: 'btnClearFilter', handler: clearDateFilter },
+                { id: 'btnPrevPage', handler: previousPage },
+                { id: 'btnNextPage', handler: nextPage }
+            ];
 
-            Object.entries(buttonHandlers).forEach(([btnId, handler]) => {
-                const btn = $(btnId);
+            buttonsConfig.forEach(({ id, handler }) => {
+                const btn = $(id);
                 if (btn) {
                     btn.addEventListener('click', function(e) {
                         e.preventDefault();
-                        console.log(`${btnId} clicked`);
+                        console.log(`${id} clicked`);
                         try {
                             handler();
                         } catch (error) {
-                            console.error(`Error in ${btnId} handler:`, error);
-                            toast(`Error in ${btnId}: ${error.message}`, 'danger');
+                            console.error(`Error in ${id} handler:`, error);
+                            toast(`Error in ${id}: ${error.message}`, 'danger');
                         }
                     });
-                    console.log(`✓ ${btnId} handler attached`);
                 } else {
-                    console.warn(`❌ Button \${btnId} not found`);
+                    console.warn(`Button with ID '${id}' not found. Listener not attached.`);
                 }
             });
 
-            // Fullscreen buttons
+            // Fullscreen buttons for modals
             const btnFullscreen = $('btnFullscreen');
             if (btnFullscreen) {
                 btnFullscreen.addEventListener('click', toggleFullscreen);
@@ -1272,18 +1315,18 @@
             if (btnStatusFullscreen) {
                 btnStatusFullscreen.addEventListener('click', function() {
                     const modalDialog = document.querySelector('#districtStatusModal .modal-dialog');
-                    const btnFullscreen = $('btnStatusFullscreen');
+                    const btn = $('btnStatusFullscreen'); // Use a different variable name to avoid conflict
                     
-                    if (!modalDialog || !btnFullscreen) return;
+                    if (!modalDialog || !btn) return;
                     
                     if (modalDialog.classList.contains('modal-fullscreen')) {
                         modalDialog.classList.remove('modal-fullscreen');
-                        btnFullscreen.innerHTML = '<i class="fas fa-expand"></i>';
-                        btnFullscreen.title = 'Fullscreen';
+                        btn.innerHTML = '<i class="fas fa-expand"></i>';
+                        btn.title = 'Fullscreen';
                     } else {
                         modalDialog.classList.add('modal-fullscreen');
-                        btnFullscreen.innerHTML = '<i class="fas fa-compress"></i>';
-                        btnFullscreen.title = 'Exit Fullscreen';
+                        btn.innerHTML = '<i class="fas fa-compress"></i>';
+                        btn.title = 'Exit Fullscreen';
                     }
                 });
             }
@@ -1291,16 +1334,16 @@
             console.log('✅ All event listeners attached.');
         }
 
-        // Show District Status Modal
+        // Show District Status Modal (only for admin roles)
         async function showDistrictStatus() {
             if (!currentUser || !supabaseClient) {
                 toast('System not ready. Please refresh.', 'danger');
                 return;
             }
 
-            // Only allow admin users to access this feature
-            if (currentUser.role !== 'admin' && currentUser.role !== 'state_admin') {
-                toast('This feature is only available for State Admin users.', 'warning');
+            // Enforce role check
+            if (!isAdmin()) {
+                toast('This feature is only available for Administrative roles.', 'warning');
                 return;
             }
 
@@ -1382,13 +1425,13 @@
                         const saturationPercentage = calculatePercentage(entry.total_kcc_saturated || 0, entry.total_active_kcc || 0);
                         
                         row.innerHTML = `
-                            <td>\${index + 1}</td>
-                            <td>\${district.name}</td>
+                            <td>${index + 1}</td>
+                            <td>${district.name}</td>
                             <td><span class="badge badge-success">DATA ENTERED</span></td>
-                            <td>\${formatDateToDDMMYYYY(entry.entry_date)}</td>
-                            <td>\${entry.total_active_kcc || 0}</td>
-                            <td>\${entry.total_kcc_saturated || 0}</td>
-                            <td>\${saturationPercentage}</td>
+                            <td>${formatDateToDDMMYYYY(entry.entry_date)}</td>
+                            <td>${entry.total_active_kcc || 0}</td>
+                            <td>${entry.total_kcc_saturated || 0}</td>
+                            <td>${saturationPercentage}</td>
                             <td class="text-success">✓ Complete</td>
                         `;
                         row.classList.add('table-success');
@@ -1396,8 +1439,8 @@
                         // District has not entered data
                         notEnteredCount++;
                         row.innerHTML = `
-                            <td>\${index + 1}</td>
-                            <td>\${district.name}</td>
+                            <td>${index + 1}</td>
+                            <td>${district.name}</td>
                             <td><span class="badge" style="background-color: #dc3545;">DATA NOT ENTERED</span></td>
                             <td>-</td>
                             <td>-</td>
@@ -1416,13 +1459,13 @@
                     const overallSaturation = calculatePercentage(totalSaturated, totalActive);
                     statusSummaryContent.innerHTML = `
                         <div class="row g-3">
-                            <div class="col-md-3"><strong>TOTAL DISTRICTS:</strong> \${allDistricts.length}</div>
-                            <div class="col-md-3"><strong>DATA ENTERED:</strong> <span class="text-success">\${enteredCount}</span></div>
-                            <div class="col-md-3"><strong>PENDING:</strong> <span class="text-danger">\${notEnteredCount}</span></div>
-                            <div class="col-md-3"><strong>COMPLETION:</strong> \${calculatePercentage(enteredCount, allDistricts.length)}</div>
+                            <div class="col-md-3"><strong>TOTAL DISTRICTS:</strong> ${allDistricts.length}</div>
+                            <div class="col-md-3"><strong>DATA ENTERED:</strong> <span class="text-success">${enteredCount}</span></div>
+                            <div class="col-md-3"><strong>PENDING:</strong> <span class="text-danger">${notEnteredCount}</span></div>
+                            <div class="col-md-3"><strong>COMPLETION:</strong> ${calculatePercentage(enteredCount, allDistricts.length)}</div>
                         </div>
                         <div class="mt-2">
-                            <strong>STATE TOTALS:</strong> Active KCC: ${totalActive}, Saturated: ${totalSaturated}, Saturation: \${overallSaturation}
+                            <strong>STATE TOTALS:</strong> Active KCC: ${totalActive}, Saturated: ${totalSaturated}, Saturation: ${overallSaturation}
                         </div>
                     `;
                     statusSummary.style.display = 'block';
@@ -1450,7 +1493,6 @@
             const checkDate = statusCheckDateInput.value;
 
             try {
-                // Get the current table data
                 const tbody = $('districtStatusTableBody');
                 if (!tbody || tbody.children.length === 0) {
                     toast('No data to export. Please check status first.', 'warning');
@@ -1460,11 +1502,9 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF('landscape', 'mm', 'a4');
                 
-                // Set font
                 doc.setFont('helvetica');
                 doc.setTextColor(0, 0, 0);
 
-                // PDF Header
                 doc.setFontSize(16);
                 doc.setFont(undefined, 'bold');
                 doc.text('Directorate of Agriculture Chhattisgarh', doc.internal.pageSize.width / 2, 20, { align: 'center' });
@@ -1475,17 +1515,15 @@
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
                 doc.text(`Report Date: ${formatDateToDDMMYYYY(checkDate)}`, 20, 38);
-                doc.text(`Generated On: \${new Date().toLocaleString()}`, 20, 45);
+                doc.text(`Generated On: ${new Date().toLocaleString()}`, 20, 45);
 
-                // Get summary data
-                const statusSummaryContent = \$('statusSummaryContent');
+                const statusSummaryContent = $('statusSummaryContent');
                 if (statusSummaryContent) {
                     doc.text('Summary:', 20, 55);
                     doc.setFontSize(8);
                     doc.text(statusSummaryContent.textContent.replace(/\s+/g, ' '), 20, 62, { maxWidth: 250 });
                 }
 
-                // Table
                 const headers = ['S.NO', 'DISTRICT', 'STATUS', 'LAST ENTRY', 'ACTIVE KCC', 'SATURATED', 'SAT%', 'REMARKS'];
                 const colWidths = [15, 45, 25, 25, 25, 25, 20, 30];
                 
@@ -1497,7 +1535,6 @@
                 doc.setFontSize(8);
                 doc.setFont(undefined, 'bold');
                 
-                // Draw header row
                 let cellX = startX;
                 headers.forEach((header, i) => {
                     doc.rect(cellX, currentY - 5, colWidths[i], 8);
@@ -1508,7 +1545,6 @@
                 currentY += 8;
                 doc.setFont(undefined, 'normal');
                 
-                // Draw data rows
                 Array.from(tbody.children).forEach((row) => {
                     const cells = Array.from(row.children);
                     cellX = startX;
@@ -1517,15 +1553,14 @@
                         doc.rect(cellX, currentY - 5, colWidths[i], 7);
                         let cellText = cell.textContent.trim();
                         
-                        // Handle badges and special formatting
                         if (cellText.includes('DATA ENTERED')) {
                             cellText = 'ENTERED';
-                            doc.setTextColor(0, 128, 0); // Green
+                            doc.setTextColor(0, 128, 0);
                         } else if (cellText.includes('DATA NOT ENTERED')) {
                             cellText = 'PENDING';
-                            doc.setTextColor(220, 53, 69); // Red
+                            doc.setTextColor(220, 53, 69);
                         } else {
-                            doc.setTextColor(0, 0, 0); // Black
+                            doc.setTextColor(0, 0, 0);
                         }
                         
                         const textX = cellX + colWidths[i] / 2;
@@ -1534,14 +1569,12 @@
                     });
                     
                     currentY += 7;
-                    doc.setTextColor(0, 0, 0); // Reset color
+                    doc.setTextColor(0, 0, 0);
                     
-                    // Check if new page needed
                     if (currentY > (doc.internal.pageSize.height - 20)) {
                         doc.addPage();
                         currentY = 20;
                         
-                        // Redraw headers on new page
                         doc.setFont(undefined, 'bold');
                         cellX = startX;
                         headers.forEach((header, i) => {
@@ -1554,7 +1587,6 @@
                     }
                 });
 
-                // Generate filename
                 const now = new Date();
                 const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}`;
                 const fileName = `DISTRICT_STATUS_${formatDateToDDMMYYYY(checkDate).replace(/-/g, '')}_${timestamp}.pdf`;
@@ -1594,9 +1626,8 @@
             }
             
             try {
-                console.log(`Loading dashboard data for ${currentUser.role === 'admin' || currentUser.role === 'state_admin' ? 'all districts (admin)' : currentUser.districtName + ' (user)'}...`);
+                console.log(`Loading dashboard data for ${isAdmin() ? 'all districts (admin)' : currentUser.districtName + ' (user)'}...`);
                 
-                // Query for current totals
                 let totalsQuery = supabaseClient
                     .from('kcc_entries')
                     .select('total_active_kcc, total_kcc_saturated, total_kcc_not_saturated')
@@ -1604,8 +1635,7 @@
                     .order('created_at', { ascending: false })
                     .limit(1);
 
-                // Apply district filter only for regular users
-                if (currentUser.role !== 'admin' && currentUser.role !== 'state_admin') {
+                if (!isAdmin()) { // Filter by district only for non-admin roles
                     totalsQuery = totalsQuery.eq('district_id', currentUser.districtId);
                 }
 
@@ -1613,7 +1643,6 @@
 
                 if (totalsError) throw totalsError;
 
-                // Update current totals display
                 const currentTotalsElement = $('currentTotals');
                 const minActiveKCCElement = $('minActiveKCC');
                 const minSaturatedKCCElement = $('minSaturatedKCC');
@@ -1628,10 +1657,10 @@
                         const saturationPercentage = calculatePercentage(previousSaturatedKCC, previousActiveKCC);
 
                         currentTotalsElement.innerHTML = `
-                            <div><strong>ACTIVE KCC:</strong> \${totals.total_active_kcc || 0}</div>
-                            <div><strong>SATURATED:</strong> \${totals.total_kcc_saturated || 0}</div>
-                            <div><strong>NOT SATURATED:</strong> \${totals.total_kcc_not_saturated || 0}</div>
-                            <div><strong>SATURATION:</strong> \${saturationPercentage}</div>
+                            <div><strong>ACTIVE KCC:</strong> ${totals.total_active_kcc || 0}</div>
+                            <div><strong>SATURATED:</strong> ${totals.total_kcc_saturated || 0}</div>
+                            <div><strong>NOT SATURATED:</strong> ${totals.total_kcc_not_saturated || 0}</div>
+                            <div><strong>SATURATION:</strong> ${saturationPercentage}</div>
                         `;
                     } else {
                         previousActiveKCC = 0;
@@ -1640,13 +1669,11 @@
                     }
                 }
                 
-                // Update previous values for form validation
                 if (minActiveKCCElement) minActiveKCCElement.textContent = previousActiveKCC;
                 if (minSaturatedKCCElement) minSaturatedKCCElement.textContent = previousSaturatedKCC;
                 if (totalActiveKCCInput) totalActiveKCCInput.min = previousActiveKCC;
                 if (totalKCCSaturatedInput) totalKCCSaturatedInput.min = previousSaturatedKCC;
 
-                // Query for recent entries
                 let recentEntriesQuery = supabaseClient
                     .from('kcc_entries')
                     .select('entry_date, total_active_kcc, district_name')
@@ -1654,8 +1681,7 @@
                     .order('created_at', { ascending: false })
                     .limit(3);
 
-                // Apply district filter only for regular users
-                if (currentUser.role !== 'admin' && currentUser.role !== 'state_admin') {
+                if (!isAdmin()) { // Filter by district only for non-admin roles
                     recentEntriesQuery = recentEntriesQuery.eq('district_id', currentUser.districtId);
                 }
 
@@ -1663,13 +1689,12 @@
 
                 if (recentError) throw recentError;
 
-                // Update recent entries display
                 const recentEntriesElement = $('recentEntries');
                 if (recentEntriesElement) {
                     if (recentEntries && recentEntries.length > 0) {
                         recentEntriesElement.innerHTML = recentEntries.map(r => 
                             `<div class="small mb-1">
-                                ${r.entry_date} - ${r.total_active_kcc} ACCOUNTS\${(currentUser.role === 'admin' || currentUser.role === 'state_admin') ? ` (${r.district_name})` : ''} (CURRENT)
+                                ${r.entry_date} - ${r.total_active_kcc} ACCOUNTS${isAdmin() ? ` (${r.district_name})` : ''} (CURRENT)
                             </div>`
                         ).join('');
                     } else {
@@ -1686,48 +1711,54 @@
             }
         }
 
-        // Handle State Admin login
-        async function handleStateAdminLogin(){
+        // Handle Elevated Access (Admin Password Login)
+        async function handleElevateAccess(){
             const passwordInput = $('adminPassword');
             if (!passwordInput) return;
             
             const password = passwordInput.value.trim();
+            // This password should ideally be fetched from a secure config or a 'system_settings' table
+            // For now, using a hardcoded default as a placeholder.
             let adminPassFromDB = '9329807288'; 
 
             try {
+                // Attempt to fetch password from Supabase (optional, for dynamic password)
                 const { data: settings, error } = await supabaseClient
-                    .from('system_settings')
+                    .from('system_settings') // Assuming you have a 'system_settings' table
                     .select('value')
-                    .eq('key', 'state_admin_password')
+                    .eq('key', 'elevated_access_password') // Or 'state_admin_password'
                     .single();
                 if (settings && settings.value) {
                     adminPassFromDB = settings.value;
                 }
             } catch (err) {
-                console.warn('Could not fetch admin password from DB, using hardcoded default.', err.message);
+                console.warn('Could not fetch elevated access password from DB, using hardcoded default. Ensure system_settings table exists with key "elevated_access_password".', err.message);
             }
             
             if (password === adminPassFromDB) {
-                currentUser.role = 'state_admin';
+                // Temporarily elevate current user's role for the session
+                // This is a client-side change for UI purposes. Server-side checks are still vital.
+                currentUser.role = 'super_admin'; // Elevate to the highest level for full access
                 const stateAdminPanel = $('stateAdminPanel');
                 if (stateAdminPanel) stateAdminPanel.classList.add('hidden');
                 
-                updateUI();
-                await loadDashboardData();
-                await loadStateAdminData();
-                toast('Successfully logged in as STATE ADMIN', 'success');
+                updateUI(); // Refresh UI based on new elevated role
+                await loadDashboardData(); // Reload dashboard for admin to show all data
+                await loadAdminSummaryData(); // Load state summary data
+                toast('Successfully gained ELEVATED ACCESS', 'success');
             } else {
-                toast('Invalid Admin Password', 'danger');
+                toast('Invalid Elevated Access Password', 'danger');
             }
             
-            passwordInput.value = '';
+            passwordInput.value = ''; // Clear password field
         }
 
-        // Load and display state-wide summary data for admin
-        async function loadStateAdminData(){
+        // Load and display administrative summary data (for admin roles)
+        async function loadAdminSummaryData(){ // Renamed from loadStateAdminData
             if (!supabaseClient) return;
             
             try {
+                // Fetch all current KCC entries (no district filter for admin roles)
                 const { data, error } = await supabaseClient
                     .from('kcc_entries')
                     .select('*')
@@ -1735,8 +1766,8 @@
                 
                 if (error) throw error;
                 
-                const stateTotalsContent = $('stateTotalsContent');
-                if (!stateTotalsContent) return;
+                const adminSummaryContent = $('adminSummaryContent'); // Renamed from stateTotalsContent
+                if (!adminSummaryContent) return;
                 
                 if (data && data.length > 0) {
                     const districts = new Set(data.map(r => r.district_id)).size;
@@ -1744,29 +1775,29 @@
                     const totalSaturated = data.reduce((sum, r) => sum + (r.total_kcc_saturated || 0), 0);
                     const totalNotSaturated = data.reduce((sum, r) => sum + (r.total_kcc_not_saturated || 0), 0);
                     
-                    const stateSaturationPercentage = calculatePercentage(totalSaturated, totalActive);
+                    const overallSaturationPercentage = calculatePercentage(totalSaturated, totalActive);
 
                     const lastUpdateRecord = data.reduce((latest, current) => 
                         new Date(current.created_at) > new Date(latest.created_at) ? current : latest
                     );
-                    const lastUpdateDate = lastUpdateRecord ? lastUpdateRecord.entry_date : 'N/A';
+                    const lastUpdateDate = lastUpdateRecord ? formatDateToDDMMYYYY(lastUpdateRecord.entry_date) : 'N/A';
                     
-                    stateTotalsContent.innerHTML = `
+                    adminSummaryContent.innerHTML = `
                         <div class="row g-3">
-                            <div class="col-md-3"><strong>TOTAL DISTRICTS:</strong> \${districts}</div>
-                            <div class="col-md-3"><strong>TOTAL ACTIVE KCC:</strong> \${totalActive}</div>
-                            <div class="col-md-3"><strong>TOTAL SATURATED:</strong> \${totalSaturated}</div>
-                            <div class="col-md-3"><strong>TOTAL NOT SATURATED:</strong> \${totalNotSaturated}</div>
+                            <div class="col-md-3"><strong>TOTAL DISTRICTS:</strong> ${districts}</div>
+                            <div class="col-md-3"><strong>TOTAL ACTIVE KCC:</strong> ${totalActive}</div>
+                            <div class="col-md-3"><strong>TOTAL SATURATED:</strong> ${totalSaturated}</div>
+                            <div class="col-md-3"><strong>TOTAL NOT SATURATED:</strong> ${totalNotSaturated}</div>
                         </div>
-                        <div class="mt-2"><strong>SATURATION:</strong> \${stateSaturationPercentage}</div>
-                        <div class="mt-2"><small>LAST UPDATE: \${lastUpdateDate}</small></div>
+                        <div class="mt-2"><strong>OVERALL SATURATION:</strong> ${overallSaturationPercentage}</div>
+                        <div class="mt-2"><small>LAST DATA ENTRY: ${lastUpdateDate}</small></div>
                     `;
                 } else {
-                    stateTotalsContent.innerHTML = '<div class="text-muted">NO DATA AVAILABLE</div>';
+                    adminSummaryContent.innerHTML = '<div class="text-muted">NO DATA AVAILABLE</div>';
                 }
             } catch (err) {
-                console.error('STATE ADMIN DATA ERROR:', err);
-                if ($('stateTotalsContent')) $('stateTotalsContent').innerHTML = '<div class="text-danger">ERROR LOADING STATE DATA</div>';
+                console.error('ADMIN SUMMARY DATA ERROR:', err);
+                if ($('adminSummaryContent')) $('adminSummaryContent').innerHTML = '<div class="text-danger">ERROR LOADING ADMINISTRATIVE DATA</div>';
             }
         }
 
@@ -1848,7 +1879,7 @@
             return englishPattern.test(text);
         }
 
-        // Build string for 'reasons_not_saturated' column
+        // Build string for 'reasons_not_saturated' column (for legacy/display purposes)
         function buildLegacyReasonsText(){
             const nonSaturationReasonSelect = $('non_saturation_reason');
             if (!nonSaturationReasonSelect) return null;
@@ -1987,7 +2018,7 @@
                 version_number: 1
             };
 
-            console.log('Payload:', payload);
+            console.log('Payload: ', payload);
 
             const btnSave = $('btnSave');
             const statusElement = $('status');
@@ -2025,8 +2056,8 @@
                     if (statusElement) statusElement.textContent = 'ENTRY SAVED';
                     clearForm();
                     await loadDashboardData();
-                    if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
-                        await loadStateAdminData();
+                    if (isStateLevelAdmin()) { // Check if current user is admin to update admin summary
+                        await loadAdminSummaryData();
                     }
                 }
             } catch (err) {
@@ -2038,7 +2069,7 @@
             }
         }
 
-        // Update an existing KCC entry
+        // Update an existing KCC entry (using RPC for versioning)
         async function updateEntry(){
             if (!loadedCurrentRecord) {
                 toast('No record to update. Save a new entry first.', 'warning');
@@ -2089,8 +2120,8 @@
                     if (changeReasonInput) changeReasonInput.value = '';
                     clearForm();
                     await loadDashboardData();
-                    if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
-                        await loadStateAdminData();
+                    if (isStateLevelAdmin()) { // Check if current user is admin to update admin summary
+                        await loadAdminSummaryData();
                     }
                 }
             } catch (err) {
@@ -2144,9 +2175,9 @@
             }
             
             try {
-                console.log(`Loading records for ${currentUser.role === 'admin' || currentUser.role === 'state_admin' ? 'all districts (admin)' : currentUser.districtName + ' (user)'}...`);
+                console.log(`Loading records for ${isAdmin() ? 'all districts (admin)' : currentUser.districtName + ' (user)'}...`);
                 
-                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
+                const isAdminUser = isAdmin(); // Use the helper function here
                 const offset = (page - 1) * pageSize;
 
                 let query = supabaseClient
@@ -2155,7 +2186,7 @@
                     .order('created_at', { ascending: false })
                     .range(offset, offset + pageSize - 1);
 
-                if (!isAdmin) {
+                if (!isAdminUser) { // Filter by district only for non-admin roles
                     query = query.eq('district_id', currentUser.districtId);
                 }
 
@@ -2195,15 +2226,15 @@
                         const reasonDetails = buildReasonDetails(record);
 
                         row.innerHTML = `
-                            <td>\${formatDateToDDMMYYYY(record.entry_date)}</td>
-                            <td>\${isAdmin ? (record.district_name || 'UNKNOWN') : (currentUser.districtName || '-')}</td>
-                            <td>\${record.total_active_kcc || 0}</td>
-                            <td>\${record.total_kcc_saturated || 0}</td>
-                            <td>\${record.total_kcc_not_saturated || 0}</td>
-                            <td>\${record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'}</td>
-                            <td class="small">\${reasonDetails}</td>
-                            <td>\${record.is_current ? '<span class="badge badge-success">YES</span>' : '<span class="badge badge-secondary">NO</span>'}</td>
-                            <td>\${record.version_number || 1}</td>
+                            <td>${formatDateToDDMMYYYY(record.entry_date)}</td>
+                            <td>${isAdminUser ? (record.district_name || 'UNKNOWN') : (currentUser.districtName || '-')}</td>
+                            <td>${record.total_active_kcc || 0}</td>
+                            <td>${record.total_kcc_saturated || 0}</td>
+                            <td>${record.total_kcc_not_saturated || 0}</td>
+                            <td>${record.non_saturation_reason ? record.non_saturation_reason.replace('_', ' ').toUpperCase() : '-'}</td>
+                            <td class="small">${reasonDetails}</td>
+                            <td>${record.is_current ? '<span class="badge badge-success">YES</span>' : '<span class="badge badge-secondary">NO</span>'}</td>
+                            <td>${record.version_number || 1}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-modern" onclick="editRecord('${record.id}')" title="Edit Record">
                                     <i class="fas fa-edit"></i>
@@ -2277,8 +2308,7 @@
                     throw error;
                 }
 
-                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
-                if (!isAdmin && data.district_id !== currentUser.districtId) {
+                if (!isAdmin() && data.district_id !== currentUser.districtId) { // Use isAdmin() helper
                     toast('You do not have permission to edit this record.', 'danger');
                     console.warn(`Permission denied: User ${currentUser.id} attempted to edit record from district ${data.district_id}.`);
                     return;
@@ -2336,7 +2366,7 @@
             }
             
             try {
-                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
+                const isAdminUser = isAdmin(); // Use the helper function here
                 const fromDate = $('filterFromDate')?.value;
                 const toDate = $('filterToDate')?.value;
                 
@@ -2345,7 +2375,7 @@
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (!isAdmin) {
+                if (!isAdminUser) { // Filter by district only for non-admin roles
                     query = query.eq('district_id', currentUser.districtId);
                 } else {
                     query = query.eq('is_current', true);
@@ -2367,7 +2397,7 @@
 
                 let processedData = data;
 
-                if (isAdmin) {
+                if (isAdminUser) {
                     const latestRecordsMap = new Map();
                     data.forEach(record => {
                         if (!latestRecordsMap.has(record.district_id) || new Date(record.created_at) > new Date(latestRecordsMap.get(record.district_id).created_at)) {
@@ -2430,7 +2460,7 @@
 
                 const reportDateTime = new Date().toLocaleString();
                 const lastEntryDateTime = new Date(latestEntry.created_at).toLocaleString();
-                const districtInfo = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
+                const districtInfo = isAdminUser ? 'ALL DISTRICTS' : currentUser.districtName;
                 const dateRangeText = (fromDate || toDate) ? `${formatDateToDDMMYYYY(fromDate || 'ALL')} TO ${formatDateToDDMMYYYY(toDate || 'ALL')}` : 'ALL DATES';
                 
                 const headerInfo = [
@@ -2485,7 +2515,7 @@
                 
                 const now = new Date();
                 const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-                const fileName = `KCC_DATA_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.xlsx`;
+                const fileName = `KCC_DATA_${isAdminUser ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.xlsx`;
                 XLSX.writeFile(workbook, fileName);
                 
                 toast('Excel file downloaded successfully!', 'success');
@@ -2503,7 +2533,7 @@
             }
 
             try {
-                const isAdmin = (currentUser.role === 'admin' || currentUser.role === 'state_admin');
+                const isAdminUser = isAdmin(); // Use the helper function here
                 const fromDate = $('filterFromDate')?.value;
                 const toDate = $('filterToDate')?.value;
                 
@@ -2512,7 +2542,7 @@
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (!isAdmin) {
+                if (!isAdminUser) { // Filter by district only for non-admin roles
                     query = query.eq('district_id', currentUser.districtId);
                 } else {
                     query = query.eq('is_current', true);
@@ -2534,7 +2564,7 @@
 
                 let processedData = data;
 
-                if (isAdmin) {
+                if (isAdminUser) {
                     const latestRecordsMap = new Map();
                     data.forEach(record => {
                         if (!latestRecordsMap.has(record.district_id) || new Date(record.created_at) > new Date(latestRecordsMap.get(record.district_id).created_at)) {
@@ -2556,7 +2586,7 @@
                 doc.text('Directorate of Agriculture Chhattisgarh', doc.internal.pageSize.width / 2, 20, { align: 'center' });
                 
                 doc.setFontSize(14);
-                if (isAdmin) {
+                if (isAdminUser) {
                     doc.text('KCC Saturation Daily Report Under PMFBY Season Kharif 2025', doc.internal.pageSize.width / 2, 28, { align: 'center' });
                 } else {
                     doc.text('KCC Saturation under PMFBY During Kharif 2025', doc.internal.pageSize.width / 2, 28, { align: 'center' });
@@ -2565,8 +2595,8 @@
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
                 
-                const districtHeader = isAdmin ? 'ALL DISTRICTS' : currentUser.districtName;
-                if (!isAdmin) {
+                const districtHeader = isAdminUser ? 'ALL DISTRICTS' : currentUser.districtName;
+                if (!isAdminUser) {
                     doc.text(`Office of the Deputy Director Agriculture - ${districtHeader}`, 20, 38);
                 } else {
                     doc.text(`District: ${districtHeader}`, 20, 38); 
@@ -2579,7 +2609,7 @@
                 let headers;
                 let colWidths;
                 
-                if (isAdmin) {
+                if (isAdminUser) {
                     headers = ['DISTRICT', 'ACTIVE KCC', 'SATURATED', 'NOT SATURATED', 'REASON TYPE', 'DETAILS'];
                     colWidths = [45, 25, 25, 25, 30, 60];
                 } else {
@@ -2607,7 +2637,7 @@
                 
                 processedData.slice(0, 100).forEach((record) => {
                     let rowData;
-                    if (isAdmin) {
+                    if (isAdminUser) {
                         rowData = [
                             record.district_name || '-',
                             (record.total_active_kcc || 0).toString(),
@@ -2636,7 +2666,7 @@
                         let textX = cellX + 2;
                         let align = 'left';
                         
-                        if (isAdmin) {
+                        if (isAdminUser) {
                             if (i >= 1 && i <= 3 || i === headers.length - 1 || i === headers.length - 2) {
                                 align = 'center';
                                 textX = cellX + colWidths[i] / 2;
@@ -2681,7 +2711,7 @@
                 });
 
                 let totalsRowData;
-                if (isAdmin) {
+                if (isAdminUser) {
                     totalsRowData = [
                         'TOTAL',
                         totalActive.toString(),
@@ -2711,7 +2741,7 @@
                     let textX = cellX + 2;
                     let align = 'left';
                     
-                    if (isAdmin) {
+                    if (isAdminUser) {
                         if (i >= 1 && i <= 3) {
                             align = 'center';
                             textX = cellX + colWidths[i] / 2;
@@ -2735,7 +2765,7 @@
 
                 const now = new Date();
                 const timestamp = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, '0')}-${now.getDate().toString().padStart(2, '0')}_${now.getHours().toString().padStart(2, '0')}-${now.getMinutes().toString().padStart(2, '0')}-${now.getSeconds().toString().padStart(2, '0')}`;
-                const fileName = `KCC_REPORT_${isAdmin ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.pdf`;
+                const fileName = `KCC_REPORT_${isAdminUser ? 'ALL_DISTRICTS' : currentUser.districtName}_${timestamp}.pdf`;
                 doc.save(fileName);
                 
                 toast('PDF file downloaded successfully!', 'success');
@@ -2814,17 +2844,17 @@
             setTimeout(initializeApp, 100);
         }
 
-        // Fallback initialization
+        // Fallback initialization (in case DOMContentLoaded was missed)
         window.addEventListener('load', function() {
-            if (!currentUser) {
-                console.log('Fallback initialization triggered');
+            if (!currentUser || !supabaseClient) { // Only re-initialize if core components aren't ready
+                console.log('Fallback initialization triggered by window.load');
                 initializeApp();
             }
         });
 
         // Test function for debugging
         window.testApp = function() {
-            console.log('=== TESTING FULL APP ===');
+            console.log('=== TESTING FULL APP WITH ACTUAL ROLES ===');
             
             const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
             console.log('Stored user:', storedUser ? 'Found' : 'Not found');
@@ -2832,7 +2862,8 @@
             const testElements = [
                 'userInfo', 'btnLogout', 'btnSave', 'btnViewRecords', 
                 'total_active_kcc', 'total_kcc_saturated', 'btnDistrictStatus',
-                'btnStateAdmin', 'btnExportPDF', 'btnExportExcel'
+                'btnStateAdmin', 'btnExportPDF', 'btnExportExcel',
+                'stateAdminPanel', 'adminSummary', 'currentTotals', 'status'
             ];
             
             testElements.forEach(id => {
@@ -2841,17 +2872,23 @@
             });
             
             console.log('Supabase client:', supabaseClient ? 'Initialized' : 'NOT INITIALIZED');
-            console.log('Current user:', currentUser ? 'Loaded' : 'NOT LOADED');
-            console.log('All districts:', allDistricts.length, 'districts loaded');
+            console.log('Current user object:', currentUser);
+            console.log('Current user role:', currentUser ? currentUser.role : 'N/A');
+            console.log('All districts loaded:', allDistricts.length, 'districts');
             
+            console.log('Role checks:');
+            console.log('  isRegularUser():', isRegularUser());
+            console.log('  isAdmin():', isAdmin());
+            console.log('  isStateLevelAdmin():', isStateLevelAdmin());
+            console.log('  isSuperAdmin():', isSuperAdmin());
+
             return 'Full app test complete - check console for results';
         };
 
-        console.log('📜 COMPLETE KCC Portal loaded successfully!');
-        console.log('💡 Type testApp() in console to check full app status');
-        console.log('🎯 ALL FEATURES ACTIVE: Data Entry, Records Viewer, District Status, Admin Panel, Excel/PDF Export');
+        console.log('📜 COMPLETE KCC Portal with ACTUAL ROLES loaded successfully!');
+        console.log('💡 Type testApp() in console to check full app status and role logic');
+        console.log('🎯 Features enabled based on roles: user, admin, division_admin, manager, super_admin');
     </script>
 </body>
 </html>
-
-
+                                    
