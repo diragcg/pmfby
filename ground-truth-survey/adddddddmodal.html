@@ -735,6 +735,7 @@
                                 <div class="col-md-12">
                                     <label class="form-label hindi">CHANGE REASON *</label>
                                     <input type="text" id="change_reason" class="form-control" placeholder="REASON FOR THIS UPDATE">
+                                </select>
                                 </div>
                             </div>
 
@@ -945,6 +946,38 @@
         const SUPABASE_URL = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
+        // Hardcoded list of Chhattisgarh districts with IDs (for demo purposes)
+        const CHHATTISGARH_DISTRICTS = [
+            { id: '1', name: 'Balod' },
+            { id: '2', name: 'Baloda Bazar' },
+            { id: '3', name: 'Balrampur' },
+            { id: '4', name: 'Bastar' },
+            { id: '5', name: 'Bemetara' },
+            { id: '6', name: 'Bijapur' },
+            { id: '7', name: 'Bilaspur' },
+            { id: '8', name: 'Dantewada' },
+            { id: '9', name: 'Dhamtari' },
+            { id: '10', name: 'Durg' },
+            { id: '11', name: 'Gariaband' },
+            { id: '12', name: 'Gaurela-Pendra-Marwahi' },
+            { id: '13', name: 'Janjgir-Champa' },
+            { id: '14', name: 'Jashpur' },
+            { id: '15', name: 'Kanker' },
+            { id: '16', name: 'Kabirdham' },
+            { id: '17', name: 'Kondagaon' },
+            { id: '18', name: 'Korba' },
+            { id: '19', name: 'Koriya' },
+            { id: '20', name: 'Mahasamund' },
+            { id: '21', name: 'Mungeli' },
+            { id: '22', name: 'Narayanpur' },
+            { id: '23', name: 'Raigarh' },
+            { id: '24', name: 'Raipur' },
+            { id: '25', name: 'Rajnandgaon' },
+            { id: '26', name: 'Sukma' },
+            { id: '27', name: 'Surajpur' },
+            { id: '28', name: 'Surguja' }
+        ];
+
         // Global variables
         let supabase;
         let currentUser = null;
@@ -1401,30 +1434,11 @@
             try {
                 console.log('Loading state-wide summary data...');
                 
-                // Step 1: Find the latest 'created_at' timestamp for each district
-                const { data: latestEntries, error: latestError } = await supabase
-                    .from('kcc_entries')
-                    .select('district_id, created_at')
-                    .order('created_at', { ascending: false });
-
-                if (latestError) throw latestError;
-
-                // Use a map to store only the latest record for each district
-                const latestEntryMap = new Map();
-                for (const entry of latestEntries) {
-                    if (!latestEntryMap.has(entry.district_id)) {
-                        latestEntryMap.set(entry.district_id, entry.created_at);
-                    }
-                }
-
-                // Get the list of the latest timestamps to query for full records
-                const latestTimestamps = Array.from(latestEntryMap.values());
-
-                // Step 2: Fetch the full records corresponding to those latest timestamps
+                // A simpler, more robust way to get all current records for state summary
                 const { data: currentRecords, error: recordsError } = await supabase
                     .from('kcc_entries')
                     .select('*')
-                    .in('created_at', latestTimestamps); // Use `in` to fetch all relevant records
+                    .eq('is_current', true);
 
                 if (recordsError) throw recordsError;
 
