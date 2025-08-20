@@ -932,7 +932,7 @@
                 </div>
                 <div class="modal-footer justify-content-between">
                     <button type="button" class="btn btn-secondary" id="cancelOfficerProfile" style="font-family: 'Poppins', sans-serif;">रद्द करें</button>
-                    <button type="button" class="btn btn-primary" id="confirmOfficerProfile" style="font-family: 'Poppins', sans-serif;">प्रोफाइल पुष्टि करें</button>
+                    <button type="button" class="btn btn-primary" id="confirmOfficerProfile" style="font-family: 'Poppins', sans-serif;">प्रो फाइल पुष्टि करें</button>
                 </div>
             </div>
         </div>
@@ -1074,6 +1074,14 @@
                     selectOfficerProfile.remove(1);
                 }
 
+                // Ensure currentUser is available before querying
+                if (!currentUser || !currentUser.id) {
+                    console.warn('currentUser not available for loading officer profiles.');
+                    selectOfficerProfile.disabled = true;
+                    selectOfficerProfile.textContent = "लॉगिन करें प्रोफाइल के लिए।";
+                    return;
+                }
+
                 const { data, error } = await supabaseClient
                     .from('officer_profiles')
                     .select('id, name, designation, batch, current_posting, mobile_number, districts(name)')
@@ -1202,7 +1210,7 @@
             }, 2000); // Hide after 2 seconds
         }
 
-                // Actual submission of the feedback form after officer profile is confirmed
+        // Actual submission of the feedback form after officer profile is confirmed
         async function proceedWithFeedbackSubmission(officerProfileId) {
             try {
                 const submitBtn = document.querySelector('button[type="submit"]');
@@ -1213,7 +1221,7 @@
 
                 // Construct formData with fields that belong to the 'feedbacks' table
                 const formData = {
-                    user_id: currentUser.id,
+                    user_id: currentUser.id, // Ensure user_id is from the current logged-in user
                     // Template 1 fields (belong to feedbacks table)
                     introduction: document.getElementById('introduction').value.trim(),
                     current_situation: document.getElementById('currentSituation').value.trim(),
@@ -1224,7 +1232,7 @@
                     way_forward_strategy: document.getElementById('wayForwardStrategy').value.trim(),
                     // Link to officer profile (this is the only officer-related field in feedbacks table)
                     officer_profile_id: officerProfileId,
-                    // Template 2 fields (belong to feedbacks table)
+                    // Template 2 fields (These are now directly from the main form, but not part of the officer_profile table itself)
                     sub_theme_name: document.getElementById('subThemeName').value.trim(),
                     policy_gaps_challenges: document.getElementById('policyGapsChallenges').value.trim(),
                     potential_solutions: document.getElementById('potentialSolutions').value.trim(),
@@ -1233,7 +1241,6 @@
                 };
 
                 // Validate required fields from the main feedback form
-                // Officer details are validated in the officer profile modal now
                 const requiredFields = [
                     'introduction', 'current_situation', 'challenges', 'possible_solutions',
                     'best_practices', 'priority_areas', 'way_forward_strategy',
@@ -1581,7 +1588,7 @@
                     window.open(url, '_blank');
                 } else {
                     // Download PDF
-                    const fileName = `feedback_${officerProfile.name || 'form'}_\${new Date().toISOString().split('T')[0]}.pdf`;
+                    const fileName = `feedback_${officerProfile.name || 'form'}_${new Date().toISOString().split('T')[0]}.pdf`;
                     pdf.save(fileName);
                 }
 
@@ -1877,10 +1884,18 @@
                 }
 
                 try {
+                    // Ensure currentUser.id is available for the user_id field
+                    if (!currentUser || !currentUser.id) {
+                        officerProfileAlert.textContent = 'लॉगिन उपयोगकर्ता जानकारी उपलब्ध नहीं है। कृपया पुनः लॉगिन करें।';
+                        officerProfileAlert.style.display = 'block';
+                        console.error('currentUser.id is null during officer profile creation attempt.');
+                        return;
+                    }
+
                     const { data, error } = await supabaseClient
                         .from('officer_profiles')
                         .insert([{
-                            user_id: currentUser.id,
+                            user_id: currentUser.id, // Explicitly use currentUser.id
                             name: newOfficerName,
                             designation: newOfficerDesignation,
                             batch: newOfficerBatch,
@@ -1890,7 +1905,11 @@
                         }])
                         .select();
 
-                    if (error) throw error;
+                    if (error) {
+                        console.error('Supabase error creating officer profile:', error); // Log detailed error
+                        showAlert(`ऑफिसर प्रोफाइल बनाने में त्रुटि: ${error.message || error.details || 'अज्ञात त्रुटि'}`, 'danger', 'officerProfileAlert');
+                        return;
+                    }
                     officerIdToUse = data[0].id;
                     console.log('New officer profile created:', officerIdToUse);
                     showAlert('नया ऑफिसर प्रोफाइल सफलतापूर्वक बनाया गया!', 'success', 'officerProfileAlert');
@@ -1898,7 +1917,7 @@
                     await loadOfficerProfiles(); 
 
                 } catch (error) {
-                    console.error('Error creating officer profile:', error);
+                    console.error('Error creating officer profile (catch block):', error);
                     showAlert('ऑफिसर प्रोफाइल बनाने में त्रुटि।', 'danger', 'officerProfileAlert');
                     return;
                 }
@@ -2236,6 +2255,7 @@
         ║  ✅ Times New Roman PDF Font & Current Posting Fix           ║
         ║  ✅ Officer Profile Management (Popup on Submit)             ║
         ║  ✅ "Best Practices" Description OUTSIDE Box                 ║
+        ║  ✅ Fixed N/A in Modal & Officer Profile Creation Error      ║
         ║                                                              ║
         ║  Keyboard Shortcuts:                                         ║
         ║  • Ctrl + S: Save Draft                                      ║
@@ -2246,7 +2266,7 @@
         `);
 
         console.log('🎉 Complete National Summit Feedback System loaded successfully');
-        console.log('💡 All Features: Officer profile management, Times New Roman PDF font, submit animation, clickable stats, reduced margins, centered headers, justified text, sky blue admin panel, Poppins font, sentence case, "Best Practices" description outside box.');
+        console.log('💡 All Features: Officer profile management, Times New Roman PDF font, submit animation, clickable stats, reduced margins, centered headers, justified text, sky blue admin panel, Poppins font, sentence case, "Best Practices" description outside box, FIXED N/A in modal and profile creation error.');
         console.log('🔧 Use debugFeedback.testPDF() to test PDF generation with comprehensive sample data');
     </script>
 </body>
