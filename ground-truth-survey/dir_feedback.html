@@ -1027,9 +1027,18 @@
 
         function handleLogout() {
             if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
-                window.location.href = 'login.html';
+                // Perform Supabase sign out to clear auth.uid() session
+                supabaseClient.auth.signOut().then(() => {
+                    console.log('Supabase signed out.');
+                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                }).catch(error => {
+                    console.error('Error signing out from Supabase:', error);
+                    localStorage.removeItem('user'); // Clear local storage even if Supabase sign out fails
+                    sessionStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                });
             }
         }
 
@@ -1076,7 +1085,7 @@
 
                 // Ensure authUserId is available before querying for profiles
                 if (!authUserId) {
-                    console.warn('authUserId not available for loading officer profiles.');
+                    console.warn('authUserId not available for loading officer profiles. User might not be fully authenticated with Supabase Auth.');
                     selectOfficerProfile.disabled = true;
                     selectOfficerProfile.textContent = "लॉगिन करें प्रोफाइल के लिए।";
                     return;
@@ -1117,66 +1126,80 @@
             
             try {
                 // Initialize Supabase first
+                console.log('1. Initializing Supabase client...');
                 if (!initializeSupabase()) {
-                    throw new Error('Supabase initialization failed');
+                    throw new Error('Supabase client initialization failed.');
                 }
 
-                // Get stored user from custom 'user' storage (test_users table)
-                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-                console.log('📦 Stored user data (from test_users):', storedUser ? 'Found' : 'Not found');
-                
-                if (!storedUser) {
-                    showAlert('Session expired. Please login again.', 'danger');
-                    setTimeout(() => window.location.href = 'login.html', 2000);
-                    return;
-                }
-
-                // Parse custom user data
-                currentUser = JSON.parse(storedUser);
-                currentUser.role = currentUser.role?.trim();
-                console.log('👤 Current user (from test_users):', currentUser);
-
-                // IMPORTANT: Get the actual authenticated user ID from Supabase Auth
+                // Get actual authenticated user ID from Supabase Auth
+                console.log('2. Attempting to get Supabase authenticated user...');
                 const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+                
                 if (authError || !user) {
+                    console.error('✗ Supabase authentication error:', authError);
                     showAlert('Authentication session expired or invalid. Please login again.', 'danger');
-                    setTimeout(() => window.location.href = 'login.html', 2000);
+                    // Immediately redirect if not authenticated via Supabase Auth
+                    setTimeout(() => window.location.href = 'login.html', 1000);
                     return;
                 }
                 authUserId = user.id; // Store the actual auth.uid()
-                console.log('🔑 Authenticated User ID (auth.uid()):', authUserId);
+                console.log('✓ Supabase Authenticated User ID (auth.uid()):', authUserId);
+
+                // Get stored user from custom 'user' storage (test_users table)
+                console.log('3. Retrieving custom user data from local storage...');
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
                 
-                // Update UI with user info (using custom user data)
-                const userInfoSpan = document.getElementById('userInfo');
-                if (userInfoSpan) {
-                    userInfoSpan.textContent = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
+                if (!storedUser) {
+                    console.warn('✗ No custom user data found in local storage.');
+                    showAlert('Custom user data not found. Please login again.', 'danger');
+                    // Allow to proceed, but officer profile features might be limited
+                    // Or, for stricter control, redirect: setTimeout(() => window.location.href = 'login.html', 1000);
+                } else {
+                    currentUser = JSON.parse(storedUser);
+                    currentUser.role = currentUser.role?.trim();
+                    console.log('✓ Custom User Data (from test_users):', currentUser);
                 }
                 
-                console.log('✓ User info updated');
+                // Update UI with user info (using custom user data if available, fallback otherwise)
+                const userInfoSpan = document.getElementById('userInfo');
+                if (userInfoSpan) {
+                    userInfoSpan.textContent = `${currentUser?.fullName || currentUser?.username || 'Guest'} (${currentUser?.districtName || 'N/A'})`;
+                }
+                console.log('✓ User info updated in UI.');
                 
-                // Show admin panel if user is admin
-                if (currentUser.role === 'admin' || currentUser.role === 'state_admin') {
+                // Show admin panel if user has admin role (from custom user data)
+                console.log('4. Checking user role for admin panel...');
+                if (currentUser?.role === 'admin' || currentUser?.role === 'state_admin') {
                     document.getElementById('adminPanel').style.display = 'block';
-                    console.log('✓ Admin panel enabled');
+                    console.log('✓ Admin panel enabled.');
                     await loadFeedbackStats();
+                } else {
+                    console.log('User is not admin/state_admin. Admin panel disabled.');
                 }
                 
                 // Update footer date time
+                console.log('5. Setting up footer date/time...');
                 updateFooterDateTime();
-                setInterval(updateFooterDateTime, 1000); // Update every second
+                setInterval(updateFooterDateTime, 1000);
                 
                 // Hide loading and show content
+                console.log('6. Hiding loading state and showing main content...');
                 hideLoading();
 
                 // Load districts for the new officer profile modal
+                console.log('7. Loading districts for new officer profile...');
                 await loadDistricts('newOfficerDistrict');
+                
                 // Load existing officer profiles (will now use authUserId)
+                console.log('8. Loading existing officer profiles...');
                 await loadOfficerProfiles();
                 
+                console.log('✓ Page initialization complete.');
+
             } catch (error) {
-                console.error('✗ Error initializing page:', error);
+                console.error('✗ FATAL ERROR during page initialization:', error);
                 hideLoading();
-                showAlert('Error loading page. Please login again.', 'danger');
+                showAlert(`Critical error loading page: ${error.message}. Please login again.`, 'danger');
                 setTimeout(() => window.location.href = 'login.html', 2000);
             }
         }
@@ -1268,7 +1291,19 @@
                     .insert([formData])
                     .select();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase error inserting feedback:', error);
+                    let errorMessage = 'फीडबैक सबमिट करने में त्रुटि।';
+                    if (error.code === '23503') { // Foreign key violation
+                        errorMessage += ' (ऑफिसर प्रोफाइल आईडी अमान्य है या मौजूद नहीं है)';
+                    } else if (error.message.includes('RLS policy')) {
+                        errorMessage += ' (सुरक्षा नीति द्वारा अस्वीकृत। सुनिश्चित करें कि आप सही उपयोगकर्ता के रूप में लॉग इन हैं)';
+                    } else {
+                         errorMessage += ` (${error.message || 'अज्ञात त्रुटि'})`;
+                    }
+                    showAlert(errorMessage, 'danger');
+                    return;
+                }
 
                 console.log('✅ Feedback submitted successfully:', data);
                 showSubmitSuccess(); // Show success animation
@@ -1303,6 +1338,7 @@
                 // Fetch officer profile details
                 let officerProfile = feedbackData.officer_profile_data_for_preview; // Use preview data if available
                 if (!officerProfile && feedbackData.officer_profile_id) {
+                    // If officer_profile_data_for_preview is not present, fetch from DB
                     const { data, error } = await supabaseClient
                         .from('officer_profiles')
                         .select('name, designation, batch, current_posting, mobile_number, districts(name)')
@@ -1311,6 +1347,7 @@
                     if (error) console.error('Error fetching officer profile for PDF:', error);
                     officerProfile = data || {};
                 } else if (!officerProfile) {
+                     // Fallback if no ID or preview data (should ideally not happen with proper flow)
                      officerProfile = { name: 'N/A', designation: 'N/A', batch: 'N/A', current_posting: 'N/A', mobile_number: 'N/A', districts: {name: 'N/A'} };
                 }
 
@@ -1918,12 +1955,12 @@
                     if (error) {
                         console.error('Supabase error creating officer profile:', error); // Log detailed error
                         let errorMessage = 'ऑफिसर प्रोफाइल बनाने में त्रुटि।';
-                        if (error.code === '23503') { // Foreign key violation
-                            errorMessage += ' (जिला आईडी अमान्य है या उपयोगकर्ता आईडी मौजूद नहीं है)';
+                        if (error.code === '23503') { // Foreign key violation (e.g., district_id invalid or user_id not in auth.users)
+                            errorMessage += ` (त्रुटि कोड: ${error.code}. सुनिश्चित करें कि जिला मौजूद है और उपयोगकर्ता सही ढंग से प्रमाणित है)`;
+                        } else if (error.code === '42501') { // RLS violation
+                            errorMessage += ` (सुरक्षा नीति द्वारा अस्वीकृत। सुनिश्चित करें कि RLS सही ढंग से कॉन्फ़िगर किया गया है और उपयोगकर्ता के पास अनुमति है)`;
                         } else if (error.message.includes('duplicate key')) { // Unique constraint violation
                             errorMessage += ' (यह प्रोफाइल पहले से मौजूद हो सकता है)';
-                        } else if (error.message.includes('RLS policy')) {
-                            errorMessage += ' (सुरक्षा नीति द्वारा अस्वीकृत। सुनिश्चित करें कि आप सही उपयोगकर्ता के रूप में लॉग इन हैं)';
                         } else {
                              errorMessage += ` (${error.message || 'अज्ञात त्रुटि'})`;
                         }
