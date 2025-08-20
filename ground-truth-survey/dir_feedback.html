@@ -97,10 +97,13 @@
             color: rgba(255, 255, 255, 0.9);
             font-weight: 500;
             font-family: 'Poppins', sans-serif;
+            background-color: yellow; /* User info background */
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
         }
 
         .logout-btn {
-            background: rgba(255, 255, 255, 0.1);
+            background-color: black !important; /* Black background */
             border: 1px solid rgba(255, 255, 255, 0.2);
             color: var(--white);
             padding: 0.5rem 1rem;
@@ -112,7 +115,7 @@
         }
 
         .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
+            background-color: #333333 !important;
             border-color: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
@@ -297,7 +300,7 @@
         }
 
         .admin-header {
-            background: var(--sky-blue); /* Sky blue background */
+            background-color: var(--sky-blue); /* Sky blue background */
             color: var(--text-primary);
             padding: 1.25rem 1.5rem;
             border-radius: var(--radius-lg) var(--radius-lg) 0 0;
@@ -321,6 +324,13 @@
             padding: 1rem;
             margin-bottom: 1rem;
             text-align: center;
+            cursor: pointer; /* Make clickable */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
         }
 
         .stats-number {
@@ -488,16 +498,40 @@
             overflow: hidden;
         }
 
+        /* Submit Success Animation */
+        .submit-success-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            color: white;
+            font-size: 1.5rem;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .submit-success-overlay .spinner-grow {
+            width: 3rem;
+            height: 3rem;
+            margin-bottom: 1rem;
+        }
+
         /* Print Styles for PDF Generation */
         @media print {
             body {
                 background: white !important;
-                font-family: 'Poppins', sans-serif;
+                font-family: 'Times New Roman', serif; /* PDF specific font */
                 font-size: 12px;
                 line-height: 1.4;
             }
             
-            .header, .admin-panel, .submit-container, .footer {
+            .header, .admin-panel, .submit-container, .footer, .submit-success-overlay {
                 display: none !important;
             }
             
@@ -598,7 +632,7 @@
                         <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
                         <span class="hindi">संचालनालय कृषि छत्तीसगढ़</span>
                     </a>
-                    <div class="user-info">
+                    <div class="user-info" id="userInfoContainer">
                         <span id="userInfo" class="hindi"></span>
                         <button id="btnLogout" class="btn logout-btn hindi">
                             <i class="fas fa-sign-out-alt me-1"></i>
@@ -769,16 +803,16 @@
                 <!-- Admin Panel -->
                 <div id="adminPanel" class="admin-panel" style="display: none;">
                     <div class="admin-header">
-                        <h4 class="hindi">Feedback Management</h4>
+                        <h3 class="hindi">फीडबैक प्रबंधन</h3>
                         <p class="hindi mb-0">रिपोर्ट और डाउनलोड</p>
                     </div>
                     <div class="admin-body">
-                        <div class="stats-card">
+                        <div class="stats-card" id="totalFeedbacksCard">
                             <div class="stats-number" id="totalFeedbacks">0</div>
                             <div class="stats-label hindi">कुल फीडबैक</div>
                         </div>
 
-                        <div class="stats-card">
+                        <div class="stats-card" id="todayFeedbacksCard">
                             <div class="stats-number" id="todayFeedbacks">0</div>
                             <div class="stats-label hindi">आज के फीडबैक</div>
                         </div>
@@ -795,17 +829,17 @@
 
                         <button class="admin-btn" id="downloadSinglePDF">
                             <i class="fas fa-file-pdf me-2"></i>
-                            <span class="hindi">Single PDF Download</span>
+                            <span class="hindi">एकल PDF डाउनलोड</span>
                         </button>
 
                         <button class="admin-btn" id="downloadBulkPDF">
                             <i class="fas fa-file-archive me-2"></i>
-                            <span class="hindi">Bulk PDF Download</span>
+                            <span class="hindi">बल्क PDF डाउनलोड</span>
                         </button>
 
                         <button class="admin-btn" id="viewAllFeedbacks">
                             <i class="fas fa-list me-2"></i>
-                            <span class="hindi">View All Feedback</span>
+                            <span class="hindi">सभी फीडबैक देखें</span>
                         </button>
                     </div>
                 </div>
@@ -856,6 +890,14 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Submit Success Overlay -->
+    <div class="submit-success-overlay" id="submitSuccessOverlay" style="display: none;">
+        <div class="spinner-grow text-success" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="hindi">फीडबैक सफलतापूर्वक सबमिट किया गया!</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -970,8 +1012,12 @@
                 console.log('👤 Current user:', currentUser);
                 
                 // Update UI with user info
-                const userInfo = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
-                document.getElementById('userInfo').textContent = userInfo;
+                // This assumes currentUser.fullName and currentUser.districtName are available
+                const userInfoSpan = document.getElementById('userInfo');
+                if (userInfoSpan) {
+                    userInfoSpan.textContent = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
+                }
+                
                 console.log('✓ User info updated');
                 
                 // Show admin panel if user is admin
@@ -1026,6 +1072,15 @@
             }
         }
 
+        // Show Submit Success Animation
+        function showSubmitSuccess() {
+            const overlay = document.getElementById('submitSuccessOverlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 2000); // Hide after 2 seconds
+        }
+
         // Submit Feedback Form
         async function submitFeedback(formData) {
             try {
@@ -1057,7 +1112,7 @@
                 if (error) throw error;
 
                 console.log('✅ Feedback submitted successfully:', data);
-                showAlert('Feedback submitted successfully!', 'success');
+                showSubmitSuccess(); // Show success animation
                 
                 // Reset form
                 document.getElementById('feedbackForm').reset();
@@ -1091,9 +1146,39 @@
                 const contentWidth = pageWidth - (2 * margin);
                 let yPosition = margin;
 
+                // Set default font to Times New Roman
+                pdf.setFont('times'); // Set font family
+                pdf.setFontSize(10); // Default font size for most text
+
+                // Helper function to add text with proper formatting and justification
+                function addText(text, x, y, options = {}) {
+                    const fontSize = options.fontSize || 9; // Default smaller font for body text
+                    const maxWidth = options.maxWidth || contentWidth;
+                    const lineHeight = options.lineHeight || fontSize * 0.4; // Adjusted for Times New Roman readability
+                    
+                    pdf.setFontSize(fontSize);
+                    if (options.font === 'times' && options.fontStyle === 'bold') pdf.setFont('times', 'bold');
+                    else if (options.font === 'times' && options.fontStyle === 'italic') pdf.setFont('times', 'italic');
+                    else if (options.font === 'times') pdf.setFont('times', 'normal');
+                    else if (options.font === 'helvetica' && options.fontStyle === 'bold') pdf.setFont('helvetica', 'bold');
+                    else if (options.font === 'helvetica' && options.fontStyle === 'italic') pdf.setFont('helvetica', 'italic');
+                    else pdf.setFont('helvetica', 'normal'); // Fallback to Helvetica if no specific font/style
+
+                    if (options.align) {
+                        pdf.text(text, x, y, { align: options.align, maxWidth: maxWidth });
+                        return y + lineHeight + 2;
+                    } else {
+                        const lines = pdf.splitTextToSize(text, maxWidth);
+                        lines.forEach((line, index) => {
+                            pdf.text(line, x, y + (index * lineHeight), { align: options.justify ? 'justify' : 'left' });
+                        });
+                        return y + (lines.length * lineHeight) + 3;
+                    }
+                }
+
                 // PAGE 1: Template 1: State Specific Note & Background Note
                 pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'bold');
+                pdf.setFont('times', 'bold');
                 pdf.text('Template 1: State Specific Note & Background Note', pageWidth / 2, yPosition, { align: 'center' });
                 yPosition += 15;
 
@@ -1106,7 +1191,7 @@
 
                 // National Summit headers CENTERED in each column
                 pdf.setFontSize(10);
-                pdf.setFont('helvetica', 'normal');
+                pdf.setFont('times', 'normal');
                 // Left column header - centered in left column
                 pdf.text('National Summit', leftColX + (colWidth / 2), leftY, { align: 'center' });
                 leftY += 4;
@@ -1124,185 +1209,92 @@
                 rightY += 10;
 
                 // Template 1: State Specific Note (left side header)
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Template 1: State Specific Note', leftColX, leftY);
+                addText('Template 1: State Specific Note', leftColX, leftY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 leftY += 10;
 
                 // LEFT COLUMN
                 // I. Introduction
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('I.    Introduction', leftColX, leftY);
+                addText('I.    Introduction', leftColX, leftY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 leftY += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const introLines = pdf.splitTextToSize('(Why is this topic important for the States/UTs? Highlight the data evidence to support the same)', colWidth);
-                introLines.forEach((line, index) => {
-                    pdf.text(line, leftColX, leftY + (index * 3.5), { align: 'justify' });
-                });
-                leftY += introLines.length * 3.5 + 5;
+                const introDesc = '(Why is this topic important for the States/UTs? Highlight the data evidence to support the same)';
+                addText(introDesc, leftColX, leftY, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: colWidth, justify: true });
+                leftY += pdf.splitTextToSize(introDesc, colWidth).length * 3.5 + 5;
 
                 // Text box for Introduction - Better sizing
                 pdf.rect(leftColX, leftY, colWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.introduction) {
-                    const introTextLines = pdf.splitTextToSize(feedbackData.introduction, colWidth - 4);
-                    introTextLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, leftColX + 2, leftY + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.introduction, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 leftY += 27;
 
                 // II. Current Situation
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('II.   Current Situation', leftColX, leftY);
+                addText('II.   Current Situation', leftColX, leftY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 leftY += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const currLines = pdf.splitTextToSize('(Current policy landscape, programmes, schemes and their progress)', colWidth);
-                currLines.forEach((line, index) => {
-                    pdf.text(line, leftColX, leftY + (index * 3.5), { align: 'justify' });
-                });
-                leftY += currLines.length * 3.5 + 5;
+                const currDesc = '(Current policy landscape, programmes, schemes and their progress)';
+                addText(currDesc, leftColX, leftY, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: colWidth, justify: true });
+                leftY += pdf.splitTextToSize(currDesc, colWidth).length * 3.5 + 5;
 
                 // Text box for Current Situation
                 pdf.rect(leftColX, leftY, colWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.currentSituation) {
-                    const currTextLines = pdf.splitTextToSize(feedbackData.currentSituation, colWidth - 4);
-                    currTextLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, leftColX + 2, leftY + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.currentSituation, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 leftY += 27;
 
                 // III. Challenges
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('III.  Challenges', leftColX, leftY);
+                addText('III.  Challenges', leftColX, leftY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 leftY += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const challLines = pdf.splitTextToSize('(Major policy, programmatic and capacity building gaps affecting the working of the States/UTs Administration)', colWidth);
-                challLines.forEach((line, index) => {
-                    pdf.text(line, leftColX, leftY + (index * 3.5), { align: 'justify' });
-                });
-                leftY += challLines.length * 3.5 + 5;
+                const challDesc = '(Major policy, programmatic and capacity building gaps affecting the working of the States/UTs Administration)';
+                addText(challDesc, leftColX, leftY, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: colWidth, justify: true });
+                leftY += pdf.splitTextToSize(challDesc, colWidth).length * 3.5 + 5;
 
                 // Text box for Challenges
                 pdf.rect(leftColX, leftY, colWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.challenges) {
-                    const challTextLines = pdf.splitTextToSize(feedbackData.challenges, colWidth - 4);
-                    challTextLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, leftColX + 2, leftY + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.challenges, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 leftY += 27;
 
                 // IV. Possible Solutions
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('IV.   Possible Solutions', leftColX, leftY);
+                addText('IV.   Possible Solutions', leftColX, leftY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 leftY += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const solLines = pdf.splitTextToSize('(Proposed ideas, actions that can be undertaken by different stakeholders. Scope for convergence with other schemes/programmes)', colWidth);
-                solLines.forEach((line, index) => {
-                    pdf.text(line, leftColX, leftY + (index * 3.5), { align: 'justify' });
-                });
-                leftY += solLines.length * 3.5 + 5;
+                const solDesc = '(Proposed ideas, actions that can be undertaken by different stakeholders. Scope for convergence with other schemes/programmes)';
+                addText(solDesc, leftColX, leftY, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: colWidth, justify: true });
+                leftY += pdf.splitTextToSize(solDesc, colWidth).length * 3.5 + 5;
 
                 // Text box for Possible Solutions
                 pdf.rect(leftColX, leftY, colWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.possibleSolutions) {
-                    const solTextLines = pdf.splitTextToSize(feedbackData.possibleSolutions, colWidth - 4);
-                    solTextLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, leftColX + 2, leftY + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.possibleSolutions, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
 
                 // RIGHT COLUMN
                 // V. Best Practices
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('V.    Best Practices', rightColX, rightY);
+                addText('V.    Best Practices', rightColX, rightY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 rightY += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const bestLines = pdf.splitTextToSize('(International (if any), Major Initiatives undertaken by States/UTs Administration. May also include initiatives for training and capacity-building that have been taken for effective implementation. Strategic communication campaigns undertaken to disseminate the programme, convergence, new technologies used for effective implementation)', colWidth);
-                bestLines.forEach((line, index) => {
-                    pdf.text(line, rightColX, rightY + (index * 3.5), { align: 'justify' });
-                });
-                rightY += bestLines.length * 3.5 + 5;
+                const bestDesc = '(International (if any), Major Initiatives undertaken by States/UTs Administration. May also include initiatives for training and capacity-building that have been taken for effective implementation. Strategic communication campaigns undertaken to disseminate the programme, convergence, new technologies used for effective implementation)';
+                addText(bestDesc, rightColX, rightY, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: colWidth, justify: true });
+                rightY += pdf.splitTextToSize(bestDesc, colWidth).length * 3.5 + 5;
 
                 // Text box for Best Practices
                 pdf.rect(rightColX, rightY, colWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.bestPractices) {
-                    const bestTextLines = pdf.splitTextToSize(feedbackData.bestPractices, colWidth - 4);
-                    bestTextLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, rightColX + 2, rightY + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.bestPractices, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 rightY += 27;
 
                 // VI. Priority Areas
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('VI.   Priority Areas', rightColX, rightY);
+                addText('VI.   Priority Areas', rightColX, rightY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 rightY += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const prioLines = pdf.splitTextToSize('(Selected for implementation by the States in the next 5 years)', colWidth);
-                prioLines.forEach((line, index) => {
-                    pdf.text(line, rightColX, rightY + (index * 3.5), { align: 'justify' });
-                });
-                rightY += prioLines.length * 3.5 + 5;
+                const prioDesc = '(Selected for implementation by the States in the next 5 years)';
+                addText(prioDesc, rightColX, rightY, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: colWidth, justify: true });
+                rightY += pdf.splitTextToSize(prioDesc, colWidth).length * 3.5 + 5;
 
                 // Text box for Priority Areas
                 pdf.rect(rightColX, rightY, colWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.priorityAreas) {
-                    const prioTextLines = pdf.splitTextToSize(feedbackData.priorityAreas, colWidth - 4);
-                    prioTextLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, rightColX + 2, rightY + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.priorityAreas, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 rightY += 27;
 
                 // VII. Way Forward - Strategy for Implementation
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('VII.  Way Forward - Strategy for Implementation', rightColX, rightY);
+                addText('VII.  Way Forward - Strategy for Implementation', rightColX, rightY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 rightY += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const wayLines = pdf.splitTextToSize('(Modality for implementation - Legal, Administrative, Technological, Budgetary reforms required for implementation)', colWidth);
-                wayLines.forEach((line, index) => {
-                    pdf.text(line, rightColX, rightY + (index * 3.5), { align: 'justify' });
-                });
-                rightY += wayLines.length * 3.5 + 5;
+                const wayDesc = '(Modality for implementation - Legal, Administrative, Technological, Budgetary reforms required for implementation)';
+                addText(wayDesc, rightColX, rightY, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: colWidth, justify: true });
+                rightY += pdf.splitTextToSize(wayDesc, colWidth).length * 3.5 + 5;
 
                 // Text box for Way Forward
                 pdf.rect(rightColX, rightY, colWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.wayForwardStrategy) {
-                    const wayTextLines = pdf.splitTextToSize(feedbackData.wayForwardStrategy, colWidth - 4);
-                    wayTextLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, rightColX + 2, rightY + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.wayForwardStrategy, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
 
                 // PAGE 2: Template 2: Feedback Note by Officers
                 pdf.addPage();
@@ -1310,13 +1302,13 @@
 
                 // Template 2 Header
                 pdf.setFontSize(14);
-                pdf.setFont('helvetica', 'bold');
+                pdf.setFont('times', 'bold');
                 pdf.text('Template 2: Feedback Note by Officers', pageWidth / 2, yPosition, { align: 'center' });
                 yPosition += 15;
 
                 // National Summit headers for Template 2 - CENTERED
                 pdf.setFontSize(10);
-                pdf.setFont('helvetica', 'normal');
+                pdf.setFont('times', 'normal');
                 // Left side
                 pdf.text('National Summit', leftColX + (colWidth / 2), yPosition, { align: 'center' });
                 pdf.text('Theme:', leftColX + (colWidth / 2), yPosition + 4, { align: 'center' });
@@ -1329,148 +1321,97 @@
                 yPosition += 20;
 
                 // Feedback Note header
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Feedback Note (by all IAS officers / State Department Officers)', margin, yPosition);
+                addText('Feedback Note (by all IAS officers / State Department Officers)', margin, yPosition, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 yPosition += 15;
 
                 // Section 1: Officer Name and Details
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Section 1: Officer Name and Details:', margin, yPosition);
+                addText('Section 1: Officer Name and Details:', margin, yPosition, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 yPosition += 10;
 
-                pdf.setFont('helvetica', 'normal');
+                pdf.setFontSize(10);
+                pdf.setFont('times', 'normal');
                 pdf.text(`• Name: ${feedbackData.officerName || ''}`, margin, yPosition);
                 yPosition += 6;
                 pdf.text(`• Designation: ${feedbackData.designation || ''}`, margin, yPosition);
                 yPosition += 6;
                 pdf.text(`• Batch: ${feedbackData.batch || ''}`, margin, yPosition);
                 yPosition += 6;
-                pdf.text(`• Current Posting: \${feedbackData.currentPosting || ''}`, margin, yPosition);
+                pdf.text(`• Current Posting: ${feedbackData.currentPosting || ''}`, margin, yPosition); // Ensure this displays data
                 yPosition += 15;
 
                 // Section 2: Feedback for Summit
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Section 2: Feedback for Summit on <Theme name>', margin, yPosition);
+                addText('Section 2: Feedback for Summit on <Theme name>', margin, yPosition, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 yPosition += 15;
 
                 // 1. Name of the sub theme
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('1. Name of the sub theme', margin, yPosition);
+                addText('1. Name of the sub theme', margin, yPosition, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 yPosition += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                pdf.text('(Choose from the sub theme of the summit)', margin, yPosition);
-                yPosition += 8;
+                const subThemeDesc = '(Choose from the sub theme of the summit)';
+                addText(subThemeDesc, margin, yPosition, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: contentWidth, justify: true });
+                yPosition += pdf.splitTextToSize(subThemeDesc, contentWidth).length * 3.5 + 5;
 
                 // Text box for sub theme
                 pdf.rect(margin, yPosition, contentWidth, 15);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.subThemeName) {
-                    const subThemeLines = pdf.splitTextToSize(feedbackData.subThemeName, contentWidth - 4);
-                    subThemeLines.slice(0, 3).forEach((line, index) => {
-                        pdf.text(line, margin + 2, yPosition + 4 + (index * 4), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.subThemeName, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
                 yPosition += 20;
 
                 // 2. Policy Gaps and Challenges
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('2. Policy Gaps and Challenges', margin, yPosition);
+                addText('2. Policy Gaps and Challenges', margin, yPosition, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 yPosition += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const policyDescLines = pdf.splitTextToSize('(Current policy challenges, administrative and implementing challenges with respect to the sub theme selected)', contentWidth);
-                policyDescLines.forEach((line, index) => {
-                    pdf.text(line, margin, yPosition + (index * 3.5), { align: 'justify' });
-                });
-                yPosition += policyDescLines.length * 3.5 + 5;
+                const policyDesc = '(Current policy challenges, administrative and implementing challenges with respect to the sub theme selected)';
+                addText(policyDesc, margin, yPosition, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: contentWidth, justify: true });
+                yPosition += pdf.splitTextToSize(policyDesc, contentWidth).length * 3.5 + 5;
 
                 // Text box for Policy Gaps
                 pdf.rect(margin, yPosition, contentWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.policyGapsChallenges) {
-                    const policyLines = pdf.splitTextToSize(feedbackData.policyGapsChallenges, contentWidth - 4);
-                    policyLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, margin + 2, yPosition + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.policyGapsChallenges, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
                 yPosition += 27;
 
                 // 3. Potential Solutions
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('3. Potential Solutions', margin, yPosition);
+                addText('3. Potential Solutions', margin, yPosition, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 yPosition += 4;
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const potentialDescLines = pdf.splitTextToSize('(Can potentially highlight new technology solutions, scope for convergence with other schemes/programmes etc.)', contentWidth);
-                potentialDescLines.forEach((line, index) => {
-                    pdf.text(line, margin, yPosition + (index * 3.5), { align: 'justify' });
-                });
-                yPosition += potentialDescLines.length * 3.5 + 5;
+                const potentialDesc = '(Can potentially highlight new technology solutions, scope for convergence with other schemes/programmes etc.)';
+                addText(potentialDesc, margin, yPosition, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: contentWidth, justify: true });
+                yPosition += pdf.splitTextToSize(potentialDesc, contentWidth).length * 3.5 + 5;
 
                 // Text box for Potential Solutions
                 pdf.rect(margin, yPosition, contentWidth, 22);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.potentialSolutions) {
-                    const potentialLines = pdf.splitTextToSize(feedbackData.potentialSolutions, contentWidth - 4);
-                    potentialLines.slice(0, 6).forEach((line, index) => {
-                        pdf.text(line, margin + 2, yPosition + 4 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                addText(feedbackData.potentialSolutions, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
                 yPosition += 27;
 
                 // Right side box for Template 2 (as shown in your PDF) - Better positioning
                 const rightBoxX = rightColX;
                 const rightBoxY = 65;
                 const rightBoxWidth = colWidth;
-                const rightBoxHeight = 65;
+                const rightBoxHeight = 65; // Adjusted height based on content
                 pdf.rect(rightBoxX, rightBoxY, rightBoxWidth, rightBoxHeight);
 
-                               // 4. Best Practices (in right box)
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('4. Best Practices', rightBoxX + 2, rightBoxY + 8);
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'italic');
-                const bestPracticesDescLines = pdf.splitTextToSize('(Highlight the practices, which are sustainable, replicable, scalable, monitorable etc. Can also highlight the block/district/State level practices)', rightBoxWidth - 4);
-                bestPracticesDescLines.forEach((line, index) => {
-                    pdf.text(line, rightBoxX + 2, rightBoxY + 12 + (index * 3.5), { align: 'justify' });
-                });
+                // 4. Best Practices (in right box) - description OUTSIDE the main text box
+                addText('4. Best Practices', rightBoxX + 2, rightBoxY + 8, { fontSize: 11, font: 'times', fontStyle: 'bold' });
+                const bestPracticesDesc = '(Highlight the practices, which are sustainable, replicable, scalable, monitorable etc. Can also highlight the block/district/State level practices)';
+                addText(bestPracticesDesc, rightBoxX + 2, rightBoxY + 12, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: rightBoxWidth - 4, justify: true });
 
-                // Text content for Best Practices
-                pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
-                if (feedbackData.feedbackBestPractices) {
-                    const bestPracticesLines = pdf.splitTextToSize(feedbackData.feedbackBestPractices, rightBoxWidth - 4);
-                    bestPracticesLines.slice(0, 10).forEach((line, index) => {
-                        pdf.text(line, rightBoxX + 2, rightBoxY + 25 + (index * 3.5), { align: 'justify' });
-                    });
-                }
+                // Text content for Best Practices (inside the box)
+                addText(feedbackData.feedbackBestPractices, rightBoxX + 2, rightBoxY + 25, { fontSize: 9, font: 'times', justify: true, maxWidth: rightBoxWidth - 4 });
 
                 // Instructions section at bottom - BETTER ALIGNED
                 const instructionsY = pageHeight - 55;
-                pdf.setFontSize(11);
-                pdf.setFont('helvetica', 'bold');
-                pdf.text('Instructions for filing feedback note:', margin, instructionsY);
+                addText('Instructions for filing feedback note:', margin, instructionsY, { fontSize: 11, font: 'times', fontStyle: 'bold' });
 
                 pdf.setFontSize(9);
-                pdf.setFont('helvetica', 'normal');
+                pdf.setFont('times', 'normal');
                 
                 // 1. References - properly aligned
                 pdf.text('1. References:', margin + 5, instructionsY + 8);
-                pdf.text('• In-text citing as well as the listing of all the references used for compiling the data', margin + 10, instructionsY + 12, { align: 'justify', maxWidth: contentWidth - 15 });
+                const ref1 = '• In-text citing as well as the listing of all the references used for compiling the data';
+                addText(ref1, margin + 10, instructionsY + 12, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 15 });
                 pdf.text('  and information.', margin + 12, instructionsY + 16);
                 pdf.text('• Hyperlinks can be added in the document', margin + 10, instructionsY + 20);
                 
                 // 2. Documentation style - properly aligned
                 pdf.text('2. Documentation style:', margin + 5, instructionsY + 26);
-                pdf.text('○ Microsoft Word - Paper Size A4 with one inch margin from all four sides', margin + 10, instructionsY + 30, { align: 'justify', maxWidth: contentWidth - 15 });
+                const docStyle = '○ Microsoft Word - Paper Size A4 with one inch margin from all four sides';
+                addText(docStyle, margin + 10, instructionsY + 30, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 15 });
 
                 if (isPreview) {
                     // Open in new tab for preview
@@ -1781,22 +1722,22 @@
                 // Collect form data for preview
                 const formData = {
                     // Template 1 fields
-                    introduction: document.getElementById('introduction').value.trim() || 'This topic is crucial for States/UTs as it addresses fundamental challenges in governance and policy implementation, supported by comprehensive data analysis and evidence-based recommendations.',
-                    currentSituation: document.getElementById('currentSituation').value.trim() || 'The current policy landscape encompasses various central and state schemes with varying degrees of implementation success across different regions, requiring systematic evaluation and improvement.',
-                    challenges: document.getElementById('challenges').value.trim() || 'Major policy gaps include coordination issues between departments, capacity building requirements, technological infrastructure limitations, and resource allocation challenges affecting effective implementation.',
-                    possibleSolutions: document.getElementById('possibleSolutions').value.trim() || 'Proposed solutions include establishing inter-departmental coordination mechanisms, capacity building programs, leveraging technology for better convergence, and implementing robust monitoring systems.',
-                    bestPractices: document.getElementById('bestPractices').value.trim() || 'International best practices from countries like Estonia and Singapore, along with successful state initiatives in Kerala and Gujarat, demonstrate effective digital governance models and innovative implementation strategies.',
-                    priorityAreas: document.getElementById('priorityAreas').value.trim() || 'Key priority areas for the next 5 years include digital infrastructure development, human resource capacity building, policy framework modernization, and sustainable implementation mechanisms.',
-                    wayForwardStrategy: document.getElementById('wayForwardStrategy').value.trim() || 'Implementation requires comprehensive legal reforms, administrative restructuring, technology adoption, and adequate budgetary allocation with phased rollout and continuous monitoring.',
+                    introduction: document.getElementById('introduction').value.trim() || 'This topic is crucial for States/UTs as it addresses fundamental challenges in governance and policy implementation, supported by comprehensive data analysis and evidence-based recommendations for sustainable development.',
+                    currentSituation: document.getElementById('currentSituation').value.trim() || 'The current policy landscape encompasses various central and state schemes with varying degrees of implementation success across different regions, requiring systematic evaluation and improvement strategies.',
+                    challenges: document.getElementById('challenges').value.trim() || 'Major policy gaps include coordination issues between departments, capacity building requirements, technological infrastructure limitations, and resource allocation challenges affecting effective implementation at grassroots level.',
+                    possibleSolutions: document.getElementById('possibleSolutions').value.trim() || 'Proposed solutions include establishing inter-departmental coordination mechanisms, comprehensive capacity building programs, leveraging advanced technology for better convergence, and implementing robust monitoring and evaluation systems.',
+                    bestPractices: document.getElementById('bestPractices').value.trim() || 'International best practices from countries like Estonia, Singapore, and Denmark, along with successful state initiatives in Kerala, Gujarat, and Telangana, demonstrate effective digital governance models, innovative implementation strategies, and sustainable development approaches.',
+                    priorityAreas: document.getElementById('priorityAreas').value.trim() || 'Key priority areas for the next 5 years include comprehensive digital infrastructure development, human resource capacity building, policy framework modernization, sustainable implementation mechanisms, and citizen-centric service delivery models.',
+                    wayForwardStrategy: document.getElementById('wayForwardStrategy').value.trim() || 'Implementation strategy requires comprehensive legal and regulatory reforms, systematic administrative restructuring, strategic technology adoption, adequate budgetary allocation with transparent utilization, phased rollout with continuous monitoring, and stakeholder engagement at all levels.',
                     // Template 2 fields
                     officerName: document.getElementById('officerName').value.trim() || 'Dr. Rajesh Kumar Singh',
                     designation: document.getElementById('designation').value.trim() || 'Joint Secretary',
                     batch: document.getElementById('batch').value.trim() || '2008',
                     currentPosting: document.getElementById('currentPosting').value.trim() || 'Ministry of Agriculture & Farmers Welfare',
-                    subThemeName: document.getElementById('subThemeName').value.trim() || 'Digital Agriculture Transformation and Farmer Empowerment through Technology Integration and Sustainable Development Practices',
-                    policyGapsChallenges: document.getElementById('policyGapsChallenges').value.trim() || 'Current challenges include fragmented digital systems, lack of interoperability between state and central databases, insufficient digital literacy among field officers, and coordination gaps between various departments.',
-                    potentialSolutions: document.getElementById('potentialSolutions').value.trim() || 'Solutions include developing unified digital platforms, implementing comprehensive training programs, establishing robust data governance frameworks, and creating integrated service delivery mechanisms.',
-                    feedbackBestPractices: document.getElementById('feedbackBestPractices').value.trim() || 'Successful practices include Andhra Pradesh comprehensive farmer database system, Karnataka mobile-based extension services, Telangana integrated crop monitoring system, and innovative technology adoption models.'
+                    subThemeName: document.getElementById('subThemeName').value.trim() || 'Digital Agriculture Transformation and Farmer Empowerment through Technology Integration, Sustainable Development Practices, and Comprehensive Rural Development Initiatives',
+                    policyGapsChallenges: document.getElementById('policyGapsChallenges').value.trim() || 'Current challenges include fragmented digital systems across departments, lack of interoperability between state and central databases, insufficient digital literacy among field officers, coordination gaps between various implementing agencies, and inadequate infrastructure in remote areas.',
+                    potentialSolutions: document.getElementById('potentialSolutions').value.trim() || 'Comprehensive solutions include developing unified digital platforms with seamless integration, implementing systematic training programs for capacity building, establishing robust data governance frameworks, and fostering public-private partnerships for sustainable development.',
+                    feedbackBestPractices: document.getElementById('feedbackBestPractices').value.trim() || 'Successful sustainable practices include Andhra Pradesh comprehensive farmer database system with real-time monitoring, Karnataka innovative mobile-based extension services, Telangana integrated crop monitoring system using satellite technology, and various state-level technology adoption models that have shown measurable impact on farmer welfare and agricultural productivity.'
                 };
 
                 await generatePDF(formData, true);
@@ -1901,6 +1842,21 @@
             });
         }
 
+        // Clickable stats cards
+        document.getElementById('totalFeedbacksCard').addEventListener('click', async () => {
+            const feedbacks = await getFeedbacksByDateRange(null, null); // All feedbacks
+            await displayFeedbacksInModal(feedbacks);
+            new bootstrap.Modal(document.getElementById('feedbackListModal')).show();
+        });
+
+        document.getElementById('todayFeedbacksCard').addEventListener('click', async () => {
+            const today = new Date().toISOString().split('T')[0];
+            const feedbacks = await getFeedbacksByDateRange(today, today); // Today's feedbacks
+            await displayFeedbacksInModal(feedbacks);
+            new bootstrap.Modal(document.getElementById('feedbackListModal')).show();
+        });
+
+
         // Set default date range (last 30 days)
         if (document.getElementById('startDate') && document.getElementById('endDate')) {
             const today = new Date();
@@ -2000,7 +1956,7 @@
                     challenges: 'Major policy gaps include coordination issues between departments, capacity building requirements, technological infrastructure limitations, and resource allocation challenges affecting effective implementation at grassroots level.',
                     possibleSolutions: 'Proposed solutions include establishing inter-departmental coordination mechanisms, comprehensive capacity building programs, leveraging advanced technology for better convergence, and implementing robust monitoring and evaluation systems.',
                     bestPractices: 'International best practices from countries like Estonia, Singapore, and Denmark, along with successful state initiatives in Kerala, Gujarat, and Telangana, demonstrate effective digital governance models, innovative implementation strategies, and sustainable development approaches.',
-                    priorityAreas: 'Key priority areas for the next 5 years include comprehensive digital infrastructure development, systematic human resource capacity building, policy framework modernization, sustainable implementation mechanisms, and citizen-centric service delivery models.',
+                    priorityAreas: 'Key priority areas for the next 5 years include comprehensive digital infrastructure development, human resource capacity building, policy framework modernization, sustainable implementation mechanisms, and citizen-centric service delivery models.',
                     wayForwardStrategy: 'Implementation strategy requires comprehensive legal and regulatory reforms, systematic administrative restructuring, strategic technology adoption, adequate budgetary allocation with transparent utilization, phased rollout with continuous monitoring, and stakeholder engagement at all levels.',
                     officerName: 'Dr. Rajesh Kumar Singh',
                     designation: 'Joint Secretary',
@@ -2008,7 +1964,7 @@
                     currentPosting: 'Ministry of Agriculture & Farmers Welfare',
                     subThemeName: 'Digital Agriculture Transformation and Farmer Empowerment through Technology Integration, Sustainable Development Practices, and Comprehensive Rural Development Initiatives',
                     policyGapsChallenges: 'Current challenges include fragmented digital systems across departments, lack of interoperability between state and central databases, insufficient digital literacy among field officers, coordination gaps between various implementing agencies, and inadequate infrastructure in remote areas.',
-                    potentialSolutions: 'Comprehensive solutions include developing unified digital platforms with seamless integration, implementing systematic training programs for capacity building, establishing robust data governance frameworks, creating integrated service delivery mechanisms, and fostering public-private partnerships for sustainable development.',
+                    potentialSolutions: 'Comprehensive solutions include developing unified digital platforms with seamless integration, implementing systematic training programs for capacity building, establishing robust data governance frameworks, and fostering public-private partnerships for sustainable development.',
                     feedbackBestPractices: 'Successful sustainable practices include Andhra Pradesh comprehensive farmer database system with real-time monitoring, Karnataka innovative mobile-based extension services, Telangana integrated crop monitoring system using satellite technology, and various state-level technology adoption models that have shown measurable impact on farmer welfare and agricultural productivity.'
                 };
                 await generatePDF(sampleData, true);
@@ -2049,6 +2005,8 @@
         ║  💾 Auto-save Draft & Character Counters                     ║
         ║  🔍 Date-wise Filtering & Footer with Date/Time              ║
         ║  ✨ Justified Text & Better Alignment                        ║
+        ║  ✅ Submit Success Animation & Clickable Stats               ║
+        ║  ✅ Times New Roman PDF Font & Current Posting Fix           ║
         ║                                                              ║
         ║  Keyboard Shortcuts:                                         ║
         ║  • Ctrl + S: Save Draft                                      ║
@@ -2059,7 +2017,7 @@
         `);
 
         console.log('🎉 Complete National Summit Feedback System loaded successfully');
-        console.log('💡 All Features: Reduced margins, centered headers, justified text, sky blue admin panel, Poppins font, sentence case');
+        console.log('💡 All Features: Reduced margins, centered headers, justified text, sky blue admin panel, Poppins font, sentence case, Times New Roman PDF font, submit animation, clickable stats.');
         console.log('🔧 Use debugFeedback.testPDF() to test PDF generation with comprehensive sample data');
     </script>
 </body>
