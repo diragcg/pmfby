@@ -248,6 +248,8 @@
             grid-template-columns: 1fr 1fr;
             gap: 20px;
             margin-bottom: 30px;
+            /* Hide these fields from main form as they are in popup now */
+            display: none; 
         }
 
         /* Submit Button */
@@ -498,7 +500,7 @@
             overflow: hidden;
         }
 
-        /* Submit Success Animation */
+        /* Submit Success Overlay */
         .submit-success-overlay {
             position: fixed;
             top: 0;
@@ -531,7 +533,7 @@
                 line-height: 1.4;
             }
             
-            .header, .admin-panel, .submit-container, .footer, .submit-success-overlay {
+            .header, .admin-panel, .submit-container, .footer, .submit-success-overlay, .modal-backdrop {
                 display: none !important;
             }
             
@@ -566,6 +568,14 @@
             
             .two-column .field-group {
                 margin-bottom: 15px;
+            }
+
+            /* Hide the modal from print */
+            .modal {
+                display: none !important;
+            }
+            .modal-dialog {
+                display: none !important;
             }
         }
 
@@ -728,7 +738,7 @@
                                     Template 2: Feedback Note by Officers
                                 </div>
                                 <div class="template-content">
-                                    <!-- Section 1: Officer Name and Details -->
+                                    <!-- Section 1: Officer Name and Details - These fields are now handled by the popup modal -->
                                     <div class="field-group">
                                         <label class="field-label">Feedback Note (by all IAS officers / State Department Officers)</label>
                                     </div>
@@ -736,22 +746,7 @@
                                     <div class="field-group">
                                         <label class="field-label">Section 1: Officer Name and Details:</label>
                                         <div class="officer-details">
-                                            <div>
-                                                <label class="field-label">• Name:</label>
-                                                <input type="text" class="form-input" id="officerName" required placeholder="Enter officer name">
-                                            </div>
-                                            <div>
-                                                <label class="field-label">• Designation:</label>
-                                                <input type="text" class="form-input" id="designation" required placeholder="Enter designation">
-                                            </div>
-                                            <div>
-                                                <label class="field-label">• Batch:</label>
-                                                <input type="text" class="form-input" id="batch" required placeholder="Enter batch year">
-                                            </div>
-                                            <div>
-                                                <label class="field-label">• Current Posting:</label>
-                                                <input type="text" class="form-input" id="currentPosting" required placeholder="Enter current posting">
-                                            </div>
+                                            <!-- These fields are intentionally empty as they are managed via the popup -->
                                         </div>
                                     </div>
 
@@ -892,6 +887,57 @@
         </div>
     </div>
 
+    <!-- Officer Profile Selection/Creation Modal -->
+    <div class="modal fade" id="officerProfileModal" tabindex="-1" aria-labelledby="officerProfileModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%); color: white;">
+                    <h5 class="modal-title" id="officerProfileModalLabel" style="font-family: 'Poppins', sans-serif;">ऑफिसर प्रोफाइल चुनें/बनाएं</h5>
+                    <!-- No close button, as it's a required step -->
+                </div>
+                <div class="modal-body">
+                    <div id="officerProfileAlert" class="alert alert-danger" style="display: none; font-family: 'Poppins', sans-serif;"></div>
+
+                    <div class="mb-3">
+                        <label for="selectOfficerProfile" class="form-label" style="font-family: 'Poppins', sans-serif; font-weight: bold;">मौजूदा प्रोफाइल चुनें:</label>
+                        <select class="form-select form-input" id="selectOfficerProfile">
+                            <option value="">-- प्रोफाइल चुनें --</option>
+                        </select>
+                    </div>
+
+                    <div class="text-center my-3" style="font-family: 'Poppins', sans-serif;">या</div>
+
+                    <div class="mb-3">
+                        <label for="newOfficerName" class="form-label" style="font-family: 'Poppins', sans-serif; font-weight: bold;">नया प्रोफाइल बनाएं:</label>
+                        <input type="text" class="form-control form-input" id="newOfficerName" placeholder="नाम" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-input" id="newOfficerDesignation" placeholder="पद" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-input" id="newOfficerBatch" placeholder="बैच" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="text" class="form-control form-input" id="newOfficerPosting" placeholder="वर्तमान पोस्टिंग" required>
+                    </div>
+                    <div class="mb-3">
+                        <select class="form-select form-input" id="newOfficerDistrict" required>
+                            <option value="">-- जिला चुनें --</option>
+                            <!-- Districts will be loaded here -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <input type="tel" class="form-control form-input" id="newOfficerMobile" pattern="[0-9]{10}" placeholder="मोबाइल नंबर (10 अंक)" required>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary" id="cancelOfficerProfile" style="font-family: 'Poppins', sans-serif;">रद्द करें</button>
+                    <button type="button" class="btn btn-primary" id="confirmOfficerProfile" style="font-family: 'Poppins', sans-serif;">प्रोफाइल पुष्टि करें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Submit Success Overlay -->
     <div class="submit-success-overlay" id="submitSuccessOverlay" style="display: none;">
         <div class="spinner-grow text-success" role="status">
@@ -913,6 +959,7 @@
         
         let supabaseClient = null;
         let currentUser = null;
+        let selectedOfficerProfileId = null; // To store the ID of the selected/created officer profile
 
         // Initialize Supabase
         function initializeSupabase() {
@@ -986,6 +1033,76 @@
             }
         }
 
+        // Load Districts for dropdowns
+        async function loadDistricts(selectElementId) {
+            try {
+                const districtSelect = document.getElementById(selectElementId);
+                
+                const { data, error } = await supabaseClient
+                    .from('districts')
+                    .select('id, name')
+                    .order('name', { ascending: true });
+                    
+                if (error) throw error;
+                
+                // Clear existing options except the first one
+                while (districtSelect.options.length > 1) {
+                    districtSelect.remove(1);
+                }
+                
+                // Add districts to dropdown
+                if (data) {
+                    data.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading districts:', error);
+                showAlert('Error loading districts for officer profile.', 'danger', 'officerProfileAlert');
+            }
+        }
+
+        // Load Officer Profiles for the current user
+        async function loadOfficerProfiles() {
+            try {
+                const selectOfficerProfile = document.getElementById('selectOfficerProfile');
+                // Clear existing options except the first one
+                while (selectOfficerProfile.options.length > 1) {
+                    selectOfficerProfile.remove(1);
+                }
+
+                const { data, error } = await supabaseClient
+                    .from('officer_profiles')
+                    .select('id, name, designation, batch, current_posting, mobile_number, districts(name)')
+                    .eq('user_id', currentUser.id)
+                    .order('name', { ascending: true });
+
+                if (error) throw error;
+
+                if (data && data.length > 0) {
+                    data.forEach(profile => {
+                        const option = document.createElement('option');
+                        option.value = profile.id;
+                        option.textContent = `${profile.name} (${profile.designation}, ${profile.districts?.name || 'N/A'})`;
+                        selectOfficerProfile.appendChild(option);
+                    });
+                    selectOfficerProfile.disabled = false; // Enable if profiles exist
+                } else {
+                    const option = document.createElement('option');
+                    option.value = "";
+                    option.textContent = "कोई प्रोफाइल नहीं मिला। नया बनाएं।";
+                    selectOfficerProfile.appendChild(option);
+                    selectOfficerProfile.disabled = true; // Disable if no profiles exist
+                }
+            } catch (error) {
+                console.error('Error loading officer profiles:', error);
+                showAlert('Error loading officer profiles.', 'danger', 'officerProfileAlert');
+            }
+        }
+
         // Initialize Page
         async function initializePage() {
             console.log('🚀 Initializing feedback form page...');
@@ -1012,7 +1129,6 @@
                 console.log('👤 Current user:', currentUser);
                 
                 // Update UI with user info
-                // This assumes currentUser.fullName and currentUser.districtName are available
                 const userInfoSpan = document.getElementById('userInfo');
                 if (userInfoSpan) {
                     userInfoSpan.textContent = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
@@ -1033,6 +1149,11 @@
                 
                 // Hide loading and show content
                 hideLoading();
+
+                // Load districts for the new officer profile modal
+                await loadDistricts('newOfficerDistrict');
+                // Load existing officer profiles
+                await loadOfficerProfiles();
                 
             } catch (error) {
                 console.error('✗ Error initializing page:', error);
@@ -1081,32 +1202,51 @@
             }, 2000); // Hide after 2 seconds
         }
 
-        // Submit Feedback Form
-        async function submitFeedback(formData) {
+        // Actual submission of the feedback form after officer profile is confirmed
+        async function proceedWithFeedbackSubmission(officerProfileId) {
             try {
+                const submitBtn = document.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Submitting...';
+
+                const formData = {
+                    user_id: currentUser.id,
+                    // Template 1 fields
+                    introduction: document.getElementById('introduction').value.trim(),
+                    current_situation: document.getElementById('currentSituation').value.trim(),
+                    challenges: document.getElementById('challenges').value.trim(),
+                    possible_solutions: document.getElementById('possibleSolutions').value.trim(),
+                    best_practices: document.getElementById('bestPractices').value.trim(),
+                    priority_areas: document.getElementById('priorityAreas').value.trim(),
+                    way_forward_strategy: document.getElementById('wayForwardStrategy').value.trim(),
+                    // Link to officer profile
+                    officer_profile_id: officerProfileId,
+                    // Template 2 fields (These are now directly from the main form, but not part of the officer_profile table itself)
+                    sub_theme_name: document.getElementById('subThemeName').value.trim(),
+                    policy_gaps_challenges: document.getElementById('policyGapsChallenges').value.trim(),
+                    potential_solutions: document.getElementById('potentialSolutions').value.trim(),
+                    feedback_best_practices: document.getElementById('feedbackBestPractices').value.trim(),
+                    created_at: new Date().toISOString()
+                };
+
+                // Validate required fields (excluding officer details which are now in profile)
+                const requiredFields = [
+                    'introduction', 'current_situation', 'challenges', 'possible_solutions',
+                    'best_practices', 'priority_areas', 'way_forward_strategy',
+                    'sub_theme_name', 'policy_gaps_challenges', 'potential_solutions', 'feedback_best_practices'
+                ];
+
+                for (const field of requiredFields) {
+                    if (!formData[field]) {
+                        throw new Error(`Please fill all required fields in the feedback form (e.g., ${field}).`);
+                    }
+                }
+
                 const { data, error } = await supabaseClient
                     .from('feedbacks')
-                    .insert([{
-                        user_id: currentUser.id,
-                        // Template 1 fields
-                        introduction: formData.introduction,
-                        current_situation: formData.currentSituation,
-                        challenges: formData.challenges,
-                        possible_solutions: formData.possibleSolutions,
-                        best_practices: formData.bestPractices,
-                        priority_areas: formData.priorityAreas,
-                        way_forward_strategy: formData.wayForwardStrategy,
-                        // Template 2 fields
-                        officer_name: formData.officerName,
-                        designation: formData.designation,
-                        batch: formData.batch,
-                        current_posting: formData.currentPosting,
-                        sub_theme_name: formData.subThemeName,
-                        policy_gaps_challenges: formData.policyGapsChallenges,
-                        potential_solutions: formData.potentialSolutions,
-                        feedback_best_practices: formData.feedbackBestPractices,
-                        created_at: new Date().toISOString()
-                    }])
+                    .insert([formData])
                     .select();
 
                 if (error) throw error;
@@ -1114,7 +1254,7 @@
                 console.log('✅ Feedback submitted successfully:', data);
                 showSubmitSuccess(); // Show success animation
                 
-                // Reset form
+                // Reset main form
                 document.getElementById('feedbackForm').reset();
                 
                 // Clear draft after successful submission
@@ -1125,11 +1265,13 @@
                     await loadFeedbackStats();
                 }
 
-                return data[0];
-
             } catch (error) {
                 console.error('❌ Error submitting feedback:', error);
-                throw error;
+                const errorMessage = error.message || 'Error submitting feedback.';
+                showAlert(errorMessage, 'danger');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             }
         }
 
@@ -1139,6 +1281,21 @@
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 
+                // Fetch officer profile details
+                let officerProfile = feedbackData.officer_profile_data_for_preview; // Use preview data if available
+                if (!officerProfile && feedbackData.officer_profile_id) {
+                    const { data, error } = await supabaseClient
+                        .from('officer_profiles')
+                        .select('name, designation, batch, current_posting, mobile_number, districts(name)')
+                        .eq('id', feedbackData.officer_profile_id)
+                        .single();
+                    if (error) console.error('Error fetching officer profile for PDF:', error);
+                    officerProfile = data || {};
+                } else if (!officerProfile) {
+                     officerProfile = { name: 'N/A', designation: 'N/A', batch: 'N/A', current_posting: 'N/A', mobile_number: 'N/A', districts: {name: 'N/A'} };
+                }
+
+
                 // REDUCED PDF margins for better space utilization
                 const margin = 12; // Reduced from 20 to 12
                 const pageWidth = 210;
@@ -1234,7 +1391,7 @@
 
                 // Text box for Current Situation
                 pdf.rect(leftColX, leftY, colWidth, 22);
-                addText(feedbackData.currentSituation, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
+                addText(feedbackData.current_situation, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 leftY += 27;
 
                 // III. Challenges
@@ -1258,7 +1415,7 @@
 
                 // Text box for Possible Solutions
                 pdf.rect(leftColX, leftY, colWidth, 22);
-                addText(feedbackData.possibleSolutions, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
+                addText(feedbackData.possible_solutions, leftColX + 2, leftY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
 
                 // RIGHT COLUMN
                 // V. Best Practices
@@ -1270,7 +1427,7 @@
 
                 // Text box for Best Practices
                 pdf.rect(rightColX, rightY, colWidth, 22);
-                addText(feedbackData.bestPractices, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
+                addText(feedbackData.best_practices, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 rightY += 27;
 
                 // VI. Priority Areas
@@ -1282,7 +1439,7 @@
 
                 // Text box for Priority Areas
                 pdf.rect(rightColX, rightY, colWidth, 22);
-                addText(feedbackData.priorityAreas, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
+                addText(feedbackData.priority_areas, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
                 rightY += 27;
 
                 // VII. Way Forward - Strategy for Implementation
@@ -1294,7 +1451,7 @@
 
                 // Text box for Way Forward
                 pdf.rect(rightColX, rightY, colWidth, 22);
-                addText(feedbackData.wayForwardStrategy, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
+                addText(feedbackData.way_forward_strategy, rightColX + 2, rightY + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: colWidth - 4 });
 
                 // PAGE 2: Template 2: Feedback Note by Officers
                 pdf.addPage();
@@ -1330,13 +1487,13 @@
 
                 pdf.setFontSize(10);
                 pdf.setFont('times', 'normal');
-                pdf.text(`• Name: ${feedbackData.officerName || ''}`, margin, yPosition);
+                pdf.text(`• Name: ${officerProfile.name || ''}`, margin, yPosition);
                 yPosition += 6;
-                pdf.text(`• Designation: ${feedbackData.designation || ''}`, margin, yPosition);
+                pdf.text(`• Designation: ${officerProfile.designation || ''}`, margin, yPosition);
                 yPosition += 6;
-                pdf.text(`• Batch: ${feedbackData.batch || ''}`, margin, yPosition);
+                pdf.text(`• Batch: ${officerProfile.batch || ''}`, margin, yPosition);
                 yPosition += 6;
-                pdf.text(`• Current Posting: ${feedbackData.currentPosting || ''}`, margin, yPosition); // Ensure this displays data
+                pdf.text(`• Current Posting: ${officerProfile.current_posting || ''}`, margin, yPosition); // Ensure this displays data
                 yPosition += 15;
 
                 // Section 2: Feedback for Summit
@@ -1352,7 +1509,7 @@
 
                 // Text box for sub theme
                 pdf.rect(margin, yPosition, contentWidth, 15);
-                addText(feedbackData.subThemeName, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
+                addText(feedbackData.sub_theme_name, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
                 yPosition += 20;
 
                 // 2. Policy Gaps and Challenges
@@ -1364,7 +1521,7 @@
 
                 // Text box for Policy Gaps
                 pdf.rect(margin, yPosition, contentWidth, 22);
-                addText(feedbackData.policyGapsChallenges, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
+                addText(feedbackData.policy_gaps_challenges, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
                 yPosition += 27;
 
                 // 3. Potential Solutions
@@ -1376,7 +1533,7 @@
 
                 // Text box for Potential Solutions
                 pdf.rect(margin, yPosition, contentWidth, 22);
-                addText(feedbackData.potentialSolutions, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
+                addText(feedbackData.potential_solutions, margin + 2, yPosition + 4, { fontSize: 9, font: 'times', justify: true, maxWidth: contentWidth - 4 });
                 yPosition += 27;
 
                 // Right side box for Template 2 (as shown in your PDF) - Better positioning
@@ -1386,13 +1543,15 @@
                 const rightBoxHeight = 65; // Adjusted height based on content
                 pdf.rect(rightBoxX, rightBoxY, rightBoxWidth, rightBoxHeight);
 
-                // 4. Best Practices (in right box) - description OUTSIDE the main text box
+                // 4. Best Practices (description OUTSIDE the main text box)
                 addText('4. Best Practices', rightBoxX + 2, rightBoxY + 8, { fontSize: 11, font: 'times', fontStyle: 'bold' });
                 const bestPracticesDesc = '(Highlight the practices, which are sustainable, replicable, scalable, monitorable etc. Can also highlight the block/district/State level practices)';
+                // This description is now placed BEFORE the box content, outside the box.
                 addText(bestPracticesDesc, rightBoxX + 2, rightBoxY + 12, { fontSize: 9, font: 'times', fontStyle: 'italic', maxWidth: rightBoxWidth - 4, justify: true });
 
                 // Text content for Best Practices (inside the box)
-                addText(feedbackData.feedbackBestPractices, rightBoxX + 2, rightBoxY + 25, { fontSize: 9, font: 'times', justify: true, maxWidth: rightBoxWidth - 4 });
+                // The actual text box starts after the description, so adjust Y for content
+                addText(feedbackData.feedback_best_practices, rightBoxX + 2, rightBoxY + 25, { fontSize: 9, font: 'times', justify: true, maxWidth: rightBoxWidth - 4 });
 
                 // Instructions section at bottom - BETTER ALIGNED
                 const instructionsY = pageHeight - 55;
@@ -1420,7 +1579,7 @@
                     window.open(url, '_blank');
                 } else {
                     // Download PDF
-                    const fileName = `feedback_${feedbackData.officerName || 'form'}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    const fileName = `feedback_${officerProfile.name || 'form'}_\${new Date().toISOString().split('T')[0]}.pdf`;
                     pdf.save(fileName);
                 }
 
@@ -1437,7 +1596,10 @@
             try {
                 let query = supabaseClient
                     .from('feedbacks')
-                    .select('*')
+                    .select(`
+                        *,
+                        officer_profiles(name, designation, batch, current_posting)
+                    `) // Fetch associated officer profile
                     .order('created_at', { ascending: false });
 
                 if (startDate) {
@@ -1469,10 +1631,10 @@
                     const feedback = feedbacks[i];
                     
                     // Generate PDF for each feedback
-                    const pdf = await generatePDF(feedback, false);
+                    const pdf = await generatePDF(feedback, false); // generatePDF now handles fetching profile
                     const pdfBlob = pdf.output('blob');
                     
-                    const fileName = `feedback_${feedback.officer_name || 'form'}_${feedback.created_at.split('T')[0]}.pdf`;
+                    const fileName = `feedback_${feedback.officer_profiles?.name || 'form'}_${feedback.created_at.split('T')[0]}.pdf`;
                     zip.file(fileName, pdfBlob);
                 }
 
@@ -1515,10 +1677,10 @@
                 
                 row.innerHTML = `
                     <td>${createdDate}</td>
-                    <td>${feedback.officer_name || 'N/A'}</td>
-                    <td>${feedback.designation || 'N/A'}</td>
-                    <td>${feedback.batch || 'N/A'}</td>
-                    <td>${feedback.current_posting || 'N/A'}</td>
+                    <td>${feedback.officer_profiles?.name || 'N/A'}</td>
+                    <td>${feedback.officer_profiles?.designation || 'N/A'}</td>
+                    <td>${feedback.officer_profiles?.batch || 'N/A'}</td>
+                    <td>${feedback.officer_profiles?.current_posting || 'N/A'}</td>
                     <td>
                         <button class="btn btn-sm btn-primary" onclick="downloadSingleFeedbackPDF('${feedback.id}')">
                             <i class="fas fa-download"></i> PDF
@@ -1535,13 +1697,16 @@
             try {
                 const { data, error } = await supabaseClient
                     .from('feedbacks')
-                    .select('*')
+                    .select(`
+                        *,
+                        officer_profiles(name, designation, batch, current_posting)
+                    `)
                     .eq('id', feedbackId)
                     .single();
 
                 if (error) throw error;
 
-                await generatePDF(data, false);
+                await generatePDF(data, false); // generatePDF now handles fetching profile
 
             } catch (error) {
                 console.error('Error downloading single feedback PDF:', error);
@@ -1560,15 +1725,7 @@
                 bestPractices: document.getElementById('bestPractices').value,
                 priorityAreas: document.getElementById('priorityAreas').value,
                 wayForwardStrategy: document.getElementById('wayForwardStrategy').value,
-                // Template 2 fields
-                officerName: document.getElementById('officerName').value,
-                designation: document.getElementById('designation').value,
-                batch: document.getElementById('batch').value,
-                currentPosting: document.getElementById('currentPosting').value,
-                subThemeName: document.getElementById('subThemeName').value,
-                policyGapsChallenges: document.getElementById('policyGapsChallenges').value,
-                potentialSolutions: document.getElementById('potentialSolutions').value,
-                feedbackBestPractices: document.getElementById('feedbackBestPractices').value
+                // officer_profile_id is not part of draft, as it's selected at submission
             };
             
             localStorage.setItem('feedbackDraft', JSON.stringify(formData));
@@ -1589,15 +1746,6 @@
                     document.getElementById('bestPractices').value = formData.bestPractices || '';
                     document.getElementById('priorityAreas').value = formData.priorityAreas || '';
                     document.getElementById('wayForwardStrategy').value = formData.wayForwardStrategy || '';
-                    // Template 2 fields
-                    document.getElementById('officerName').value = formData.officerName || '';
-                    document.getElementById('designation').value = formData.designation || '';
-                    document.getElementById('batch').value = formData.batch || '';
-                    document.getElementById('currentPosting').value = formData.currentPosting || '';
-                    document.getElementById('subThemeName').value = formData.subThemeName || '';
-                    document.getElementById('policyGapsChallenges').value = formData.policyGapsChallenges || '';
-                    document.getElementById('potentialSolutions').value = formData.potentialSolutions || '';
-                    document.getElementById('feedbackBestPractices').value = formData.feedbackBestPractices || '';
                     
                     console.log('📝 Form draft loaded');
                 } catch (error) {
@@ -1656,72 +1804,147 @@
         // Logout button
         document.getElementById('btnLogout').addEventListener('click', handleLogout);
 
-        // Feedback form submission
+        // Feedback form submission - NOW OPENS OFFICER PROFILE MODAL
         document.getElementById('feedbackForm').addEventListener('submit', async function(event) {
             event.preventDefault();
-            console.log('📝 Feedback form submitted');
+            console.log('📝 Feedback form submitted - Opening Officer Profile Modal');
             
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            
-            try {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<div class="spinner" style="width: 16px; height: 16px; border-width: 2px;"></div> Submitting...';
-                
-                // Collect form data
-                const formData = {
-                    // Template 1 fields
-                    introduction: document.getElementById('introduction').value.trim(),
-                    currentSituation: document.getElementById('currentSituation').value.trim(),
-                    challenges: document.getElementById('challenges').value.trim(),
-                    possibleSolutions: document.getElementById('possibleSolutions').value.trim(),
-                    bestPractices: document.getElementById('bestPractices').value.trim(),
-                    priorityAreas: document.getElementById('priorityAreas').value.trim(),
-                    wayForwardStrategy: document.getElementById('wayForwardStrategy').value.trim(),
-                    // Template 2 fields
-                    officerName: document.getElementById('officerName').value.trim(),
-                    designation: document.getElementById('designation').value.trim(),
-                    batch: document.getElementById('batch').value.trim(),
-                    currentPosting: document.getElementById('currentPosting').value.trim(),
-                    subThemeName: document.getElementById('subThemeName').value.trim(),
-                    policyGapsChallenges: document.getElementById('policyGapsChallenges').value.trim(),
-                    potentialSolutions: document.getElementById('potentialSolutions').value.trim(),
-                    feedbackBestPractices: document.getElementById('feedbackBestPractices').value.trim()
-                };
-
-                // Validate required fields
-                const requiredFields = [
-                    'introduction', 'currentSituation', 'challenges', 'possibleSolutions',
-                    'bestPractices', 'priorityAreas', 'wayForwardStrategy',
-                    'officerName', 'designation', 'batch', 'currentPosting',
-                    'subThemeName', 'policyGapsChallenges', 'potentialSolutions', 'feedbackBestPractices'
-                ];
-
-                for (const field of requiredFields) {
-                    if (!formData[field]) {
-                        throw new Error(`Please fill all required fields.`);
-                    }
+            // Validate main form fields first
+            const requiredFieldsMainForm = [
+                'introduction', 'currentSituation', 'challenges', 'possibleSolutions',
+                'bestPractices', 'priorityAreas', 'wayForwardStrategy',
+                'subThemeName', 'policyGapsChallenges', 'potentialSolutions', 'feedbackBestPractices'
+            ];
+            for (const fieldId of requiredFieldsMainForm) {
+                const field = document.getElementById(fieldId);
+                if (!field.value.trim()) {
+                    showAlert(`Please fill all required fields in the feedback form (e.g., ${field.id}).`, 'danger');
+                    return;
                 }
+            }
 
-                // Submit feedback
-                await submitFeedback(formData);
+            // Show Officer Profile Modal
+            const officerProfileModal = new bootstrap.Modal(document.getElementById('officerProfileModal'));
+            officerProfileModal.show();
+        });
 
-            } catch (error) {
-                console.error('❌ Error submitting feedback:', error);
-                const errorMessage = error.message || 'Error submitting feedback.';
-                showAlert(errorMessage, 'danger');
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = originalText;
+        // Officer Profile Modal Logic
+        const officerProfileModalElement = document.getElementById('officerProfileModal');
+        const officerProfileAlert = document.getElementById('officerProfileAlert');
+
+        document.getElementById('selectOfficerProfile').addEventListener('change', function() {
+            const selectedId = this.value;
+            if (selectedId) {
+                // Clear new profile fields if an existing one is selected
+                document.getElementById('newOfficerName').value = '';
+                document.getElementById('newOfficerDesignation').value = '';
+                document.getElementById('newOfficerBatch').value = '';
+                document.getElementById('newOfficerPosting').value = '';
+                document.getElementById('newOfficerDistrict').value = '';
+                document.getElementById('newOfficerMobile').value = '';
             }
         });
+
+        document.getElementById('confirmOfficerProfile').addEventListener('click', async function() {
+            officerProfileAlert.style.display = 'none'; // Hide previous alerts
+            const selectedProfileId = document.getElementById('selectOfficerProfile').value;
+            let officerIdToUse = null;
+
+            if (selectedProfileId) {
+                officerIdToUse = selectedProfileId;
+                console.log('Using existing officer profile:', officerIdToUse);
+            } else {
+                // Create new officer profile
+                const newOfficerName = document.getElementById('newOfficerName').value.trim();
+                const newOfficerDesignation = document.getElementById('newOfficerDesignation').value.trim();
+                const newOfficerBatch = document.getElementById('newOfficerBatch').value.trim();
+                const newOfficerPosting = document.getElementById('newOfficerPosting').value.trim();
+                const newOfficerDistrict = document.getElementById('newOfficerDistrict').value;
+                const newOfficerMobile = document.getElementById('newOfficerMobile').value.trim();
+
+                // Validate new profile fields
+                if (!newOfficerName || !newOfficerDesignation || !newOfficerBatch || !newOfficerPosting || !newOfficerDistrict || !newOfficerMobile) {
+                    officerProfileAlert.textContent = 'कृपया नए प्रोफाइल के सभी आवश्यक फ़ील्ड भरें।';
+                    officerProfileAlert.style.display = 'block';
+                    return;
+                }
+                if (newOfficerMobile.length !== 10 || !/^\d+$/.test(newOfficerMobile)) {
+                    officerProfileAlert.textContent = 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें।';
+                    officerProfileAlert.style.display = 'block';
+                    return;
+                }
+
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('officer_profiles')
+                        .insert([{
+                            user_id: currentUser.id,
+                            name: newOfficerName,
+                            designation: newOfficerDesignation,
+                            batch: newOfficerBatch,
+                            current_posting: newOfficerPosting,
+                            district_id: newOfficerDistrict,
+                            mobile_number: newOfficerMobile
+                        }])
+                        .select();
+
+                    if (error) throw error;
+                    officerIdToUse = data[0].id;
+                    console.log('New officer profile created:', officerIdToUse);
+                    showAlert('नया ऑफिसर प्रोफाइल सफलतापूर्वक बनाया गया!', 'success', 'officerProfileAlert');
+                    // Reload profiles for future use
+                    await loadOfficerProfiles(); 
+
+                } catch (error) {
+                    console.error('Error creating officer profile:', error);
+                    showAlert('ऑफिसर प्रोफाइल बनाने में त्रुटि।', 'danger', 'officerProfileAlert');
+                    return;
+                }
+            }
+
+            if (officerIdToUse) {
+                selectedOfficerProfileId = officerIdToUse; // Store the confirmed ID
+                const officerProfileModal = bootstrap.Modal.getInstance(officerProfileModalElement);
+                officerProfileModal.hide();
+                // Proceed with main feedback submission
+                await proceedWithFeedbackSubmission(selectedOfficerProfileId);
+            } else {
+                showAlert('कृपया एक ऑफिसर प्रोफाइल चुनें या नया बनाएं।', 'warning', 'officerProfileAlert');
+            }
+        });
+
+        document.getElementById('cancelOfficerProfile').addEventListener('click', function() {
+            const officerProfileModal = bootstrap.Modal.getInstance(officerProfileModalElement);
+            officerProfileModal.hide();
+            // Reset main form submit button state
+            document.querySelector('button[type="submit"]').disabled = false;
+            document.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-paper-plane me-2"></i> Submit Feedback';
+        });
+
 
         // Preview button
         document.getElementById('previewBtn').addEventListener('click', async function() {
             try {
-                // Collect form data for preview
+                // For preview, we'll use dummy officer data if no profile is selected/created
+                let dummyOfficerProfile = {
+                    name: 'Sample Officer Name',
+                    designation: 'Joint Secretary',
+                    batch: '2008',
+                    current_posting: 'Ministry of Agriculture & Farmers Welfare'
+                };
+                
+                // If a profile was previously selected/created, try to fetch it for preview
+                if (selectedOfficerProfileId) {
+                    const { data, error } = await supabaseClient
+                        .from('officer_profiles')
+                        .select('*')
+                        .eq('id', selectedOfficerProfileId)
+                        .single();
+                    if (data) dummyOfficerProfile = data;
+                    if (error) console.warn('Could not fetch selected officer profile for preview, using dummy data.');
+                }
+
                 const formData = {
-                    // Template 1 fields
                     introduction: document.getElementById('introduction').value.trim() || 'This topic is crucial for States/UTs as it addresses fundamental challenges in governance and policy implementation, supported by comprehensive data analysis and evidence-based recommendations for sustainable development.',
                     currentSituation: document.getElementById('currentSituation').value.trim() || 'The current policy landscape encompasses various central and state schemes with varying degrees of implementation success across different regions, requiring systematic evaluation and improvement strategies.',
                     challenges: document.getElementById('challenges').value.trim() || 'Major policy gaps include coordination issues between departments, capacity building requirements, technological infrastructure limitations, and resource allocation challenges affecting effective implementation at grassroots level.',
@@ -1729,15 +1952,15 @@
                     bestPractices: document.getElementById('bestPractices').value.trim() || 'International best practices from countries like Estonia, Singapore, and Denmark, along with successful state initiatives in Kerala, Gujarat, and Telangana, demonstrate effective digital governance models, innovative implementation strategies, and sustainable development approaches.',
                     priorityAreas: document.getElementById('priorityAreas').value.trim() || 'Key priority areas for the next 5 years include comprehensive digital infrastructure development, human resource capacity building, policy framework modernization, sustainable implementation mechanisms, and citizen-centric service delivery models.',
                     wayForwardStrategy: document.getElementById('wayForwardStrategy').value.trim() || 'Implementation strategy requires comprehensive legal and regulatory reforms, systematic administrative restructuring, strategic technology adoption, adequate budgetary allocation with transparent utilization, phased rollout with continuous monitoring, and stakeholder engagement at all levels.',
-                    // Template 2 fields
-                    officerName: document.getElementById('officerName').value.trim() || 'Dr. Rajesh Kumar Singh',
-                    designation: document.getElementById('designation').value.trim() || 'Joint Secretary',
-                    batch: document.getElementById('batch').value.trim() || '2008',
-                    currentPosting: document.getElementById('currentPosting').value.trim() || 'Ministry of Agriculture & Farmers Welfare',
-                    subThemeName: document.getElementById('subThemeName').value.trim() || 'Digital Agriculture Transformation and Farmer Empowerment through Technology Integration, Sustainable Development Practices, and Comprehensive Rural Development Initiatives',
-                    policyGapsChallenges: document.getElementById('policyGapsChallenges').value.trim() || 'Current challenges include fragmented digital systems across departments, lack of interoperability between state and central databases, insufficient digital literacy among field officers, coordination gaps between various implementing agencies, and inadequate infrastructure in remote areas.',
-                    potentialSolutions: document.getElementById('potentialSolutions').value.trim() || 'Comprehensive solutions include developing unified digital platforms with seamless integration, implementing systematic training programs for capacity building, establishing robust data governance frameworks, and fostering public-private partnerships for sustainable development.',
-                    feedbackBestPractices: document.getElementById('feedbackBestPractices').value.trim() || 'Successful sustainable practices include Andhra Pradesh comprehensive farmer database system with real-time monitoring, Karnataka innovative mobile-based extension services, Telangana integrated crop monitoring system using satellite technology, and various state-level technology adoption models that have shown measurable impact on farmer welfare and agricultural productivity.'
+                    // Pass officer profile data for PDF generation
+                    officer_profile_id: selectedOfficerProfileId, // Pass the ID, generatePDF will fetch it
+                    // Also pass the direct profile data for immediate preview if not yet saved to DB
+                    officer_profile_data_for_preview: dummyOfficerProfile,
+                    // Template 2 fields for preview
+                    sub_theme_name: document.getElementById('subThemeName').value.trim() || 'Digital Agriculture Transformation and Farmer Empowerment through Technology Integration, Sustainable Development Practices, and Comprehensive Rural Development Initiatives',
+                    policy_gaps_challenges: document.getElementById('policyGapsChallenges').value.trim() || 'Current challenges include fragmented digital systems across departments, lack of interoperability between state and central databases, insufficient digital literacy among field officers, coordination gaps between various implementing agencies, and inadequate infrastructure in remote areas.',
+                    potential_solutions: document.getElementById('potentialSolutions').value.trim() || 'Comprehensive solutions include developing unified digital platforms with seamless integration, implementing systematic training programs for capacity building, establishing robust data governance frameworks, and fostering public-private partnerships for sustainable development.',
+                    feedback_best_practices: document.getElementById('feedbackBestPractices').value.trim() || 'Successful sustainable practices include Andhra Pradesh comprehensive farmer database system with real-time monitoring, Karnataka innovative mobile-based extension services, Telangana integrated crop monitoring system using satellite technology, and various state-level technology adoption models that have shown measurable impact on farmer welfare and agricultural productivity.'
                 };
 
                 await generatePDF(formData, true);
@@ -1958,14 +2181,18 @@
                     bestPractices: 'International best practices from countries like Estonia, Singapore, and Denmark, along with successful state initiatives in Kerala, Gujarat, and Telangana, demonstrate effective digital governance models, innovative implementation strategies, and sustainable development approaches.',
                     priorityAreas: 'Key priority areas for the next 5 years include comprehensive digital infrastructure development, human resource capacity building, policy framework modernization, sustainable implementation mechanisms, and citizen-centric service delivery models.',
                     wayForwardStrategy: 'Implementation strategy requires comprehensive legal and regulatory reforms, systematic administrative restructuring, strategic technology adoption, adequate budgetary allocation with transparent utilization, phased rollout with continuous monitoring, and stakeholder engagement at all levels.',
-                    officerName: 'Dr. Rajesh Kumar Singh',
-                    designation: 'Joint Secretary',
-                    batch: '2008',
-                    currentPosting: 'Ministry of Agriculture & Farmers Welfare',
-                    subThemeName: 'Digital Agriculture Transformation and Farmer Empowerment through Technology Integration, Sustainable Development Practices, and Comprehensive Rural Development Initiatives',
-                    policyGapsChallenges: 'Current challenges include fragmented digital systems across departments, lack of interoperability between state and central databases, insufficient digital literacy among field officers, coordination gaps between various implementing agencies, and inadequate infrastructure in remote areas.',
-                    potentialSolutions: 'Comprehensive solutions include developing unified digital platforms with seamless integration, implementing systematic training programs for capacity building, establishing robust data governance frameworks, and fostering public-private partnerships for sustainable development.',
-                    feedbackBestPractices: 'Successful sustainable practices include Andhra Pradesh comprehensive farmer database system with real-time monitoring, Karnataka innovative mobile-based extension services, Telangana integrated crop monitoring system using satellite technology, and various state-level technology adoption models that have shown measurable impact on farmer welfare and agricultural productivity.'
+                    // Dummy officer profile for PDF preview
+                    officer_profile_id: 'dummy-id', // This ID won't exist in DB, but generatePDF handles it
+                    officer_profile_data_for_preview: {
+                        name: 'Dr. Rajesh Kumar Singh',
+                        designation: 'Joint Secretary',
+                        batch: '2008',
+                        current_posting: 'Ministry of Agriculture & Farmers Welfare'
+                    },
+                    sub_theme_name: 'Digital Agriculture Transformation and Farmer Empowerment through Technology Integration, Sustainable Development Practices, and Comprehensive Rural Development Initiatives',
+                    policy_gaps_challenges: 'Current challenges include fragmented digital systems across departments, lack of interoperability between state and central databases, insufficient digital literacy among field officers, coordination gaps between various implementing agencies, and inadequate infrastructure in remote areas.',
+                    potential_solutions: 'Comprehensive solutions include developing unified digital platforms with seamless integration, implementing systematic training programs for capacity building, establishing robust data governance frameworks, and fostering public-private partnerships for sustainable development.',
+                    feedback_best_practices: 'Successful sustainable practices include Andhra Pradesh comprehensive farmer database system with real-time monitoring, Karnataka innovative mobile-based extension services, Telangana integrated crop monitoring system using satellite technology, and various state-level technology adoption models that have shown measurable impact on farmer welfare and agricultural productivity.'
                 };
                 await generatePDF(sampleData, true);
             },
@@ -1978,14 +2205,12 @@
                     bestPractices: document.getElementById('bestPractices').value,
                     priorityAreas: document.getElementById('priorityAreas').value,
                     wayForwardStrategy: document.getElementById('wayForwardStrategy').value,
-                    officerName: document.getElementById('officerName').value,
-                    designation: document.getElementById('designation').value,
-                    batch: document.getElementById('batch').value,
-                    currentPosting: document.getElementById('currentPosting').value,
-                    subThemeName: document.getElementById('subThemeName').value,
-                    policyGapsChallenges: document.getElementById('policyGapsChallenges').value,
-                    potentialSolutions: document.getElementById('potentialSolutions').value,
-                    feedbackBestPractices: document.getElementById('feedbackBestPractices').value
+                    // Officer details are now from selected profile
+                    officer_profile_id: selectedOfficerProfileId,
+                    sub_theme_name: document.getElementById('subThemeName').value,
+                    policy_gaps_challenges: document.getElementById('policyGapsChallenges').value,
+                    potential_solutions: document.getElementById('potentialSolutions').value,
+                    feedback_best_practices: document.getElementById('feedbackBestPractices').value
                 };
             }
         };
@@ -2007,6 +2232,8 @@
         ║  ✨ Justified Text & Better Alignment                        ║
         ║  ✅ Submit Success Animation & Clickable Stats               ║
         ║  ✅ Times New Roman PDF Font & Current Posting Fix           ║
+        ║  ✅ Officer Profile Management (Popup on Submit)             ║
+        ║  ✅ "Best Practices" Description OUTSIDE Box                 ║
         ║                                                              ║
         ║  Keyboard Shortcuts:                                         ║
         ║  • Ctrl + S: Save Draft                                      ║
@@ -2017,7 +2244,7 @@
         `);
 
         console.log('🎉 Complete National Summit Feedback System loaded successfully');
-        console.log('💡 All Features: Reduced margins, centered headers, justified text, sky blue admin panel, Poppins font, sentence case, Times New Roman PDF font, submit animation, clickable stats.');
+        console.log('💡 All Features: Officer profile management, Times New Roman PDF font, submit animation, clickable stats, reduced margins, centered headers, justified text, sky blue admin panel, Poppins font, sentence case, "Best Practices" description outside box.');
         console.log('🔧 Use debugFeedback.testPDF() to test PDF generation with comprehensive sample data');
     </script>
 </body>
