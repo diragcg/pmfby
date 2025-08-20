@@ -958,8 +958,8 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
         let supabaseClient = null;
-        let currentUser = null;
-        let selectedOfficerProfileId = null; // To store the ID of the selected/created officer profile
+        let currentUser = null; // This holds data from your custom 'test_users' table
+        let authUserId = null; // This will hold the actual auth.uid()
 
         // Initialize Supabase
         function initializeSupabase() {
@@ -1074,9 +1074,9 @@
                     selectOfficerProfile.remove(1);
                 }
 
-                // Ensure currentUser is available before querying
-                if (!currentUser || !currentUser.id) {
-                    console.warn('currentUser not available for loading officer profiles.');
+                // Ensure authUserId is available before querying for profiles
+                if (!authUserId) {
+                    console.warn('authUserId not available for loading officer profiles.');
                     selectOfficerProfile.disabled = true;
                     selectOfficerProfile.textContent = "लॉगिन करें प्रोफाइल के लिए।";
                     return;
@@ -1085,7 +1085,7 @@
                 const { data, error } = await supabaseClient
                     .from('officer_profiles')
                     .select('id, name, designation, batch, current_posting, mobile_number, districts(name)')
-                    .eq('user_id', currentUser.id)
+                    .eq('user_id', authUserId) // Use authUserId here
                     .order('name', { ascending: true });
 
                 if (error) throw error;
@@ -1121,9 +1121,9 @@
                     throw new Error('Supabase initialization failed');
                 }
 
-                // Get stored user
+                // Get stored user from custom 'user' storage (test_users table)
                 const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-                console.log('📦 Stored user data:', storedUser ? 'Found' : 'Not found');
+                console.log('📦 Stored user data (from test_users):', storedUser ? 'Found' : 'Not found');
                 
                 if (!storedUser) {
                     showAlert('Session expired. Please login again.', 'danger');
@@ -1131,12 +1131,22 @@
                     return;
                 }
 
-                // Parse user data
+                // Parse custom user data
                 currentUser = JSON.parse(storedUser);
                 currentUser.role = currentUser.role?.trim();
-                console.log('👤 Current user:', currentUser);
+                console.log('👤 Current user (from test_users):', currentUser);
+
+                // IMPORTANT: Get the actual authenticated user ID from Supabase Auth
+                const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+                if (authError || !user) {
+                    showAlert('Authentication session expired or invalid. Please login again.', 'danger');
+                    setTimeout(() => window.location.href = 'login.html', 2000);
+                    return;
+                }
+                authUserId = user.id; // Store the actual auth.uid()
+                console.log('🔑 Authenticated User ID (auth.uid()):', authUserId);
                 
-                // Update UI with user info
+                // Update UI with user info (using custom user data)
                 const userInfoSpan = document.getElementById('userInfo');
                 if (userInfoSpan) {
                     userInfoSpan.textContent = `${currentUser.fullName || currentUser.username} (${currentUser.districtName || 'N/A'})`;
@@ -1160,7 +1170,7 @@
 
                 // Load districts for the new officer profile modal
                 await loadDistricts('newOfficerDistrict');
-                // Load existing officer profiles
+                // Load existing officer profiles (will now use authUserId)
                 await loadOfficerProfiles();
                 
             } catch (error) {
@@ -1221,7 +1231,7 @@
 
                 // Construct formData with fields that belong to the 'feedbacks' table
                 const formData = {
-                    user_id: currentUser.id, // Ensure user_id is from the current logged-in user
+                    user_id: authUserId, // Use authUserId here for consistency with RLS
                     // Template 1 fields (belong to feedbacks table)
                     introduction: document.getElementById('introduction').value.trim(),
                     current_situation: document.getElementById('currentSituation').value.trim(),
@@ -1884,18 +1894,18 @@
                 }
 
                 try {
-                    // Ensure currentUser.id is available for the user_id field
-                    if (!currentUser || !currentUser.id) {
+                    // Ensure authUserId is available for the user_id field
+                    if (!authUserId) {
                         officerProfileAlert.textContent = 'लॉगिन उपयोगकर्ता जानकारी उपलब्ध नहीं है। कृपया पुनः लॉगिन करें।';
                         officerProfileAlert.style.display = 'block';
-                        console.error('currentUser.id is null during officer profile creation attempt.');
+                        console.error('authUserId is null during officer profile creation attempt.');
                         return;
                     }
 
                     const { data, error } = await supabaseClient
                         .from('officer_profiles')
                         .insert([{
-                            user_id: currentUser.id, // Explicitly use currentUser.id
+                            user_id: authUserId, // Explicitly use authUserId here
                             name: newOfficerName,
                             designation: newOfficerDesignation,
                             batch: newOfficerBatch,
@@ -1907,7 +1917,17 @@
 
                     if (error) {
                         console.error('Supabase error creating officer profile:', error); // Log detailed error
-                        showAlert(`ऑफिसर प्रोफाइल बनाने में त्रुटि: ${error.message || error.details || 'अज्ञात त्रुटि'}`, 'danger', 'officerProfileAlert');
+                        let errorMessage = 'ऑफिसर प्रोफाइल बनाने में त्रुटि।';
+                        if (error.code === '23503') { // Foreign key violation
+                            errorMessage += ' (जिला आईडी अमान्य है या उपयोगकर्ता आईडी मौजूद नहीं है)';
+                        } else if (error.message.includes('duplicate key')) { // Unique constraint violation
+                            errorMessage += ' (यह प्रोफाइल पहले से मौजूद हो सकता है)';
+                        } else if (error.message.includes('RLS policy')) {
+                            errorMessage += ' (सुरक्षा नीति द्वारा अस्वीकृत। सुनिश्चित करें कि आप सही उपयोगकर्ता के रूप में लॉग इन हैं)';
+                        } else {
+                             errorMessage += ` (${error.message || 'अज्ञात त्रुटि'})`;
+                        }
+                        showAlert(errorMessage, 'danger', 'officerProfileAlert');
                         return;
                     }
                     officerIdToUse = data[0].id;
@@ -2255,7 +2275,7 @@
         ║  ✅ Times New Roman PDF Font & Current Posting Fix           ║
         ║  ✅ Officer Profile Management (Popup on Submit)             ║
         ║  ✅ "Best Practices" Description OUTSIDE Box                 ║
-        ║  ✅ Fixed N/A in Modal & Officer Profile Creation Error      ║
+        ║  ✅ FIXED N/A in Modal & Officer Profile Creation Error      ║
         ║                                                              ║
         ║  Keyboard Shortcuts:                                         ║
         ║  • Ctrl + S: Save Draft                                      ║
