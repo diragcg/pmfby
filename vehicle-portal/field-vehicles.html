@@ -310,5 +310,40 @@
             let csv = [];
             
             const headers = [];
-            table.querySelectorAll('thead th').forEach(th
+            table.querySelectorAll('thead th').forEach(th => {
+                if (th.textContent !== 'एक्शन') {
+                    headers.push(th.textContent);
+                }
+            });
+            csv.push(headers.join(','));
+            
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const row = [];
+                tr.querySelectorAll('td').forEach((td, index) => {
+                    if (index < 8) {
+                        row.push('"' + td.textContent.replace(/"/g, '""') + '"');
+                    }
+                });
+                csv.push(row.join(','));
+            });
+            
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'अन्य_मैदानी_कार्यालय_वाहन_आबंटन.csv';
+            link.click();
+        }
+
+        function logout() {
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
+
 
