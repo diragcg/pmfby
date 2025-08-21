@@ -1,1 +1,386 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSTC नीलामी बेचे गए वाहन</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Mukta', sans-serif; background: #f8f9fa; }
+        .navbar { background: linear-gradient(135deg, #17A2B8 0%, #138496 100%); }
+        .hindi { font-weight: 500; }
+        .table-container { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .form-control { border-radius: 8px; }
+        .btn-info { background: #17A2B8; border: none; color: white; }
+        .btn-info:hover { background: #138496; color: white; }
+        .table-info { background-color: #d1ecf1; }
+        .vehicle-input { width: 80px; text-align: center; }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand hindi" href="dashboard.html">
+                <i class="fas fa-arrow-left me-2"></i>MSTC नीलामी बेचे गए
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3 hindi" id="userInfo"></span>
+                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i> लॉगआउट
+                </button>
+            </div>
+        </div>
+    </nav>
 
+    <div class="container mt-4">
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="hindi">MSTC पोर्टल से नीलामी में बेचे गए वाहनों की संख्या</h4>
+                <button class="btn btn-info" onclick="addNewRow()">
+                    <i class="fas fa-plus me-2"></i>नई एंट्री जोड़ें
+                </button>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="mstcSoldTable">
+                    <thead class="table-info">
+                        <tr class="hindi">
+                            <th rowspan="2">SI NO</th>
+                            <th rowspan="2">Seller Name/office name</th>
+                            <th colspan="8">No of Vehicles Sold through auction from MSTC Portal</th>
+                            <th rowspan="2">Total</th>
+                            <th rowspan="2">Action</th>
+                        </tr>
+                        <tr class="hindi">
+                            <th>Two-Wheeler</th>
+                            <th>Four-Wheeler (Car/Jeep/SUV)</th>
+                            <th>Bus</th>
+                            <th>Truck</th>
+                            <th>Ambulance</th>
+                            <th>Fire Tender/Extinguisher</th>
+                            <th>Police Owned Vehicle</th>
+                            <th>Police Impounded Vehicle</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Dynamic rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-3">
+                <button class="btn btn-primary me-2" onclick="saveAllData()">
+                    <i class="fas fa-save me-2"></i>सभी डेटा सेव करें
+                </button>
+                <button class="btn btn-secondary me-2" onclick="loadData()">
+                    <i class="fas fa-refresh me-2"></i>डेटा रिफ्रेश करें
+                </button>
+                <button class="btn btn-info" onclick="exportToExcel()">
+                    <i class="fas fa-download me-2"></i>Excel में डाउनलोड करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal (Same structure as mstc-registered.html) -->
+    <div class="modal fade" id="entryModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="modalTitle">नई एंट्री जोड़ें</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="entryForm">
+                        <input type="hidden" id="entryId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">SI NO</label>
+                                <input type="number" class="form-control" id="siNo" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">Seller Name/Office Name</label>
+                                <input type="text" class="form-control" id="sellerName" required>
+                            </div>
+                        </div>
+                        
+                        <h6 class="hindi mb-3">बेचे गए वाहनों की संख्या दर्ज करें:</h6>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Two-Wheeler</label>
+                                <input type="number" class="form-control vehicle-input" id="twoWheeler" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Four-Wheeler</label>
+                                <input type="number" class="form-control vehicle-input" id="fourWheeler" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Bus</label>
+                                <input type="number" class="form-control vehicle-input" id="bus" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Truck</label>
+                                <input type="number" class="form-control vehicle-input" id="truck" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Ambulance</label>
+                                <input type="number" class="form-control vehicle-input" id="ambulance" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Fire Tender</label>
+                                <input type="number" class="form-control vehicle-input" id="fireTender" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Police Owned</label>
+                                <input type="number" class="form-control vehicle-input" id="policeOwned" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label hindi">Police Impounded</label>
+                                <input type="number" class="form-control vehicle-input" id="policeImpounded" min="0" value="0" onchange="calculateTotal()">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label hindi">Total</label>
+                                <input type="number" class="form-control" id="total" readonly style="background-color: #e9ecef;">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">रद्द करें</button>
+                    <button type="button" class="btn btn-info" onclick="saveEntry()">सेव करें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let currentEditId = null;
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            displayUserInfo();
+            loadData();
+        });
+
+        function displayUserInfo() {
+            const user = getCurrentUser();
+            if (user) {
+                document.getElementById('userInfo').textContent = 
+                    `${user.fullName} (${user.districtName})`;
+            }
+        }
+
+        function calculateTotal() {
+            const inputs = ['twoWheeler', 'fourWheeler', 'bus', 'truck', 'ambulance', 'fireTender', 'policeOwned', 'policeImpounded'];
+            let total = 0;
+            
+            inputs.forEach(id => {
+                const value = parseInt(document.getElementById(id).value) || 0;
+                total += value;
+            });
+            
+            document.getElementById('total').value = total;
+        }
+
+        async function loadData() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('mstc_auction_sold')
+                    .select('*')
+                    .order('si_no', { ascending: true });
+
+                if (error) throw error;
+
+                const tbody = document.getElementById('tableBody');
+                tbody.innerHTML = '';
+
+                data.forEach((row, index) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.si_no || ''}</td>
+                        <td>${row.seller_office_name || ''}</td>
+                        <td class="text-center">${row.two_wheeler || 0}</td>
+                        <td class="text-center">${row.four_wheeler || 0}</td>
+                        <td class="text-center">${row.bus || 0}</td>
+                        <td class="text-center">${row.truck || 0}</td>
+                        <td class="text-center">${row.ambulance || 0}</td>
+                        <td class="text-center">${row.fire_tender || 0}</td>
+                        <td class="text-center">${row.police_owned || 0}</td>
+                        <td class="text-center">${row.police_impounded || 0}</td>
+                        <td class="text-center"><strong>${row.total || 0}</strong></td>
+                        <td>
+                            <button class="btn btn-sm btn-info me-1" onclick="editEntry('${row.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEntry('${row.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (error) {
+                alert('डेटा लोड करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        function addNewRow() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'नई एंट्री जोड़ें';
+            document.getElementById('entryForm').reset();
+            document.getElementById('entryId').value = '';
+            
+            // Reset all vehicle counts to 0
+            ['twoWheeler', 'fourWheeler', 'bus', 'truck', 'ambulance', 'fireTender', 'policeOwned', 'policeImpounded'].forEach(id => {
+                document.getElementById(id).value = 0;
+            });
+            calculateTotal();
+            
+            const modal = new bootstrap.Modal(document.getElementById('entryModal'));
+            modal.show();
+        }
+
+        async function editEntry(id) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('mstc_auction_sold')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                currentEditId = id;
+                document.getElementById('modalTitle').textContent = 'एंट्री एडिट करें';
+                document.getElementById('entryId').value = data.id;
+                document.getElementById('siNo').value = data.si_no || '';
+                document.getElementById('sellerName').value = data.seller_office_name || '';
+                document.getElementById('twoWheeler').value = data.two_wheeler || 0;
+                document.getElementById('fourWheeler').value = data.four_wheeler || 0;
+                document.getElementById('bus').value = data.bus || 0;
+                document.getElementById('truck').value = data.truck || 0;
+                document.getElementById('ambulance').value = data.ambulance || 0;
+                document.getElementById('fireTender').value = data.fire_tender || 0;
+                document.getElementById('policeOwned').value = data.police_owned || 0;
+                document.getElementById('policeImpounded').value = data.police_impounded || 0;
+                
+                calculateTotal();
+
+                const modal = new bootstrap.Modal(document.getElementById('entryModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('डेटा लोड करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        async function saveEntry() {
+            try {
+                const formData = {
+                    si_no: parseInt(document.getElementById('siNo').value) || null,
+                    seller_office_name: document.getElementById('sellerName').value,
+                    two_wheeler: parseInt(document.getElementById('twoWheeler').value) || 0,
+                    four_wheeler: parseInt(document.getElementById('fourWheeler').value) || 0,
+                    bus: parseInt(document.getElementById('bus').value) || 0,
+                    truck: parseInt(document.getElementById('truck').value) || 0,
+                    ambulance: parseInt(document.getElementById('ambulance').value) || 0,
+                    fire_tender: parseInt(document.getElementById('fireTender').value) || 0,
+                    police_owned: parseInt(document.getElementById('policeOwned').value) || 0,
+                    police_impounded: parseInt(document.getElementById('policeImpounded').value) || 0,
+                    total: parseInt(document.getElementById('total').value) || 0
+                };
+
+                let result;
+                if (currentEditId) {
+                    result = await supabaseClient
+                        .from('mstc_auction_sold')
+                        .update(formData)
+                        .eq('id', currentEditId);
+                } else {
+                    result = await supabaseClient
+                        .from('mstc_auction_sold')
+                        .insert([formData]);
+                }
+
+                if (result.error) throw result.error;
+
+                alert('डेटा सफलतापूर्वक सेव हो गया!');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('entryModal'));
+                modal.hide();
+                
+                loadData();
+
+            } catch (error) {
+                alert('डेटा सेव करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        async function deleteEntry(id) {
+            if (confirm('क्या आप वाकई इस एंट्री को डिलीट करना चाहते हैं?')) {
+                try {
+                    const { error } = await supabaseClient
+                        .from('mstc_auction_sold')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    alert('एंट्री सफलतापूर्वक डिलीट हो गई!');
+                    loadData();
+
+                } catch (error) {
+                    alert('डिलीट करने में त्रुटि: ' + error.message);
+                }
+            }
+        }
+
+        function exportToExcel() {
+            const table = document.getElementById('mstcSoldTable');
+            let csv = [];
+            
+            // Headers
+            const headers = ['SI NO', 'Seller Name/Office Name', 'Two-Wheeler', 'Four-Wheeler', 'Bus', 'Truck', 'Ambulance', 'Fire Tender', 'Police Owned', 'Police Impounded', 'Total'];
+            csv.push(headers.join(','));
+            
+            // Data rows
+            table.querySelectorAll('tbody tr').forEach(tr => {
+                const row = [];
+                tr.querySelectorAll('td').forEach((td, index) => {
+                    if (index < 11) { // Exclude action column
+                        row.push('"' + td.textContent.replace(/"/g, '""') + '"');
+                    }
+                });
+                csv.push(row.join(','));
+            });
+            
+            const csvContent = csv.join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'MSTC_नीलामी_बेचे_गए_वाहन.csv';
+            link.click();
+        }
+
+        function logout() {
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
+
+            
