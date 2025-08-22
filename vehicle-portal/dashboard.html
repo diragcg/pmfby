@@ -3,289 +3,400 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>वाहन आबंटन प्रबंधन - डैशबोर्ड</title>
+    <title>संभाग स्तर कार्यालय - वाहन आबंटन</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
+        :root {
+            --primary-blue: #1e40af;
+            --secondary-blue: #3b82f6;
+            --success-green: #16a34a;
+            --warning-orange: #ea580c;
+            --danger-red: #dc2626;
+            --info-teal: #0891b2;
+            --dark-gray: #374151;
+            --light-gray: #f8fafc;
+        }
+
         body { 
             font-family: 'Poppins', sans-serif; 
-            font-weight: 100;
+            font-weight: 300;
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             min-height: 100vh;
             letter-spacing: 0.3px;
         }
         
         .hindi { 
-            font-weight: 200;
+            font-weight: 400;
             letter-spacing: 0.2px;
         }
         
-        .navbar { background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%); }
-        
+        .navbar { 
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 500;
+            font-size: 1.1rem; /* Smaller font for brand */
+        }
+        .navbar-brand i {
+            color: white;
+        }
+        .navbar-brand:hover {
+            color: #e0f2fe;
+        }
+
         /* User info styling */
         .user-info {
-            color: #1fafed !important;
+            color: #e0f2fe !important;
             font-weight: 400;
             background: rgba(255, 255, 255, 0.1);
             padding: 5px 10px;
             border-radius: 15px;
+            font-size: 0.85rem; /* Smaller font for user info */
         }
         
         /* Logout button styling */
         .logout-btn {
-            background-color: #000000 !important;
-            border-color: #000000 !important;
+            background-color: var(--danger-red) !important;
+            border-color: var(--danger-red) !important;
             color: white !important;
             font-weight: 400;
+            font-size: 0.85rem; /* Smaller font for logout button */
+            padding: 5px 12px;
         }
         .logout-btn:hover {
-            background-color: #333333 !important;
-            border-color: #333333 !important;
+            background-color: #b91c1c !important;
+            border-color: #b91c1c !important;
+            color: white !important;
         }
-        
-        /* Card base styling */
-        .module-card { 
-            border-radius: 20px; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15); 
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border: none;
-            height: 280px;
-        }
-        
-        .module-card:hover { 
-            transform: translateY(-10px); 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-        }
-        
-        .module-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--card-accent);
-        }
-        
-        /* Different card colors */
-        .card-division { 
-            --card-accent: #e74c3c;
+
+        /* Page Header */
+        .page-header {
             background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+            border-radius: 12px; /* Slightly smaller border radius */
+            padding: 20px; /* Slightly less padding */
+            margin-bottom: 25px; /* Slightly less margin */
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08); /* Lighter shadow */
+            border-top: 3px solid #e74c3c; /* Thinner border */
         }
-        .card-district { 
-            --card-accent: #3498db;
-            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
+
+        .page-header h4 {
+            color: #e74c3c;
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.3rem; /* Slightly smaller font for page title */
         }
-        .card-field { 
-            --card-accent: #f39c12;
-            background: linear-gradient(135deg, #fffbf0 0%, #fff3e0 100%);
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 10px; /* Slightly smaller border radius */
+            padding: 18px; /* Slightly less padding */
+            margin-bottom: 18px; /* Slightly less margin */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Lighter shadow */
+            border-left: 3px solid #e74c3c; /* Thinner border */
         }
-        .card-mstc-reg { 
-            --card-accent: #9b59b6;
-            background: linear-gradient(135deg, #faf5ff 0%, #f3e5f5 100%);
+
+        .filter-title {
+            color: #e74c3c;
+            font-weight: 600;
+            margin-bottom: 12px; /* Slightly less margin */
+            font-size: 1.05rem; /* Smaller font for filter title */
         }
-        .card-mstc-sold { 
-            --card-accent: #1abc9c;
-            background: linear-gradient(135deg, #f0fffe 0%, #e6fffa 100%);
+
+        /* Table Container */
+        .table-container { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-top: 3px solid #e74c3c;
         }
-        .card-reports { 
-            --card-accent: #34495e;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+
+        /* Table Styling */
+        .table {
+            border: 1px solid #e74c3c; /* Thinner border */
+            border-radius: 6px; /* Smaller border radius */
+            overflow: hidden;
+            margin-bottom: 0;
         }
-        
-        /* Icon colors */
-        .icon-division { color: #e74c3c; }
-        .icon-district { color: #3498db; }
-        .icon-field { color: #f39c12; }
-        .icon-mstc-reg { color: #9b59b6; }
-        .icon-mstc-sold { color: #1abc9c; }
-        .icon-reports { color: #34495e; }
-        
-        /* Button colors */
+
+        .table thead th {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            font-weight: 500;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid #c0392b;
+            padding: 10px 6px; /* Reduced padding */
+            font-size: 0.85rem; /* Smaller font for table headers */
+        }
+
+        .table tbody td {
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid #dee2e6;
+            padding: 8px 6px; /* Reduced padding */
+            font-weight: 300;
+            font-size: 0.8rem; /* **Smaller font for table data** */
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .table tbody tr:hover {
+            background-color: #fff5f5;
+        }
+
+        /* Form Controls */
+        .form-control, .form-select { 
+            border-radius: 6px; /* Smaller border radius */
+            border: 1px solid #ced4da; /* Thinner border */
+            font-weight: 300;
+            font-size: 0.85rem; /* Smaller font for form inputs */
+            padding: 8px 12px;
+            height: auto; /* Allow height to adjust */
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #e74c3c;
+            box-shadow: 0 0 0 0.15rem rgba(231, 76, 60, 0.2); /* Lighter shadow */
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 0.9rem; /* Smaller font for labels */
+            margin-bottom: 5px;
+        }
+
+        /* Button Styling */
         .btn-division { 
             background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
             border: none;
             color: white;
             font-weight: 400;
+            border-radius: 6px; /* Smaller border radius */
+            padding: 8px 18px; /* Reduced padding */
+            font-size: 0.9rem; /* Smaller font for buttons */
+            transition: all 0.3s ease;
         }
         .btn-division:hover { 
             background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
             color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(231, 76, 60, 0.3); /* Lighter shadow */
         }
-        
-        .btn-district { 
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+
+        .btn-secondary {
+            background: #6c757d;
             border: none;
-            color: white;
             font-weight: 400;
+            font-size: 0.9rem;
+            padding: 8px 18px;
+            border-radius: 6px;
         }
-        .btn-district:hover { 
-            background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
-            color: white;
+        .btn-secondary:hover {
+            background: #5a6268;
         }
-        
-        .btn-field { 
-            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
             border: none;
-            color: white;
             font-weight: 400;
+            font-size: 0.9rem;
+            padding: 8px 18px;
+            border-radius: 6px;
         }
-        .btn-field:hover { 
-            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
-            color: white;
+        .btn-info:hover {
+            background: linear-gradient(135deg, #138496 0%, #0f6674 100%);
         }
-        
-        .btn-mstc-reg { 
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+
+        /* Modal Styling */
+        .modal-content {
+            border-radius: 12px;
             border: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
             color: white;
-            font-weight: 400;
+            border-radius: 12px 12px 0 0;
+            border-bottom: none;
+            padding: 15px 20px;
         }
-        .btn-mstc-reg:hover { 
-            background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%);
-            color: white;
-        }
-        
-        .btn-mstc-sold { 
-            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
-            border: none;
-            color: white;
-            font-weight: 400;
-        }
-        .btn-mstc-sold:hover { 
-            background: linear-gradient(135deg, #16a085 0%, #138d75 100%);
-            color: white;
-        }
-        
-        .btn-reports { 
-            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-            border: none;
-            color: white;
-            font-weight: 400;
-        }
-        .btn-reports:hover { 
-            background: linear-gradient(135deg, #2c3e50 0%, #1b2631 100%);
-            color: white;
-        }
-        
-        /* Entry counter badge */
-        .entry-counter {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: var(--card-accent);
-            color: white;
-            border-radius: 20px;
-            padding: 5px 12px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            z-index: 10;
-        }
-        
-        .entry-counter:hover {
-            transform: scale(1.1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        
-        .card-icon { 
-            font-size: 3.5rem; 
-            margin-bottom: 20px;
-        }
-        
-        .card-title {
-            color: var(--card-accent);
-            font-weight: 600;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-        }
-        
-        .card-text {
-            color: #6c757d;
-            margin-bottom: 25px;
-            font-weight: 300;
-            line-height: 1.5;
-        }
-        
-        /* Loading spinner for counters */
-        .counter-loading {
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Page title styling */
-        .page-title {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .page-title h2 {
-            color: #2c3e50;
-            margin: 0;
-            font-weight: 500;
-            font-size: 1.8rem;
-        }
-        
-        /* Navbar brand styling */
-        .navbar-brand {
-            font-weight: 500;
-            font-size: 1.3rem;
-        }
-        
-        /* Modal styling */
+
         .modal-title {
             font-weight: 500;
+            font-size: 1.1rem;
         }
-        
-        .modal-body {
-            font-weight: 300;
+        .btn-close-white {
+            filter: invert(1);
         }
-        
-        .modal-body h4, .modal-body h5, .modal-body h6 {
-            font-weight: 500;
+
+        /* Action Buttons in Table */
+        .action-btn {
+            padding: 4px 8px; /* Smaller padding */
+            border-radius: 4px; /* Smaller border radius */
+            font-size: 0.75rem; /* Smaller font size */
         }
-        
-        /* List group items */
-        .list-group-item h6 {
+
+        .btn-warning.action-btn {
+            background: #f39c12;
+            color: white;
+        }
+
+        .btn-danger.action-btn {
+            background: #e74c3c;
+            color: white;
+        }
+
+        /* Pagination */
+        .pagination {
+            justify-content: center;
+            margin-top: 15px; /* Slightly less margin */
+        }
+
+        .page-link {
+            color: #e74c3c;
+            border-color: #e74c3c;
             font-weight: 400;
+            font-size: 0.85rem; /* Smaller font */
+            padding: 6px 10px; /* Reduced padding */
         }
-        
-        .list-group-item small {
-            font-weight: 300;
+
+        .page-link:hover {
+            background-color: #e74c3c;
+            border-color: #e74c3c;
+            color: white;
         }
-        
-        /* Stats in modal */
-        .border.rounded h5, .border.rounded h4 {
-            font-weight: 600;
+
+        .page-item.active .page-link {
+            background-color: #e74c3c;
+            border-color: #e74c3c;
         }
-        
-        .border.rounded small {
-            font-weight: 300;
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            color: white;
+            font-size: 1.5rem; /* Smaller spinner */
+        }
+        .loading-overlay p {
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .table-container {
+                padding: 15px;
+            }
+            
+            .page-header {
+                padding: 15px;
+            }
+            
+            .page-header h4 {
+                font-size: 1.1rem;
+            }
+            
+            .filter-section {
+                padding: 12px;
+            }
+
+            .form-control, .form-select, .form-label, .btn {
+                font-size: 0.8rem;
+            }
+
+            .table thead th, .table tbody td {
+                font-size: 0.75rem;
+                padding: 6px 4px;
+            }
+            .action-btn {
+                padding: 3px 6px;
+                font-size: 0.65rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .navbar, .filter-section, .modal, .btn, .pagination, .action-btn {
+                display: none !important;
+            }
+            
+            .table-container {
+                box-shadow: none;
+                border: 1px solid #000;
+                padding: 0;
+            }
+            
+            .table {
+                font-size: 9px;
+                width: 100%;
+                margin: 0;
+            }
+            
+            .table th, .table td {
+                border: 1px solid #000 !important;
+                padding: 3px 2px !important;
+                text-align: center !important;
+                vertical-align: middle !important;
+            }
+
+            .page-header {
+                text-align: center;
+                margin-bottom: 15px;
+                box-shadow: none;
+                border: none;
+            }
+            .page-header h4 {
+                font-size: 1.1rem;
+                color: #000;
+            }
+            
+            body {
+                font-size: 10px;
+                color: #000;
+                background-color: white !important;
+            }
+            
+            .table thead th {
+                background: #e7e7e7 !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+                border: 1px solid #000 !important;
+            }
         }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
-            <a class="navbar-brand hindi" href="#">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़" height="40" class="me-2">
-                वाहन आबंटन प्रबंधन सिस्टम
+            <a class="navbar-brand hindi" href="dashboard.html">
+                <i class="fas fa-arrow-left me-2"></i>संभाग स्तर कार्यालय
             </a>
             <div class="navbar-nav ms-auto">
                 <span class="navbar-text me-3 hindi user-info" id="userInfo"></span>
@@ -297,142 +408,199 @@
     </nav>
 
     <div class="container mt-4">
-        <div class="page-title">
-            <h2 class="hindi">वाहन आबंटन प्रबंधन मॉड्यूल</h2>
+        <!-- Page Header -->
+        <div class="page-header">
+            <h4 class="hindi text-center">संभाग स्तर कार्यालय - वाहन आबंटन प्रबंधन</h4>
         </div>
 
-        <div class="row g-4">
-            <!-- संभाग स्तर कार्यालय -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-division h-100 text-center">
-                    <div class="entry-counter" id="divisionCounter" onclick="showEntryDetails('division')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-division mb-3">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <h5 class="card-title hindi">संभाग स्तर कार्यालय</h5>
-                        <p class="card-text hindi">संभागीय कार्यालयों के वाहन आबंटन का प्रबंधन</p>
-                        <a href="division-vehicles.html" class="btn btn-division">
-                            <i class="fas fa-edit me-2"></i>डेटा एंट्री करें
-                        </a>
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h6 class="filter-title hindi">
+                <i class="fas fa-filter me-2"></i>फिल्टर और खोज विकल्प
+            </h6>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label hindi">खोजें</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="कार्यालय, पदनाम या रिमार्क में खोजें" onkeyup="filterTable()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label hindi">वाहन की पात्रता</label>
+                    <select class="form-select" id="eligibilityFilter" onchange="filterTable()">
+                        <option value="">सभी</option>
+                        <option value="हाँ">हाँ</option>
+                        <option value="नहीं">नहीं</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label hindi">वर्तमान आबंटन</label>
+                    <select class="form-select" id="allocationFilter" onchange="filterTable()">
+                        <option value="">सभी</option>
+                        <option value="हाँ">हाँ</option>
+                        <option value="नहीं">नहीं</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-secondary w-100" onclick="clearFilters()">
+                        <i class="fas fa-times me-2"></i>साफ़ करें
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="hindi mb-0" style="color: #e74c3c; font-size: 1.1rem;">संभाग स्तर कार्यालय</h5>
+                    <small class="text-muted">कुल एंट्री: <span id="totalEntries">0</span></small>
+                </div>
+                <div>
+                    <button class="btn btn-division me-2" onclick="addNewRow()">
+                        <i class="fas fa-plus me-2"></i>नई एंट्री जोड़ें
+                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download me-2"></i>एक्सपोर्ट
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-2"></i>Excel में डाउनलोड
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf me-2"></i>PDF में डाउनलोड
+                            </a></li>
+                        </ul>
                     </div>
                 </div>
             </div>
 
-            <!-- जिला स्तर कार्यालय -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-district h-100 text-center">
-                    <div class="entry-counter" id="districtCounter" onclick="showEntryDetails('district')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-district mb-3">
-                            <i class="fas fa-city"></i>
-                        </div>
-                        <h5 class="card-title hindi">जिला स्तर कार्यालय</h5>
-                        <p class="card-text hindi">जिला कार्यालयों के वाहन आबंटन का प्रबंधन</p>
-                        <a href="district-vehicles.html" class="btn btn-district">
-                            <i class="fas fa-edit me-2"></i>डेटा एंट्री करें
-                        </a>
-                    </div>
-                </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="divisionTable">
+                    <thead>
+                        <tr class="hindi">
+                            <th style="width: 7%;">
+                                क्रमांक
+                                <i class="fas fa-sort ms-1" onclick="sortTable(0)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 20%;">
+                                कार्यालय का नाम एवं जिला
+                                <i class="fas fa-sort ms-1" onclick="sortTable(1)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 15%;">
+                                पदनाम
+                                <i class="fas fa-sort ms-1" onclick="sortTable(2)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 10%;">
+                                वेतनमान
+                                <i class="fas fa-sort ms-1" onclick="sortTable(3)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 10%;">
+                                स्वीकृत पद संख्या
+                                <i class="fas fa-sort ms-1" onclick="sortTable(4)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 12%;">
+                                वाहन की पात्रता
+                            </th>
+                            <th style="width: 12%;">
+                                वर्तमान में वाहन आबंटित
+                            </th>
+                            <th style="width: 15%;">रिमार्क</th>
+                            <th style="width: 10%;">एक्शन</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Dynamic rows will be added here -->
+                    </tbody>
+                </table>
             </div>
 
-            <!-- अन्य मैदानी कार्यालय -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-field h-100 text-center">
-                    <div class="entry-counter" id="fieldCounter" onclick="showEntryDetails('field')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-field mb-3">
-                            <i class="fas fa-home"></i>
-                        </div>
-                        <h5 class="card-title hindi">अन्य मैदानी कार्यालय</h5>
-                        <p class="card-text hindi">फील्ड कार्यालयों के वाहन आबंटन का प्रबंधन</p>
-                        <a href="field-vehicles.html" class="btn btn-field">
-                            <i class="fas fa-edit me-2"></i>डेटा एंट्री करें
-                        </a>
-                    </div>
-                </div>
-            </div>
+            <!-- Pagination -->
+            <nav aria-label="Table pagination">
+                <ul class="pagination" id="pagination">
+                    <!-- Pagination will be generated here -->
+                </ul>
+            </nav>
 
-            <!-- MSTC नीलामी पंजीकृत -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-mstc-reg h-100 text-center">
-                    <div class="entry-counter" id="mstcRegCounter" onclick="showEntryDetails('mstc-registered')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-mstc-reg mb-3">
-                            <i class="fas fa-gavel"></i>
-                        </div>
-                        <h5 class="card-title hindi">MSTC नीलामी पंजीकृत</h5>
-                        <p class="card-text hindi">नीलामी के लिए पंजीकृत वाहनों का डेटा</p>
-                        <a href="mstc-registered.html" class="btn btn-mstc-reg">
-                            <i class="fas fa-edit me-2"></i>डेटा एंट्री करें
-                        </a>
-                    </div>
-                </div>
+            <div class="mt-3 text-center">
+                <button class="btn btn-secondary me-2" onclick="loadData()">
+                    <i class="fas fa-refresh me-2"></i>डेटा रिफ्रेश करें
+                </button>
             </div>
+        </div>
+    </div>
 
-            <!-- MSTC नीलामी बेचे गए -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-mstc-sold h-100 text-center">
-                    <div class="entry-counter" id="mstcSoldCounter" onclick="showEntryDetails('mstc-sold')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-mstc-sold mb-3">
-                            <i class="fas fa-handshake"></i>
-                        </div>
-                        <h5 class="card-title hindi">MSTC नीलामी बेचे गए</h5>
-                        <p class="card-text hindi">नीलामी में बेचे गए वाहनों का डेटा</p>
-                        <a href="mstc-sold.html" class="btn btn-mstc-sold">
-                            <i class="fas fa-edit me-2"></i>डेटा एंट्री करें
-                        </a>
-                    </div>
+    <!-- Add/Edit Modal -->
+    <div class="modal fade" id="entryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="modalTitle">नई एंट्री जोड़ें</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-            </div>
-
-            <!-- रिपोर्ट्स -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-reports h-100 text-center">
-                    <div class="entry-counter" id="reportsCounter" onclick="showEntryDetails('reports')" title="Click to view summary">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-reports mb-3">
-                            <i class="fas fa-chart-bar"></i>
+                <div class="modal-body">
+                    <form id="entryForm">
+                        <input type="hidden" id="entryId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">क्रमांक</label>
+                                <input type="number" class="form-control" id="serialNo" readonly style="background-color: #e9ecef;">
+                                <small class="text-muted hindi">यह स्वचालित रूप से भरा जाएगा</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">कार्यालय का नाम एवं जिला</label>
+                                <input type="text" class="form-control" id="officeName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">पदनाम</label>
+                                <input type="text" class="form-control" id="designation" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">वेतनमान</label>
+                                <input type="text" class="form-control" id="payScale">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">स्वीकृत पद संख्या</label>
+                                <input type="number" class="form-control" id="sanctionedPosts">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">वाहन की पात्रता</label>
+                                <select class="form-select" id="vehicleEligibility" required>
+                                    <option value="">चुनें</option>
+                                    <option value="हाँ">हाँ</option>
+                                    <option value="नहीं">नहीं</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">वर्तमान में वाहन आबंटित</label>
+                                <select class="form-select" id="currentAllocation" required>
+                                    <option value="">चुनें</option>
+                                    <option value="हाँ">हाँ</option>
+                                    <option value="नहीं">नहीं</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label hindi">रिमार्क</label>
+                                <textarea class="form-control" id="remarks" rows="3"></textarea>
+                            </div>
                         </div>
-                        <h5 class="card-title hindi">रिपोर्ट्स</h5>
-                        <p class="card-text hindi">सभी डेटा की रिपोर्ट्स देखें और डाउनलोड करें</p>
-                        <a href="reports.html" class="btn btn-reports">
-                            <i class="fas fa-file-alt me-2"></i>रिपोर्ट्स देखें
-                        </a>
-                    </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">रद्द करें</button>
+                    <button type="button" class="btn btn-division" onclick="saveEntry()">
+                        <i class="fas fa-save me-2"></i>सेव करें
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Entry Details Modal -->
-    <div class="modal fade" id="entryDetailsModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title hindi" id="modalTitle">एंट्री विवरण</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="modalBody">
-                    <!-- Entry details will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">बंद करें</button>
-                </div>
-            </div>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border loading-spinner" role="status"></div>
+            <p class="text-white mt-2">प्रोसेसिंग हो रही है...</p>
         </div>
     </div>
 
@@ -441,13 +609,20 @@
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        // Check authentication on page load
+        let currentEditId = null;
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let sortColumn = -1;
+        let sortDirection = 'asc';
+        
         document.addEventListener('DOMContentLoaded', function() {
             checkAuth();
             displayUserInfo();
-            loadEntryCounts();
+            loadData();
         });
-        
+
         function displayUserInfo() {
             const user = getCurrentUser();
             if (user) {
@@ -455,171 +630,505 @@
                     `${user.fullName} (${user.districtName})`;
             }
         }
-        
-        async function loadEntryCounts() {
-            try {
-                // Load counts for all modules
-                const [divisionCount, districtCount, fieldCount, mstcRegCount, mstcSoldCount] = await Promise.all([
-                    getTableCount('division_office_vehicles'),
-                    getTableCount('district_office_vehicles'), 
-                    getTableCount('field_office_vehicles'),
-                    getTableCount('mstc_auction_registered'),
-                    getTableCount('mstc_auction_sold')
-                ]);
 
-                // Update counters
-                updateCounter('divisionCounter', divisionCount);
-                updateCounter('districtCounter', districtCount);
-                updateCounter('fieldCounter', fieldCount);
-                updateCounter('mstcRegCounter', mstcRegCount);
-                updateCounter('mstcSoldCounter', mstcSoldCount);
-                
-                // Reports counter shows total
-                const totalEntries = divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount;
-                document.getElementById('reportsCounter').innerHTML = `<i class="fas fa-chart-bar"></i> ${totalEntries}`;
-
-            } catch (error) {
-                console.error('Error loading entry counts:', error);
-                // Show error state
-                document.querySelectorAll('.entry-counter').forEach(counter => {
-                    counter.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-                });
-            }
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
         }
 
-        async function getTableCount(tableName) {
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        async function loadData() {
             try {
-                const { count, error } = await supabaseClient
-                    .from(tableName)
-                    .select('*', { count: 'exact', head: true });
+                showLoading();
                 
+                const { data, error } = await supabaseClient
+                    .from('division_office_vehicles')
+                    .select('*')
+                    .order('serial_no', { ascending: true });
+
                 if (error) throw error;
-                return count || 0;
+
+                allData = data || [];
+                filteredData = [...allData];
+                
+                updateTotalCount();
+                renderTable();
+                renderPagination();
+                
+                hideLoading();
+
             } catch (error) {
-                console.error(`Error getting count for ${tableName}:`, error);
-                return 0;
+                hideLoading();
+                alert('डेटा लोड करने में त्रुटि: ' + error.message);
             }
         }
 
-        function updateCounter(counterId, count) {
-            const counter = document.getElementById(counterId);
-            counter.innerHTML = count;
+        function updateTotalCount() {
+            document.getElementById('totalEntries').textContent = filteredData.length;
         }
 
-        async function showEntryDetails(moduleType) {
-            const modal = new bootstrap.Modal(document.getElementById('entryDetailsModal'));
-            const modalTitle = document.getElementById('modalTitle');
-            const modalBody = document.getElementById('modalBody');
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            pageData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${row.serial_no || startIndex + index + 1}</strong></td>
+                    <td>${row.office_name_district || ''}</td>
+                    <td>${row.designation || ''}</td>
+                    <td>${row.pay_scale || ''}</td>
+                    <td>${row.sanctioned_posts || ''}</td>
+                    <td>
+                        <span class="badge ${row.vehicle_eligibility === 'हाँ' ? 'bg-success' : 'bg-danger'}">
+                            ${row.vehicle_eligibility || ''}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${row.current_allocation === 'हाँ' ? 'bg-success' : 'bg-warning'}">
+                            ${row.current_allocation || ''}
+                        </span>
+                    </td>
+                    <td>${row.remarks || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning action-btn me-1" onclick="editEntry('${row.id}')" title="एडिट करें">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger action-btn" onclick="deleteEntry('${row.id}')" title="डिलीट करें">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
             
-            // Set title based on module
-            const titles = {
-                'division': 'संभाग स्तर कार्यालय - एंट्री विवरण',
-                'district': 'जिला स्तर कार्यालय - एंट्री विवरण', 
-                'field': 'अन्य मैदानी कार्यालय - एंट्री विवरण',
-                'mstc-registered': 'MSTC नीलामी पंजीकृत - एंट्री विवरण',
-                'mstc-sold': 'MSTC नीलामी बेचे गए - एंट्री विवरण',
-                'reports': 'सभी मॉड्यूल का सारांश'
-            };
+            if (totalPages <= 1) return;
+
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1})">पिछला</a>`;
+            pagination.appendChild(prevLi);
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                pagination.appendChild(li);
+            }
+
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1})">अगला</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
             
-            modalTitle.textContent = titles[moduleType];
-            modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">लोड हो रहा है...</p></div>';
+            currentPage = page;
+            renderTable();
+            renderPagination();
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const eligibilityFilter = document.getElementById('eligibilityFilter').value;
+            const allocationFilter = document.getElementById('allocationFilter').value;
+
+            filteredData = allData.filter(row => {
+                const matchesSearch = !searchTerm || 
+                    (row.office_name_district && row.office_name_district.toLowerCase().includes(searchTerm)) ||
+                    (row.designation && row.designation.toLowerCase().includes(searchTerm)) ||
+                    (row.remarks && row.remarks.toLowerCase().includes(searchTerm));
+
+                const matchesEligibility = !eligibilityFilter || row.vehicle_eligibility === eligibilityFilter;
+                const matchesAllocation = !allocationFilter || row.current_allocation === allocationFilter;
+
+                return matchesSearch && matchesEligibility && matchesAllocation;
+            });
+
+            currentPage = 1;
+            updateTotalCount();
+            renderTable();
+            renderPagination();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('eligibilityFilter').value = '';
+            document.getElementById('allocationFilter').value = '';
+            filterTable();
+        }
+
+        function sortTable(columnIndex) {
+            const columns = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts'];
+            const column = columns[columnIndex];
             
-            modal.show();
-            
-            try {
-                let content = '';
+            if (sortColumn === columnIndex) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = columnIndex;
+                sortDirection = 'asc';
+            }
+
+            filteredData.sort((a, b) => {
+                let aVal = a[column] || '';
+                let bVal = b[column] || '';
                 
-                if (moduleType === 'reports') {
-                    // Show summary for all modules
-                    const [divisionCount, districtCount, fieldCount, mstcRegCount, mstcSoldCount] = await Promise.all([
-                        getTableCount('division_office_vehicles'),
-                        getTableCount('district_office_vehicles'),
-                        getTableCount('field_office_vehicles'),
-                        getTableCount('mstc_auction_registered'),
-                        getTableCount('mstc_auction_sold')
-                    ]);
-                    
-                    content = `
-                        <div class="row text-center">
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-danger">${divisionCount}</h5>
-                                    <small class="hindi">संभाग स्तर</small>
-                                </div>
-                            </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-primary">${districtCount}</h5>
-                                    <small class="hindi">जिला स्तर</small>
-                                </div>
-                            </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-warning">${fieldCount}</h5>
-                                    <small class="hindi">मैदानी कार्यालय</small>
-                                </div>
-                            </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-info">${mstcRegCount}</h5>
-                                    <small class="hindi">MSTC पंजीकृत</small>
-                                </div>
-                            </div>
-                            <div class="col-12">
-                                <div class="border rounded p-3 bg-light">
-                                    <h4 class="text-success">${divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount}</h4>
-                                    <small class="hindi">कुल एंट्री</small>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    // Show recent entries for specific module
-                    const tableNames = {
-                        'division': 'division_office_vehicles',
-                        'district': 'district_office_vehicles',
-                        'field': 'field_office_vehicles', 
-                        'mstc-registered': 'mstc_auction_registered',
-                        'mstc-sold': 'mstc_auction_sold'
-                    };
-                    
-                    const { data, error } = await supabaseClient
-                        .from(tableNames[moduleType])
-                        .select('*')
-                        .order('created_at', { ascending: false })
-                        .limit(5);
-                        
-                    if (error) throw error;
-                    
-                    if (data && data.length > 0) {
-                        content = '<div class="list-group">';
-                        data.forEach((item, index) => {
-                            const title = item.office_name_district || item.seller_office_name || `Entry ${index + 1}`;
-                            const date = new Date(item.created_at).toLocaleDateString('hi-IN');
-                            content += `
-                                <div class="list-group-item">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">${title}</h6>
-                                        <small>${date}</small>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                        content += '</div>';
-                        content += `<div class="mt-3 text-center"><small class="text-muted hindi">कुल ${await getTableCount(tableNames[moduleType])} एंट्री उपलब्ध हैं</small></div>`;
-                    } else {
-                        content = '<div class="text-center text-muted hindi">कोई एंट्री उपलब्ध नहीं है</div>';
-                    }
+                if (columnIndex === 0 || columnIndex === 4) { // Numbers
+                    aVal = parseInt(aVal) || 0;
+                    bVal = parseInt(bVal) || 0;
                 }
                 
-                modalBody.innerHTML = content;
-                
+                if (sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+
+            renderTable();
+            renderPagination();
+        }
+
+        async function getNextSerialNumber() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('division_office_vehicles')
+                    .select('serial_no')
+                    .order('serial_no', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                return data && data.length > 0 && data[0].serial_no !== null ? data[0].serial_no + 1 : 1;
             } catch (error) {
-                modalBody.innerHTML = '<div class="text-center text-danger hindi">डेटा लोड करने में त्रुटि हुई</div>';
-                console.error('Error loading entry details:', error);
+                console.error('Error getting next serial number:', error);
+                // Fallback if DB query fails, use current filtered data length + 1
+                return allData.length + 1;
             }
         }
-        
+
+        async function addNewRow() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'नई एंट्री जोड़ें';
+            document.getElementById('entryForm').reset();
+            document.getElementById('entryId').value = '';
+            
+            // Auto-fill serial number
+            const nextSerial = await getNextSerialNumber();
+            document.getElementById('serialNo').value = nextSerial;
+            
+            const modal = new bootstrap.Modal(document.getElementById('entryModal'));
+            modal.show();
+        }
+
+        async function editEntry(id) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('division_office_vehicles')
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                currentEditId = id;
+                document.getElementById('modalTitle').textContent = 'एंट्री एडिट करें';
+                document.getElementById('entryId').value = data.id;
+                document.getElementById('serialNo').value = data.serial_no || '';
+                document.getElementById('officeName').value = data.office_name_district || '';
+                document.getElementById('designation').value = data.designation || '';
+                document.getElementById('payScale').value = data.pay_scale || '';
+                document.getElementById('sanctionedPosts').value = data.sanctioned_posts || '';
+                document.getElementById('vehicleEligibility').value = data.vehicle_eligibility || '';
+                document.getElementById('currentAllocation').value = data.current_allocation || '';
+                document.getElementById('remarks').value = data.remarks || '';
+
+                const modal = new bootstrap.Modal(document.getElementById('entryModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('डेटा लोड करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        async function saveEntry() {
+            try {
+                showLoading();
+                const formData = {
+                    serial_no: parseInt(document.getElementById('serialNo').value) || null,
+                    office_name_district: document.getElementById('officeName').value,
+                    designation: document.getElementById('designation').value,
+                    pay_scale: document.getElementById('payScale').value,
+                    sanctioned_posts: parseInt(document.getElementById('sanctionedPosts').value) || null,
+                    vehicle_eligibility: document.getElementById('vehicleEligibility').value,
+                    current_allocation: document.getElementById('currentAllocation').value,
+                    remarks: document.getElementById('remarks').value
+                };
+
+                let result;
+                if (currentEditId) {
+                    // Update existing record
+                    result = await supabaseClient
+                        .from('division_office_vehicles')
+                        .update(formData)
+                        .eq('id', currentEditId);
+                } else {
+                    // Insert new record
+                    result = await supabaseClient
+                        .from('division_office_vehicles')
+                        .insert([formData]);
+                }
+
+                if (result.error) throw result.error;
+
+                alert('डेटा सफलतापूर्वक सेव हो गया!');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('entryModal'));
+                modal.hide();
+                
+                loadData();
+                hideLoading();
+
+            } catch (error) {
+                hideLoading();
+                alert('डेटा सेव करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        async function deleteEntry(id) {
+            if (confirm('क्या आप वाकई इस एंट्री को डिलीट करना चाहते हैं?')) {
+                try {
+                    showLoading();
+                    const { error } = await supabaseClient
+                        .from('division_office_vehicles')
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    alert('एंट्री सफलतापूर्वक डिलीट हो गई!');
+                    loadData();
+                    hideLoading();
+
+                } catch (error) {
+                    hideLoading();
+                    alert('डिलीट करने में त्रुटि: ' + error.message);
+                }
+            }
+        }
+
+        // Helper for Excel binary export
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+
+        function exportToExcel() {
+            showLoading();
+            const ws_data = [
+                ['संचालनालय कृषि छत्तीसगढ़ रायपुर'],
+                ['संभागीय वाहन आबंटन की जानकारी'],
+                ['रिपोर्ट दिनांक: ' + new Date().toLocaleDateString('hi-IN')],
+                [], // Empty row for spacing
+                ['क्रमांक', 'कार्यालय का नाम एवं जिला', 'पदनाम', 'वेतनमान', 'स्वीकृत पद संख्या', 'वाहन की पात्रता है अथवा नहीं', 'वर्तमान में वाहन आबंटित है या नहीं', 'रिमार्क']
+            ];
+
+            filteredData.forEach(row => {
+                ws_data.push([
+                    row.serial_no || '',
+                    row.office_name_district || '',
+                    row.designation || '',
+                    row.pay_scale || '',
+                    row.sanctioned_posts || '',
+                    row.vehicle_eligibility || '',
+                    row.current_allocation || '',
+                    row.remarks || ''
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+            // Set column widths
+            const colWidths = [
+                { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 15 }, 
+                { wch: 18 }, { wch: 25 }, { wch: 25 }, { wch: 40 }
+            ];
+            ws['!cols'] = colWidths;
+
+            // Merge cells for title
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },
+                { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } }
+            ];
+
+            // Style for titles and headers
+            const titleStyle = { 
+                font: { bold: true, sz: 16, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const subtitleStyle = { 
+                font: { bold: true, sz: 14, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const dateStyle = { 
+                font: { sz: 11, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const headerCellStyle = {
+                font: { bold: true, sz: 12, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                fill: { fgColor: { rgb: "FFD3D3D3" } }, /* Light gray background */
+                border: {
+                    top: { style: "thin", color: { rgb: "FF000000" } },
+                    bottom: { style: "thin", color: { rgb: "FF000000" } },
+                    left: { style: "thin", color: { rgb: "FF000000" } },
+                    right: { style: "thin", color: { rgb: "FF000000" } }
+                }
+            };
+            const dataCellStyle = {
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                border: {
+                    top: { style: "thin", color: { rgb: "FF000000" } },
+                    bottom: { style: "thin", color: { rgb: "FF000000" } },
+                    left: { style: "thin", color: { rgb: "FF000000" } },
+                    right: { style: "thin", color: { rgb: "FF000000" } }
+                }
+            };
+            
+            if (ws['A1']) ws['A1'].s = titleStyle;
+            if (ws['A2']) ws['A2'].s = subtitleStyle;
+            if (ws['A3']) ws['A3'].s = dateStyle;
+
+            // Apply header style to table headers
+            for (let c = 0; c < ws_data[4].length; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r: 4, c: c });
+                if (!ws[cellRef]) ws[cellRef] = {};
+                ws[cellRef].s = headerCellStyle;
+            }
+
+            // Apply data cell styles to data rows
+            for (let r = 5; r < ws_data.length; r++) {
+                for (let c = 0; c < ws_data[r].length; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                    if (!ws[cellRef]) ws[cellRef] = {};
+                    ws[cellRef].s = dataCellStyle;
+                }
+            }
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'संभाग_वाहन');
+
+            // Landscape orientation
+            if (!wb.Sheets['संभाग_वाहन']['!pageSetup']) wb.Sheets['संभाग_वाहन']['!pageSetup'] = {};
+            wb.Sheets['संभाग_वाहन']['!pageSetup'].orientation = 'landscape';
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+            const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'संभाग_स्तर_कार्यालय_वाहन_आबंटन.xlsx';
+            link.click();
+            hideLoading();
+        }
+
+        async function exportToPDF() {
+            showLoading();
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // 'l' for landscape
+
+            // IMPORTANT: For Hindi to render correctly, you MUST embed a Unicode font.
+            // This is a placeholder. You need to generate font files for jsPDF
+            // using tools like `jspdf-customfonts` or `jspdf-autotable` font generation.
+            // Example: doc.addFont('NotoSansDevanagari-Regular.ttf', 'NotoSansDevanagari', 'normal');
+            // doc.setFont('NotoSansDevanagari');
+            // For this example, we'll use a generic font. Hindi might not display correctly.
+            doc.setFont('helvetica'); // Fallback font, might not render Hindi characters
+
+            doc.setTextColor(0, 0, 0); // Black text color
+            doc.setFontSize(16);
+            doc.text('संचालनालय कृषि छत्तीसगढ़ रायपुर', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('संभागीय वाहन आबंटन की जानकारी', doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text('रिपोर्ट दिनांक: ' + new Date().toLocaleDateString('hi-IN'), doc.internal.pageSize.getWidth() / 2, 35, { align: 'center' });
+
+            const headers = [
+                'क्रमांक', 'कार्यालय का नाम एवं जिला', 'पदनाम', 'वेतनमान', 
+                'स्वीकृत पद संख्या', 'वाहन की पात्रता', 'वर्तमान में वाहन आबंटित', 'रिमार्क'
+            ];
+
+            const data = filteredData.map(row => [
+                row.serial_no || '',
+                row.office_name_district || '',
+                row.designation || '',
+                row.pay_scale || '',
+                row.sanctioned_posts || '',
+                row.vehicle_eligibility || '',
+                row.current_allocation || '',
+                row.remarks || ''
+            ]);
+
+            doc.autoTable({
+                head: [headers],
+                body: data,
+                startY: 45,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [211, 211, 211], // Light gray background
+                    textColor: [0, 0, 0], // Black text
+                    fontStyle: 'bold', 
+                    halign: 'center',
+                    valign: 'middle',
+                    fontSize: 8,
+                    lineColor: [0, 0, 0], // Black border
+                    lineWidth: 0.2
+                },
+                bodyStyles: { 
+                    textColor: [0, 0, 0], // Black text
+                    halign: 'center', 
+                    valign: 'middle',
+                    fontSize: 8,
+                    lineColor: [0, 0, 0], // Black border
+                    lineWidth: 0.1
+                },
+                alternateRowStyles: { 
+                    fillColor: [248, 249, 250] // Light gray for alternate rows
+                },
+                styles: {
+                    font: 'helvetica', // Use a font that supports Hindi, or embed one
+                    cellPadding: 2,
+                    lineWidth: 0.1,
+                    lineColor: [0, 0, 0] // All borders black
+                },
+                // Removed columnStyles to enable auto-fitting widths
+            });
+
+            doc.save('संभाग_स्तर_कार्यालय_वाहन_आबंटन.pdf');
+            hideLoading();
+        }
+
         function logout() {
             if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
                 localStorage.removeItem('user');
