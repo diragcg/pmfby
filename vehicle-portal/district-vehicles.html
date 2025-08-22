@@ -49,12 +49,18 @@
         .navbar-brand {
             font-weight: 500;
             font-size: 1.1rem; /* Smaller font for brand */
+            display: flex;
+            align-items: center;
         }
         .navbar-brand i {
             color: white;
         }
         .navbar-brand:hover {
             color: #e0f2fe;
+        }
+        .navbar-brand img {
+            height: 35px; /* Adjust logo size */
+            margin-right: 10px;
         }
 
         /* User info styling */
@@ -400,6 +406,7 @@
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand hindi" href="dashboard.html">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार">
                 <i class="fas fa-arrow-left me-2"></i>जिला स्तर कार्यालय
             </a>
             <div class="navbar-nav ms-auto">
@@ -552,13 +559,23 @@
                                 <small class="text-muted hindi">यह स्वचालित रूप से भरा जाएगा</small>
                             </div>
                             <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">कार्यालय उपसर्ग</label>
+                                <select class="form-select" id="officePrefix" onchange="updateOfficeNameAndDistrict()" required>
+                                    <option value="">-- उपसर्ग चुनें --</option>
+                                    <!-- Options populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label hindi">कार्यालय का नाम एवं जिला</label>
-                                <input type="text" class="form-control" id="officeName" required readonly style="background-color: #e9ecef;"> <!-- Made readonly and autofilled -->
-                                <small class="text-muted hindi">यह आपके लॉगिन जिले से स्वचालित रूप से भरा जाएगा</small>
+                                <input type="text" class="form-control" id="officeName" required readonly style="background-color: #e9ecef;">
+                                <small class="text-muted hindi">यह स्वचालित रूप से भरा जाएगा</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label hindi">पदनाम</label>
-                                <input type="text" class="form-control" id="designation" required>
+                                <select class="form-select" id="designation" required>
+                                    <option value="">-- पदनाम चुनें --</option>
+                                    <!-- Options populated dynamically -->
+                                </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label hindi">वेतनमान</label>
@@ -621,10 +638,13 @@
         let itemsPerPage = 10;
         let sortColumn = -1;
         let sortDirection = 'asc';
-        
+        let officePrefixes = []; // To store office prefixes
+        let posts = []; // To store posts
+
         document.addEventListener('DOMContentLoaded', function() {
             checkAuth();
             displayUserInfo();
+            loadDropdownData(); // Load dropdowns first
             loadData();
         });
 
@@ -644,12 +664,69 @@
             document.getElementById('loadingOverlay').style.display = 'none';
         }
 
+        async function loadDropdownData() {
+            try {
+                // Load Office Prefixes
+                const { data: prefixData, error: prefixError } = await supabaseClient
+                    .from('office_prefixes')
+                    .select('id, prefix_hindi')
+                    .order('prefix_hindi', { ascending: true });
+
+                if (prefixError) throw prefixError;
+                officePrefixes = prefixData || [];
+                populateDropdown('officePrefix', officePrefixes, 'prefix_hindi');
+
+                // Load Posts (Designations)
+                const { data: postData, error: postError } = await supabaseClient
+                    .from('posts')
+                    .select('id, name')
+                    .order('name', { ascending: true });
+
+                if (postError) throw postError;
+                posts = postData || [];
+                populateDropdown('designation', posts, 'name');
+
+            } catch (error) {
+                console.error('Error loading dropdown data:', error.message);
+                alert('ड्रॉपडाउन डेटा लोड करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        function populateDropdown(elementId, data, textField) {
+            const selectElement = document.getElementById(elementId);
+            // Clear existing options, keep the first "चुनें" or "उपसर्ग चुनें"
+            while (selectElement.options.length > 1) {
+                selectElement.remove(1);
+            }
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item[textField]; // Use the Hindi prefix/post name as value
+                option.textContent = item[textField];
+                selectElement.appendChild(option);
+            });
+        }
+
+        function updateOfficeNameAndDistrict() {
+            const prefixSelect = document.getElementById('officePrefix');
+            const officeNameInput = document.getElementById('officeName');
+            const user = getCurrentUser();
+
+            if (user && user.districtName && prefixSelect.value) {
+                officeNameInput.value = `${prefixSelect.value}, ${user.districtName}`;
+            } else if (user && user.districtName) {
+                // Fallback if no prefix selected, just show district
+                officeNameInput.value = user.districtName;
+            } else {
+                officeNameInput.value = '';
+            }
+        }
+
         async function loadData() {
             try {
                 showLoading();
                 
                 const { data, error } = await supabaseClient
-                    .from('district_office_vehicles') // Changed table name
+                    .from('district_office_vehicles')
                     .select('*')
                     .order('serial_no', { ascending: true });
 
@@ -841,12 +918,15 @@
             const nextSerial = await getNextSerialNumber();
             document.getElementById('serialNo').value = nextSerial;
 
-            // Autofill office name and district from logged-in user
-            const user = getCurrentUser();
-            if (user && user.districtName) {
-                document.getElementById('officeName').value = user.districtName;
+            // Pre-select the first office prefix and trigger update
+            const officePrefixSelect = document.getElementById('officePrefix');
+            if (officePrefixes.length > 0) {
+                officePrefixSelect.value = officePrefixes[0].prefix_hindi; // Select the first one
+            } else {
+                officePrefixSelect.value = ""; // No prefixes available
             }
-            
+            updateOfficeNameAndDistrict(); // Update office name based on selected prefix and user's district
+
             const modal = new bootstrap.Modal(document.getElementById('entryModal'));
             modal.show();
         }
@@ -865,7 +945,23 @@
                 document.getElementById('modalTitle').textContent = 'एंट्री एडिट करें';
                 document.getElementById('entryId').value = data.id;
                 document.getElementById('serialNo').value = data.serial_no || '';
-                document.getElementById('officeName').value = data.office_name_district || '';
+                
+                // Set office prefix and then update office name
+                const fullOfficeName = data.office_name_district || '';
+                const userDistrictName = getCurrentUser()?.districtName || '';
+                let matchedPrefix = '';
+
+                // Try to find the prefix in the existing fullOfficeName
+                for (const prefixObj of officePrefixes) {
+                    const prefix = prefixObj.prefix_hindi;
+                    if (fullOfficeName.startsWith(prefix) && fullOfficeName.includes(userDistrictName)) {
+                        matchedPrefix = prefix;
+                        break;
+                    }
+                }
+                document.getElementById('officePrefix').value = matchedPrefix;
+                document.getElementById('officeName').value = fullOfficeName; // Set the full name directly for edit
+
                 document.getElementById('designation').value = data.designation || '';
                 document.getElementById('payScale').value = data.pay_scale || '';
                 document.getElementById('sanctionedPosts').value = data.sanctioned_posts || '';
@@ -886,9 +982,8 @@
                 showLoading();
                 const formData = {
                     serial_no: parseInt(document.getElementById('serialNo').value) || null,
-                    // office_name_district is now read-only and autofilled on new entry
-                    office_name_district: document.getElementById('officeName').value, 
-                    designation: document.getElementById('designation').value,
+                    office_name_district: document.getElementById('officeName').value, // Use the autofilled/read-only value
+                    designation: document.getElementById('designation').value, // Now from dropdown
                     pay_scale: document.getElementById('payScale').value,
                     sanctioned_posts: parseInt(document.getElementById('sanctionedPosts').value) || null,
                     vehicle_eligibility: document.getElementById('vehicleEligibility').value,
@@ -900,13 +995,13 @@
                 if (currentEditId) {
                     // Update existing record
                     result = await supabaseClient
-                        .from('district_office_vehicles') // Changed table name
+                        .from('district_office_vehicles')
                         .update(formData)
                         .eq('id', currentEditId);
                 } else {
                     // Insert new record
                     result = await supabaseClient
-                        .from('district_office_vehicles') // Changed table name
+                        .from('district_office_vehicles')
                         .insert([formData]);
                 }
 
@@ -931,7 +1026,7 @@
                 try {
                     showLoading();
                     const { error } = await supabaseClient
-                        .from('district_office_vehicles') // Changed table name
+                        .from('district_office_vehicles')
                         .delete()
                         .eq('id', id);
 
