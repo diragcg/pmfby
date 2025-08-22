@@ -266,6 +266,70 @@
             font-weight: 600;
         }
 
+        /* Entry List Styling */
+        .entry-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .entry-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .entry-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+        }
+
+        .entry-title {
+            font-weight: 600;
+            color: var(--dark-gray);
+            margin-bottom: 5px;
+        }
+
+        .entry-meta {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
+        .entry-date {
+            font-size: 0.85rem;
+            color: #6c757d;
+            float: right;
+        }
+
+        /* Stats Cards */
+        .stat-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .stat-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
         /* Container Adjustments */
         .container {
             max-width: 1200px;
@@ -430,7 +494,7 @@
 
     <!-- Entry Details Modal -->
     <div class="modal fade" id="entryDetailsModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title hindi" id="modalTitle">एंट्री विवरण</h5>
@@ -534,6 +598,7 @@
                 let content = '';
                 
                 if (moduleType === 'reports') {
+                    // Show summary for all modules
                     const [divisionCount, districtCount, fieldCount, mstcRegCount, mstcSoldCount] = await Promise.all([
                         getTableCount('division_office_vehicles'),
                         getTableCount('district_office_vehicles'),
@@ -544,57 +609,129 @@
                     
                     content = `
                         <div class="row text-center">
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3 bg-light">
-                                    <h5 class="text-danger">${divisionCount}</h5>
-                                    <small class="hindi">संभाग स्तर</small>
+                            <div class="col-md-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-number text-danger">\${divisionCount}</div>
+                                    <div class="stat-label hindi">संभाग स्तर कार्यालय</div>
                                 </div>
                             </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3 bg-light">
-                                    <h5 class="text-primary">${districtCount}</h5>
-                                    <small class="hindi">जिला स्तर</small>
+                            <div class="col-md-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-number text-primary">\${districtCount}</div>
+                                    <div class="stat-label hindi">जिला स्तर कार्यालय</div>
                                 </div>
                             </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3 bg-light">
-                                    <h5 style="color: var(--warning-orange)">${fieldCount}</h5>
-                                    <small class="hindi">मैदानी कार्यालय</small>
+                            <div class="col-md-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-number" style="color: var(--warning-orange)">\${fieldCount}</div>
+                                    <div class="stat-label hindi">मैदानी कार्यालय</div>
                                 </div>
                             </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3 bg-light">
-                                    <h5 style="color: var(--info-teal)">${mstcRegCount + mstcSoldCount}</h5>
-                                    <small class="hindi">MSTC वाहन</small>
+                            <div class="col-md-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-number" style="color: var(--info-teal)">\${mstcRegCount}</div>
+                                    <div class="stat-label hindi">MSTC पंजीकृत</div>
                                 </div>
                             </div>
-                            <div class="col-12">
-                                <div class="border rounded p-3" style="background: var(--primary-blue); color: white;">
-                                    <h4>${divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount}</h4>
-                                    <small class="hindi">कुल एंट्री</small>
+                            <div class="col-md-6 mb-3">
+                                <div class="stat-card">
+                                    <div class="stat-number" style="color: #7c3aed">\${mstcSoldCount}</div>
+                                    <div class="stat-label hindi">MSTC बेचे गए</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="stat-card" style="background: var(--primary-blue); color: white;">
+                                    <div class="stat-number">\${divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount}</div>
+                                    <div class="stat-label" style="color: white;">कुल एंट्री</div>
                                 </div>
                             </div>
                         </div>
                     `;
                 } else {
-                    content = '<div class="text-center text-muted hindi">विस्तृत जानकारी जल्द ही उपलब्ध होगी</div>';
+                    // Show recent entries for specific module
+                    const tableNames = {
+                        'division': 'division_office_vehicles',
+                        'district': 'district_office_vehicles',
+                        'field': 'field_office_vehicles', 
+                        'mstc-registered': 'mstc_auction_registered',
+                        'mstc-sold': 'mstc_auction_sold'
+                    };
+                    
+                    const { data, error } = await supabaseClient
+                        .from(tableNames[moduleType])
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .limit(10);
+                        
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
+                        content = '<ul class="entry-list">';
+                        data.forEach((item, index) => {
+                            const title = item.office_name_district || item.seller_office_name || `एंट्री ${index + 1}`;
+                            const date = new Date(item.created_at).toLocaleDateString('hi-IN');
+                            const time = new Date(item.created_at).toLocaleTimeString('hi-IN', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                            });
+                            
+                            let metaInfo = '';
+                            if (item.designation) {
+                                metaInfo += `पदनाम: ${item.designation}`;
+                            }
+                            if (item.sanctioned_posts) {
+                                metaInfo += metaInfo ? ` | स्वीकृत पद: ${item.sanctioned_posts}` : `स्वीकृत पद: ${item.sanctioned_posts}`;
+                            }
+                            if (item.total) {
+                                metaInfo += metaInfo ? ` | कुल वाहन: ${item.total}` : `कुल वाहन: ${item.total}`;
+                            }
+                            
+                            content += `
+                                <li class="entry-item">
+                                    <div class="entry-title">\${title}</div>
+                                    <div class="entry-date">${date} ${time}</div>
+                                    \${metaInfo ? `<div class="entry-meta">${metaInfo}</div>` : ''}
+                                    <div style="clear: both;"></div>
+                                </li>
+                            `;
+                        });
+                        content += '</ul>';
+                        content += `<div class="text-center mt-3">
+                            <small class="text-muted hindi">कुल \${await getTableCount(tableNames[moduleType])} एंट्री उपलब्ध हैं</small>
+                        </div>`;
+                                   } else {
+                    content = `
+                        <div class="text-center text-muted hindi py-5">
+                            <i class="fas fa-inbox fa-3x mb-3"></i>
+                            <p>इस मॉड्यूल में अभी तक कोई एंट्री नहीं है</p>
+                            <small>डेटा एंट्री करने के लिए "${titles[moduleType].split(' - ')[0]}" बटन पर क्लिक करें</small>
+                        </div>
+                    `;
                 }
-                
-                modalBody.innerHTML = content;
-                
-            } catch (error) {
-                modalBody.innerHTML = '<div class="text-center text-danger hindi">डेटा लोड करने में त्रुटि हुई</div>';
-                console.error('Error loading entry details:', error);
             }
+            
+            modalBody.innerHTML = content;
+            
+        } catch (error) {
+            modalBody.innerHTML = `
+                <div class="text-center text-danger hindi py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                    <p>डेटा लोड करने में त्रुटि हुई</p>
+                    <small>${error.message}</small>
+                </div>
+            `;
+            console.error('Error loading entry details:', error);
         }
-        
-        function logout() {
-            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
-                window.location.href = 'index.html';
-            }
+    }
+    
+    function logout() {
+        if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+            localStorage.removeItem('user');
+            sessionStorage.removeItem('user');
+            window.location.href = 'index.html';
         }
-    </script>
+    }
+</script>
 </body>
 </html>
+                
