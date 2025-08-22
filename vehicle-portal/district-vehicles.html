@@ -553,7 +553,8 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label hindi">कार्यालय का नाम एवं जिला</label>
-                                <input type="text" class="form-control" id="officeName" required>
+                                <input type="text" class="form-control" id="officeName" required readonly style="background-color: #e9ecef;"> <!-- Made readonly and autofilled -->
+                                <small class="text-muted hindi">यह आपके लॉगिन जिले से स्वचालित रूप से भरा जाएगा</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label hindi">पदनाम</label>
@@ -839,6 +840,12 @@
             // Auto-fill serial number
             const nextSerial = await getNextSerialNumber();
             document.getElementById('serialNo').value = nextSerial;
+
+            // Autofill office name and district from logged-in user
+            const user = getCurrentUser();
+            if (user && user.districtName) {
+                document.getElementById('officeName').value = user.districtName;
+            }
             
             const modal = new bootstrap.Modal(document.getElementById('entryModal'));
             modal.show();
@@ -879,7 +886,8 @@
                 showLoading();
                 const formData = {
                     serial_no: parseInt(document.getElementById('serialNo').value) || null,
-                    office_name_district: document.getElementById('officeName').value,
+                    // office_name_district is now read-only and autofilled on new entry
+                    office_name_district: document.getElementById('officeName').value, 
                     designation: document.getElementById('designation').value,
                     pay_scale: document.getElementById('payScale').value,
                     sanctioned_posts: parseInt(document.getElementById('sanctionedPosts').value) || null,
