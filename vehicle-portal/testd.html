@@ -1029,10 +1029,7 @@
         function exportToExcel() {
             showLoading();
             const reportDate = new Date().toLocaleDateString('hi-IN');
-            const user = getCurrentUser();
-            const generatedBy = user ? `${user.fullName} (${user.districtName})` : 'अज्ञात उपयोगकर्ता';
-            const generationTime = new Date().toLocaleTimeString('hi-IN');
-
+            
             const ws_data = [
                 ['संचालनालय कृषि छत्तीसगढ़ रायपुर'],
                 ['जिला स्तरीय वाहन आबंटन की जानकारी'],
@@ -1054,11 +1051,6 @@
                 ]);
             });
 
-            ws_data.push([]);
-            ws_data.push(['रिपोर्ट जेनरेटेड: ' + reportDate + ' ' + generationTime]);
-            ws_data.push(['द्वारा जेनरेटेड: ' + generatedBy]);
-            ws_data.push(['अल्गोरिथम: डेटाबेस से सीधे एक्सपोर्ट किया गया']);
-
             const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
             const numDataColumns = ws_data[4].length; 
@@ -1067,9 +1059,6 @@
                 { s: { r: 0, c: 0 }, e: { r: 0, c: numDataColumns - 1 } },
                 { s: { r: 1, c: 0 }, e: { r: 1, c: numDataColumns - 1 } },
                 { s: { r: 2, c: 0 }, e: { r: 2, c: numDataColumns - 1 } },
-                { s: { r: ws_data.length - 3, c: 0 }, e: { r: ws_data.length - 3, c: numDataColumns - 1 } },
-                { s: { r: ws_data.length - 2, c: 0 }, e: { r: ws_data.length - 2, c: numDataColumns - 1 } },
-                { s: { r: ws_data.length - 1, c: 0 }, e: { r: ws_data.length - 1, c: numDataColumns - 1 } }
             ];
 
             const titleStyle = { 
@@ -1104,17 +1093,6 @@
                     right: { style: "thin", color: { rgb: "FF000000" } }
                 }
             };
-            const footerStyle = {
-                font: { sz: 10, color: { rgb: "FF000000" } },
-                alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                fill: { fgColor: { rgb: "FFE0E0E0" } },
-                border: {
-                    top: { style: "thin", color: { rgb: "FF000000" } },
-                    bottom: { style: "thin", color: { rgb: "FF000000" } },
-                    left: { style: "thin", color: { rgb: "FF000000" } },
-                    right: { style: "thin", color: { rgb: "FF000000" } }
-                }
-            };
             
             if (ws['A1']) ws['A1'].s = titleStyle;
             if (ws['A2']) ws['A2'].s = subtitleStyle;
@@ -1126,18 +1104,12 @@
                 ws[cellRef].s = headerCellStyle;
             }
 
-            for (let r = 5; r < ws_data.length - 3; r++) {
+            for (let r = 5; r < ws_data.length; r++) {
                 for (let c = 0; c < numDataColumns; c++) {
                     const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
                     if (!ws[cellRef]) ws[cellRef] = {};
                     ws[cellRef].s = dataCellStyle;
                 }
-            }
-
-            for (let i = 0; i < 3; i++) {
-                const footerRowRef = ws_data.length - 3 + i;
-                const cellRef = XLSX.utils.encode_cell({ r: footerRowRef, c: 0 });
-                if (ws[cellRef]) ws[cellRef].s = footerStyle;
             }
 
             const wb = XLSX.utils.book_new();
@@ -1170,9 +1142,7 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('l', 'mm', 'a4');
 
-            // IMPORTANT: For Hindi to render correctly, you MUST embed a Unicode font.
             // The code below assumes you have a font like Noto Sans Devanagari embedded.
-            // This requires a separate .js file with the font data.
             doc.setFont('NotoSansDevanagari', 'normal');
 
             const reportDate = new Date().toLocaleDateString('hi-IN');
