@@ -13,6 +13,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
+        :root {
+            --primary-blue: #1e40af;
+            --secondary-blue: #3b82f6;
+            --success-green: #16a34a;
+            --warning-orange: #ea580c;
+            --danger-red: #dc2626;
+            --info-teal: #0891b2;
+            --dark-gray: #374151;
+            --light-gray: #f8fafc;
+        }
+
         body { 
             font-family: 'Poppins', sans-serif; 
             font-weight: 300;
@@ -27,7 +38,7 @@
         }
         
         .navbar { 
-            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
@@ -54,8 +65,8 @@
         
         /* Logout button styling */
         .logout-btn {
-            background-color: #dc2626 !important;
-            border-color: #dc2626 !important;
+            background-color: var(--danger-red) !important;
+            border-color: var(--danger-red) !important;
             color: white !important;
             font-weight: 400;
             font-size: 0.85rem; /* Smaller font for logout button */
@@ -807,11 +818,11 @@
 
                 if (error) throw error;
 
-                return data && data.length > 0 ? (data[0].serial_no || 0) + 1 : 1;
+                return data && data.length > 0 && data[0].serial_no !== null ? data[0].serial_no + 1 : 1;
             } catch (error) {
                 console.error('Error getting next serial number:', error);
                 // Fallback if DB query fails, use current filtered data length + 1
-                return filteredData.length + 1;
+                return allData.length + 1;
             }
         }
 
@@ -972,11 +983,32 @@
                 { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } }
             ];
 
-            // Style for headers and merged cells (center alignment, bold, borders)
-            const headerStyle = {
-                font: { bold: true, sz: 12 },
+            // Style for titles and headers
+            const titleStyle = { 
+                font: { bold: true, sz: 16, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const subtitleStyle = { 
+                font: { bold: true, sz: 14, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const dateStyle = { 
+                font: { sz: 11, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const headerCellStyle = {
+                font: { bold: true, sz: 12, color: { rgb: "FF000000" } }, /* Black color */
                 alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                fill: { fgColor: { rgb: "FFD3D3D3" } }, // Light gray background
+                fill: { fgColor: { rgb: "FFD3D3D3" } }, /* Light gray background */
+                border: {
+                    top: { style: "thin", color: { rgb: "FF000000" } },
+                    bottom: { style: "thin", color: { rgb: "FF000000" } },
+                    left: { style: "thin", color: { rgb: "FF000000" } },
+                    right: { style: "thin", color: { rgb: "FF000000" } }
+                }
+            };
+            const dataCellStyle = {
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
                 border: {
                     top: { style: "thin", color: { rgb: "FF000000" } },
                     bottom: { style: "thin", color: { rgb: "FF000000" } },
@@ -985,43 +1017,23 @@
                 }
             };
             
-            // Apply style to main title
-            if (ws['A1']) ws['A1'].s = { 
-                font: { bold: true, sz: 16, color: { rgb: "FF1E40AF" } }, // Dark blue
-                alignment: { horizontal: "center", vertical: "center", wrapText: true }
-            };
-            // Apply style to subtitle
-            if (ws['A2']) ws['A2'].s = { 
-                font: { bold: true, sz: 14 },
-                alignment: { horizontal: "center", vertical: "center", wrapText: true }
-            };
-            // Apply style to date
-            if (ws['A3']) ws['A3'].s = { 
-                font: { sz: 11 },
-                alignment: { horizontal: "center", vertical: "center", wrapText: true }
-            };
+            if (ws['A1']) ws['A1'].s = titleStyle;
+            if (ws['A2']) ws['A2'].s = subtitleStyle;
+            if (ws['A3']) ws['A3'].s = dateStyle;
 
             // Apply header style to table headers
             for (let c = 0; c < ws_data[4].length; c++) {
                 const cellRef = XLSX.utils.encode_cell({ r: 4, c: c });
                 if (!ws[cellRef]) ws[cellRef] = {};
-                ws[cellRef].s = headerStyle;
+                ws[cellRef].s = headerCellStyle;
             }
 
-            // Apply cell styles (center alignment, borders) to data rows
+            // Apply data cell styles to data rows
             for (let r = 5; r < ws_data.length; r++) {
                 for (let c = 0; c < ws_data[r].length; c++) {
                     const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
                     if (!ws[cellRef]) ws[cellRef] = {};
-                    ws[cellRef].s = {
-                        alignment: { horizontal: "center", vertical: "center", wrapText: true },
-                        border: {
-                            top: { style: "thin", color: { rgb: "FF000000" } },
-                            bottom: { style: "thin", color: { rgb: "FF000000" } },
-                            left: { style: "thin", color: { rgb: "FF000000" } },
-                            right: { style: "thin", color: { rgb: "FF000000" } }
-                        }
-                    };
+                    ws[cellRef].s = dataCellStyle;
                 }
             }
 
@@ -1046,12 +1058,15 @@
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('l', 'mm', 'a4'); // 'l' for landscape
 
-            // Add Hindi fonts (requires font embedding, simplified here for example)
-            // You would need to embed a Hindi font like Noto Sans Devanagari in a real app
-            // For now, it will use default PDF font, which might not render Hindi correctly.
-            // doc.addFont("NotoSansDevanagari-Regular.ttf", "NotoSansDevanagari", "normal");
-            // doc.setFont("NotoSansDevanagari");
+            // IMPORTANT: For Hindi to render correctly, you MUST embed a Unicode font.
+            // This is a placeholder. You need to generate font files for jsPDF
+            // using tools like `jspdf-customfonts` or `jspdf-autotable` font generation.
+            // Example: doc.addFont('NotoSansDevanagari-Regular.ttf', 'NotoSansDevanagari', 'normal');
+            // doc.setFont('NotoSansDevanagari');
+            // For this example, we'll use a generic font. Hindi might not display correctly.
+            doc.setFont('helvetica'); // Fallback font, might not render Hindi characters
 
+            doc.setTextColor(0, 0, 0); // Black text color
             doc.setFontSize(16);
             doc.text('संचालनालय कृषि छत्तीसगढ़ रायपुर', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
             doc.setFontSize(14);
@@ -1081,42 +1096,33 @@
                 startY: 45,
                 theme: 'grid',
                 headStyles: { 
-                    fillColor: [231, 76, 60], 
-                    textColor: [255, 255, 255], 
+                    fillColor: [211, 211, 211], // Light gray background
+                    textColor: [0, 0, 0], // Black text
                     fontStyle: 'bold', 
                     halign: 'center',
                     valign: 'middle',
                     fontSize: 8,
-                    lineColor: [192, 57, 43],
-                    lineWidth: 0.5
+                    lineColor: [0, 0, 0], // Black border
+                    lineWidth: 0.2
                 },
                 bodyStyles: { 
-                    textColor: [0, 0, 0], 
+                    textColor: [0, 0, 0], // Black text
                     halign: 'center', 
                     valign: 'middle',
                     fontSize: 8,
-                    lineColor: [229, 231, 235],
-                    lineWidth: 0.2
+                    lineColor: [0, 0, 0], // Black border
+                    lineWidth: 0.1
                 },
                 alternateRowStyles: { 
-                    fillColor: [248, 249, 250] 
+                    fillColor: [248, 249, 250] // Light gray for alternate rows
                 },
                 styles: {
                     font: 'helvetica', // Use a font that supports Hindi, or embed one
                     cellPadding: 2,
                     lineWidth: 0.1,
-                    lineColor: [200, 200, 200]
+                    lineColor: [0, 0, 0] // All borders black
                 },
-                columnStyles: {
-                    0: { cellWidth: 15 }, // क्रमांक
-                    1: { cellWidth: 40 }, // कार्यालय का नाम एवं जिला
-                    2: { cellWidth: 30 }, // पदनाम
-                    3: { cellWidth: 25 }, // वेतनमान
-                    4: { cellWidth: 25 }, // स्वीकृत पद संख्या
-                    5: { cellWidth: 25 }, // वाहन की पात्रता
-                    6: { cellWidth: 25 }, // वर्तमान में वाहन आबंटित
-                    7: { cellWidth: 40 }  // रिमार्क
-                }
+                // Removed columnStyles to enable auto-fitting widths
             });
 
             doc.save('संभाग_स्तर_कार्यालय_वाहन_आबंटन.pdf');
