@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>वाहन आबंटन प्रबंधन प्रणाली - डैशबोर्ड</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* CSS Variables for Centralized Color Management */
+        :root {
+            --bs-blue: #0d6efd;
+            --bs-red: #dc3545;
+            --bs-orange: #fd7e14;
+            --bs-green: #198754;
+            --bs-gray-dark: #343a40;
+        }
+
+        /* ----------------------- General Styles ----------------------- */
+        body {
+            font-family: 'Noto Sans', sans-serif;
+            font-weight: 400;
+            background-color: #f0f2f5;
+            min-height: 100vh;
+            letter-spacing: 0.1px;
+            color: #212529;
+        }
+        
+        /* ----------------------- Typography ----------------------- */
+        .hindi {
+            font-weight: 500;
+        }
+        
+        .card-title {
+            color: var(--card-accent);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .card-text {
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+        
+        /* ----------------------- Navbar ----------------------- */
+        .navbar {
+            background-color: #0d47a1;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+        }
+        .navbar-brand img {
+            transition: transform 0.3s ease;
+        }
+        .navbar-brand:hover img {
+            transform: scale(1.1);
+        }
+
+        .user-info {
+            color: white !important;
+            font-weight: 400;
+            background-color: rgba(255, 255, 255, 0.15);
+            padding: 6px 15px;
+            border-radius: 20px;
+        }
+
+        .logout-btn {
+            background-color: #c62828 !important;
+            border-color: #b71c1c !important;
+            color: white !important;
+            font-weight: 500;
+        }
+        
+        .logout-btn:hover {
+            background-color: #d32f2f !important;
+            border-color: #c62828 !important;
+        }
+        
+        /* ----------------------- Page Header ----------------------- */
+        .page-title {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .page-title h2 {
+            color: #2c3e50;
+            margin: 0;
+            font-weight: 600;
+            font-size: 2rem;
+        }
+        
+        /* ----------------------- Module Cards ----------------------- */
+        .module-card {
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            position: relative;
+            overflow: hidden;
+            height: 280px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .module-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--card-accent);
+        }
+        
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* ----------------------- Card-specific Styles ----------------------- */
+        .card-division { --card-accent: #e74c3c; background-color: #fff9f9; }
+        .card-district { --card-accent: #3498db; background-color: #f9fcff; }
+        .card-field { --card-accent: #f39c12; background-color: #fffdf9; }
+        .card-mstc-reg { --card-accent: #9b59b6; background-color: #fdf9ff; }
+        .card-mstc-sold { --card-accent: #1abc9c; background-color: #f9fffd; }
+        .card-reports { --card-accent: #34495e; background-color: #f9f9fa; }
+        
+        .icon-division { color: #e74c3c; }
+        .icon-district { color: #3498db; }
+        .icon-field { color: #f39c12; }
+        .icon-mstc-reg { color: #9b59b6; }
+        .icon-mstc-sold { color: #1abc9c; }
+        .icon-reports { color: #34495e; }
+        
+        /* ----------------------- Buttons ----------------------- */
+        .btn-division { background-color: #e74c3c; border-color: #e74c3c; }
+        .btn-division:hover { background-color: #c0392b; border-color: #c0392b; }
+        .btn-district { background-color: #3498db; border-color: #3498db; }
+        .btn-district:hover { background-color: #2980b9; border-color: #2980b9; }
+        .btn-field { background-color: #f39c12; border-color: #f39c12; }
+        .btn-field:hover { background-color: #e67e22; border-color: #e67e22; }
+        .btn-mstc-reg { background-color: #9b59b6; border-color: #9b59b6; }
+        .btn-mstc-reg:hover { background-color: #8e44ad; border-color: #8e44ad; }
+        .btn-mstc-sold { background-color: #1abc9c; border-color: #1abc9c; }
+        .btn-mstc-sold:hover { background-color: #16a085; border-color: #16a085; }
+        .btn-reports { background-color: #34495e; border-color: #34495e; }
+        .btn-reports:hover { background-color: #2c3e50; border-color: #2c3e50; }
+        .btn-primary, .btn-secondary { font-weight: 500; }
+        
+        /* ----------------------- Counter Badge ----------------------- */
+        .entry-counter {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--card-accent);
+            color: white;
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .entry-counter:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .counter-loading {
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ----------------------- Modal Styles ----------------------- */
+        .modal-title { font-weight: 600; }
+        .list-group-item h6 { font-weight: 500; }
+        .border.rounded h5, .border.rounded h4 { font-weight: 700; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark py-3">
+        <div class="container">
+            <a class="navbar-brand hindi d-flex align-items-center" href="#">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़" height="45" class="me-3">
+                <span class="fw-bold fs-5">वाहन आबंटन प्रबंधन प्रणाली</span>
+            </a>
+
+            <div class="d-flex align-items-center">
+                <div class="user-info me-3">
+                    <i class="fas fa-user-circle me-2"></i>
+                    <span class="hindi" id="userInfo"></span>
+                </div>
+                <button class="btn logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i> लॉगआउट
+                </button>
+            </div>
+        </div>
+    </nav>
+    <div class="container mt-5">
+        <div class="page-title">
+            <h2 class="hindi">वाहन आबंटन प्रबंधन मॉड्यूल</h2>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-4">
+                <div class="card module-card card-division h-100 text-center">
+                    <div class="entry-counter" id="divisionCounter" onclick="showEntryDetails('division')" title="प्रविष्टियां देखने के लिए क्लिक करें">
+                        <div class="counter-loading"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-icon icon-division mb-3">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <h5 class="card-title hindi">संभाग स्तर कार्यालय</h5>
+                        <p class="card-text hindi">संभागीय कार्यालयों में वाहनों के आबंटन का प्रबंधन</p>
+                        <a href="division-vehicles.html" class="btn btn-division mt-auto">
+                            <i class="fas fa-edit me-2"></i>डेटा प्रविष्टि
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card module-card card-district h-100 text-center">
+                    <div class="entry-counter" id="districtCounter" onclick="showEntryDetails('district')" title="प्रविष्टियां देखने के लिए क्लिक करें">
+                        <div class="counter-loading"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-icon icon-district mb-3">
+                            <i class="fas fa-city"></i>
+                        </div>
+                        <h5 class="card-title hindi">जिला स्तर कार्यालय</h5>
+                        <p class="card-text hindi">जिला कार्यालयों में वाहनों के आबंटन का प्रबंधन</p>
+                        <a href="district-vehicles.html" class="btn btn-district mt-auto">
+                            <i class="fas fa-edit me-2"></i>डेटा प्रविष्टि
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card module-card card-field h-100 text-center">
+                    <div class="entry-counter" id="fieldCounter" onclick="showEntryDetails('field')" title="प्रविष्टियां देखने के लिए क्लिक करें">
+                        <div class="counter-loading"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-icon icon-field mb-3">
+                            <i class="fas fa-home"></i>
+                        </div>
+                        <h5 class="card-title hindi">अन्य मैदानी कार्यालय</h5>
+                        <p class="card-text hindi">मैदानी कार्यालयों में वाहनों के आबंटन का प्रबंधन</p>
+                        <a href="field-vehicles.html" class="btn btn-field mt-auto">
+                            <i class="fas fa-edit me-2"></i>डेटा प्रविष्टि
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card module-card card-mstc-reg h-100 text-center">
+                    <div class="entry-counter" id="mstcRegCounter" onclick="showEntryDetails('mstc-registered')" title="प्रविष्टियां देखने के लिए क्लिक करें">
+                        <div class="counter-loading"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-icon icon-mstc-reg mb-3">
+                            <i class="fas fa-gavel"></i>
+                        </div>
+                        <h5 class="card-title hindi">MSTC नीलामी पंजीकृत</h5>
+                        <p class="card-text hindi">नीलामी के लिए पंजीकृत वाहनों का डेटा</p>
+                        <a href="mstc-registered.html" class="btn btn-mstc-reg mt-auto">
+                            <i class="fas fa-edit me-2"></i>डेटा प्रविष्टि
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card module-card card-mstc-sold h-100 text-center">
+                    <div class="entry-counter" id="mstcSoldCounter" onclick="showEntryDetails('mstc-sold')" title="प्रविष्टियां देखने के लिए क्लिक करें">
+                        <div class="counter-loading"></div>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-icon icon-mstc-sold mb-3">
+                            <i class="fas fa-handshake"></i>
+                        </div>
+                        <h5 class="card-title hindi">MSTC नीलामी बेचे गए</h5>
+                        <p class="card-text hindi">नीलामी में बेचे गए वाहनों का डेटा</p>
+                        <a href="mstc-sold.html" class="btn btn-mstc-sold mt-auto">
+                            <i class="fas fa-edit me-2"></i>डेटा प्रविष्टि
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-4">
+                <div class="card module-card card-reports h-100 text-center">
+                    <div class="entry-counter" id="reportsCounter" onclick="showEntryDetails('reports')" title="सारांश देखने के लिए क्लिक करें">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <div class="card-body">
+                        <div class="card-icon icon-reports mb-3">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h5 class="card-title hindi">रिपोर्ट्स</h5>
+                        <p class="card-text hindi">सभी डेटा की रिपोर्ट्स देखें और डाउनलोड करें</p>
+                        <a href="reports.html" class="btn btn-reports mt-auto">
+                            <i class="fas fa-file-alt me-2"></i>रिपोर्ट्स देखें
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="entryDetailsModal" tabindex="-1" aria-labelledby="modalTitle" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="modalTitle">एंट्री विवरण</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="बंद करें"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">बंद करें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+
+    <script>
+        /**
+         * Main script for the dashboard.
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            displayUserInfo();
+            loadEntryCounts();
+        });
+        
+        /**
+         * Displays the current user's name and district in the navbar.
+         */
+        function displayUserInfo() {
+            const user = getCurrentUser();
+            if (user && user.fullName && user.districtName) {
+                document.getElementById('userInfo').textContent = 
+                    `${user.fullName} (${user.districtName})`;
+            }
+        }
+        
+        /**
+         * Fetches and updates the entry counts for each module.
+         */
+        async function loadEntryCounts() {
+            try {
+                // Fetch counts for all modules in parallel for efficiency
+                const [divisionCount, districtCount, fieldCount, mstcRegCount, mstcSoldCount] = await Promise.all([
+                    getTableCount('division_office_vehicles'),
+                    getTableCount('district_office_vehicles'), 
+                    getTableCount('field_office_vehicles'),
+                    getTableCount('mstc_auction_registered'),
+                    getTableCount('mstc_auction_sold')
+                ]);
+
+                // Update the UI with the fetched counts
+                updateCounter('divisionCounter', divisionCount);
+                updateCounter('districtCounter', districtCount);
+                updateCounter('fieldCounter', fieldCount);
+                updateCounter('mstcRegCounter', mstcRegCount);
+                updateCounter('mstcSoldCounter', mstcSoldCount);
+                
+                // Calculate and update the total count for the reports module
+                const totalEntries = divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount;
+                document.getElementById('reportsCounter').innerHTML = `<i class="fas fa-chart-bar"></i> ${totalEntries}`;
+
+            } catch (error) {
+                console.error('Error loading entry counts:', error);
+                // Display an error icon if data fetching fails
+                document.querySelectorAll('.entry-counter').forEach(counter => {
+                    counter.innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i>';
+                });
+            }
+        }
+
+        /**
+         * Gets the exact count of rows in a specified Supabase table.
+         * @param {string} tableName - The name of the table.
+         * @returns {Promise<number>} - The row count.
+         */
+        async function getTableCount(tableName) {
+            try {
+                const { count, error } = await supabaseClient
+                    .from(tableName)
+                    .select('*', { count: 'exact', head: true });
+                
+                if (error) throw error;
+                return count || 0;
+            } catch (error) {
+                console.error(`Error getting count for ${tableName}:`, error);
+                return 0;
+            }
+        }
+
+        /**
+         * Updates the text content of a counter element.
+         * @param {string} counterId - The ID of the HTML element.
+         * @param {number} count - The number to display.
+         */
+        function updateCounter(counterId, count) {
+            const counter = document.getElementById(counterId);
+            if (counter) {
+                counter.innerHTML = count;
+            }
+        }
+
+        /**
+         * Shows a modal with the most recent entries for a given module.
+         * @param {string} moduleType - The type of module (e.g., 'division', 'reports').
+         */
+        async function showEntryDetails(moduleType) {
+            const modal = new bootstrap.Modal(document.getElementById('entryDetailsModal'));
+            const modalTitle = document.getElementById('modalTitle');
+            const modalBody = document.getElementById('modalBody');
+            
+            const titles = {
+                'division': 'संभाग स्तर कार्यालय - एंट्री विवरण',
+                'district': 'जिला स्तर कार्यालय - एंट्री विवरण', 
+                'field': 'अन्य मैदानी कार्यालय - एंट्री विवरण',
+                'mstc-registered': 'MSTC नीलामी पंजीकृत - एंट्री विवरण',
+                'mstc-sold': 'MSTC नीलामी बेचे गए - एंट्री विवरण',
+                'reports': 'सभी मॉड्यूल का सारांश'
+            };
+            
+            modalTitle.textContent = titles[moduleType];
+            modalBody.innerHTML = `<div class="text-center"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">लोड हो रहा है...</p></div>`;
+            modal.show();
+            
+            try {
+                let content = '';
+                
+                if (moduleType === 'reports') {
+                    const [divisionCount, districtCount, fieldCount, mstcRegCount, mstcSoldCount] = await Promise.all([
+                        getTableCount('division_office_vehicles'),
+                        getTableCount('district_office_vehicles'),
+                        getTableCount('field_office_vehicles'),
+                        getTableCount('mstc_auction_registered'),
+                        getTableCount('mstc_auction_sold')
+                    ]);
+                    
+                    content = `
+                        <div class="row text-center g-3">
+                            <div class="col-6">
+                                <div class="border rounded p-3 bg-light">
+                                    <h5 class="text-danger">${divisionCount}</h5>
+                                    <small class="hindi text-muted">संभाग स्तर</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded p-3 bg-light">
+                                    <h5 class="text-primary">${districtCount}</h5>
+                                    <small class="hindi text-muted">जिला स्तर</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded p-3 bg-light">
+                                    <h5 class="text-warning">${fieldCount}</h5>
+                                    <small class="hindi text-muted">मैदानी कार्यालय</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="border rounded p-3 bg-light">
+                                    <h5 class="text-info">${mstcRegCount}</h5>
+                                    <small class="hindi text-muted">MSTC पंजीकृत</small>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="border rounded p-3 bg-white">
+                                    <h4 class="text-success">${divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount}</h4>
+                                    <small class="hindi text-muted">कुल प्रविष्टियाँ</small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const tableNames = {
+                        'division': 'division_office_vehicles',
+                        'district': 'district_office_vehicles',
+                        'field': 'field_office_vehicles', 
+                        'mstc-registered': 'mstc_auction_registered',
+                        'mstc-sold': 'mstc_auction_sold'
+                    };
+                    
+                    const { data, error } = await supabaseClient
+                        .from(tableNames[moduleType])
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .limit(5);
+                        
+                    if (error) throw error;
+                    
+                    if (data && data.length > 0) {
+                        content = '<div class="list-group list-group-flush">';
+                        data.forEach((item, index) => {
+                            const title = item.office_name_district || item.seller_office_name || `प्रविष्टि ${index + 1}`;
+                            const date = new Date(item.created_at).toLocaleDateString('hi-IN');
+                            content += `
+                                <div class="list-group-item">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h6 class="mb-1">${title}</h6>
+                                        <small class="text-muted">${date}</small>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        content += '</div>';
+                        content += `<div class="mt-3 text-center"><small class="text-muted hindi">कुल ${await getTableCount(tableNames[moduleType])} प्रविष्टियाँ उपलब्ध हैं</small></div>`;
+                    } else {
+                        content = '<div class="text-center text-muted hindi">कोई प्रविष्टि उपलब्ध नहीं है</div>';
+                    }
+                }
+                
+                modalBody.innerHTML = content;
+                
+            } catch (error) {
+                modalBody.innerHTML = '<div class="text-center text-danger hindi">डेटा लोड करने में त्रुटि हुई</div>';
+                console.error('Error loading entry details:', error);
+            }
+        }
+        
+        /**
+         * Handles user logout, clearing session and redirecting to the login page.
+         */
+        function logout() {
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+    </body>
+</html>
