@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>जिला स्तर कार्यालय - वाहन आबंटन</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #1e40af;
+            --secondary-blue: #3b82f6;
+            --success-green: #16a34a;
+            --warning-orange: #ea580c;
+            --danger-red: #dc2626;
+            --info-teal: #0891b2;
+            --dark-gray: #374151;
+            --light-gray: #f8fafc;
+            /* District specific colors */
+            --district-accent-color: var(--primary-blue);
+            --district-gradient-start: #3498db;
+            --district-gradient-end: #2980b9;
+        }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            font-weight: 300;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            letter-spacing: 0.3px;
+        }
+        
+        .hindi { 
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+        
+        .navbar { 
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 500;
+            font-size: 1.1rem; /* Smaller font for brand */
+            display: flex;
+            align-items: center;
+        }
+        .navbar-brand i {
+            color: white;
+        }
+        .navbar-brand:hover {
+            color: #e0f2fe;
+        }
+        .navbar-brand img {
+            height: 35px; /* Adjust logo size */
+            margin-right: 10px;
+        }
+
+        /* User info styling */
+        .user-info {
+            color: #e0f2fe !important;
+            font-weight: 400;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem; /* Smaller font for user info */
+        }
+        
+        /* Logout button styling */
+        .logout-btn {
+            background-color: var(--danger-red) !important;
+            border-color: var(--danger-red) !important;
+            color: white !important;
+            font-weight: 400;
+            font-size: 0.85rem; /* Smaller font for logout button */
+            padding: 5px 12px;
+        }
+        .logout-btn:hover {
+            background-color: #b91c1c !important;
+            border-color: #b91c1c !important;
+            color: white !important;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%); /* District specific gradient */
+            border-radius: 12px; /* Slightly smaller border radius */
+            padding: 20px; /* Slightly less padding */
+            margin-bottom: 25px; /* Slightly less margin */
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08); /* Lighter shadow */
+            border-top: 3px solid var(--district-accent-color); /* Thinner border */
+        }
+
+        .page-header h4 {
+            color: var(--district-accent-color);
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.3rem; /* Slightly smaller font for page title */
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 10px; /* Slightly smaller border radius */
+            padding: 18px; /* Slightly less padding */
+            margin-bottom: 18px; /* Slightly less margin */
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Lighter shadow */
+            border-left: 3px solid var(--district-accent-color); /* Thinner border */
+        }
+
+        .filter-title {
+            color: var(--district-accent-color);
+            font-weight: 600;
+            margin-bottom: 12px; /* Slightly less margin */
+            font-size: 1.05rem; /* Smaller font for filter title */
+        }
+
+        /* Table Container */
+        .table-container { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-top: 3px solid var(--district-accent-color);
+        }
+
+        /* Table Styling */
+        .table {
+            border: 1px solid var(--district-accent-color); /* Thinner border */
+            border-radius: 6px; /* Smaller border radius */
+            overflow: hidden;
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background: linear-gradient(135deg, var(--district-gradient-start) 0%, var(--district-gradient-end) 100%);
+            color: white;
+            font-weight: 500;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid var(--district-gradient-end);
+            padding: 10px 6px; /* Reduced padding */
+            font-size: 0.85rem; /* Smaller font for table headers */
+        }
+
+        .table tbody td {
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid #dee2e6;
+            padding: 8px 6px; /* Reduced padding */
+            font-weight: 300;
+            font-size: 0.8rem; /* **Smaller font for table data** */
+        }
+
+        .table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f0f8ff; /* District specific hover */
+        }
+
+        /* Form Controls */
+        .form-control, .form-select { 
+            border-radius: 6px; /* Smaller border radius */
+            border: 1px solid #ced4da; /* Thinner border */
+            font-weight: 300;
+            font-size: 0.85rem; /* Smaller font for form inputs */
+            padding: 8px 12px;
+            height: auto; /* Allow height to adjust */
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--district-accent-color);
+            box-shadow: 0 0 0 0.15rem rgba(52, 152, 219, 0.2); /* Lighter shadow */
+        }
+
+        .form-label {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 0.9rem; /* Smaller font for labels */
+            margin-bottom: 5px;
+        }
+
+        /* Button Styling */
+        .btn-district { /* Changed from btn-division to btn-district */
+            background: linear-gradient(135deg, var(--district-gradient-start) 0%, var(--district-gradient-end) 100%);
+            border: none;
+            color: white;
+            font-weight: 400;
+            border-radius: 6px; /* Smaller border radius */
+            padding: 8px 18px; /* Reduced padding */
+            font-size: 0.9rem; /* Smaller font for buttons */
+            transition: all 0.3s ease;
+        }
+        .btn-district:hover { /* Changed from btn-division:hover to btn-district:hover */
+            background: linear-gradient(135deg, var(--district-gradient-end) 0%, #21618c 100%);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3); /* Lighter shadow */
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            font-weight: 400;
+            font-size: 0.9rem;
+            padding: 8px 18px;
+            border-radius: 6px;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+            border: none;
+            font-weight: 400;
+            font-size: 0.9rem;
+            padding: 8px 18px;
+            border-radius: 6px;
+        }
+        .btn-info:hover {
+            background: linear-gradient(135deg, #138496 0%, #0f6674 100%);
+        }
+
+        /* Modal Styling */
+        .modal-content {
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, var(--district-gradient-start) 0%, var(--district-gradient-end) 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+            border-bottom: none;
+            padding: 15px 20px;
+        }
+
+        .modal-title {
+            font-weight: 500;
+            font-size: 1.1rem;
+        }
+        .btn-close-white {
+            filter: invert(1);
+        }
+
+        /* Action Buttons in Table */
+        .action-btn {
+            padding: 4px 8px; /* Smaller padding */
+            border-radius: 4px; /* Smaller border radius */
+            font-size: 0.75rem; /* Smaller font size */
+        }
+
+        .btn-warning.action-btn { /* Changed color to match district theme, originally yellow */
+            background: #f39c12; /* Keep original warning color for edit */
+            color: white;
+        }
+
+        .btn-danger.action-btn {
+            background: var(--danger-red);
+            color: white;
+        }
+
+        /* Pagination */
+        .pagination {
+            justify-content: center;
+            margin-top: 15px; /* Slightly less margin */
+        }
+
+        .page-link {
+            color: var(--district-accent-color);
+            border-color: var(--district-accent-color);
+            font-weight: 400;
+            font-size: 0.85rem; /* Smaller font */
+            padding: 6px 10px; /* Reduced padding */
+        }
+
+        .page-link:hover {
+            background-color: var(--district-accent-color);
+            border-color: var(--district-accent-color);
+            color: white;
+        }
+
+        .page-item.active .page-link {
+            background-color: var(--district-accent-color);
+            border-color: var(--district-accent-color);
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            color: white;
+            font-size: 1.5rem; /* Smaller spinner */
+        }
+        .loading-overlay p {
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .table-container {
+                padding: 15px;
+            }
+            
+            .page-header {
+                padding: 15px;
+            }
+            
+            .page-header h4 {
+                font-size: 1.1rem;
+            }
+            
+            .filter-section {
+                padding: 12px;
+            }
+
+            .form-control, .form-select, .form-label, .btn {
+                font-size: 0.8rem;
+            }
+
+            .table thead th, .table tbody td {
+                font-size: 0.75rem;
+                padding: 6px 4px;
+            }
+            .action-btn {
+                padding: 3px 6px;
+                font-size: 0.65rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .navbar, .filter-section, .modal, .btn, .pagination, .action-btn {
+                display: none !important;
+            }
+            
+            .table-container {
+                box-shadow: none;
+                border: 1px solid #000;
+                padding: 0;
+            }
+            
+            .table {
+                font-size: 9px;
+                width: 100%;
+                margin: 0;
+            }
+            
+            .table th, .table td {
+                border: 1px solid #000 !important;
+                padding: 3px 2px !important;
+                text-align: center !important;
+                vertical-align: middle !important;
+            }
+
+            .page-header {
+                text-align: center;
+                margin-bottom: 15px;
+                box-shadow: none;
+                border: none;
+            }
+            .page-header h4 {
+                font-size: 1.1rem;
+                color: #000;
+            }
+            
+            body {
+                font-size: 10px;
+                color: #000;
+                background-color: white !important;
+            }
+            
+            .table thead th {
+                background: #e7e7e7 !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+                border: 1px solid #000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand hindi" href="dashboard.html">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार">
+                <i class="fas fa-arrow-left me-2"></i>जिला स्तर कार्यालय
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3 hindi user-info" id="userInfo"></span>
+                <button class="btn btn-sm logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt me-1"></i> लॉगआउट
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h4 class="hindi text-center">जिला स्तर कार्यालय - वाहन आबंटन प्रबंधन</h4>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <h6 class="filter-title hindi">
+                <i class="fas fa-filter me-2"></i>फिल्टर और खोज विकल्प
+            </h6>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label hindi">खोजें</label>
+                    <input type="text" class="form-control" id="searchInput" placeholder="कार्यालय, पदनाम या रिमार्क में खोजें" onkeyup="filterTable()">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label hindi">वाहन की पात्रता</label>
+                    <select class="form-select" id="eligibilityFilter" onchange="filterTable()">
+                        <option value="">सभी</option>
+                        <option value="हाँ">हाँ</option>
+                        <option value="नहीं">नहीं</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label hindi">वर्तमान आबंटन</label>
+                    <select class="form-select" id="allocationFilter" onchange="filterTable()">
+                        <option value="">सभी</option>
+                        <option value="हाँ">हाँ</option>
+                        <option value="नहीं">नहीं</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-secondary w-100" onclick="clearFilters()">
+                        <i class="fas fa-times me-2"></i>साफ़ करें
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="table-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="hindi mb-0" style="color: var(--district-accent-color); font-size: 1.1rem;">जिला स्तर कार्यालय</h5>
+                    <small class="text-muted">कुल एंट्री: <span id="totalEntries">0</span></small>
+                </div>
+                <div>
+                    <button class="btn btn-district me-2" onclick="addNewRow()">
+                        <i class="fas fa-plus me-2"></i>नई एंट्री जोड़ें
+                    </button>
+                    <div class="btn-group">
+                        <button class="btn btn-info dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download me-2"></i>एक्सपोर्ट
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-2"></i>Excel में डाउनलोड
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportToPDF()">
+                                <i class="fas fa-file-pdf me-2"></i>PDF में डाउनलोड
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="districtTable">
+                    <thead>
+                        <tr class="hindi">
+                            <th style="width: 7%;">
+                                क्रमांक
+                                <i class="fas fa-sort ms-1" onclick="sortTable(0)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 20%;">
+                                कार्यालय का नाम एवं जिला
+                                <i class="fas fa-sort ms-1" onclick="sortTable(1)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 15%;">
+                                पदनाम
+                                <i class="fas fa-sort ms-1" onclick="sortTable(2)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 10%;">
+                                वेतनमान
+                                <i class="fas fa-sort ms-1" onclick="sortTable(3)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 10%;">
+                                स्वीकृत पद संख्या
+                                <i class="fas fa-sort ms-1" onclick="sortTable(4)" style="cursor: pointer;"></i>
+                            </th>
+                            <th style="width: 12%;">
+                                वाहन की पात्रता
+                            </th>
+                            <th style="width: 12%;">
+                                वर्तमान में वाहन आबंटित
+                            </th>
+                            <th style="width: 15%;">रिमार्क</th>
+                            <th style="width: 10%;">एक्शन</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Dynamic rows will be added here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <nav aria-label="Table pagination">
+                <ul class="pagination" id="pagination">
+                    <!-- Pagination will be generated here -->
+                </ul>
+            </nav>
+
+            <div class="mt-3 text-center">
+                <button class="btn btn-secondary me-2" onclick="loadData()">
+                    <i class="fas fa-refresh me-2"></i>डेटा रिफ्रेश करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal fade" id="entryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="modalTitle">नई एंट्री जोड़ें</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="entryForm">
+                        <input type="hidden" id="entryId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">क्रमांक</label>
+                                <input type="number" class="form-control" id="serialNo" readonly style="background-color: #e9ecef;">
+                                <small class="text-muted hindi">यह स्वचालित रूप से भरा जाएगा</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">कार्यालय उपसर्ग</label>
+                                <select class="form-select" id="officePrefix" onchange="updateOfficeNameAndDistrict()" required>
+                                    <option value="">-- उपसर्ग चुनें --</option>
+                                    <!-- Options populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">कार्यालय का नाम एवं जिला</label>
+                                <input type="text" class="form-control" id="officeName" required readonly style="background-color: #e9ecef;">
+                                <small class="text-muted hindi">यह स्वचालित रूप से भरा जाएगा</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">पदनाम</label>
+                                <select class="form-select" id="designation" required>
+                                    <option value="">-- पदनाम चुनें --</option>
+                                    <!-- Options populated dynamically -->
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">वेतनमान</label>
+                                <input type="text" class="form-control" id="payScale">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">स्वीकृत पद संख्या</label>
+                                <input type="number" class="form-control" id="sanctionedPosts">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">वाहन की पात्रता</label>
+                                <select class="form-select" id="vehicleEligibility" required>
+                                    <option value="">चुनें</option>
+                                    <option value="हाँ">हाँ</option>
+                                    <option value="नहीं">नहीं</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">वर्तमान में वाहन आबंटित</label>
+                                <select class="form-select" id="currentAllocation" required>
+                                    <option value="">चुनें</option>
+                                    <option value="हाँ">हाँ</option>
+                                    <option value="नहीं">नहीं</option>
+                                </select>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label class="form-label hindi">रिमार्क</label>
+                                <textarea class="form-control" id="remarks" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">रद्द करें</button>
+                    <button type="button" class="btn btn-district" onclick="saveEntry()">
+                        <i class="fas fa-save me-2"></i>सेव करें
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="text-center">
+            <div class="spinner-border loading-spinner" role="status"></div>
+            <p class="text-white mt-2">प्रोसेसिंग हो रही है...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let currentEditId = null;
+        let allData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let sortColumn = -1;
+        let sortDirection = 'asc';
+        let officePrefixes = []; // To store office prefixes
+        let posts = []; // To store posts
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            displayUserInfo();
+            loadDropdownData(); // Load dropdowns first
+            loadData();
+        });
+
+        function displayUserInfo() {
+            const user = getCurrentUser();
+            if (user) {
+                document.getElementById('userInfo').textContent = 
+                    `${user.fullName} (${user.districtName})`;
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        async function loadDropdownData() {
+            try {
+                // Load Office Prefixes
+                const { data: prefixData, error: prefixError } = await supabaseClient
+                    .from('office_prefixes')
+                    .select('id, prefix_hindi')
+                    .order('prefix_hindi', { ascending: true });
+
+                if (prefixError) throw prefixError;
+                officePrefixes = prefixData || [];
+                populateDropdown('officePrefix', officePrefixes, 'prefix_hindi');
+
+                // Load Posts (Designations)
+                const { data: postData, error: postError } = await supabaseClient
+                    .from('posts')
+                    .select('id, name')
+                    .order('name', { ascending: true });
+
+                if (postError) throw postError;
+                posts = postData || [];
+                populateDropdown('designation', posts, 'name');
+
+            } catch (error) {
+                console.error('Error loading dropdown data:', error.message);
+                alert('ड्रॉपडाउन डेटा लोड करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        function populateDropdown(elementId, data, textField) {
+            const selectElement = document.getElementById(elementId);
+            // Clear existing options, keep the first "चुनें" or "उपसर्ग चुनें"
+            while (selectElement.options.length > 1) {
+                selectElement.remove(1);
+            }
+            data.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item[textField]; // Use the Hindi prefix/post name as value
+                option.textContent = item[textField];
+                selectElement.appendChild(option);
+            });
+        }
+
+        function updateOfficeNameAndDistrict() {
+            const prefixSelect = document.getElementById('officePrefix');
+            const officeNameInput = document.getElementById('officeName');
+            const user = getCurrentUser();
+
+            if (user && user.districtName && prefixSelect.value) {
+                officeNameInput.value = `${prefixSelect.value}, ${user.districtName}`;
+            } else if (user && user.districtName) {
+                // Fallback if no prefix selected, just show district
+                officeNameInput.value = user.districtName;
+            } else {
+                officeNameInput.value = '';
+            }
+        }
+
+        async function loadData() {
+            try {
+                showLoading();
+                
+                const { data, error } = await supabaseClient
+                    .from('district_office_vehicles') // Changed table name
+                    .select('*')
+                    .order('serial_no', { ascending: true });
+
+                if (error) throw error;
+
+                allData = data || [];
+                filteredData = [...allData];
+                
+                updateTotalCount();
+                renderTable();
+                renderPagination();
+                
+                hideLoading();
+
+            } catch (error) {
+                hideLoading();
+                alert('डेटा लोड करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        function updateTotalCount() {
+            document.getElementById('totalEntries').textContent = filteredData.length;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+
+            pageData.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${row.serial_no || startIndex + index + 1}</strong></td>
+                    <td>${row.office_name_district || ''}</td>
+                    <td>${row.designation || ''}</td>
+                    <td>${row.pay_scale || ''}</td>
+                    <td>${row.sanctioned_posts || ''}</td>
+                    <td>
+                        <span class="badge ${row.vehicle_eligibility === 'हाँ' ? 'bg-success' : 'bg-danger'}">
+                            ${row.vehicle_eligibility || ''}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge ${row.current_allocation === 'हाँ' ? 'bg-success' : 'bg-warning'}">
+                            ${row.current_allocation || ''}
+                        </span>
+                    </td>
+                    <td>${row.remarks || ''}</td>
+                    <td>
+                        <button class="btn btn-sm btn-warning action-btn me-1" onclick="editEntry('${row.id}')" title="एडिट करें">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger action-btn" onclick="deleteEntry('${row.id}')" title="डिलीट करें">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPagination() {
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            
+            if (totalPages <= 1) return;
+
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1})">पिछला</a>`;
+            pagination.appendChild(prevLi);
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i})">${i}</a>`;
+                pagination.appendChild(li);
+            }
+
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1})">अगला</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+            if (page < 1 || page > totalPages) return;
+            
+            currentPage = page;
+            renderTable();
+            renderPagination();
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const eligibilityFilter = document.getElementById('eligibilityFilter').value;
+            const allocationFilter = document.getElementById('allocationFilter').value;
+
+            filteredData = allData.filter(row => {
+                const matchesSearch = !searchTerm || 
+                    (row.office_name_district && row.office_name_district.toLowerCase().includes(searchTerm)) ||
+                    (row.designation && row.designation.toLowerCase().includes(searchTerm)) ||
+                    (row.remarks && row.remarks.toLowerCase().includes(searchTerm));
+
+                const matchesEligibility = !eligibilityFilter || row.vehicle_eligibility === eligibilityFilter;
+                const matchesAllocation = !allocationFilter || row.current_allocation === allocationFilter;
+
+                return matchesSearch && matchesEligibility && matchesAllocation;
+            });
+
+            currentPage = 1;
+            updateTotalCount();
+            renderTable();
+            renderPagination();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('eligibilityFilter').value = '';
+            document.getElementById('allocationFilter').value = '';
+            filterTable();
+        }
+
+        function sortTable(columnIndex) {
+            const columns = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts'];
+            const column = columns[columnIndex];
+            
+            if (sortColumn === columnIndex) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = columnIndex;
+                sortDirection = 'asc';
+            }
+
+            filteredData.sort((a, b) => {
+                let aVal = a[column] || '';
+                let bVal = b[column] || '';
+                
+                if (columnIndex === 0 || columnIndex === 4) { // Numbers
+                    aVal = parseInt(aVal) || 0;
+                    bVal = parseInt(bVal) || 0;
+                }
+                
+                if (sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+
+            renderTable();
+            renderPagination();
+        }
+
+        async function getNextSerialNumber() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('district_office_vehicles') // Changed table name
+                    .select('serial_no')
+                    .order('serial_no', { ascending: false })
+                    .limit(1);
+
+                if (error) throw error;
+
+                return data && data.length > 0 && data[0].serial_no !== null ? data[0].serial_no + 1 : 1;
+            } catch (error) {
+                console.error('Error getting next serial number:', error);
+                // Fallback if DB query fails, use current filtered data length + 1
+                return allData.length + 1;
+            }
+        }
+
+        async function addNewRow() {
+            currentEditId = null;
+            document.getElementById('modalTitle').textContent = 'नई एंट्री जोड़ें';
+            document.getElementById('entryForm').reset();
+            document.getElementById('entryId').value = '';
+            
+            // Auto-fill serial number
+            const nextSerial = await getNextSerialNumber();
+            document.getElementById('serialNo').value = nextSerial;
+
+            // Pre-select the first office prefix and trigger update
+            const officePrefixSelect = document.getElementById('officePrefix');
+            if (officePrefixes.length > 0) {
+                officePrefixSelect.value = officePrefixes[0].prefix_hindi; // Select the first one by default
+            } else {
+                officePrefixSelect.value = ""; // No prefixes available
+            }
+            updateOfficeNameAndDistrict(); // Update office name based on selected prefix and user's district
+
+            const modal = new bootstrap.Modal(document.getElementById('entryModal'));
+            modal.show();
+        }
+
+        async function editEntry(id) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('district_office_vehicles') // Changed table name
+                    .select('*')
+                    .eq('id', id)
+                    .single();
+
+                if (error) throw error;
+
+                currentEditId = id;
+                document.getElementById('modalTitle').textContent = 'एंट्री एडिट करें';
+                document.getElementById('entryId').value = data.id;
+                document.getElementById('serialNo').value = data.serial_no || '';
+                
+                // Set office prefix and then update office name
+                const fullOfficeName = data.office_name_district || '';
+                const userDistrictName = getCurrentUser()?.districtName || '';
+                let matchedPrefix = '';
+
+                // Try to find the prefix in the existing fullOfficeName
+                for (const prefixObj of officePrefixes) {
+                    const prefix = prefixObj.prefix_hindi;
+                    // Check if the fullOfficeName starts with the prefix and contains the district name
+                    if (fullOfficeName.startsWith(prefix) && fullOfficeName.includes(userDistrictName)) {
+                        matchedPrefix = prefix;
+                        break;
+                    }
+                }
+                document.getElementById('officePrefix').value = matchedPrefix;
+                // Set the full office name directly from DB for editing, as it's read-only
+                document.getElementById('officeName').value = fullOfficeName; 
+
+                document.getElementById('designation').value = data.designation || ''; // Set designation from fetched data
+                document.getElementById('payScale').value = data.pay_scale || '';
+                document.getElementById('sanctionedPosts').value = data.sanctioned_posts || '';
+                document.getElementById('vehicleEligibility').value = data.vehicle_eligibility || '';
+                document.getElementById('currentAllocation').value = data.current_allocation || '';
+                document.getElementById('remarks').value = data.remarks || '';
+
+                const modal = new bootstrap.Modal(document.getElementById('entryModal'));
+                modal.show();
+
+            } catch (error) {
+                alert('डेटा लोड करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        async function saveEntry() {
+            try {
+                showLoading();
+                const formData = {
+                    serial_no: parseInt(document.getElementById('serialNo').value) || null,
+                    // office_name_district is now read-only and autofilled on new entry
+                    office_name_district: document.getElementById('officeName').value, 
+                    designation: document.getElementById('designation').value, // Now from dropdown
+                    pay_scale: document.getElementById('payScale').value,
+                    sanctioned_posts: parseInt(document.getElementById('sanctionedPosts').value) || null,
+                    vehicle_eligibility: document.getElementById('vehicleEligibility').value,
+                    current_allocation: document.getElementById('currentAllocation').value,
+                    remarks: document.getElementById('remarks').value
+                };
+
+                let result;
+                if (currentEditId) {
+                    // Update existing record
+                    result = await supabaseClient
+                        .from('district_office_vehicles') // Changed table name
+                        .update(formData)
+                        .eq('id', currentEditId);
+                } else {
+                    // Insert new record
+                    result = await supabaseClient
+                        .from('district_office_vehicles') // Changed table name
+                        .insert([formData]);
+                }
+
+                if (result.error) throw result.error;
+
+                alert('डेटा सफलतापूर्वक सेव हो गया!');
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('entryModal'));
+                modal.hide();
+                
+                loadData();
+                hideLoading();
+
+            } catch (error) {
+                hideLoading();
+                alert('डेटा सेव करने में त्रुटि: ' + error.message);
+            }
+        }
+
+        async function deleteEntry(id) {
+            if (confirm('क्या आप वाकई इस एंट्री को डिलीट करना चाहते हैं?')) {
+                try {
+                    showLoading();
+                    const { error } = await supabaseClient
+                        .from('district_office_vehicles') // Changed table name
+                        .delete()
+                        .eq('id', id);
+
+                    if (error) throw error;
+
+                    alert('एंट्री सफलतापूर्वक डिलीट हो गई!');
+                    loadData();
+                    hideLoading();
+
+                } catch (error) {
+                    hideLoading();
+                    alert('डिलीट करने में त्रुटि: ' + error.message);
+                }
+            }
+        }
+
+        // Helper for Excel binary export
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+
+        function exportToExcel() {
+            showLoading();
+            const ws_data = [
+                ['संचालनालय कृषि छत्तीसगढ़ रायपुर'],
+                ['जिला स्तरीय वाहन आबंटन की जानकारी'], // Changed subtitle
+                ['रिपोर्ट दिनांक: ' + new Date().toLocaleDateString('hi-IN')],
+                [], // Empty row for spacing
+                ['क्रमांक', 'कार्यालय का नाम एवं जिला', 'पदनाम', 'वेतनमान', 'स्वीकृत पद संख्या', 'वाहन की पात्रता है अथवा नहीं', 'वर्तमान में वाहन आबंटित है या नहीं', 'रिमार्क']
+            ];
+
+            filteredData.forEach(row => {
+                ws_data.push([
+                    row.serial_no || '',
+                    row.office_name_district || '',
+                    row.designation || '',
+                    row.pay_scale || '',
+                    row.sanctioned_posts || '',
+                    row.vehicle_eligibility || '',
+                    row.current_allocation || '',
+                    row.remarks || ''
+                ]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+            // Set column widths (auto-fit will happen if !cols is not set for wch)
+            // We can set a minimal width or let it auto-fit completely.
+            // For true auto-fit, we should not define !cols explicitly.
+            // However, to ensure minimum readability for headers, we can set default wch.
+            const colWidths = [
+                { wch: 10 }, { wch: 30 }, { wch: 20 }, { wch: 15 }, 
+                { wch: 18 }, { wch: 25 }, { wch: 25 }, { wch: 40 }
+            ];
+            ws['!cols'] = colWidths;
+
+
+            // Calculate actual number of data columns for merging titles over the whole table width
+            const numDataColumns = ws_data[4].length; // Number of columns in the header row
+
+            // Merge cells for title over all data columns
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: numDataColumns - 1 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: numDataColumns - 1 } },
+                { s: { r: 2, c: 0 }, e: { r: 2, c: numDataColumns - 1 } }
+            ];
+
+            // Style for titles and headers
+            const titleStyle = { 
+                font: { bold: true, sz: 16, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const subtitleStyle = { 
+                font: { bold: true, sz: 14, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const dateStyle = { 
+                font: { sz: 11, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true }
+            };
+            const headerCellStyle = {
+                font: { bold: true, sz: 12, color: { rgb: "FF000000" } }, /* Black color */
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                fill: { fgColor: { rgb: "FFD3D3D3" } }, /* Light gray background */
+                border: {
+                    top: { style: "thin", color: { rgb: "FF000000" } },
+                    bottom: { style: "thin", color: { rgb: "FF000000" } },
+                    left: { style: "thin", color: { rgb: "FF000000" } },
+                    right: { style: "thin", color: { rgb: "FF000000" } }
+                }
+            };
+            const dataCellStyle = {
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                border: {
+                    top: { style: "thin", color: { rgb: "FF000000" } },
+                    bottom: { style: "thin", color: { rgb: "FF000000" } },
+                    left: { style: "thin", color: { rgb: "FF000000" } },
+                    right: { style: "thin", color: { rgb: "FF000000" } }
+                }
+            };
+            
+            if (ws['A1']) ws['A1'].s = titleStyle;
+            if (ws['A2']) ws['A2'].s = subtitleStyle;
+            if (ws['A3']) ws['A3'].s = dateStyle;
+
+            // Apply header style to table headers
+            for (let c = 0; c < ws_data[4].length; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r: 4, c: c });
+                if (!ws[cellRef]) ws[cellRef] = {};
+                ws[cellRef].s = headerCellStyle;
+            }
+
+            // Apply data cell styles to data rows
+            for (let r = 5; r < ws_data.length; r++) {
+                for (let c = 0; c < ws_data[r].length; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                    if (!ws[cellRef]) ws[cellRef] = {};
+                    ws[cellRef].s = dataCellStyle;
+                }
+            }
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'जिला_वाहन'); // Changed sheet name
+
+            // Landscape orientation
+            if (!wb.Sheets['जिला_वाहन']['!pageSetup']) wb.Sheets['जिला_वाहन']['!pageSetup'] = {};
+            wb.Sheets['जिला_वाहन']['!pageSetup'].orientation = 'landscape';
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+            const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'जिला_स्तर_कार्यालय_वाहन_आबंटन.xlsx'; // Changed download filename
+            link.click();
+            hideLoading();
+        }
+
+        async function exportToPDF() {
+            showLoading();
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // 'l' for landscape
+
+            // ======================================================================================
+            // IMPORTANT: For Hindi (Devanagari) to render correctly in PDF, you MUST embed a Unicode font.
+            // jsPDF's default fonts (helvetica, times, courier) do NOT support Devanagari characters.
+            // Without embedding a custom font, Hindi text will appear as garbled characters or empty boxes.
+            //
+            // How to embed a font (example with Noto Sans Devanagari):
+            // 1. Get the font files (e.g., NotoSansDevanagari-Regular.ttf).
+            // 2. Convert the TTF to jsPDF's base64 format using a tool (e.g., https://raw.githack.com/MrRio/jsPDF/master/fontconverter/fontconverter.html)
+            //    or `jspdf-autotable`'s font generation: https://jspdf.org/docs/fonts/
+            // 3. Add the generated font definition to your script:
+            //    doc.addFont('path/to/NotoSansDevanagari-Regular.ttf', 'NotoSansDevanagari', 'normal');
+            //    doc.setFont('NotoSansDevanagari');
+            //
+            // For this example, we will use 'helvetica' as a fallback. Hindi will likely be garbled.
+            // ======================================================================================
+            doc.setFont('helvetica'); 
+
+            doc.setTextColor(0, 0, 0); // Black text color
+            doc.setFontSize(16);
+            doc.text('संचालनालय कृषि छत्तीसगढ़ रायपुर', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text('जिला स्तरीय वाहन आबंटन की जानकारी', doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' }); // Changed subtitle
+            doc.setFontSize(10);
+            doc.text('रिपोर्ट दिनांक: ' + new Date().toLocaleDateString('hi-IN'), doc.internal.pageSize.getWidth() / 2, 35, { align: 'center' });
+
+            const headers = [
+                'क्रमांक', 'कार्यालय का नाम एवं जिला', 'पदनाम', 'वेतनमान', 
+                'स्वीकृत पद संख्या', 'वाहन की पात्रता', 'वर्तमान में वाहन आबंटित', 'रिमार्क'
+            ];
+
+            const data = filteredData.map(row => [
+                row.serial_no || '',
+                row.office_name_district || '',
+                row.designation || '',
+                row.pay_scale || '',
+                row.sanctioned_posts || '',
+                row.vehicle_eligibility || '',
+                row.current_allocation || '',
+                row.remarks || ''
+            ]);
+
+            doc.autoTable({
+                head: [headers],
+                body: data,
+                startY: 45,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [211, 211, 211], // Light gray background
+                    textColor: [0, 0, 0], // Black text
+                    fontStyle: 'bold', 
+                    halign: 'center',
+                    valign: 'middle',
+                    fontSize: 8,
+                    lineColor: [0, 0, 0], // Black border
+                    lineWidth: 0.2
+                },
+                bodyStyles: { 
+                    textColor: [0, 0, 0], // Black text
+                    halign: 'center', 
+                    valign: 'middle',
+                    fontSize: 8,
+                    lineColor: [0, 0, 0], // Black border
+                    lineWidth: 0.1
+                },
+                alternateRowStyles: { 
+                    fillColor: [248, 249, 250] // Light gray for alternate rows
+                },
+                styles: {
+                    font: 'helvetica', // Use a font that supports Hindi, or embed one
+                    cellPadding: 2,
+                    lineWidth: 0.1,
+                    lineColor: [0, 0, 0] // All borders black
+                },
+                // Removed columnStyles to enable auto-fitting widths by jsPDF-Autotable
+            });
+
+            doc.save('जिला_स्तर_कार्यालय_वाहन_आबंटन.pdf'); // Changed download filename
+            hideLoading();
+        }
+
+        function logout() {
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
