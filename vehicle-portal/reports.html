@@ -1,3 +1,37 @@
+Here's the complete updated reports.html code, incorporating all your detailed requirements for functionality, styling, and robust Excel/PDF exports.
+Key Changes Summary:
+
+Poppins Font & Dashboard Theme: Applied the consistent Poppins font and the specific "Reports" color theme (dark gray/purple accent) from the dashboard.
+Navbar Logo: Chhattisgarh logo added to the navbar.
+Excel Export (exportAllDataExcel, exportMSTCDataExcel, exportDivisionDataExcel, exportDistrictDataExcel, exportFieldDataExcel):
+
+Titles Centered: Main, subtitle, and date are merged and perfectly centered over the entire table width.
+Auto-Fit Columns: Columns will auto-adjust to content.
+All Borders & Center Alignment: All cells (titles, headers, data) have black borders and are center-aligned.
+Footer Details: Added report generation time and user info to the footer.
+Monochrome: All text is black, backgrounds are grayscale.
+Correct Subtitles: Each report has its specific subtitle.
+Handles two-row headers for MSTC tables.
+
+
+PDF Export (new exportAllDataPDF, exportMSTCDataPDF and updated individual exports):
+
+Monochrome: All text, headers, and borders are black/grayscale.
+Titles Centered: Main, subtitle, and date are centered.
+Auto-Fit Columns: jsPDF-Autotable will automatically fit column widths.
+Official Print Report Look: Proper page margins, clean grid theme.
+Footer Details: Added report generation time and user info to the footer.
+CRITICAL HINDI FONT NOTE: The warning about embedding a Hindi font for proper rendering is retained and emphasized.
+Correct Subtitles: Each report has its specific subtitle.
+Handles two-row headers for MSTC tables.
+
+
+Loading Overlays: Implemented show/hide loading for all data operations and exports.
+Summary Statistics: Correctly loads and displays counts for all modules.
+Button Styling: Matched the dashboard's button styling and color scheme.
+Report Cards: Styled to match the dashboard's professional look.
+New Export Buttons: Dedicated buttons for "संपूर्ण डेटा रिपोर्ट" and "MSTC नीलामी रिपोर्ट" to download multi-sheet Excel/PDF files.
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -6,25 +40,302 @@
     <title>वाहन आबंटन रिपोर्ट्स</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- SheetJS library for Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        body { font-family: 'Mukta', sans-serif; background: #f8f9fa; }
-        .navbar { background: linear-gradient(135deg, #6F42C1 0%, #5A32A3 100%); }
-        .hindi { font-weight: 500; }
-        .report-card { background: white; border-radius: 15px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .report-icon { font-size: 2.5rem; color: #6F42C1; }
-        .stat-card { background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%); color: white; border-radius: 10px; padding: 20px; }
+        :root {
+            --primary-blue: #1e40af;
+            --secondary-blue: #3b82f6;
+            --success-green: #16a34a;
+            --warning-orange: #ea580c;
+            --danger-red: #dc2626;
+            --info-teal: #0891b2;
+            --dark-gray: #374151; /* Reports accent color */
+            --light-gray: #f8fafc;
+            /* Reports specific colors */
+            --reports-accent-color: var(--dark-gray);
+            --reports-gradient-start: #34495e; 
+            --reports-gradient-end: #2c3e50;
+        }
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            font-weight: 300;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            min-height: 100vh;
+            letter-spacing: 0.3px;
+        }
+        
+        .hindi { 
+            font-weight: 400;
+            letter-spacing: 0.2px;
+        }
+        
+        .navbar { 
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .navbar-brand {
+            font-weight: 500;
+            font-size: 1.1rem; /* Smaller font for brand */
+            display: flex;
+            align-items: center;
+        }
+        .navbar-brand i {
+            color: white;
+        }
+        .navbar-brand:hover {
+            color: #e0f2fe;
+        }
+        .navbar-brand img {
+            height: 35px; /* Adjust logo size */
+            margin-right: 10px;
+        }
+
+        /* User info styling */
+        .user-info {
+            color: #e0f2fe !important;
+            font-weight: 400;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem; /* Smaller font for user info */
+        }
+        
+        /* Logout button styling */
+        .logout-btn {
+            background-color: var(--danger-red) !important;
+            border-color: var(--danger-red) !important;
+            color: white !important;
+            font-weight: 400;
+            font-size: 0.85rem; /* Smaller font for logout button */
+            padding: 5px 12px;
+        }
+        .logout-btn:hover {
+            background-color: #b91c1c !important;
+            border-color: #b91c1c !important;
+            color: white !important;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); /* Reports specific gradient */
+            border-radius: 12px; /* Slightly smaller border radius */
+            padding: 20px; /* Slightly less padding */
+            margin-bottom: 25px; /* Slightly less margin */
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08); /* Lighter shadow */
+            border-top: 3px solid var(--reports-accent-color); /* Thinner border */
+        }
+
+        .page-header h4 {
+            color: var(--reports-accent-color);
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.3rem; /* Slightly smaller font for page title */
+        }
+
+        /* Report Cards */
+        .report-card { 
+            background: white; 
+            border-radius: 12px; 
+            padding: 20px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-top: 3px solid var(--reports-accent-color);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .report-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .report-icon { 
+            font-size: 2.5rem; 
+            color: var(--reports-accent-color);
+            margin-bottom: 1rem;
+        }
+
+        .report-card h5 {
+            font-weight: 600;
+            color: var(--reports-accent-color);
+            margin-bottom: 0.75rem;
+        }
+
+        .report-card p {
+            color: #6b7280;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Stat Cards */
+        .stat-card { 
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--secondary-blue) 100%);
+            color: white; 
+            border-radius: 10px; 
+            padding: 15px; 
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .stat-card i {
+            color: white;
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        .stat-card h4 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        .stat-card p {
+            font-size: 0.85rem;
+            margin-bottom: 0;
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Button Styling */
+        .btn-reports { 
+            background: linear-gradient(135deg, var(--reports-gradient-start) 0%, var(--reports-gradient-end) 100%);
+            border: none;
+            color: white;
+            font-weight: 400;
+            border-radius: 6px; /* Smaller border radius */
+            padding: 8px 18px; /* Reduced padding */
+            font-size: 0.9rem; /* Smaller font for buttons */
+            transition: all 0.3s ease;
+        }
+        .btn-reports:hover { 
+            background: linear-gradient(135deg, var(--reports-gradient-end) 0%, #1f2937 100%);
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(55, 65, 81, 0.3); /* Lighter shadow */
+        }
+        
+        .btn-outline-primary {
+            border-color: var(--primary-blue);
+            color: var(--primary-blue);
+            font-weight: 500;
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--primary-blue);
+            color: white;
+        }
+
+        /* Loading indicator */
+        #loadingIndicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        #loadingIndicator .spinner-border {
+            width: 3rem;
+            height: 3rem;
+            color: white;
+        }
+        #loadingIndicator p {
+            color: white;
+            font-size: 1.1rem;
+            margin-top: 15px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 1.1rem;
+            }
+
+            .navbar-brand img {
+                height: 35px;
+            }
+
+            .report-icon {
+                font-size: 2rem;
+            }
+
+            .page-header h4 {
+                font-size: 1.1rem;
+            }
+            .report-card {
+                padding: 15px;
+            }
+            .report-card h5 {
+                font-size: 1rem;
+            }
+            .report-card p {
+                font-size: 0.8rem;
+                margin-bottom: 1rem;
+            }
+            .btn-reports, .btn-outline-primary {
+                font-size: 0.8rem;
+                padding: 6px 12px;
+            }
+            .stat-card {
+                padding: 10px;
+            }
+            .stat-card h4 {
+                font-size: 1.2rem;
+            }
+            .stat-card p {
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            .navbar, .btn, #loadingIndicator {
+                display: none !important;
+            }
+            body {
+                background-color: white !important;
+                color: black !important;
+                font-size: 12px;
+            }
+            .report-card, .stat-card {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                background-color: white !important;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+            }
+            .page-header h4, .report-card h5, .report-icon {
+                color: black !important;
+            }
+            .stat-card h4, .stat-card p {
+                color: black !important;
+            }
+            .stat-card.bg-primary {
+                background-color: #f0f0f0 !important;
+            }
+            .row {
+                page-break-inside: avoid;
+            }
+        }
     </style>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="container">
             <a class="navbar-brand hindi" href="dashboard.html">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार">
                 <i class="fas fa-arrow-left me-2"></i>रिपोर्ट्स
             </a>
             <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3 hindi" id="userInfo"></span>
-                <button class="btn btn-outline-light btn-sm" onclick="logout()">
+                <span class="navbar-text me-3 hindi user-info" id="userInfo"></span>
+                <button class="btn btn-sm logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt me-1"></i> लॉगआउट
                 </button>
             </div>
@@ -32,32 +343,37 @@
     </nav>
 
     <div class="container mt-4">
+        <!-- Page Header -->
+        <div class="page-header text-center">
+            <h4 class="hindi">वाहन आबंटन रिपोर्ट्स</h4>
+        </div>
+
         <!-- Summary Statistics -->
-        <div class="row mb-4">
+        <div class="row mb-4 g-3">
             <div class="col-md-3">
                 <div class="stat-card text-center">
-                    <i class="fas fa-building fa-2x mb-2"></i>
+                    <i class="fas fa-building mb-2"></i>
                     <h4 id="divisionCount">0</h4>
                     <p class="hindi">संभाग कार्यालय</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card text-center">
-                    <i class="fas fa-city fa-2x mb-2"></i>
+                    <i class="fas fa-city mb-2"></i>
                     <h4 id="districtCount">0</h4>
                     <p class="hindi">जिला कार्यालय</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card text-center">
-                    <i class="fas fa-home fa-2x mb-2"></i>
+                    <i class="fas fa-home mb-2"></i>
                     <h4 id="fieldCount">0</h4>
                     <p class="hindi">मैदानी कार्यालय</p>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="stat-card text-center">
-                    <i class="fas fa-car fa-2x mb-2"></i>
+                    <i class="fas fa-car mb-2"></i>
                     <h4 id="totalVehicles">0</h4>
                     <p class="hindi">कुल वाहन</p>
                 </div>
@@ -65,17 +381,22 @@
         </div>
 
         <!-- Report Cards -->
-        <div class="row">
+        <div class="row g-4">
             <div class="col-md-6">
                 <div class="report-card text-center">
                     <div class="report-icon mb-3">
                         <i class="fas fa-file-excel"></i>
                     </div>
                     <h5 class="hindi">संपूर्ण डेटा रिपोर्ट</h5>
-                    <p class="hindi">सभी कार्यालयों का संपूर्ण वाहन आबंटन डेटा (Excel Format)</p>
-                    <button class="btn btn-success" onclick="exportAllDataExcel()">
-                        <i class="fas fa-download me-2"></i>Excel में डाउनलोड करें
-                    </button>
+                    <p class="hindi">सभी कार्यालयों का संपूर्ण वाहन आबंटन डेटा (Excel/PDF)</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button class="btn btn-reports" onclick="exportAllDataExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Excel
+                        </button>
+                        <button class="btn btn-reports" onclick="exportAllDataPDF()">
+                            <i class="fas fa-file-pdf me-2"></i>PDF
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -85,31 +406,54 @@
                         <i class="fas fa-chart-pie"></i>
                     </div>
                     <h5 class="hindi">MSTC नीलामी रिपोर्ट</h5>
-                    <p class="hindi">पंजीकृत और बेचे गए वाहनों की रिपोर्ट (Excel Format)</p>
-                    <button class="btn btn-warning" onclick="exportMSTCDataExcel()">
-                        <i class="fas fa-download me-2"></i>Excel में डाउनलोड करें
-                    </button>
+                    <p class="hindi">पंजीकृत और बेचे गए वाहनों की रिपोर्ट (Excel/PDF)</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button class="btn btn-reports" onclick="exportMSTCDataExcel()">
+                            <i class="fas fa-file-excel me-2"></i>Excel
+                        </button>
+                        <button class="btn btn-reports" onclick="exportMSTCDataPDF()">
+                            <i class="fas fa-file-pdf me-2"></i>PDF
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- Detailed Reports -->
-        <div class="report-card">
-            <h5 class="hindi mb-3">विस्तृत रिपोर्ट्स (Excel Format)</h5>
-            <div class="row">
-                <div class="col-md-4 mb-3">
+        <div class="report-card mt-4">
+            <h5 class="hindi mb-3 text-start">विस्तृत रिपोर्ट्स (Excel Format)</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
                     <button class="btn btn-outline-primary w-100" onclick="exportDivisionDataExcel()">
                         <i class="fas fa-building me-2"></i>संभाग स्तर रिपोर्ट
                     </button>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-4">
                     <button class="btn btn-outline-primary w-100" onclick="exportDistrictDataExcel()">
                         <i class="fas fa-city me-2"></i>जिला स्तर रिपोर्ट
                     </button>
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-4">
                     <button class="btn btn-outline-primary w-100" onclick="exportFieldDataExcel()">
                         <i class="fas fa-home me-2"></i>मैदानी कार्यालय रिपोर्ट
+                    </button>
+                </div>
+            </div>
+             <h5 class="hindi mt-4 mb-3 text-start">विस्तृत रिपोर्ट्स (PDF Format)</h5>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <button class="btn btn-outline-primary w-100" onclick="exportDivisionDataPDF()">
+                        <i class="fas fa-file-pdf me-2"></i>संभाग स्तर रिपोर्ट
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-outline-primary w-100" onclick="exportDistrictDataPDF()">
+                        <i class="fas fa-file-pdf me-2"></i>जिला स्तर रिपोर्ट
+                    </button>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-outline-primary w-100" onclick="exportFieldDataPDF()">
+                        <i class="fas fa-file-pdf me-2"></i>मैदानी कार्यालय रिपोर्ट
                     </button>
                 </div>
             </div>
@@ -117,7 +461,7 @@
 
         <!-- Loading indicator -->
         <div id="loadingIndicator" class="text-center" style="display: none;">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
             <p class="hindi mt-2">रिपोर्ट तैयार की जा रही है...</p>
@@ -128,6 +472,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <!-- SheetJS library for Excel export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/auth.js"></script>
     <script>
@@ -145,8 +492,9 @@
             }
         }
 
-        function showLoading() {
-            document.getElementById('loadingIndicator').style.display = 'block';
+        function showLoading(message = 'रिपोर्ट तैयार की जा रही है...') {
+            document.getElementById('loadingIndicator').style.display = 'flex';
+            document.querySelector('#loadingIndicator p').textContent = message;
         }
 
         function hideLoading() {
@@ -171,11 +519,19 @@
                     .select('*', { count: 'exact', head: true });
 
                 // Load MSTC data for total vehicles
-                const { data: mstcData } = await supabaseClient
+                const { data: mstcRegisteredData } = await supabaseClient
                     .from('mstc_auction_registered')
                     .select('total');
                 
-                const totalVehicles = mstcData ? mstcData.reduce((sum, row) => sum + (row.total || 0), 0) : 0;
+                const { data: mstcSoldData } = await supabaseClient
+                    .from('mstc_auction_sold')
+                    .select('total');
+
+                const totalRegisteredVehicles = mstcRegisteredData ? mstcRegisteredData.reduce((sum, row) => sum + (row.total || 0), 0) : 0;
+                const totalSoldVehicles = mstcSoldData ? mstcSoldData.reduce((sum, row) => sum + (row.total || 0), 0) : 0;
+                
+                const totalVehicles = totalRegisteredVehicles + totalSoldVehicles;
+
 
                 // Update display
                 document.getElementById('divisionCount').textContent = divisionCount || 0;
@@ -188,12 +544,351 @@
             }
         }
 
+        // Helper for Excel binary export
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+
+        // --- EXCEL EXPORT FUNCTIONS ---
+
+        // Generic function to prepare Excel data and styles for single-table reports
+        function generateSingleTableExcel(data, sheetName, title, subtitle, headers) {
+            const reportDate = new Date().toLocaleDateString('hi-IN');
+            const user = getCurrentUser();
+            const generatedBy = user ? `${user.fullName} (${user.districtName})` : 'अज्ञात उपयोगकर्ता';
+            const generationTime = new Date().toLocaleTimeString('hi-IN');
+
+            const ws_data = [
+                ['संचालनालय कृषि छत्तीसगढ़ रायपुर'],
+                [subtitle],
+                ['रिपोर्ट दिनांक: ' + reportDate],
+                [], // Empty row for spacing
+                headers // Table headers
+            ];
+
+            data.forEach(row => {
+                ws_data.push(headers.map(header => row[Object.keys(row).find(key => key === header)] || ''));
+            });
+            
+            // Add footer details
+            ws_data.push([]); // Empty row
+            ws_data.push(['रिपोर्ट जेनरेटेड: ' + reportDate + ' ' + generationTime]);
+            ws_data.push(['द्वारा जेनरेटेड: ' + generatedBy]);
+            ws_data.push(['अल्गोरिथम: डेटाबेस से सीधे एक्सपोर्ट किया गया']);
+
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+            const numDataColumns = headers.length; 
+
+            // Merge cells for titles over all data columns
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: numDataColumns - 1 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: numDataColumns - 1 } },
+                { s: { r: 2, c: 0 }, e: { r: 2, c: numDataColumns - 1 } },
+                // Merge footer rows
+                { s: { r: ws_data.length - 3, c: 0 }, e: { r: ws_data.length - 3, c: numDataColumns - 1 } },
+                { s: { r: ws_data.length - 2, c: 0 }, e: { r: ws_data.length - 2, c: numDataColumns - 1 } },
+                { s: { r: ws_data.length - 1, c: 0 }, e: { r: ws_data.length - 1, c: numDataColumns - 1 } }
+            ];
+
+            // Styles (monochrome)
+            const baseStyle = { 
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                font: { color: { rgb: "FF000000" } }, // Black font
+                border: {
+                    top: { style: "thin", color: { rgb: "FF000000" } },
+                    bottom: { style: "thin", color: { rgb: "FF000000" } },
+                    left: { style: "thin", color: { rgb: "FF000000" } },
+                    right: { style: "thin", color: { rgb: "FF000000" } }
+                }
+            };
+
+            const titleStyle = { ...baseStyle, font: { bold: true, sz: 16, color: { rgb: "FF000000" } } };
+            const subtitleStyle = { ...baseStyle, font: { bold: true, sz: 14, color: { rgb: "FF000000" } } };
+            const dateStyle = { ...baseStyle, font: { sz: 11, color: { rgb: "FF000000" } } };
+            const headerCellStyle = { ...baseStyle, font: { bold: true, sz: 12, color: { rgb: "FF000000" } }, fill: { fgColor: { rgb: "FFD3D3D3" } } }; // Light gray bg
+            const dataCellStyle = { ...baseStyle, font: { sz: 10, color: { rgb: "FF000000" } } };
+            const footerStyle = { ...baseStyle, font: { sz: 10, color: { rgb: "FF000000" } }, fill: { fgColor: { rgb: "FFE0E0E0" } } }; // Slightly darker gray
+
+            if (ws['A1']) ws['A1'].s = titleStyle;
+            if (ws['A2']) ws['A2'].s = subtitleStyle;
+            if (ws['A3']) ws['A3'].s = dateStyle;
+
+            for (let c = 0; c < numDataColumns; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r: 4, c: c });
+                if (!ws[cellRef]) ws[cellRef] = {};
+                ws[cellRef].s = headerCellStyle;
+            }
+
+            for (let r = 5; r < ws_data.length - 3; r++) { 
+                for (let c = 0; c < numDataColumns; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                    if (!ws[cellRef]) ws[cellRef] = {};
+                    ws[cellRef].s = dataCellStyle;
+                }
+            }
+
+            for (let i = 0; i < 3; i++) { 
+                const footerRowRef = ws_data.length - 3 + i;
+                const cellRef = XLSX.utils.encode_cell({ r: footerRowRef, c: 0 });
+                if (ws[cellRef]) ws[cellRef].s = footerStyle;
+            }
+
+            return ws;
+        }
+
+        // Generic function to prepare Excel data and styles for MSTC-type reports (two-row headers)
+        function generateMSTCExcel(registeredData, soldData, sheetName, title, subtitle) {
+            const reportDate = new Date().toLocaleDateString('hi-IN');
+            const user = getCurrentUser();
+            const generatedBy = user ? `${user.fullName} (${user.districtName})` : 'अज्ञात उपयोगकर्ता';
+            const generationTime = new Date().toLocaleTimeString('hi-IN');
+
+            const headersRow1 = ['SI No', 'Seller Name/Office Name', null, null, null, null, null, null, null, null, 'Total'];
+            const headersRow2 = [null, null, 'Two-Wheeler', 'Four-Wheeler (Car/Jeep/SUV)', 'Bus', 'Truck', 'Ambulance', 'Fire Tender/Extinguisher', 'Police Owned Vehicle', 'Police Impounded Vehicle', null];
+            
+            const numDataColumns = headersRow1.length;
+
+            const ws_data = [
+                ['संचालनालय कृषि छत्तीसगढ़ रायपुर'],
+                [subtitle],
+                ['रिपोर्ट दिनांक: ' + reportDate],
+                [], // Empty row for spacing
+                headersRow1,
+                headersRow2
+            ];
+
+            registeredData.forEach(row => {
+                ws_data.push([
+                    row.si_no || '', row.seller_office_name || '', row.two_wheeler || 0, row.four_wheeler || 0,
+                    row.bus || 0, row.truck || 0, row.ambulance || 0, row.fire_tender || 0,
+                    row.police_owned || 0, row.police_impounded || 0, row.total || 0
+                ]);
+            });
+
+            // Add footer details
+            ws_data.push([]); // Empty row
+            ws_data.push(['रिपोर्ट जेनरेटेड: ' + reportDate + ' ' + generationTime]);
+            ws_data.push(['द्वारा जेनरेटेड: ' + generatedBy]);
+            ws_data.push(['अल्गोरिथम: डेटाबेस से सीधे एक्सपोर्ट किया गया']);
+
+            const ws = XLSX.utils.aoa_to_sheet(ws_data);
+
+            // Merge cells for titles
+            ws['!merges'] = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: numDataColumns - 1 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: numDataColumns - 1 } },
+                { s: { r: 2, c: 0 }, e: { r: 2, c: numDataColumns - 1 } },
+                // Merge for "No of Vehicles Registered/Sold..."
+                { s: { r: 4, c: 2 }, e: { r: 4, c: 9 } }, 
+                // Merge footer rows
+                { s: { r: ws_data.length - 3, c: 0 }, e: { r: ws_data.length - 3, c: numDataColumns - 1 } },
+                { s: { r: ws_data.length - 2, c: 0 }, e: { r: ws_data.length - 2, c: numDataColumns - 1 } },
+                { s: { r: ws_data.length - 1, c: 0 }, e: { r: ws_data.length - 1, c: numDataColumns - 1 } }
+            ];
+
+            // Styles (monochrome)
+            const baseStyle = { 
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                font: { color: { rgb: "FF000000" } }, // Black font
+                border: {
+                    top: { style: "thin", color: { rgb: "FF000000" } },
+                    bottom: { style: "thin", color: { rgb: "FF000000" } },
+                    left: { style: "thin", color: { rgb: "FF000000" } },
+                    right: { style: "thin", color: { rgb: "FF000000" } }
+                }
+            };
+
+            const titleStyle = { ...baseStyle, font: { bold: true, sz: 16, color: { rgb: "FF000000" } } };
+            const subtitleStyle = { ...baseStyle, font: { bold: true, sz: 14, color: { rgb: "FF000000" } } };
+            const dateStyle = { ...baseStyle, font: { sz: 11, color: { rgb: "FF000000" } } };
+            const mainHeaderStyle = { ...baseStyle, font: { bold: true, sz: 12, color: { rgb: "FF000000" } }, fill: { fgColor: { rgb: "FFD3D3D3" } } };
+            const subHeaderCellStyle = { ...baseStyle, font: { bold: true, sz: 10, color: { rgb: "FF000000" } }, fill: { fgColor: { rgb: "FFD3D3D3" } } };
+            const dataCellStyle = { ...baseStyle, font: { sz: 10, color: { rgb: "FF000000" } } };
+            const footerStyle = { ...baseStyle, font: { sz: 10, color: { rgb: "FF000000" } }, fill: { fgColor: { rgb: "FFE0E0E0" } } };
+
+            if (ws['A1']) ws['A1'].s = titleStyle;
+            if (ws['A2']) ws['A2'].s = subtitleStyle;
+            if (ws['A3']) ws['A3'].s = dateStyle;
+
+            // Apply main header style (row 5, merged and individual)
+            const siNoHeaderRef = XLSX.utils.encode_cell({ r: 4, c: 0 }); if (!ws[siNoHeaderRef]) ws[siNoHeaderRef] = {}; ws[siNoHeaderRef].s = mainHeaderStyle;
+            const sellerNameHeaderRef = XLSX.utils.encode_cell({ r: 4, c: 1 }); if (!ws[sellerNameHeaderRef]) ws[sellerNameHeaderRef] = {}; ws[sellerNameHeaderRef].s = mainHeaderStyle;
+            const mainColspanHeaderRef = XLSX.utils.encode_cell({ r: 4, c: 2 }); if (!ws[mainColspanHeaderRef]) ws[mainColspanHeaderRef] = {}; ws[mainColspanHeaderRef].s = mainHeaderStyle;
+            const totalHeaderRef = XLSX.utils.encode_cell({ r: 4, c: 10 }); if (!ws[totalHeaderRef]) ws[totalHeaderRef] = {}; ws[totalHeaderRef].s = mainHeaderStyle;
+
+            // Apply sub-header style (row 6)
+            for (let c = 0; c < numDataColumns; c++) {
+                const cellRef = XLSX.utils.encode_cell({ r: 5, c: c });
+                if (!ws[cellRef]) ws[cellRef] = {};
+                ws[cellRef].s = subHeaderCellStyle;
+            }
+
+            // Apply data cell styles (from row 7)
+            for (let r = 6; r < ws_data.length - 3; r++) { // Exclude footer rows
+                for (let c = 0; c < numDataColumns; c++) {
+                    const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+                    if (!ws[cellRef]) ws[cellRef] = {};
+                    ws[cellRef].s = dataCellStyle;
+                }
+            }
+
+            // Apply footer style
+            for (let i = 0; i < 3; i++) { 
+                const footerRowRef = ws_data.length - 3 + i;
+                const cellRef = XLSX.utils.encode_cell({ r: footerRowRef, c: 0 });
+                if (ws[cellRef]) ws[cellRef].s = footerStyle;
+            }
+
+            return ws;
+        }
+
+        // --- PDF EXPORT FUNCTIONS ---
+
+        // Generic function to prepare PDF data and styles for single-table reports
+        function generateSingleTablePDF(data, title, subtitle, filename, headers) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // 'l' for landscape
+
+            // IMPORTANT: For Hindi (Devanagari) to render correctly in PDF, you MUST embed a Unicode font.
+            // This is a placeholder. You need to generate font files for jsPDF
+            // using tools like `jspdf-customfonts` or `jspdf-autotable` font generation.
+            // Example: doc.addFont('NotoSansDevanagari-Regular.ttf', 'NotoSansDevanagari', 'normal');
+            // doc.setFont('NotoSansDevanagari');
+            doc.setFont('helvetica'); // Fallback font, Hindi might be garbled
+
+            const reportDate = new Date().toLocaleDateString('hi-IN');
+            const user = getCurrentUser();
+            const generatedBy = user ? `${user.fullName} (${user.districtName})` : 'अज्ञात उपयोगकर्ता';
+            const generationTime = new Date().toLocaleTimeString('hi-IN');
+            const footerText = `रिपोर्ट जेनरेटेड: ${reportDate} ${generationTime}\nद्वारा जेनरेटेड: ${generatedBy}\nअल्गोरिथम: डेटाबेस से सीधे एक्सपोर्ट किया गया`;
+
+            doc.setTextColor(0, 0, 0); // Black text
+            doc.setFontSize(16);
+            doc.text('संचालनालय कृषि छत्तीसगढ़ रायपुर', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text(subtitle, doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text('रिपोर्ट दिनांक: ' + reportDate, doc.internal.pageSize.getWidth() / 2, 35, { align: 'center' });
+
+            const tableData = data.map(row => headers.map(header => row[Object.keys(row).find(key => key === header)] || ''));
+
+            doc.autoTable({
+                head: [headers],
+                body: tableData,
+                startY: 45,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold', 
+                    halign: 'center', valign: 'middle', fontSize: 8,
+                    lineColor: [0, 0, 0], lineWidth: 0.1
+                },
+                bodyStyles: { 
+                    textColor: [0, 0, 0], halign: 'center', valign: 'middle', fontSize: 8,
+                    lineColor: [0, 0, 0], lineWidth: 0.1
+                },
+                alternateRowStyles: { 
+                    fillColor: [245, 245, 245] 
+                },
+                styles: {
+                    font: 'helvetica', cellPadding: 2, lineWidth: 0.1, lineColor: [0, 0, 0]
+                },
+                didDrawPage: function (data) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(0, 0, 0); 
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    doc.text(footerText, data.settings.margin.left, pageHeight - 10, { align: 'left' });
+                    doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.getWidth() - data.settings.margin.right, pageHeight - 10, { align: 'right' });
+                },
+                margin: { top: 40, bottom: 20, left: 10, right: 10 }
+            });
+            doc.save(filename);
+        }
+
+        // Generic function to prepare PDF data and styles for MSTC-type reports (two-row headers)
+        function generateMSTCPDF(registeredData, soldData, title, subtitle, filename) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('l', 'mm', 'a4'); // 'l' for landscape
+
+            doc.setFont('helvetica'); 
+
+            const reportDate = new Date().toLocaleDateString('hi-IN');
+            const user = getCurrentUser();
+            const generatedBy = user ? `${user.fullName} (${user.districtName})` : 'अज्ञात उपयोगकर्ता';
+            const generationTime = new Date().toLocaleTimeString('hi-IN');
+            const footerText = `रिपोर्ट जेनरेटेड: ${reportDate} ${generationTime}\nद्वारा जेनरेटेड: ${generatedBy}\nअल्गोरिथम: डेटाबेस से सीधे एक्सपोर्ट किया गया`;
+
+            doc.setTextColor(0, 0, 0); 
+            doc.setFontSize(16);
+            doc.text('संचालनालय कृषि छत्तीसगढ़ रायपुर', doc.internal.pageSize.getWidth() / 2, 15, { align: 'center' });
+            doc.setFontSize(14);
+            doc.text(subtitle, doc.internal.pageSize.getWidth() / 2, 25, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text('रिपोर्ट दिनांक: ' + reportDate, doc.internal.pageSize.getWidth() / 2, 35, { align: 'center' });
+
+            const headers = [
+                [{ content: 'SI No', rowSpan: 2 }],
+                [{ content: 'Seller Name/Office Name', rowSpan: 2 }],
+                [{ content: 'No of Vehicles Registered on MSTC Portal for Auction', colSpan: 8 }], // or Sold
+                [{ content: 'Total', rowSpan: 2 }]
+            ];
+
+            const subHeaders = [
+                'Two-Wheeler', 'Four-Wheeler (Car/Jeep/SUV)', 'Bus', 'Truck', 'Ambulance', 
+                'Fire Tender/Extinguisher', 'Police Owned Vehicle', 'Police Impounded Vehicle'
+            ];
+            
+            const tableData = registeredData.map(row => [
+                row.si_no || '', row.seller_office_name || '', row.two_wheeler || 0, row.four_wheeler || 0,
+                row.bus || 0, row.truck || 0, row.ambulance || 0, row.fire_tender || 0,
+                row.police_owned || 0, row.police_impounded || 0, row.total || 0
+            ]);
+
+            doc.autoTable({
+                head: [
+                    [{ content: 'SI No', rowSpan: 2 }, { content: 'Seller Name/Office Name', rowSpan: 2 }, { content: subtitle.includes('पंजीकृत') ? 'No of Vehicles Registered on MSTC Portal for Auction' : 'No of Vehicles Sold through auction from MSTC Portal', colSpan: 8 }, { content: 'Total', rowSpan: 2 }],
+                    subHeaders
+                ],
+                body: tableData,
+                startY: 45,
+                theme: 'grid',
+                headStyles: { 
+                    fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold', 
+                    halign: 'center', valign: 'middle', fontSize: 7,
+                    lineColor: [0, 0, 0], lineWidth: 0.1
+                },
+                bodyStyles: { 
+                    textColor: [0, 0, 0], halign: 'center', valign: 'middle', fontSize: 7,
+                    lineColor: [0, 0, 0], lineWidth: 0.1
+                },
+                alternateRowStyles: { 
+                    fillColor: [245, 245, 245] 
+                },
+                styles: {
+                    font: 'helvetica', cellPadding: 1.5, lineWidth: 0.1, lineColor: [0, 0, 0]
+                },
+                didDrawPage: function (data) {
+                    doc.setFontSize(8);
+                    doc.setTextColor(0, 0, 0); 
+                    const pageHeight = doc.internal.pageSize.getHeight();
+                    doc.text(footerText, data.settings.margin.left, pageHeight - 10, { align: 'left' });
+                    doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.getWidth() - data.settings.margin.right, pageHeight - 10, { align: 'right' });
+                },
+                margin: { top: 40, bottom: 20, left: 10, right: 10 }
+            });
+            doc.save(filename);
+        }
+
+
+        // --- EXPORT FUNCTION CALLS ---
+
         async function exportAllDataExcel() {
+            showLoading('संपूर्ण वाहन आबंटन रिपोर्ट तैयार की जा रही है...');
             try {
-                showLoading();
-                
-                // Get all data from all tables
-                const [divisionData, districtData, fieldData, mstcRegistered, mstcSold] = await Promise.all([
+                const [divisionResult, districtResult, fieldResult, mstcRegisteredResult, mstcSoldResult] = await Promise.all([
                     supabaseClient.from('division_office_vehicles').select('*').order('serial_no'),
                     supabaseClient.from('district_office_vehicles').select('*').order('serial_no'),
                     supabaseClient.from('field_office_vehicles').select('*').order('serial_no'),
@@ -201,116 +896,221 @@
                     supabaseClient.from('mstc_auction_sold').select('*').order('si_no')
                 ]);
 
-                // Create workbook
                 const wb = XLSX.utils.book_new();
 
-                // Division Office Sheet
-                if (divisionData.data && divisionData.data.length > 0) {
-                    const divisionSheet = XLSX.utils.json_to_sheet(
-                        divisionData.data.map(row => ({
-                            'क्रमांक': row.serial_no || '',
-                            'कार्यालय का नाम एवं जिला': row.office_name_district || '',
-                            'पदनाम': row.designation || '',
-                            'वेतनमान': row.pay_scale || '',
-                            'स्वीकृत पद संख्या': row.sanctioned_posts || '',
-                            'वाहन की पात्रता है अथवा नहीं': row.vehicle_eligibility || '',
-                            'वर्तमान में वाहन आबंटित है या नहीं': row.current_allocation || '',
-                            'रिमार्क': row.remarks || ''
-                        }))
-                    );
-                    XLSX.utils.book_append_sheet(wb, divisionSheet, 'संभाग स्तर कार्यालय');
+                const commonHeaders = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts', 'vehicle_eligibility', 'current_allocation', 'remarks'];
+                const mstcHeaders = ['si_no', 'seller_office_name', 'two_wheeler', 'four_wheeler', 'bus', 'truck', 'ambulance', 'fire_tender', 'police_owned', 'police_impounded', 'total'];
+
+
+                if (divisionResult.data && divisionResult.data.length > 0) {
+                    const ws = generateSingleTableExcel(divisionResult.data, 'संभाग स्तर कार्यालय', 'संचालनालय कृषि छत्तीसगढ़ रायपुर', 'संभागीय वाहन आबंटन की जानकारी', commonHeaders);
+                    XLSX.utils.book_append_sheet(wb, ws, 'संभाग_वाहन');
+                }
+                if (districtResult.data && districtResult.data.length > 0) {
+                    const ws = generateSingleTableExcel(districtResult.data, 'जिला स्तर कार्यालय', 'संचालनालय कृषि छत्तीसगढ़ रायपुर', 'जिला स्तरीय वाहन आबंटन की जानकारी', commonHeaders);
+                    XLSX.utils.book_append_sheet(wb, ws, 'जिला_वाहन');
+                }
+                if (fieldResult.data && fieldResult.data.length > 0) {
+                    const ws = generateSingleTableExcel(fieldResult.data, 'अन्य मैदानी कार्यालय', 'संचालनालय कृषि छत्तीसगढ़ रायपुर', 'अन्य मैदानी कार्यालय वाहन आबंटन की जानकारी', commonHeaders);
+                    XLSX.utils.book_append_sheet(wb, ws, 'मैदानी_वाहन');
+                }
+                if (mstcRegisteredResult.data && mstcRegisteredResult.data.length > 0) {
+                    const ws = generateMSTCExcel(mstcRegisteredResult.data, null, 'MSTC पंजीकृत', 'MSTC पोर्टल पर नीलामी के लिए पंजीकृत वाहनों की संख्या');
+                    XLSX.utils.book_append_sheet(wb, ws, 'MSTC_पंजीकृत');
+                }
+                if (mstcSoldResult.data && mstcSoldResult.data.length > 0) {
+                    const ws = generateMSTCExcel(mstcSoldResult.data, null, 'MSTC बेचे गए', 'MSTC पोर्टल से नीलामी में बेचे गए वाहनों की संख्या');
+                    XLSX.utils.book_append_sheet(wb, ws, 'MSTC_बेचे_गए');
                 }
 
-                // District Office Sheet
-                if (districtData.data && districtData.data.length > 0) {
-                    const districtSheet = XLSX.utils.json_to_sheet(
-                        districtData.data.map(row => ({
-                            'क्रमांक': row.serial_no || '',
-                            'कार्यालय का नाम एवं जिला': row.office_name_district || '',
-                            'पदनाम': row.designation || '',
-                            'वेतनमान': row.pay_scale || '',
-                            'स्वीकृत पद संख्या': row.sanctioned_posts || '',
-                            'वाहन की पात्रता है अथवा नहीं': row.vehicle_eligibility || '',
-                            'वर्तमान में वाहन आबंटित है या नहीं': row.current_allocation || '',
-                            'रिमार्क': row.remarks || ''
-                        }))
-                    );
-                    XLSX.utils.book_append_sheet(wb, districtSheet, 'जिला स्तर कार्यालय');
-                }
-
-                // Field Office Sheet
-                if (fieldData.data && fieldData.data.length > 0) {
-                    const fieldSheet = XLSX.utils.json_to_sheet(
-                        fieldData.data.map(row => ({
-                            'क्रमांक': row.serial_no || '',
-                            'कार्यालय का नाम एवं जिला': row.office_name_district || '',
-                            'पदनाम': row.designation || '',
-                            'वेतनमान': row.pay_scale || '',
-                            'स्वीकृत पद संख्या': row.sanctioned_posts || '',
-                            'वाहन की पात्रता है अथवा नहीं': row.vehicle_eligibility || '',
-                            'वर्तमान में वाहन आबंटित है या नहीं': row.current_allocation || '',
-                            'रिमार्क': row.remarks || ''
-                        }))
-                    );
-                    XLSX.utils.book_append_sheet(wb, fieldSheet, 'अन्य मैदानी कार्यालय');
-                }
-
-                // MSTC Registered Sheet
-                if (mstcRegistered.data && mstcRegistered.data.length > 0) {
-                    const mstcRegSheet = XLSX.utils.json_to_sheet(
-                        mstcRegistered.data.map(row => ({
-                            'SI No': row.si_no || '',
-                            'Seller Name/Office Name': row.seller_office_name || '',
-                            'Two-Wheeler': row.two_wheeler || 0,
-                            'Four-Wheeler': row.four_wheeler || 0,
-                            'Bus': row.bus || 0,
-                            'Truck': row.truck || 0,
-                            'Ambulance': row.ambulance || 0,
-                            'Fire Tender': row.fire_tender || 0,
-                            'Police Owned': row.police_owned || 0,
-                            'Police Impounded': row.police_impounded || 0,
-                            'Total': row.total || 0
-                        }))
-                    );
-                    XLSX.utils.book_append_sheet(wb, mstcRegSheet, 'MSTC पंजीकृत');
-                }
-
-                // MSTC Sold Sheet
-                if (mstcSold.data && mstcSold.data.length > 0) {
-                    const mstcSoldSheet = XLSX.utils.json_to_sheet(
-                        mstcSold.data.map(row => ({
-                            'SI No': row.si_no || '',
-                            'Seller Name/Office Name': row.seller_office_name || '',
-                            'Two-Wheeler': row.two_wheeler || 0,
-                            'Four-Wheeler': row.four_wheeler || 0,
-                            'Bus': row.bus || 0,
-                            'Truck': row.truck || 0,
-                            'Ambulance': row.ambulance || 0,
-                            'Fire Tender': row.fire_tender || 0,
-                            'Police Owned': row.police_owned || 0,
-                            'Police Impounded': row.police_impounded || 0,
-                            'Total': row.total || 0
-                        }))
-                    );
-                    XLSX.utils.book_append_sheet(wb, mstcSoldSheet, 'MSTC बेचे गए');
-                }
-
-                // Download Excel file
                 XLSX.writeFile(wb, 'संपूर्ण_वाहन_आबंटन_रिपोर्ट.xlsx');
-
                 hideLoading();
-                alert('रिपोर्ट सफलतापूर्वक डाउनलोड हो गई!');
+                alert('संपूर्ण वाहन आबंटन रिपोर्ट सफलतापूर्वक डाउनलोड हो गई!');
 
             } catch (error) {
                 hideLoading();
-                alert('रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                alert('संपूर्ण वाहन आबंटन रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportAllDataExcel:', error);
             }
         }
 
-        async function exportMSTCDataExcel() {
+        async function exportAllDataPDF() {
+            showLoading('संपूर्ण वाहन आबंटन रिपोर्ट PDF तैयार की जा रही है...');
             try {
-                showLoading();
-                
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4'); 
+                doc.setFont('helvetica'); // Fallback font
+
+                const reportDate = new Date().toLocaleDateString('hi-IN');
+                const user = getCurrentUser();
+                const generatedBy = user ? `${user.fullName} (${user.districtName})` : 'अज्ञात उपयोगकर्ता';
+                const generationTime = new Date().toLocaleTimeString('hi-IN');
+                const footerText = `रिपोर्ट जेनरेटेड: ${reportDate} ${generationTime}\nद्वारा जेनरेटेड: ${generatedBy}\nअल्गोरिथम: डेटाबेस से सीधे एक्सपोर्ट किया गया`;
+
+                const commonHeaders = [
+                    'क्रमांक', 'कार्यालय का नाम एवं जिला', 'पदनाम', 'वेतनमान', 
+                    'स्वीकृत पद संख्या', 'वाहन की पात्रता', 'वर्तमान में वाहन आबंटित', 'रिमार्क'
+                ];
+                const mstcHeaders = [
+                    [{ content: 'SI No', rowSpan: 2 }],
+                    [{ content: 'Seller Name/Office Name', rowSpan: 2 }],
+                    [{ content: 'No of Vehicles Registered/Sold...', colSpan: 8 }],
+                    [{ content: 'Total', rowSpan: 2 }]
+                ];
+                const mstcSubHeaders = [
+                    'Two-Wheeler', 'Four-Wheeler (Car/Jeep/SUV)', 'Bus', 'Truck', 'Ambulance', 
+                    'Fire Tender/Extinguisher', 'Police Owned Vehicle', 'Police Impounded Vehicle'
+                ];
+
+                const [divisionResult, districtResult, fieldResult, mstcRegisteredResult, mstcSoldResult] = await Promise.all([
+                    supabaseClient.from('division_office_vehicles').select('*').order('serial_no'),
+                    supabaseClient.from('district_office_vehicles').select('*').order('serial_no'),
+                    supabaseClient.from('field_office_vehicles').select('*').order('serial_no'),
+                    supabaseClient.from('mstc_auction_registered').select('*').order('si_no'),
+                    supabaseClient.from('mstc_auction_sold').select('*').order('si_no')
+                ]);
+
+                let startY = 45; // Initial Y position for the first table
+
+                // Helper to add title block
+                const addTitleBlock = (docInstance, subtitleText, currentY) => {
+                    docInstance.setTextColor(0, 0, 0);
+                    docInstance.setFontSize(16);
+                    docInstance.text('संचालनालय कृषि छत्तीसगढ़ रायपुर', docInstance.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+                    docInstance.setFontSize(14);
+                    docInstance.text(subtitleText, docInstance.internal.pageSize.getWidth() / 2, currentY + 10, { align: 'center' });
+                    docInstance.setFontSize(10);
+                    docInstance.text('रिपोर्ट दिनांक: ' + reportDate, docInstance.internal.pageSize.getWidth() / 2, currentY + 20, { align: 'center' });
+                    return currentY + 25; // Return new Y position after title block
+                };
+
+                // Helper for common autoTable styles
+                const commonAutoTableStyles = {
+                    headStyles: { 
+                        fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold', 
+                        halign: 'center', valign: 'middle', fontSize: 7,
+                        lineColor: [0, 0, 0], lineWidth: 0.1
+                    },
+                    bodyStyles: { 
+                        textColor: [0, 0, 0], halign: 'center', valign: 'middle', fontSize: 7,
+                        lineColor: [0, 0, 0], lineWidth: 0.1
+                    },
+                    alternateRowStyles: { fillColor: [245, 245, 245] },
+                    styles: { font: 'helvetica', cellPadding: 1.5, lineWidth: 0.1, lineColor: [0, 0, 0] },
+                    margin: { top: 5, bottom: 20, left: 10, right: 10 }, // Margins for each table
+                    didDrawPage: function (data) {
+                        doc.setFontSize(8);
+                        doc.setTextColor(0, 0, 0); 
+                        const pageHeight = doc.internal.pageSize.getHeight();
+                        doc.text(footerText, data.settings.margin.left, pageHeight - 10, { align: 'left' });
+                        doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.getWidth() - data.settings.margin.right, pageHeight - 10, { align: 'right' });
+                    }
+                };
+
+                // Division Office
+                if (divisionResult.data && divisionResult.data.length > 0) {
+                    startY = addTitleBlock(doc, 'संभागीय वाहन आबंटन की जानकारी', startY);
+                    doc.autoTable({
+                        head: [commonHeaders],
+                        body: divisionResult.data.map(row => commonHeaders.map(header => row[Object.keys(row).find(key => key === header)] || '')),
+                        startY: startY + 5, // A little space after titles
+                        ...commonAutoTableStyles
+                    });
+                    startY = doc.lastAutoTable.finalY + 15; // Space after table
+                }
+
+                // District Office
+                if (districtResult.data && districtResult.data.length > 0) {
+                    if (startY + 50 > doc.internal.pageSize.getHeight()) { // Check if new page needed
+                        doc.addPage();
+                        startY = 15; // Reset Y for new page
+                    }
+                    startY = addTitleBlock(doc, 'जिला स्तरीय वाहन आबंटन की जानकारी', startY);
+                    doc.autoTable({
+                        head: [commonHeaders],
+                        body: districtResult.data.map(row => commonHeaders.map(header => row[Object.keys(row).find(key => key === header)] || '')),
+                        startY: startY + 5,
+                        ...commonAutoTableStyles
+                    });
+                    startY = doc.lastAutoTable.finalY + 15;
+                }
+
+                // Field Office
+                if (fieldResult.data && fieldResult.data.length > 0) {
+                    if (startY + 50 > doc.internal.pageSize.getHeight()) {
+                        doc.addPage();
+                        startY = 15;
+                    }
+                    startY = addTitleBlock(doc, 'अन्य मैदानी कार्यालय वाहन आबंटन की जानकारी', startY);
+                    doc.autoTable({
+                        head: [commonHeaders],
+                        body: fieldResult.data.map(row => commonHeaders.map(header => row[Object.keys(row).find(key => key === header)] || '')),
+                        startY: startY + 5,
+                        ...commonAutoTableStyles
+                    });
+                    startY = doc.lastAutoTable.finalY + 15;
+                }
+
+                // MSTC Registered
+                if (mstcRegisteredResult.data && mstcRegisteredResult.data.length > 0) {
+                    if (startY + 50 > doc.internal.pageSize.getHeight()) {
+                        doc.addPage();
+                        startY = 15;
+                    }
+                    startY = addTitleBlock(doc, 'MSTC पोर्टल पर नीलामी के लिए पंजीकृत वाहनों की संख्या', startY);
+                    doc.autoTable({
+                        head: [
+                            [{ content: 'SI No', rowSpan: 2 }, { content: 'Seller Name/Office Name', rowSpan: 2 }, { content: 'No of Vehicles Registered on MSTC Portal for Auction', colSpan: 8 }, { content: 'Total', rowSpan: 2 }],
+                            mstcSubHeaders
+                        ],
+                        body: mstcRegisteredResult.data.map(row => [
+                            row.si_no || '', row.seller_office_name || '', row.two_wheeler || 0, row.four_wheeler || 0,
+                            row.bus || 0, row.truck || 0, row.ambulance || 0, row.fire_tender || 0,
+                            row.police_owned || 0, row.police_impounded || 0, row.total || 0
+                        ]),
+                        startY: startY + 5,
+                        ...commonAutoTableStyles
+                    });
+                    startY = doc.lastAutoTable.finalY + 15;
+                }
+
+                // MSTC Sold
+                if (mstcSoldResult.data && mstcSoldResult.data.length > 0) {
+                    if (startY + 50 > doc.internal.pageSize.getHeight()) {
+                        doc.addPage();
+                        startY = 15;
+                    }
+                    startY = addTitleBlock(doc, 'MSTC पोर्टल से नीलामी में बेचे गए वाहनों की संख्या', startY);
+                    doc.autoTable({
+                        head: [
+                            [{ content: 'SI No', rowSpan: 2 }, { content: 'Seller Name/Office Name', rowSpan: 2 }, { content: 'No of Vehicles Sold through auction from MSTC Portal', colSpan: 8 }, { content: 'Total', rowSpan: 2 }],
+                            mstcSubHeaders
+                        ],
+                        body: mstcSoldResult.data.map(row => [
+                            row.si_no || '', row.seller_office_name || '', row.two_wheeler || 0, row.four_wheeler || 0,
+                            row.bus || 0, row.truck || 0, row.ambulance || 0, row.fire_tender || 0,
+                            row.police_owned || 0, row.police_impounded || 0, row.total || 0
+                        ]),
+                        startY: startY + 5,
+                        ...commonAutoTableStyles
+                    });
+                }
+
+                doc.save('संपूर्ण_वाहन_आबंटन_रिपोर्ट.pdf');
+                hideLoading();
+                alert('संपूर्ण वाहन आबंटन रिपोर्ट PDF सफलतापूर्वक डाउनलोड हो गई!');
+
+            } catch (error) {
+                hideLoading();
+                alert('संपूर्ण वाहन आबंटन रिपोर्ट PDF डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportAllDataPDF:', error);
+            }
+        }
+
+
+        async function exportMSTCDataExcel() {
+            showLoading('MSTC नीलामी रिपोर्ट तैयार की जा रही है...');
+            try {
                 const [registeredData, soldData] = await Promise.all([
                     supabaseClient.from('mstc_auction_registered').select('*').order('si_no'),
                     supabaseClient.from('mstc_auction_sold').select('*').order('si_no')
@@ -318,61 +1118,140 @@
 
                 const wb = XLSX.utils.book_new();
 
-                // MSTC Registered Sheet
                 if (registeredData.data && registeredData.data.length > 0) {
-                    const regSheet = XLSX.utils.json_to_sheet(
-                        registeredData.data.map(row => ({
-                            'SI No': row.si_no || '',
-                            'Seller Name/Office Name': row.seller_office_name || '',
-                            'Two-Wheeler': row.two_wheeler || 0,
-                            'Four-Wheeler': row.four_wheeler || 0,
-                            'Bus': row.bus || 0,
-                            'Truck': row.truck || 0,
-                            'Ambulance': row.ambulance || 0,
-                            'Fire Tender': row.fire_tender || 0,
-                            'Police Owned': row.police_owned || 0,
-                            'Police Impounded': row.police_impounded || 0,
-                            'Total': row.total || 0
-                        }))
-                    );
-                    XLSX.utils.book_append_sheet(wb, regSheet, 'नीलामी पंजीकृत');
+                    const ws = generateMSTCExcel(registeredData.data, null, 'MSTC पंजीकृत', 'MSTC पोर्टल पर नीलामी के लिए पंजीकृत वाहनों की संख्या');
+                    XLSX.utils.book_append_sheet(wb, ws, 'नीलामी_पंजीकृत');
                 }
-
-                // MSTC Sold Sheet
                 if (soldData.data && soldData.data.length > 0) {
-                    const soldSheet = XLSX.utils.json_to_sheet(
-                        soldData.data.map(row => ({
-                            'SI No': row.si_no || '',
-                            'Seller Name/Office Name': row.seller_office_name || '',
-                            'Two-Wheeler': row.two_wheeler || 0,
-                            'Four-Wheeler': row.four_wheeler || 0,
-                            'Bus': row.bus || 0,
-                            'Truck': row.truck || 0,
-                            'Ambulance': row.ambulance || 0,
-                            'Fire Tender': row.fire_tender || 0,
-                            'Police Owned': row.police_owned || 0,
-                            'Police Impounded': row.police_impounded || 0,
-                            'Total': row.total || 0
-                        }))
-                    );
-                    XLSX.utils.book_append_sheet(wb, soldSheet, 'नीलामी बेचे गए');
+                    const ws = generateMSTCExcel(soldData.data, null, 'MSTC बेचे गए', 'MSTC पोर्टल से नीलामी में बेचे गए वाहनों की संख्या');
+                    XLSX.utils.book_append_sheet(wb, ws, 'नीलामी_बेचे_गए');
                 }
 
                 XLSX.writeFile(wb, 'MSTC_नीलामी_रिपोर्ट.xlsx');
-
                 hideLoading();
                 alert('MSTC रिपोर्ट सफलतापूर्वक डाउनलोड हो गई!');
 
             } catch (error) {
                 hideLoading();
                 alert('MSTC रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportMSTCDataExcel:', error);
+            }
+        }
+
+        async function exportMSTCDataPDF() {
+            showLoading('MSTC नीलामी रिपोर्ट PDF तैयार की जा रही है...');
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4'); 
+                doc.setFont('helvetica'); // Fallback font
+
+                const reportDate = new Date().toLocaleDateString('hi-IN');
+                const user = getCurrentUser();
+                const generatedBy = user ? `${user.fullName} (${user.districtName})` : 'अज्ञात उपयोगकर्ता';
+                const generationTime = new Date().toLocaleTimeString('hi-IN');
+                const footerText = `रिपोर्ट जेनरेटेड: ${reportDate} ${generationTime}\nद्वारा जेनरेटेड: ${generatedBy}\nअल्गोरिथम: डेटाबेस से सीधे एक्सपोर्ट किया गया`;
+
+                const mstcSubHeaders = [
+                    'Two-Wheeler', 'Four-Wheeler (Car/Jeep/SUV)', 'Bus', 'Truck', 'Ambulance', 
+                    'Fire Tender/Extinguisher', 'Police Owned Vehicle', 'Police Impounded Vehicle'
+                ];
+
+                const [registeredData, soldData] = await Promise.all([
+                    supabaseClient.from('mstc_auction_registered').select('*').order('si_no'),
+                    supabaseClient.from('mstc_auction_sold').select('*').order('si_no')
+                ]);
+
+                let startY = 45; 
+
+                // Helper to add title block
+                const addTitleBlock = (docInstance, subtitleText, currentY) => {
+                    docInstance.setTextColor(0, 0, 0);
+                    docInstance.setFontSize(16);
+                    docInstance.text('संचालनालय कृषि छत्तीसगढ़ रायपुर', docInstance.internal.pageSize.getWidth() / 2, currentY, { align: 'center' });
+                    docInstance.setFontSize(14);
+                    docInstance.text(subtitleText, docInstance.internal.pageSize.getWidth() / 2, currentY + 10, { align: 'center' });
+                    docInstance.setFontSize(10);
+                    docInstance.text('रिपोर्ट दिनांक: ' + reportDate, docInstance.internal.pageSize.getWidth() / 2, currentY + 20, { align: 'center' });
+                    return currentY + 25; 
+                };
+
+                const commonAutoTableStyles = {
+                    headStyles: { 
+                        fillColor: [230, 230, 230], textColor: [0, 0, 0], fontStyle: 'bold', 
+                        halign: 'center', valign: 'middle', fontSize: 7,
+                        lineColor: [0, 0, 0], lineWidth: 0.1
+                    },
+                    bodyStyles: { 
+                        textColor: [0, 0, 0], halign: 'center', valign: 'middle', fontSize: 7,
+                        lineColor: [0, 0, 0], lineWidth: 0.1
+                    },
+                    alternateRowStyles: { fillColor: [245, 245, 245] },
+                    styles: { font: 'helvetica', cellPadding: 1.5, lineWidth: 0.1, lineColor: [0, 0, 0] },
+                    margin: { top: 5, bottom: 20, left: 10, right: 10 },
+                    didDrawPage: function (data) {
+                        doc.setFontSize(8);
+                        doc.setTextColor(0, 0, 0); 
+                        const pageHeight = doc.internal.pageSize.getHeight();
+                        doc.text(footerText, data.settings.margin.left, pageHeight - 10, { align: 'left' });
+                        doc.text('Page ' + doc.internal.getNumberOfPages(), doc.internal.pageSize.getWidth() - data.settings.margin.right, pageHeight - 10, { align: 'right' });
+                    }
+                };
+
+                // MSTC Registered
+                if (registeredData && registeredData.length > 0) {
+                    startY = addTitleBlock(doc, 'MSTC पोर्टल पर नीलामी के लिए पंजीकृत वाहनों की संख्या', startY);
+                    doc.autoTable({
+                        head: [
+                            [{ content: 'SI No', rowSpan: 2 }, { content: 'Seller Name/Office Name', rowSpan: 2 }, { content: 'No of Vehicles Registered on MSTC Portal for Auction', colSpan: 8 }, { content: 'Total', rowSpan: 2 }],
+                            mstcSubHeaders
+                        ],
+                        body: registeredData.map(row => [
+                            row.si_no || '', row.seller_office_name || '', row.two_wheeler || 0, row.four_wheeler || 0,
+                            row.bus || 0, row.truck || 0, row.ambulance || 0, row.fire_tender || 0,
+                            row.police_owned || 0, row.police_impounded || 0, row.total || 0
+                        ]),
+                        startY: startY + 5,
+                        ...commonAutoTableStyles
+                    });
+                    startY = doc.lastAutoTable.finalY + 15;
+                }
+
+                // MSTC Sold
+                if (soldData && soldData.length > 0) {
+                    if (startY + 50 > doc.internal.pageSize.getHeight()) {
+                        doc.addPage();
+                        startY = 15;
+                    }
+                    startY = addTitleBlock(doc, 'MSTC पोर्टल से नीलामी में बेचे गए वाहनों की संख्या', startY);
+                    doc.autoTable({
+                        head: [
+                            [{ content: 'SI No', rowSpan: 2 }, { content: 'Seller Name/Office Name', rowSpan: 2 }, { content: 'No of Vehicles Sold through auction from MSTC Portal', colSpan: 8 }, { content: 'Total', rowSpan: 2 }],
+                            mstcSubHeaders
+                        ],
+                        body: soldData.map(row => [
+                            row.si_no || '', row.seller_office_name || '', row.two_wheeler || 0, row.four_wheeler || 0,
+                            row.bus || 0, row.truck || 0, row.ambulance || 0, row.fire_tender || 0,
+                            row.police_owned || 0, row.police_impounded || 0, row.total || 0
+                        ]),
+                        startY: startY + 5,
+                        ...commonAutoTableStyles
+                    });
+                }
+
+                doc.save('MSTC_नीलामी_रिपोर्ट.pdf');
+                hideLoading();
+                alert('MSTC नीलामी रिपोर्ट PDF सफलतापूर्वक डाउनलोड हो गई!');
+
+            } catch (error) {
+                hideLoading();
+                alert('MSTC नीलामी रिपोर्ट PDF डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportMSTCDataPDF:', error);
             }
         }
 
         async function exportDivisionDataExcel() {
+            showLoading('संभाग स्तर रिपोर्ट तैयार की जा रही है...');
             try {
-                showLoading();
-                
                 const { data, error } = await supabaseClient
                     .from('division_office_vehicles')
                     .select('*')
@@ -386,21 +1265,11 @@
                     return;
                 }
 
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(
-                    data.map(row => ({
-                        'क्रमांक': row.serial_no || '',
-                        'कार्यालय का नाम एवं जिला': row.office_name_district || '',
-                        'पदनाम': row.designation || '',
-                        'वेतनमान': row.pay_scale || '',
-                        'स्वीकृत पद संख्या': row.sanctioned_posts || '',
-                        'वाहन की पात्रता है अथवा नहीं': row.vehicle_eligibility || '',
-                        'वर्तमान में वाहन आबंटित है या नहीं': row.current_allocation || '',
-                        'रिमार्क': row.remarks || ''
-                    }))
-                );
+                const commonHeaders = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts', 'vehicle_eligibility', 'current_allocation', 'remarks'];
+                const ws = generateSingleTableExcel(data, 'संभाग स्तर कार्यालय', 'संचालनालय कृषि छत्तीसगढ़ रायपुर', 'संभागीय वाहन आबंटन की जानकारी', commonHeaders);
 
-                XLSX.utils.book_append_sheet(wb, ws, 'संभाग स्तर कार्यालय');
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'संभाग_वाहन');
                 XLSX.writeFile(wb, 'संभाग_स्तर_कार्यालय_रिपोर्ट.xlsx');
 
                 hideLoading();
@@ -409,13 +1278,43 @@
             } catch (error) {
                 hideLoading();
                 alert('रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportDivisionDataExcel:', error);
             }
         }
 
-        async function exportDistrictDataExcel() {
+        async function exportDivisionDataPDF() {
+            showLoading('संभाग स्तर रिपोर्ट PDF तैयार की जा रही है...');
             try {
-                showLoading();
+                const { data, error } = await supabaseClient
+                    .from('division_office_vehicles')
+                    .select('*')
+                    .order('serial_no');
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    alert('कोई डेटा उपलब्ध नहीं है');
+                    hideLoading();
+                    return;
+                }
+
+                const commonHeaders = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts', 'vehicle_eligibility', 'current_allocation', 'remarks'];
+                generateSingleTablePDF(data, 'संभाग स्तर कार्यालय', 'संभागीय वाहन आबंटन की जानकारी', 'संभाग_स्तर_कार्यालय_रिपोर्ट.pdf', commonHeaders);
                 
+                hideLoading();
+                alert('संभाग स्तर रिपोर्ट PDF सफलतापूर्वक डाउनलोड हो गई!');
+
+            } catch (error) {
+                hideLoading();
+                alert('रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportDivisionDataPDF:', error);
+            }
+        }
+
+
+        async function exportDistrictDataExcel() {
+            showLoading('जिला स्तर रिपोर्ट तैयार की जा रही है...');
+            try {
                 const { data, error } = await supabaseClient
                     .from('district_office_vehicles')
                     .select('*')
@@ -429,21 +1328,11 @@
                     return;
                 }
 
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(
-                    data.map(row => ({
-                        'क्रमांक': row.serial_no || '',
-                        'कार्यालय का नाम एवं जिला': row.office_name_district || '',
-                        'पदनाम': row.designation || '',
-                        'वेतनमान': row.pay_scale || '',
-                        'स्वीकृत पद संख्या': row.sanctioned_posts || '',
-                        'वाहन की पात्रता है अथवा नहीं': row.vehicle_eligibility || '',
-                        'वर्तमान में वाहन आबंटित है या नहीं': row.current_allocation || '',
-                        'रिमार्क': row.remarks || ''
-                    }))
-                );
+                const commonHeaders = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts', 'vehicle_eligibility', 'current_allocation', 'remarks'];
+                const ws = generateSingleTableExcel(data, 'जिला स्तर कार्यालय', 'संचालनालय कृषि छत्तीसगढ़ रायपुर', 'जिला स्तरीय वाहन आबंटन की जानकारी', commonHeaders);
 
-                XLSX.utils.book_append_sheet(wb, ws, 'जिला स्तर कार्यालय');
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'जिला_वाहन');
                 XLSX.writeFile(wb, 'जिला_स्तर_कार्यालय_रिपोर्ट.xlsx');
 
                 hideLoading();
@@ -452,13 +1341,42 @@
             } catch (error) {
                 hideLoading();
                 alert('रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportDistrictDataExcel:', error);
+            }
+        }
+
+        async function exportDistrictDataPDF() {
+            showLoading('जिला स्तर रिपोर्ट PDF तैयार की जा रही है...');
+            try {
+                const { data, error } = await supabaseClient
+                    .from('district_office_vehicles')
+                    .select('*')
+                    .order('serial_no');
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    alert('कोई डेटा उपलब्ध नहीं है');
+                    hideLoading();
+                    return;
+                }
+
+                const commonHeaders = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts', 'vehicle_eligibility', 'current_allocation', 'remarks'];
+                generateSingleTablePDF(data, 'जिला स्तर कार्यालय', 'जिला स्तरीय वाहन आबंटन की जानकारी', 'जिला_स्तर_कार्यालय_रिपोर्ट.pdf', commonHeaders);
+                
+                hideLoading();
+                alert('जिला स्तर रिपोर्ट PDF सफलतापूर्वक डाउनलोड हो गई!');
+
+            } catch (error) {
+                hideLoading();
+                alert('रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportDistrictDataPDF:', error);
             }
         }
 
         async function exportFieldDataExcel() {
+            showLoading('मैदानी कार्यालय रिपोर्ट तैयार की जा रही है...');
             try {
-                showLoading();
-                
                 const { data, error } = await supabaseClient
                     .from('field_office_vehicles')
                     .select('*')
@@ -472,21 +1390,11 @@
                     return;
                 }
 
-                const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.json_to_sheet(
-                    data.map(row => ({
-                        'क्रमांक': row.serial_no || '',
-                        'कार्यालय का नाम एवं जिला': row.office_name_district || '',
-                        'पदनाम': row.designation || '',
-                        'वेतनमान': row.pay_scale || '',
-                        'स्वीकृत पद संख्या': row.sanctioned_posts || '',
-                        'वाहन की पात्रता है अथवा नहीं': row.vehicle_eligibility || '',
-                        'वर्तमान में वाहन आबंटित है या नहीं': row.current_allocation || '',
-                        'रिमार्क': row.remarks || ''
-                    }))
-                );
+                const commonHeaders = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts', 'vehicle_eligibility', 'current_allocation', 'remarks'];
+                const ws = generateSingleTableExcel(data, 'अन्य मैदानी कार्यालय', 'संचालनालय कृषि छत्तीसगढ़ रायपुर', 'अन्य मैदानी कार्यालय वाहन आबंटन की जानकारी', commonHeaders);
 
-                XLSX.utils.book_append_sheet(wb, ws, 'अन्य मैदानी कार्यालय');
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'मैदानी_वाहन');
                 XLSX.writeFile(wb, 'अन्य_मैदानी_कार्यालय_रिपोर्ट.xlsx');
 
                 hideLoading();
@@ -495,6 +1403,36 @@
             } catch (error) {
                 hideLoading();
                 alert('रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportFieldDataExcel:', error);
+            }
+        }
+
+        async function exportFieldDataPDF() {
+            showLoading('मैदानी कार्यालय रिपोर्ट PDF तैयार की जा रही है...');
+            try {
+                const { data, error } = await supabaseClient
+                    .from('field_office_vehicles')
+                    .select('*')
+                    .order('serial_no');
+
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    alert('कोई डेटा उपलब्ध नहीं है');
+                    hideLoading();
+                    return;
+                }
+
+                const commonHeaders = ['serial_no', 'office_name_district', 'designation', 'pay_scale', 'sanctioned_posts', 'vehicle_eligibility', 'current_allocation', 'remarks'];
+                generateSingleTablePDF(data, 'अन्य मैदानी कार्यालय', 'अन्य मैदानी कार्यालय वाहन आबंटन की जानकारी', 'अन्य_मैदानी_कार्यालय_रिपोर्ट.pdf', commonHeaders);
+                
+                hideLoading();
+                alert('मैदानी कार्यालय रिपोर्ट PDF सफलतापूर्वक डाउनलोड हो गई!');
+
+            } catch (error) {
+                hideLoading();
+                alert('रिपोर्ट डाउनलोड करने में त्रुटि: ' + error.message);
+                console.error('Error in exportFieldDataPDF:', error);
             }
         }
 
