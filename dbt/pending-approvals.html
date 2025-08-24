@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Approvals - DBT Data Entry System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Mukti:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --admin-primary: #1B5E20;
+            --admin-secondary: #2E7D32;
+            --admin-accent: #4CAF50;
+            --text-dark: #1A1A1A;
+            --text-medium: #666666;
+            --text-light: #fff;
+            --background-light: #FAFAFA;
+            --border-color: #E5E5E5;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+            --shadow-lg: 0 8px 24px rgba(27, 94, 32, 0.2);
+            --dbt-blue: #0D47A1;
+            --dbt-light-blue: #E3F2FD;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mukti', sans-serif;
+            background: linear-gradient(135deg, var(--background-light) 0%, var(--text-light) 100%);
+            min-height: 100vh;
+            color: var(--text-dark);
+        }
+
+        .hindi {
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            line-height: 1.5;
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-secondary) 100%);
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 3px solid var(--admin-accent);
+        }
+        
+        .navbar {
+            padding: 12px 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.3rem;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .navbar-brand img {
+            height: 40px;
+            margin-right: 12px;
+        }
+
+        .btn-back {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 500;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--dbt-blue) 0%, #1565C0 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-header h2 {
+            font-weight: 700;
+            margin: 0;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+        }
+
+        .page-header .stats {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            opacity: 0.9;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            align-items: end;
+        }
+
+        /* Data Table */
+        .data-table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: linear-gradient(135deg, var(--background-light) 0%, #F5F5F5 100%);
+            padding: 20px 25px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-header h5 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table th {
+            background: var(--dbt-light-blue);
+            color: var(--dbt-blue);
+            font-weight: 600;
+            border: none;
+            padding: 15px 12px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .table td {
+            padding: 12px;
+            vertical-align: middle;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table tbody tr:hover {
+            background-color: var(--dbt-light-blue);
+        }
+
+        /* Status Badges */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-draft {
+            background: #e2e3e5;
+            color: #383d41;
+            border: 1px solid #d6d8db;
+        }
+
+        /* Priority Indicators */
+        .priority-high {
+            color: var(--danger-color);
+        }
+
+        .priority-medium {
+            color: var(--warning-color);
+        }
+
+        .priority-low {
+            color: var(--success-color);
+        }
+
+        /* Action Buttons */
+        .btn-action {
+            padding: 4px 8px;
+            margin: 0 2px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.8rem;
+        }
+
+        .btn-approve {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-approve:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        .btn-reject {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .btn-reject:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .btn-view {
+            background: var(--info-color);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #138496;
+            transform: translateY(-1px);
+        }
+
+        .btn-edit {
+            background: var(--warning-color);
+            color: var(--text-dark);
+        }
+
+        .btn-edit:hover {
+            background: #e0a800;
+            transform: translateY(-1px);
+        }
+
+        /* Bulk Actions */
+        .bulk-actions {
+            background: var(--dbt-light-blue);
+            padding: 15px 25px;
+            border-top: 2px solid var(--border-color);
+            display: none;
+        }
+
+        .bulk-actions.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Loading States */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            display: none;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-medium);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 0 15px;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .page-header .stats {
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+
+            .table-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+
+            .table-actions {
+                justify-content: center;
+            }
+
+            .table-responsive {
+                font-size: 0.9rem;
+            }
+
+            .bulk-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* Custom Scrollbar */
+        .table-responsive::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        .table-responsive::-webkit-scrollbar-track {
+            background: var(--background-light);
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: var(--text-medium);
+        }
+
+        /* Animation */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container-fluid">
+            <nav class="navbar navbar-expand-lg navbar-dark">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार">
+                        <span class="hindi">Pending Approvals - DBT System</span>
+                    </a>
+                    
+                    <div class="d-flex align-items-center gap-3">
+                        <a href="index.html" class="btn-back">
+                            <i class="fas fa-home me-2"></i>
+                            <span class="hindi">Home</span>
+                        </a>
+                        <button onclick="history.back()" class="btn-back">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            <span class="hindi">Back</span>
+                        </button>
+                        <div class="dropdown">
+                            <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                                <i class="fas fa-user me-2"></i>
+                                <span id="userInfo">Loading...</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="profile.html">
+                                    <i class="fas fa-user-circle me-2"></i>Profile
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="logout()">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <div class="hindi">Loading approvals...</div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Page Header -->
+        <div class="page-header fade-in">
+            <div>
+                <h2>
+                    <i class="fas fa-clock me-3"></i>
+                    <span class="hindi">Pending Approvals</span>
+                </h2>
+                <p class="mb-0 opacity-75">Review and approve DBT data entries</p>
+            </div>
+            <div class="stats">
+                <div class="stat-item">
+                    <span class="stat-number" id="totalPending">0</span>
+                    <span class="stat-label">Total Pending</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="highPriority">0</span>
+                    <span class="stat-label">High Priority</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="todaySubmitted">0</span>
+                    <span class="stat-label">Today's Submissions</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section fade-in">
+            <h6 class="mb-3">
+                <i class="fas fa-filter me-2"></i>
+                <span class="hindi">Filter Options</span>
+            </h6>
+            <div class="filter-row">
+                <div>
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">All Status</option>
+                        <option value="pending">Pending</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="draft">Draft</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Priority</label>
+                    <select class="form-select" id="priorityFilter">
+                        <option value="">All Priority</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">District</label>
+                    <select class="form-select" id="districtFilter">
+                        <option value="">All Districts</option>
+                        <option value="raipur">Raipur</option>
+                        <option value="bilaspur">Bilaspur</option>
+                        <option value="durg">Durg</option>
+                        <option value="korba">Korba</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label">Date Range</label>
+                    <input type="date" class="form-control" id="dateFrom" placeholder="From">
+                </div>
+                <div>
+                    <label class="form-label">&nbsp;</label>
+                    <input type="date" class="form-control" id="dateTo" placeholder="To">
+                </div>
+                <div>
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-primary w-100" onclick="applyFilters()">
+                        <i class="fas fa-search me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Table -->
+        <div class="data-table-container fade-in">
+            <div class="table-header">
+                <h5>
+                    <i class="fas fa-list me-2"></i>
+                    Approval Queue (<span id="recordCount">0</span> records)
+                </h5>
+                <div class="table-actions">
+                    <button class="btn btn-outline-primary btn-sm" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                    <button class="btn btn-outline-success btn-sm" onclick="exportData()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-cog me-1"></i>Actions
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="bulkApprove()">
+                                <i class="fas fa-check me-2"></i>Bulk Approve
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="bulkReject()">
+                                <i class="fas fa-times me-2"></i>Bulk Reject
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" onclick="markAllRead()">
+                                <i class="fas fa-eye me-2"></i>Mark All as Read
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th width="40">
+                                <input type="checkbox" class="form-check-input" id="selectAll" onchange="toggleSelectAll()">
+                            </th>
+                            <th width="80">Priority</th>
+                            <th>Entry ID</th>
+                            <th>Scheme Name</th>
+                            <th>Submitted By</th>
+                            <th>District</th>
+                            <th>Amount (₹)</th>
+                            <th>Beneficiaries</th>
+                            <th>Submitted Date</th>
+                            <th>Status</th>
+                            <th width="200">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="approvalsTableBody">
+                        <!-- Data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bulk Actions Bar -->
+            <div class="bulk-actions" id="bulkActionsBar">
+                <div>
+                    <span id="selectedCount">0</span> items selected
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-success btn-sm" onclick="bulkApprove()">
+                        <i class="fas fa-check me-1"></i>Approve Selected
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="bulkReject()">
+                        <i class="fas fa-times me-1"></i>Reject Selected
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="clearSelection()">
+                        <i class="fas fa-times me-1"></i>Clear Selection
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted">
+                Showing <span id="showingFrom">1</span> to <span id="showingTo">10</span> of <span id="totalRecords">0</span> entries
+            </div>
+            <nav>
+                <ul class="pagination mb-0" id="pagination">
+                    <!-- Pagination will be generated here -->
+                </ul>
+            </nav>
+        </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div class="modal fade" id="viewDetailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-eye me-2"></i>
+                        DBT Entry Details
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="entryDetails">
+                    <!-- Entry details will be loaded here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger" onclick="rejectEntry()">
+                        <i class="fas fa-times me-2"></i>Reject
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="approveEntry()">
+                        <i class="fas fa-check me-2"></i>Approve
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Approval/Rejection Modal -->
+    <div class="modal fade" id="actionModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header" id="actionModalHeader">
+                    <h5 class="modal-title" id="actionModalTitle">
+                        <i class="fas fa-check me-2"></i>
+                        Approve Entry
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Comments/Remarks</label>
+                        <textarea class="form-control" id="actionComments" rows="4" placeholder="Enter your comments or remarks..."></textarea>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <span id="actionMessage">Are you sure you want to approve this entry?</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirmActionBtn" onclick="confirmAction()">
+                        <i class="fas fa-check me-2"></i>
+                        <span id="confirmActionText">Approve</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <script>
+        // Supabase configuration
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        // Global variables
+        let currentUser = null;
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let totalRecords = 0;
+        let allApprovals = [];
+        let filteredApprovals = [];
+        let selectedItems = new Set();
+        let currentAction = null;
+        let currentEntryId = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            checkUserAuthentication();
+            loadApprovals();
+            setupEventListeners();
+        });
+
+        // Check authentication
+        function checkUserAuthentication() {
+            const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+            
+            if (!storedUser) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                currentUser = JSON.parse(storedUser);
+                
+                // Check if user is admin
+                if (currentUser.role !== 'admin' && currentUser.role !== 'super_admin') {
+                    alert('आपके पास इस पेज का एक्सेस नहीं है।');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                document.getElementById('userInfo').textContent = 
+                    `${currentUser.fullName} - ${currentUser.districtName}`;
+                
+            } catch (error) {
+                console.error('Error parsing user data:', error);
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Filter change listeners
+            document.getElementById('statusFilter').addEventListener('change', applyFilters);
+            document.getElementById('priorityFilter').addEventListener('change', applyFilters);
+            document.getElementById('districtFilter').addEventListener('change', applyFilters);
+            document.getElementById('dateFrom').addEventListener('change', applyFilters);
+            document.getElementById('dateTo').addEventListener('change', applyFilters);
+        }
+
+        // Load approvals data
+        async function loadApprovals() {
+            try {
+                showLoading(true);
+                
+                // Simulate API call - replace with actual Supabase query
+                const { data, error } = await supabaseClient
+                    .from('dbt_data_entries')
+                    .select(`
+                        *,
+                        users!created_by(full_name, district_name),
+                        schemes!schemeSelect(scheme_name, scheme_code)
+                    `)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error loading approvals:', error);
+                    // Load sample data for demonstration
+                    loadSampleData();
+                } else {
+                    allApprovals = data || [];
+                    processApprovals();
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                loadSampleData();
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Load sample data for demonstration
+        function loadSampleData() {
+            allApprovals = [
+                {
+                    id: 'DBT001',
+                    scheme_name: 'Rajiv Gandhi Nyay Yojana',
+                    scheme_code: 'SS1',
+                    submitted_by: 'राम कुमार शर्मा',
+                    district: 'Raipur',
+                    totalAmountDisbursed: 250000,
+                    totalBeneficiaries: 125,
+                    created_at: '2024-01-15T10:30:00Z',
+                    status: 'pending',
+                    priority: 'high',
+                    comments: null
+                },
+                {
+                    id: 'DBT002',
+                    scheme_name: 'Godhan Nyay Yojana',
+                    scheme_code: 'SS7',
+                    submitted_by: 'सुनीता देवी',
+                    district: 'Bilaspur',
+                    totalAmountDisbursed: 180000,
+                    totalBeneficiaries: 90,
+                    created_at: '2024-01-14T14:20:00Z',
+                    status: 'pending',
+                    priority: 'medium',
+                    comments: null
+                },
+                {
+                    id: 'DBT003',
+                    scheme_name: 'National Food Security Mission',
+                    scheme_code: 'CS8',
+                    submitted_by: 'अजय कुमार पटेल',
+                    district: 'Durg',
+                    totalAmountDisbursed: 320000,
+                    totalBeneficiaries: 160,
+                    created_at: '2024-01-13T09:15:00Z',
+                    status: 'approved',
+                    priority: 'low',
+                    comments: 'Approved after verification'
+                },
+                {
+                    id: 'DBT004',
+                    scheme_name: 'Kisan Samrudhi Yojana',
+                    scheme_code: 'SS12',
+                    submitted_by: 'प्रिया शुक्ला',
+                    district: 'Korba',
+                    totalAmountDisbursed: 150000,
+                    totalBeneficiaries: 75,
+                    created_at: '2024-01-12T16:45:00Z',
+                    status: 'rejected',
+                    priority: 'medium',
+                    comments: 'Incomplete documentation'
+                },
+                {
+                    id: 'DBT005',
+                    scheme_name: 'Sub Mission on Agriculture Mechanization',
+                    scheme_code: 'CS13',
+                    submitted_by: 'विकास वर्मा',
+                    district: 'Raipur',
+                    totalAmountDisbursed: 280000,
+                    totalBeneficiaries: 140,
+                    created_at: '2024-01-11T11:30:00Z',
+                    status: 'pending',
+                    priority: 'high',
+                    comments: null
+                },
+                {
+                    id: 'DBT006',
+                    scheme_name: 'Pradhan Mantri Krishi Sinchai Yojana',
+                    scheme_code: 'CS12',
+                    submitted_by: 'मीरा गुप्ता',
+                    district: 'Bilaspur',
+                    totalAmountDisbursed: 200000,
+                    totalBeneficiaries: 100,
+                    created_at: '2024-01-10T13:20:00Z',
+                    status: 'draft',
+                    priority: 'low',
+                    comments: null
+                }
+            ];
+            
+            processApprovals();
+        }
+
+        // Process approvals data
+        function processApprovals() {
+            filteredApprovals = [...allApprovals];
+            updateStats();
+            applyFilters();
+        }
+
+        // Update statistics
+        function updateStats() {
+            const pending = allApprovals.filter(a => a.status === 'pending').length;
+            const highPriority = allApprovals.filter(a => a.priority === 'high' && a.status === 'pending').length;
+            const today = new Date().toISOString().split('T')[0];
+            const todaySubmitted = allApprovals.filter(a => a.created_at.startsWith(today)).length;
+
+            document.getElementById('totalPending').textContent = pending;
+            document.getElementById('highPriority').textContent = highPriority;
+            document.getElementById('todaySubmitted').textContent = todaySubmitted;
+        }
+
+        // Apply filters
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            const districtFilter = document.getElementById('districtFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+
+            filteredApprovals = allApprovals.filter(approval => {
+                // Status filter
+                if (statusFilter && approval.status !== statusFilter) return false;
+                
+                // Priority filter
+                if (priorityFilter && approval.priority !== priorityFilter) return false;
+                
+                // District filter
+                if (districtFilter && approval.district.toLowerCase() !== districtFilter) return false;
+                
+                // Date range filter
+                const entryDate = new Date(approval.created_at).toISOString().split('T')[0];
+                if (dateFrom && entryDate < dateFrom) return false;
+                if (dateTo && entryDate > dateTo) return false;
+                
+                return true;
+            });
+
+            totalRecords = filteredApprovals.length;
+            currentPage = 1;
+            renderTable();
+            renderPagination();
+        }
+
+        // Render table
+        function renderTable() {
+            const tbody = document.getElementById('approvalsTableBody');
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredApprovals.slice(startIndex, endIndex);
+
+            if (pageData.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="11" class="text-center py-5">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox"></i>
+                                <h5>No approvals found</h5>
+                                <p class="text-muted">No entries match your current filters.</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tbody.innerHTML = pageData.map(approval => `
+                    <tr ${selectedItems.has(approval.id) ? 'class="table-active"' : ''}>
+                        <td>
+                            <input type="checkbox" class="form-check-input row-checkbox" 
+                                   value="${approval.id}" onchange="toggleRowSelection('${approval.id}')">
+                        </td>
+                        <td>
+                            <i class="fas fa-circle priority-${approval.priority}" title="${approval.priority} priority"></i>
+                        </td>
+                        <td>
+                            <strong>${approval.id}</strong>
+                        </td>
+                        <td>
+                            <div class="fw-bold">${approval.scheme_name}</div>
+                            <small class="text-muted">${approval.scheme_code}</small>
+                        </td>
+                        <td>${approval.submitted_by}</td>
+                        <td>${approval.district}</td>
+                        <td>₹${formatCurrency(approval.totalAmountDisbursed)}</td>
+                        <td>${approval.totalBeneficiaries}</td>
+                        <td>${formatDate(approval.created_at)}</td>
+                        <td>
+                            <span class="status-badge status-${approval.status}">
+                                ${approval.status}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn-action btn-view" onclick="viewEntry('${approval.id}')" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                ${approval.status === 'pending' ? `
+                                    <button class="btn-action btn-approve" onclick="showActionModal('approve', '${approval.id}')" title="Approve">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn-action btn-reject" onclick="showActionModal('reject', '${approval.id}')" title="Reject">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                ` : ''}
+                                ${approval.status === 'draft' ? `
+                                    <button class="btn-action btn-edit" onclick="editEntry('${approval.id}')" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Update record count
+            document.getElementById('recordCount').textContent = totalRecords;
+            updatePaginationInfo();
+        }
+
+        // Render pagination
+        function renderPagination() {
+            const totalPages = Math.ceil(totalRecords / itemsPerPage);
+            const pagination = document.getElementById('pagination');
+
+            if (totalPages <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+
+            let paginationHTML = '';
+
+            // Previous button
+            paginationHTML += `
+                <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage - 1})">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+            `;
+
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+
+            if (startPage > 1) {
+                paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(1)">1</a></li>`;
+                if (startPage > 2) {
+                    paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                paginationHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                    </li>
+                `;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                }
+                paginationHTML += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${totalPages})">${totalPages}</a></li>`;
+            }
+
+            // Next button
+            paginationHTML += `
+                <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${currentPage + 1})">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+            `;
+
+            pagination.innerHTML = paginationHTML;
+        }
+
+        // Change page
+        function changePage(page) {
+            if (page < 1 || page > Math.ceil(totalRecords / itemsPerPage)) return;
+            currentPage = page;
+            renderTable();
+            renderPagination();
+        }
+
+        // Update pagination info
+        function updatePaginationInfo() {
+            const startRecord = (currentPage - 1) * itemsPerPage + 1;
+            const endRecord = Math.min(currentPage * itemsPerPage, totalRecords);
+            
+            document.getElementById('showingFrom').textContent = totalRecords > 0 ? startRecord : 0;
+            document.getElementById('showingTo').textContent = endRecord;
+            document.getElementById('totalRecords').textContent = totalRecords;
+        }
+
+        // Toggle select all
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            
+            if (selectAll.checked) {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                    selectedItems.add(checkbox.value);
+                });
+            } else {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                    selectedItems.delete(checkbox.value);
+                });
+            }
+            
+            updateBulkActions();
+            renderTable();
+        }
+
+        // Toggle row selection
+        function toggleRowSelection(id) {
+            if (selectedItems.has(id)) {
+                selectedItems.delete(id);
+            } else {
+                selectedItems.add(id);
+            }
+            
+            updateBulkActions();
+            renderTable();
+        }
+
+        // Update bulk actions
+        function updateBulkActions() {
+            const bulkActionsBar = document.getElementById('bulkActionsBar');
+            const selectedCount = document.getElementById('selectedCount');
+            
+            if (selectedItems.size > 0) {
+                bulkActionsBar.classList.add('show');
+                selectedCount.textContent = selectedItems.size;
+            } else {
+                bulkActionsBar.classList.remove('show');
+            }
+
+            // Update select all checkbox
+            const selectAll = document.getElementById('selectAll');
+            const visibleCheckboxes = document.querySelectorAll('.row-checkbox');
+            const visibleSelected = Array.from(visibleCheckboxes).filter(cb => cb.checked).length;
+            
+            selectAll.checked = visibleCheckboxes.length > 0 && visibleSelected === visibleCheckboxes.length;
+            selectAll.indeterminate = visibleSelected > 0 && visibleSelected < visibleCheckboxes.length;
+        }
+
+        // Clear selection
+        function clearSelection() {
+            selectedItems.clear();
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('selectAll').checked = false;
+            updateBulkActions();
+            renderTable();
+        }
+
+        // View entry details
+        function viewEntry(entryId) {
+            const entry = allApprovals.find(a => a.id === entryId);
+            if (!entry) return;
+
+            const detailsHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Basic Information</h6>
+                        <table class="table table-borderless">
+                            <tr><td><strong>Entry ID:</strong></td><td>${entry.id}</td></tr>
+                            <tr><td><strong>Scheme:</strong></td><td>${entry.scheme_name} (${entry.scheme_code})</td></tr>
+                            <tr><td><strong>Submitted By:</strong></td><td>${entry.submitted_by}</td></tr>
+                            <tr><td><strong>District:</strong></td><td>${entry.district}</td></tr>
+                            <tr><td><strong>Status:</strong></td><td><span class="status-badge status-${entry.status}">${entry.status}</span></td></tr>
+                            <tr><td><strong>Priority:</strong></td><td><i class="fas fa-circle priority-${entry.priority}"></i> ${entry.priority}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Financial Details</h6>
+                        <table class="table table-borderless">
+                            <tr><td><strong>Total Amount:</strong></td><td>₹${formatCurrency(entry.totalAmountDisbursed)}</td></tr>
+                            <tr><td><strong>Total Beneficiaries:</strong></td><td>${entry.totalBeneficiaries}</td></tr>
+                            <tr><td><strong>Submitted Date:</strong></td><td>${formatDate(entry.created_at)}</td></tr>
+                            <tr><td><strong>Comments:</strong></td><td>${entry.comments || 'No comments'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6>Additional Details</h6>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Complete entry details would be loaded from the database in a real implementation.
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('entryDetails').innerHTML = detailsHTML;
+            currentEntryId = entryId;
+            
+            const modal = new bootstrap.Modal(document.getElementById('viewDetailsModal'));
+            modal.show();
+        }
+
+        // Show action modal
+        function showActionModal(action, entryId) {
+            currentAction = action;
+            currentEntryId = entryId;
+
+            const modal = document.getElementById('actionModal');
+            const header = document.getElementById('actionModalHeader');
+            const title = document.getElementById('actionModalTitle');
+            const message = document.getElementById('actionMessage');
+            const confirmBtn = document.getElementById('confirmActionBtn');
+            const confirmText = document.getElementById('confirmActionText');
+
+            if (action === 'approve') {
+                header.className = 'modal-header bg-success text-white';
+                title.innerHTML = '<i class="fas fa-check me-2"></i>Approve Entry';
+                message.textContent = 'Are you sure you want to approve this entry?';
+                confirmBtn.className = 'btn btn-success';
+                confirmText.textContent = 'Approve';
+            } else {
+                header.className = 'modal-header bg-danger text-white';
+                title.innerHTML = '<i class="fas fa-times me-2"></i>Reject Entry';
+                message.textContent = 'Are you sure you want to reject this entry?';
+                confirmBtn.className = 'btn btn-danger';
+                confirmText.textContent = 'Reject';
+            }
+
+            document.getElementById('actionComments').value = '';
+            
+            const actionModal = new bootstrap.Modal(modal);
+            actionModal.show();
+        }
+
+        // Confirm action
+        async function confirmAction() {
+            if (!currentAction || !currentEntryId) return;
+
+            try {
+                showLoading(true);
+
+                const comments = document.getElementById('actionComments').value;
+                const newStatus = currentAction === 'approve' ? 'approved' : 'rejected';
+
+                // Update in database (simulate API call)
+                const entryIndex = allApprovals.findIndex(a => a.id === currentEntryId);
+                if (entryIndex !== -1) {
+                    allApprovals[entryIndex].status = newStatus;
+                    allApprovals[entryIndex].comments = comments || null;
+                    allApprovals[entryIndex].approved_by = currentUser.id;
+                    allApprovals[entryIndex].approved_at = new Date().toISOString();
+                }
+
+                // Close modals
+                bootstrap.Modal.getInstance(document.getElementById('actionModal')).hide();
+                const viewModal = bootstrap.Modal.getInstance(document.getElementById('viewDetailsModal'));
+                if (viewModal) viewModal.hide();
+
+                // Refresh data
+                processApprovals();
+                
+                showAlert(`Entry ${currentAction}d successfully!`, 'success');
+
+            } catch (error) {
+                console.error('Error updating entry:', error);
+                showAlert('Error updating entry. Please try again.', 'danger');
+            } finally {
+                showLoading(false);
+                currentAction = null;
+                currentEntryId = null;
+            }
+        }
+
+        // Approve entry (from view modal)
+        function approveEntry() {
+            if (currentEntryId) {
+                showActionModal('approve', currentEntryId);
+            }
+        }
+
+        // Reject entry (from view modal)
+        function rejectEntry() {
+            if (currentEntryId) {
+                showActionModal('reject', currentEntryId);
+            }
+        }
+
+        // Edit entry
+        function editEntry(entryId) {
+            window.open(`edit-entry.html?id=${entryId}`, '_blank');
+        }
+
+        // Bulk approve
+        function bulkApprove() {
+            if (selectedItems.size === 0) {
+                showAlert('Please select items to approve.', 'warning');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to approve ${selectedItems.size} selected items?`)) {
+                selectedItems.forEach(id => {
+                    const entryIndex = allApprovals.findIndex(a => a.id === id);
+                    if (entryIndex !== -1 && allApprovals[entryIndex].status === 'pending') {
+                        allApprovals[entryIndex].status = 'approved';
+                        allApprovals[entryIndex].approved_by = currentUser.id;
+                        allApprovals[entryIndex].approved_at = new Date().toISOString();
+                    }
+                });
+
+                clearSelection();
+                processApprovals();
+                showAlert(`${selectedItems.size} entries approved successfully!`, 'success');
+            }
+        }
+
+        // Bulk reject
+        function bulkReject() {
+            if (selectedItems.size === 0) {
+                showAlert('Please select items to reject.', 'warning');
+                return;
+            }
+
+            const reason = prompt('Please enter reason for rejection:');
+            if (reason && confirm(`Are you sure you want to reject ${selectedItems.size} selected items?`)) {
+                selectedItems.forEach(id => {
+                    const entryIndex = allApprovals.findIndex(a => a.id === id);
+                    if (entryIndex !== -1 && allApprovals[entryIndex].status === 'pending') {
+                        allApprovals[entryIndex].status = 'rejected';
+                        allApprovals[entryIndex].comments = reason;
+                        allApprovals[entryIndex].approved_by = currentUser.id;
+                        allApprovals[entryIndex].approved_at = new Date().toISOString();
+                    }
+                });
+
+                clearSelection();
+                processApprovals();
+                showAlert(`${selectedItems.size} entries rejected successfully!`, 'success');
+            }
+        }
+
+        // Mark all as read
+        function markAllRead() {
+            showAlert('All entries marked as read.', 'info');
+        }
+
+        // Refresh data
+        function refreshData() {
+            loadApprovals();
+        }
+
+        // Export data
+        function exportData() {
+            const csvContent = generateCSV(filteredApprovals);
+            downloadCSV(csvContent, 'pending-approvals.csv');
+        }
+
+        // Generate CSV
+        function generateCSV(data) {
+            const headers = ['Entry ID', 'Scheme Name', 'Scheme Code', 'Submitted By', 'District', 'Amount', 'Beneficiaries', 'Status', 'Priority', 'Submitted Date'];
+            const rows = data.map(item => [
+                item.id,
+                item.scheme_name,
+                item.scheme_code,
+                item.submitted_by,
+                item.district,
+                item.totalAmountDisbursed,
+                item.totalBeneficiaries,
+                item.status,
+                item.priority,
+                formatDate(item.created_at)
+            ]);
+
+            return [headers, ...rows].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+        }
+
+        // Download CSV
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Utility functions
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-IN', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + R to refresh
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                refreshData();
+            }
+            
+            // Escape to clear selection
+            if (e.key === 'Escape') {
+                clearSelection();
+            }
+        });
+
+        // Auto-refresh every 5 minutes
+        setInterval(() => {
+            refreshData();
+        }, 300000);
+
+        console.log('Pending Approvals System Loaded Successfully! 🎉');
+    </script>
+</body>
+</html>
+
