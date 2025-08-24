@@ -767,55 +767,146 @@
             loadDraftData();
         }
 
-        // Load schemes from database
-        async function loadSchemes() {
-            try {
-                const schemeSelect = document.getElementById('schemeSelect');
-                schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
-                
-                // Fetch schemes from database (you'll need to create this table)
-                const { data, error } = await supabaseClient
-                    .from('schemes')
-                    .select('id, name, code, type')
-                    .eq('is_active', true)
-                    .order('name');
-                
-                if (error) throw error;
-                
-                schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
-                
-                if (data && data.length > 0) {
-                    data.forEach(scheme => {
-                        const option = document.createElement('option');
-                        option.value = scheme.id;
-                        option.textContent = `${scheme.name} (${scheme.code})`;
-                        option.dataset.type = scheme.type;
-                        schemeSelect.appendChild(option);
-                    });
-                } else {
-                    // Fallback schemes if table doesn't exist
-                    const fallbackSchemes = [
-                        { id: 'pmkisan', name: 'PM-KISAN', code: 'PMK001' },
-                        { id: 'pmfby', name: 'Pradhan Mantri Fasal Bima Yojana', code: 'PMFBY001' },
-                        { id: 'kcc', name: 'Kisan Credit Card', code: 'KCC001' },
-                        { id: 'soil_health', name: 'Soil Health Card', code: 'SHC001' },
-                        { id: 'nfsm', name: 'National Food Security Mission', code: 'NFSM001' }
-                    ];
-                    
-                    fallbackSchemes.forEach(scheme => {
-                        const option = document.createElement('option');
-                        option.value = scheme.id;
-                        option.textContent = `${scheme.name} (${scheme.code})`;
-                        schemeSelect.appendChild(option);
-                    });
-                }
-                
-            } catch (error) {
-                console.error('Error loading schemes:', error);
-                document.getElementById('schemeSelect').innerHTML = 
-                    '<option value="">Error loading schemes</option>';
-            }
+        // Updated loadSchemes function
+async function loadSchemes() {
+    try {
+        const schemeSelect = document.getElementById('schemeSelect');
+        schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
+        
+        // Fetch schemes from database with updated column names
+        const { data, error } = await supabaseClient
+            .from('schemes')
+            .select('id, scheme_name, scheme_code, scheme_type, benefit_type')
+            .eq('is_active', true)
+            .order('scheme_name');
+        
+        if (error) {
+            console.warn('Schemes table error:', error);
+            loadFallbackSchemes();
+            return;
         }
+        
+        schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+        
+        if (data && data.length > 0) {
+            // Group schemes by type for better organization
+            const centrallySponsored = data.filter(s => s.scheme_type === 'Centrally Sponsored');
+            const stateSchemes = data.filter(s => s.scheme_type === 'State Scheme');
+            
+            // Add Centrally Sponsored schemes
+            if (centrallySponsored.length > 0) {
+                const csGroup = document.createElement('optgroup');
+                csGroup.label = 'Centrally Sponsored Schemes';
+                centrallySponsored.forEach(scheme => {
+                    const option = document.createElement('option');
+                    option.value = scheme.id;
+                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                    option.dataset.type = scheme.scheme_type;
+                    option.dataset.benefitType = scheme.benefit_type;
+                    csGroup.appendChild(option);
+                });
+                schemeSelect.appendChild(csGroup);
+            }
+            
+            // Add State schemes
+            if (stateSchemes.length > 0) {
+                const ssGroup = document.createElement('optgroup');
+                ssGroup.label = 'State Schemes';
+                stateSchemes.forEach(scheme => {
+                    const option = document.createElement('option');
+                    option.value = scheme.id;
+                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                    option.dataset.type = scheme.scheme_type;
+                    option.dataset.benefitType = scheme.benefit_type;
+                    ssGroup.appendChild(option);
+                });
+                schemeSelect.appendChild(ssGroup);
+            }
+            
+            console.log(`Loaded ${data.length} schemes successfully`);
+        } else {
+            loadFallbackSchemes();
+        }
+        
+    } catch (error) {
+        console.error('Error loading schemes:', error);
+        loadFallbackSchemes();
+    }
+}
+
+// Updated fallback schemes with actual data
+    function loadFallbackSchemes() {
+        const schemeSelect = document.getElementById('schemeSelect');
+        schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+        
+        const fallbackSchemes = [
+            { id: 'cs1', name: 'SubMission on Agroforestry', code: 'CS1', type: 'Centrally Sponsored' },
+            { id: 'ss1', name: 'Rajiv Gandhi Nyay Yojana', code: 'SS1', type: 'State Scheme' },
+            { id: 'cs8', name: 'National Food Security Mission', code: 'CS8', type: 'Centrally Sponsored' },
+            { id: 'ss7', name: 'Godhan Nyay Yojana', code: 'SS7', type: 'State Scheme' },
+            { id: 'cs12', name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', code: 'CS12', type: 'Centrally Sponsored' },
+            { id: 'ss12', name: 'Kisan Samrudhi Yojana', code: 'SS12', type: 'State Scheme' }
+        ];
+        
+        // Group fallback schemes
+        const csGroup = document.createElement('optgroup');
+        csGroup.label = 'Centrally Sponsored Schemes';
+        const ssGroup = document.createElement('optgroup');
+        ssGroup.label = 'State Schemes';
+        
+        fallbackSchemes.forEach(scheme => {
+            const option = document.createElement('option');
+            option.value = scheme.id;
+            option.textContent = `${scheme.name} (${scheme.code})`;
+            option.dataset.type = scheme.type;
+            
+            if (scheme.type === 'Centrally Sponsored') {
+                csGroup.appendChild(option);
+            } else {
+                ssGroup.appendChild(option);
+            }
+        });
+        
+        schemeSelect.appendChild(csGroup);
+        schemeSelect.appendChild(ssGroup);
+        
+        console.log('Loaded fallback schemes successfully');
+    }
+    
+    // Add scheme selection handler to show additional info
+    document.addEventListener('DOMContentLoaded', function() {
+        const schemeSelect = document.getElementById('schemeSelect');
+        
+        schemeSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            
+            if (selectedOption.value) {
+                const schemeType = selectedOption.dataset.type;
+                const benefitType = selectedOption.dataset.benefitType;
+                
+                // You can add logic here to show/hide fields based on scheme type
+                console.log(`Selected scheme type: ${schemeType}, Benefit type: ${benefitType}`);
+                
+                // Example: Show different fields for different scheme types
+                updateFormFieldsBasedOnScheme(schemeType, benefitType);
+            }
+        });
+    });
+    
+    // Function to update form fields based on selected scheme
+    function updateFormFieldsBasedOnScheme(schemeType, benefitType) {
+        // Add logic to show/hide or modify fields based on scheme selection
+        const centralFields = document.querySelectorAll('.central-scheme-only');
+        const stateFields = document.querySelectorAll('.state-scheme-only');
+        
+        if (schemeType === 'Centrally Sponsored') {
+            centralFields.forEach(field => field.style.display = 'block');
+            stateFields.forEach(field => field.style.display = 'none');
+        } else if (schemeType === 'State Scheme') {
+            centralFields.forEach(field => field.style.display = 'none');
+            stateFields.forEach(field => field.style.display = 'block');
+        }
+    }
 
         // Set default date to today
         function setDefaultDate() {
