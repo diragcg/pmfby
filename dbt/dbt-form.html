@@ -6,7 +6,7 @@
     <title>DBT Data Entry - संचालनालय कृषि छत्तीसगढ़</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Mukti:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --admin-primary: #1B5E20;
@@ -39,7 +39,7 @@
         }
 
         body {
-            font-family: 'Mukti', sans-serif;
+            font-family: 'Mukta', sans-serif;
             background: linear-gradient(135deg, var(--background-light) 0%, var(--text-light) 100%);
             min-height: 100vh;
             color: var(--text-dark);
@@ -330,7 +330,7 @@
             font-size: 1rem;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             background-color: #FFFFFF;
-            font-family: 'Mukti', sans-serif;
+            font-family: 'Mukta', sans-serif;
             color: var(--text-dark);
         }
 
@@ -1150,15 +1150,19 @@
         // Form validation rules
         const validationRules = {
             required: ['schemeSelect', 'dbtDate'],
-            currency: ['centralAllocation', 'stateNormativeAllocation', 'additionalStateAllocation', 
-                      'totalAmountDisbursed', 'centralShareFund', 'normativeStateShare', 
-                      'additionalStateContributed', 'stateShareAdditional', 'nonElectronicDisbursed', 
-                      'electronicDisbursed', 'otherSavings', 'savingAmount'],
-            number: ['totalBeneficiaries', 'additionalBeneficiariesCSS', 'additionalBeneficiariesState', 
-                    'beneficiariesDigitized', 'bankAccountDetails', 'aadhaarSeeded', 'aadhaarAuthenticated', 
-                    'mobileAvailable', 'electronicModeBeneficiaries', 'nonElectronicBeneficiaries', 
-                    'electronicTransactions', 'nonElectronicTransactions', 'deduplicationAadhaar', 
-                    'ghostBeneficiaries']
+            currency: [
+                'centralAllocation', 'stateNormativeAllocation', 'additionalStateAllocation', 
+                'totalAmountDisbursed', 'centralShareFund', 'normativeStateShare', 
+                'additionalStateContributed', 'stateShareAdditional', 'nonElectronicDisbursed', 
+                'electronicDisbursed', 'otherSavings', 'savingAmount'
+            ],
+            number: [
+                'totalBeneficiaries', 'additionalBeneficiariesCSS', 'additionalBeneficiariesState', 
+                'beneficiariesDigitized', 'bankAccountDetails', 'aadhaarSeeded', 'aadhaarAuthenticated', 
+                'mobileAvailable', 'electronicModeBeneficiaries', 'nonElectronicBeneficiaries', 
+                'electronicTransactions', 'nonElectronicTransactions', 'deduplicationAadhaar', 
+                'ghostBeneficiaries'
+            ]
         };
 
         // Initialize page
@@ -1171,7 +1175,7 @@
             setupCollapsibleSections();
             setDefaultDate();
             loadNotifications();
-            loadAdminStats();
+            loadAdminStats(); 
         });
 
         // Check if user is authenticated and set admin status
@@ -1187,6 +1191,20 @@
                 currentUser = JSON.parse(storedUser);
                 isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin';
                 
+                // Validate currentUser.id as UUID
+                if (typeof currentUser.id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentUser.id)) {
+                    console.error('currentUser.id is not a valid UUID string. Please check login data storage.');
+                    // Optionally redirect to login or show an error
+                    // window.location.href = 'login.html'; 
+                    // return;
+                }
+                // Validate currentUser.districtId as UUID if it exists
+                if (currentUser.districtId && (typeof currentUser.districtId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(currentUser.districtId))) {
+                    console.warn('currentUser.districtId is not a valid UUID string. It will be sent as null to the database.');
+                    currentUser.districtId = null; // Ensure it's null if invalid
+                }
+
+
                 document.getElementById('userInfo').textContent = 
                     `${currentUser.fullName} - ${currentUser.districtName}`;
                 
@@ -1209,6 +1227,7 @@
                 const schemeSelect = document.getElementById('schemeSelect');
                 schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
                 
+                // schemes.id is INTEGER, so this should be fine
                 const { data, error } = await supabaseClient
                     .from('schemes')
                     .select('id, scheme_name, scheme_code, scheme_type, benefit_type')
@@ -1216,7 +1235,7 @@
                     .order('scheme_name');
                 
                 if (error) {
-                    console.warn('Schemes table error:', error);
+                    console.warn('Schemes table error (likely not found or RLS issue), loading fallback data:', error);
                     loadFallbackSchemes();
                     return;
                 }
@@ -1232,7 +1251,7 @@
                         csGroup.label = 'Centrally Sponsored Schemes';
                         centrallySponsored.forEach(scheme => {
                             const option = document.createElement('option');
-                            option.value = scheme.id;
+                            option.value = scheme.id; // scheme.id is INTEGER
                             option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
                             option.dataset.type = scheme.scheme_type;
                             option.dataset.benefitType = scheme.benefit_type;
@@ -1246,7 +1265,7 @@
                         ssGroup.label = 'State Schemes';
                         stateSchemes.forEach(scheme => {
                             const option = document.createElement('option');
-                            option.value = scheme.id;
+                            option.value = scheme.id; // scheme.id is INTEGER
                             option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
                             option.dataset.type = scheme.scheme_type;
                             option.dataset.benefitType = scheme.benefit_type;
@@ -1272,12 +1291,12 @@
             schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
             
             const fallbackSchemes = [
-                { id: 'cs1', name: 'SubMission on Agroforestry', code: 'CS1', type: 'Centrally Sponsored' },
-                { id: 'ss1', name: 'Rajiv Gandhi Nyay Yojana', code: 'SS1', type: 'State Scheme' },
-                { id: 'cs8', name: 'National Food Security Mission', code: 'CS8', type: 'Centrally Sponsored' },
-                { id: 'ss7', name: 'Godhan Nyay Yojana', code: 'SS7', type: 'State Scheme' },
-                { id: 'cs12', name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', code: 'CS12', type: 'Centrally Sponsored' },
-                { id: 'ss12', name: 'Kisan Samrudhi Yojana', code: 'SS12', type: 'State Scheme' }
+                { id: 1, name: 'SubMission on Agroforestry', code: 'CS1', type: 'Centrally Sponsored' },
+                { id: 2, name: 'Rajiv Gandhi Nyay Yojana', code: 'SS1', type: 'State Scheme' },
+                { id: 3, name: 'National Food Security Mission', code: 'CS8', type: 'Centrally Sponsored' },
+                { id: 4, name: 'Godhan Nyay Yojana', code: 'SS7', type: 'State Scheme' },
+                { id: 5, name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', code: 'CS12', type: 'Centrally Sponsored' },
+                { id: 6, name: 'Kisan Samrudhi Yojana', code: 'SS12', type: 'State Scheme' }
             ];
             
             const csGroup = document.createElement('optgroup');
@@ -1287,8 +1306,8 @@
             
             fallbackSchemes.forEach(scheme => {
                 const option = document.createElement('option');
-                option.value = scheme.id;
-                option.textContent = `${scheme.name} (\${scheme.code})`;
+                option.value = scheme.id; // Fallback IDs are integers
+                option.textContent = `${scheme.name} (${scheme.code})`;
                 option.dataset.type = scheme.type;
                 
                 if (scheme.type === 'Centrally Sponsored') {
@@ -1544,31 +1563,101 @@
             await saveFormData();
         }
 
+        // Collect form data - Explicitly map to database column names
+        function collectFormData() {
+            const formData = {};
+            
+            // Basic Information
+            formData.scheme_id = parseInt(document.getElementById('schemeSelect').value); // schemes.id is INTEGER
+            formData.dbt_date = document.getElementById('dbtDate').value;
+
+            // Budget Allocation (Section A.2)
+            formData.central_allocation = parseFloat(document.getElementById('centralAllocation').value) || 0;
+            formData.state_normative_allocation = parseFloat(document.getElementById('stateNormativeAllocation').value) || 0;
+            formData.additional_state_allocation = parseFloat(document.getElementById('additionalStateAllocation').value) || 0;
+            formData.budget_remarks = document.getElementById('budgetRemarks').value.trim() || null;
+
+            // Benefits Transferred (Section B.1)
+            // These are auto-calculated by trigger, but sending initial values is good practice
+            formData.total_amount_disbursed = parseFloat(document.getElementById('totalAmountDisbursed').value) || 0; 
+            formData.central_share_fund = parseFloat(document.getElementById('centralShareFund').value) || 0;
+            formData.normative_state_share = parseFloat(document.getElementById('normativeStateShare').value) || 0;
+            formData.additional_state_contributed = parseFloat(document.getElementById('additionalStateContributed').value) || 0;
+            formData.state_share_additional = parseFloat(document.getElementById('stateShareAdditional').value) || 0;
+            formData.non_electronic_disbursed = parseFloat(document.getElementById('nonElectronicDisbursed').value) || 0;
+            formData.electronic_disbursed = parseFloat(document.getElementById('electronicDisbursed').value) || 0;
+
+            // Benefit Details (Section B.2)
+            // These are auto-calculated by trigger, but sending initial values is good practice
+            formData.total_beneficiaries = parseInt(document.getElementById('totalBeneficiaries').value) || 0; 
+            formData.additional_beneficiaries_css = parseInt(document.getElementById('additionalBeneficiariesCSS').value) || 0;
+            formData.additional_beneficiaries_state = parseInt(document.getElementById('additionalBeneficiariesState').value) || 0;
+            formData.beneficiaries_digitized = parseInt(document.getElementById('beneficiariesDigitized').value) || 0;
+            formData.bank_account_details = parseInt(document.getElementById('bankAccountDetails').value) || 0;
+            formData.aadhaar_seeded = parseInt(document.getElementById('aadhaarSeeded').value) || 0;
+            formData.aadhaar_authenticated = parseInt(document.getElementById('aadhaarAuthenticated').value) || 0;
+            formData.mobile_available = parseInt(document.getElementById('mobileAvailable').value) || 0;
+            formData.electronic_mode_beneficiaries = parseInt(document.getElementById('electronicModeBeneficiaries').value) || 0;
+            formData.non_electronic_beneficiaries = parseInt(document.getElementById('nonElectronicBeneficiaries').value) || 0;
+            formData.electronic_transactions = parseInt(document.getElementById('electronicTransactions').value) || 0;
+            formData.non_electronic_transactions = parseInt(document.getElementById('nonElectronicTransactions').value) || 0;
+
+            // DBT Savings Data (Section B.3)
+            // These are auto-calculated by trigger, but sending initial values is good practice
+            formData.deduplication_aadhaar = parseInt(document.getElementById('deduplicationAadhaar').value) || 0;
+            formData.ghost_beneficiaries = parseInt(document.getElementById('ghostBeneficiaries').value) || 0;
+            formData.other_savings = parseFloat(document.getElementById('otherSavings').value) || 0;
+            formData.saving_amount = parseFloat(document.getElementById('savingAmount').value) || 0; 
+            
+            return formData;
+        }
+
         // Save form data to database
         async function saveFormData() {
             try {
                 showLoading(true);
                 
-                const formData = collectFormData();
+                const formData = collectFormData(); // This now has DB column names
                 
+                // Add status and draft flags
                 if (isDraftMode) {
                     formData.is_draft = true;
                     formData.status = 'draft';
                 } else {
                     formData.is_draft = false;
-                    formData.status = 'submitted';
+                    formData.status = 'pending'; // Assuming 'submitted' becomes 'pending' for approval
                 }
                 
-                formData.created_by = currentUser.id;
+                // Add user and district information (UUIDs)
+                if (currentUser && currentUser.id) {
+                    formData.created_by = currentUser.id; // This is a UUID string
+                } else {
+                    throw new Error("User not authenticated or currentUser.id is missing.");
+                }
+
+                if (currentUser && currentUser.districtId) {
+                    formData.district_id = currentUser.districtId; // This is a UUID string
+                    formData.district_name = currentUser.districtName; // Also add district_name for convenience
+                } else {
+                    console.warn("currentUser.districtId is missing or invalid. Entry might not be associated with a district.");
+                    formData.district_id = null; // Set to null if invalid or missing
+                    formData.district_name = null;
+                }
+
                 formData.created_at = new Date().toISOString();
-                formData.district_id = currentUser.districtId;
                 
+                // Supabase insert
                 const { data, error } = await supabaseClient
                     .from('dbt_data_entries')
                     .insert([formData])
-                    .select();
-                
-                if (error) throw error;
+                    .select(); // Use .select() to return the inserted data
+
+                if (error) {
+                    console.error('Supabase insert error:', error);
+                    // Log the full error to console for debugging
+                    console.error('Error details:', error.message, error.details, error.hint, error.code);
+                    throw error; // Re-throw to be caught by the outer catch block
+                }
                 
                 showLoading(false);
                 
@@ -1588,25 +1677,6 @@
             }
         }
 
-        // Collect form data
-        function collectFormData() {
-            const formData = {};
-            
-            const inputs = document.querySelectorAll('#dbtForm input, #dbtForm select, #dbtForm textarea');
-            
-            inputs.forEach(input => {
-                if (input.type === 'checkbox') {
-                    formData[input.id] = input.checked;
-                } else if (input.type === 'number') {
-                    formData[input.id] = parseFloat(input.value) || 0;
-                } else {
-                    formData[input.id] = input.value;
-                }
-            });
-            
-            return formData;
-        }
-
         // Load draft data
         function loadDraftData() {
             const draftData = localStorage.getItem('dbtFormDraft');
@@ -1615,16 +1685,39 @@
                 try {
                     const data = JSON.parse(draftData);
                     
-                    Object.keys(data).forEach(key => {
-                        const element = document.getElementById(key);
-                        if (element) {
-                            if (element.type === 'checkbox') {
-                                element.checked = data[key];
-                            } else {
-                                element.value = data[key];
-                            }
-                        }
-                    });
+                    // Explicitly map keys from draft data to form elements
+                    document.getElementById('schemeSelect').value = data.scheme_id || '';
+                    document.getElementById('dbtDate').value = data.dbt_date || '';
+                    document.getElementById('centralAllocation').value = data.central_allocation || 0;
+                    document.getElementById('stateNormativeAllocation').value = data.state_normative_allocation || 0;
+                    document.getElementById('additionalStateAllocation').value = data.additional_state_allocation || 0;
+                    document.getElementById('budgetRemarks').value = data.budget_remarks || '';
+
+                    document.getElementById('totalAmountDisbursed').value = data.total_amount_disbursed || 0;
+                    document.getElementById('centralShareFund').value = data.central_share_fund || 0;
+                    document.getElementById('normativeStateShare').value = data.normative_state_share || 0;
+                    document.getElementById('additionalStateContributed').value = data.additional_state_contributed || 0;
+                    document.getElementById('stateShareAdditional').value = data.state_share_additional || 0;
+                    document.getElementById('nonElectronicDisbursed').value = data.non_electronic_disbursed || 0;
+                    document.getElementById('electronicDisbursed').value = data.electronic_disbursed || 0;
+
+                    document.getElementById('totalBeneficiaries').value = data.total_beneficiaries || 0;
+                    document.getElementById('additionalBeneficiariesCSS').value = data.additional_beneficiaries_css || 0;
+                    document.getElementById('additionalBeneficiariesState').value = data.additional_beneficiaries_state || 0;
+                    document.getElementById('beneficiariesDigitized').value = data.beneficiaries_digitized || 0;
+                    document.getElementById('bankAccountDetails').value = data.bank_account_details || 0;
+                    document.getElementById('aadhaarSeeded').value = data.aadhaar_seeded || 0;
+                    document.getElementById('aadhaarAuthenticated').value = data.aadhaar_authenticated || 0;
+                    document.getElementById('mobileAvailable').value = data.mobile_available || 0;
+                    document.getElementById('electronicModeBeneficiaries').value = data.electronic_mode_beneficiaries || 0;
+                    document.getElementById('nonElectronicBeneficiaries').value = data.non_electronic_beneficiaries || 0;
+                    document.getElementById('electronicTransactions').value = data.electronic_transactions || 0;
+                    document.getElementById('nonElectronicTransactions').value = data.non_electronic_transactions || 0;
+
+                    document.getElementById('deduplicationAadhaar').value = data.deduplication_aadhaar || 0;
+                    document.getElementById('ghostBeneficiaries').value = data.ghost_beneficiaries || 0;
+                    document.getElementById('otherSavings').value = data.other_savings || 0;
+                    document.getElementById('savingAmount').value = data.saving_amount || 0;
                     
                     calculateTotalAmount();
                     calculateTotalBeneficiaries();
@@ -1674,7 +1767,7 @@
                 showAlert('आपके पास इस फीचर का एक्सेस नहीं है।', 'warning');
                 return;
             }
-            loadUsers();
+            // loadUsers(); // This function needs to be defined if you want to use the modal
             const modal = new bootstrap.Modal(document.getElementById('userManagementModal'));
             modal.show();
         }
@@ -1716,6 +1809,7 @@
                 showAlert('आपके पास इस फीचर का एक्सेस नहीं है।', 'warning');
                 return;
             }
+            // Assuming backup-restore.html exists
             window.open('backup-restore.html', '_blank');
         }
 
@@ -1757,7 +1851,7 @@
                     department_name: document.getElementById('newDepartmentName').value,
                     budget_type: document.getElementById('newBudgetType').value,
                     is_active: true,
-                    created_by: currentUser.id
+                    created_by: currentUser.id // currentUser.id is UUID
                 };
 
                 if (!schemeData.scheme_name || !schemeData.scheme_code || !schemeData.scheme_type || !schemeData.benefit_type) {
@@ -1790,6 +1884,7 @@
         // Quick Action Functions
         function addNewUser() {
             if (!isAdmin) return;
+            // Assuming add-user.html exists
             window.open('add-user.html', '_blank');
         }
 
@@ -1810,14 +1905,16 @@
 
         function viewSystemHealth() {
             if (!isAdmin) return;
+            // Assuming system-health.html exists
             window.open('system-health.html', '_blank');
         }
 
-        // Load Users for Admin
+        // Load Users for Admin (This function is in the DBL form, but probably belongs in user-management.html)
+        // Leaving it here for now but noting its likely misplaced.
         async function loadUsers() {
             try {
                 const { data, error } = await supabaseClient
-                    .from('users')
+                    .from('test_users') // Changed to test_users
                     .select('*')
                     .order('created_at', { ascending: false });
 
@@ -1856,14 +1953,14 @@
             }
         }
 
-        // Load Admin Statistics
+        // Load Admin Statistics (This function is in the DBL form, but probably belongs in admin-dashboard.html)
         async function loadAdminStats() {
             if (!isAdmin) return;
 
             try {
                 // Load total users
                 const { data: users, error: usersError } = await supabaseClient
-                    .from('users')
+                    .from('test_users') // Changed to test_users
                     .select('id', { count: 'exact' });
 
                 if (!usersError) {
@@ -1897,10 +1994,10 @@
                 // Load total amount
                 const { data: amounts, error: amountsError } = await supabaseClient
                     .from('dbt_data_entries')
-                    .select('totalAmountDisbursed');
+                    .select('total_amount_disbursed'); // Changed to total_amount_disbursed
 
                 if (!amountsError && amounts) {
-                    const totalAmount = amounts.reduce((sum, entry) => sum + (parseFloat(entry.totalAmountDisbursed) || 0), 0);
+                    const totalAmount = amounts.reduce((sum, entry) => sum + (parseFloat(entry.total_amount_disbursed) || 0), 0);
                     document.getElementById('totalAmount').textContent = '₹' + formatCurrency(totalAmount);
                 }
 
@@ -1909,7 +2006,7 @@
             }
         }
 
-        // Load Notifications
+        // Load Notifications (This function is in the DBL form, but probably belongs in a shared utility or notification center)
         function loadNotifications() {
             // Simulate notifications - in real app, load from database
             const notifications = [
@@ -1964,6 +2061,7 @@
         }
 
         function showAlert(message, type) {
+            // Remove existing alerts to prevent clutter
             const existingAlerts = document.querySelectorAll('.alert-custom');
             existingAlerts.forEach(alert => alert.remove());
             
@@ -1975,8 +2073,13 @@
                 <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
             `;
             
+            // Insert at top of form-card for visibility
             const formCard = document.querySelector('.form-card');
-            formCard.insertBefore(alertDiv, formCard.firstChild);
+            if (formCard) { // Check if formCard exists before inserting
+                formCard.insertBefore(alertDiv, formCard.firstChild);
+            } else {
+                document.body.prepend(alertDiv); // Fallback if formCard not found
+            }
             
             setTimeout(() => {
                 if (alertDiv.parentNode) {
@@ -2074,7 +2177,6 @@
         ║                                                              ║
         ╚══════════════════════════════════════════════════════════════╝
         `);
-
     </script>
 </body>
 </html>
