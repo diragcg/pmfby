@@ -97,7 +97,11 @@
             margin-right: 12px;
         }
 
-        /* Enhanced Admin Controls Styling - Replicating Index Page Nav */
+        /* --- FIXED: Enhanced Admin Controls Styling for Navbar --- */
+        .navbar-nav .nav-item {
+            position: relative;
+        }
+
         .navbar-nav .nav-link {
             color: var(--text-light) !important;
             font-weight: 600;
@@ -1564,7 +1568,7 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <button class="btn btn-primary w-100" onclick="generateReport('dataReportsModal')">
+                                    <button class="btn btn-primary w-100" onclick="generateReport()">
                                         <i class="fas fa-download me-2"></i>Generate Report
                                     </button>
                                 </div>
@@ -1883,10 +1887,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <!--
-        To enable PDF export, uncomment the following line:
+        To enable PDF export, uncomment the following line (and jspdf-autotable if using tables):
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-        
-        And if you need autoTable plugin for jsPDF:
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     -->
     <!--
@@ -1991,7 +1993,7 @@
             return `DBT${year}${month}${day}${timestamp}`;
         }
 
-        // FIXED: Check if user is authenticated and set admin status
+        // --- FIXED: Check if user is authenticated and set admin status ---
         function checkUserAuthentication() {
             const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
             
@@ -2032,17 +2034,27 @@
                 currentUser.districtId = null;
             }
 
-            // FIXED: Update user info display
+            // --- FIXED: Update user info display reliably ---
             const userInfoElement = document.getElementById('userInfo');
-            if (userInfoElement) {
-                userInfoElement.textContent = `${currentUser.fullName} - ${currentUser.districtName || 'No District'}`;
+            if (userInfoElement && currentUser) { // Ensure currentUser is not null/undefined
+                userInfoElement.textContent = `${currentUser.fullName || 'Guest'} - ${currentUser.districtName || 'No District'}`;
+            } else if (userInfoElement) {
+                userInfoElement.textContent = 'Guest User'; // Fallback for no user
             }
             
             // Show admin controls if user is admin
+            const adminControlsElement = document.getElementById('adminControls');
+            const userRoleElement = document.getElementById('userRole');
+            const addSchemeBtnElement = document.getElementById('addSchemeBtn');
+
             if (isAdmin) {
-                document.getElementById('adminControls').style.display = 'flex';
-                document.getElementById('userRole').style.display = 'inline-block';
-                document.getElementById('addSchemeBtn').style.display = 'inline-block';
+                if (adminControlsElement) adminControlsElement.style.display = 'flex';
+                if (userRoleElement) userRoleElement.style.display = 'inline-block';
+                if (addSchemeBtnElement) addSchemeBtnElement.style.display = 'inline-block';
+            } else {
+                if (adminControlsElement) adminControlsElement.style.display = 'none';
+                if (userRoleElement) userRoleElement.style.display = 'none';
+                if (addSchemeBtnElement) addSchemeBtnElement.style.display = 'none';
             }
         }
 
@@ -3686,6 +3698,7 @@
                         <div>${notif.message}</div>
                     `;
                     notificationList.appendChild(item);
+                });
             } else {
                 document.getElementById('notificationBadge').style.display = 'none';
                 document.getElementById('notificationList').innerHTML = `
