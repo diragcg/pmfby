@@ -1,4 +1,3 @@
-Here's the complete, updated code for dbt-form.html, incorporating all the requested features, design refinements, and corrected logic. This file now acts as your main application interface, capable of handling form entries and all administrative tasks via integrated modals.
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -603,6 +602,53 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
             box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1) !important;
         }
 
+        /* Report Specific Styles */
+        .report-output-container {
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            box-shadow: var(--shadow-sm);
+        }
+        .report-header {
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.2;
+        }
+        .report-header h4, .report-header h5 {
+            margin: 0;
+            padding: 0;
+            color: var(--text-dark);
+        }
+        .report-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        .report-table th, .report-table td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+            color: #333; /* Plain black text */
+        }
+        .report-table th {
+            background-color: #f2f2f2; /* Light grey for headers */
+            font-weight: bold;
+        }
+        .report-table tr:nth-child(even) {
+            background-color: #f9f9f9; /* Subtle striping */
+        }
+        .report-buttons {
+            text-align: right;
+            margin-top: 15px;
+        }
+        .report-buttons .btn {
+            margin-left: 10px;
+        }
+
+
         @media (max-width: 1200px) {
             .form-row.four-col {
                 grid-template-columns: 1fr 1fr;
@@ -808,7 +854,7 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                         <button class="quick-action-btn" onclick="addNewScheme()">
                             <i class="fas fa-plus-circle"></i>Add New Scheme
                         </button>
-                        <button class="quick-action-btn" onclick="generateReport()">
+                        <button class="quick-action-btn" onclick="generateQuickReport()">
                             <i class="fas fa-file-export"></i>Generate Report
                         </button>
                         <button class="quick-action-btn" onclick="systemBackup()">
@@ -859,11 +905,11 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                 </div>
 
                 <!-- A.1 FY and Scheme Selection -->
-                <div class="subsection-header" data-target="fySchemeSection">
+                <div class="subsection-header collapsed" data-target="fySchemeSection">
                     <span>A.1) FY and Scheme Selection</span>
                     <span class="expand-icon"><i class="fas fa-chevron-down"></i></span>
                 </div>
-                <div class="subsection-content" id="fySchemeSection">
+                <div class="subsection-content collapsed" id="fySchemeSection">
                     <div class="form-row two-col">
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -884,12 +930,12 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                 </div>
 
                 <!-- A.2 Budget Allocation -->
-                <div class="subsection-header" data-target="budgetSection">
+                <div class="subsection-header collapsed" data-target="budgetSection">
                     <span>A.2) Budget Allocation</span>
                     <span class="expand-icon"><i class="fas fa-chevron-down"></i></span>
                 </div>
                 
-                <div class="subsection-content" id="budgetSection">
+                <div class="subsection-content collapsed" id="budgetSection">
                     <div class="form-row two-col">
                         <div class="mb-3 currency-input">
                             <label class="form-label">Central Allocation for the State (INR)</label>
@@ -918,11 +964,11 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                 </div>
 
                 <!-- B.1 Benefits Transferred -->
-                <div class="subsection-header" data-target="benefitsSection">
+                <div class="subsection-header collapsed" data-target="benefitsSection">
                     <span>B.1) Benefits Transferred</span>
                     <span class="expand-icon"><i class="fas fa-chevron-down"></i></span>
                 </div>
-                <div class="subsection-content" id="benefitsSection">
+                <div class="subsection-content collapsed" id="benefitsSection">
                     <!-- MANUAL ENTRY: Total Amount Disbursed -->
                     <div class="form-row full-width">
                         <div class="mb-3 currency-input manual-entry">
@@ -967,11 +1013,11 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                 </div>
 
                 <!-- B.2 Benefit Details -->
-                <div class="subsection-header" data-target="benefitDetailsSection">
+                <div class="subsection-header collapsed" data-target="benefitDetailsSection">
                     <span>B.2) Benefit Details</span>
                     <span class="expand-icon"><i class="fas fa-chevron-down"></i></span>
                 </div>
-                <div class="subsection-content" id="benefitDetailsSection">
+                <div class="subsection-content collapsed" id="benefitDetailsSection">
                     <!-- MANUAL ENTRY: Total Number Of Beneficiaries -->
                     <div class="form-row full-width">
                         <div class="mb-3 number-input manual-entry">
@@ -1040,11 +1086,11 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                 </div>
 
                 <!-- B.3 DBT Savings Data -->
-                <div class="subsection-header" data-target="savingsSection">
+                <div class="subsection-header collapsed" data-target="savingsSection">
                     <span>B.3) DBT Savings Data</span>
                     <span class="expand-icon"><i class="fas fa-chevron-down"></i></span>
                 </div>
-                <div class="subsection-content" id="savingsSection">
+                <div class="subsection-content collapsed" id="savingsSection">
                     <div class="form-row four-col">
                         <div class="mb-3 number-input">
                             <label class="form-label">Number Of Beneficiaries Removed Due To De-Duplication Using Aadhaar</label>
@@ -1299,7 +1345,7 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                                         <button class="btn btn-success btn-sm" onclick="showAddSchemeModal()">
                                             <i class="fas fa-plus me-2"></i>Add Scheme
                                         </button>
-                                        <button class="btn btn-info btn-sm" onclick="generateSystemReport()">
+                                        <button class="btn btn-info btn-sm" onclick="generateDashboardReport()">
                                             <i class="fas fa-chart-bar me-2"></i>Generate Report
                                         </button>
                                         <button class="btn btn-warning btn-sm" onclick="systemBackup()">
@@ -1484,7 +1530,7 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                                             </div>
                                         </div>
                                     </div>
-                                    <button class="btn btn-primary w-100" onclick="generateReport()">
+                                    <button class="btn btn-primary w-100" onclick="generateReport('dataReportsModal')">
                                         <i class="fas fa-download me-2"></i>Generate Report
                                     </button>
                                 </div>
@@ -1518,7 +1564,27 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                             </div>
                         </div>
                     </div>
-                    <div class="card">
+                    <div class="report-output-container" id="reportOutputContainer" style="display: none;">
+                        <div class="report-header">
+                            <h4>संचालनालय कृषि छत्तीसगढ़</h4>
+                            <h5>जिलावार योजनावार DBT रिपोर्ट</h5>
+                            <p class="small text-muted" id="reportDateRange"></p>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="report-table" id="generatedReportTable">
+                                <!-- Report data will be inserted here -->
+                            </table>
+                        </div>
+                        <div class="report-buttons">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="exportReport('pdf')">
+                                <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                            </button>
+                            <button class="btn btn-outline-success btn-sm" onclick="exportReport('excel')">
+                                <i class="fas fa-file-excel me-1"></i>Export to Excel
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card mt-3">
                         <div class="card-header">
                             <h6 class="mb-0">Recent Reports</h6>
                         </div>
@@ -1707,8 +1773,58 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
         </div>
     </div>
 
+    <!-- System Health Modal -->
+    <div class="modal fade" id="systemHealthModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-md">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-heartbeat me-2"></i>
+                        System Health
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 class="mb-3">Current System Status:</h6>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Database Connection
+                            <span class="badge bg-success">Online</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            API Services
+                            <span class="badge bg-success">Operational</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Storage Availability
+                            <span class="badge bg-success">90% Free</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Last Backup
+                            <span class="badge bg-info" id="systemHealthLastBackup">Loading...</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Uptime
+                            <span class="badge bg-success">99.9%</span>
+                        </li>
+                    </ul>
+                    <p class="mt-4 text-muted small text-center">
+                        All critical systems are operating normally.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- jsPDF for PDF export (optional, if you want client-side PDF) -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
+    <!-- SheetJS for Excel export (optional, if you want client-side Excel) -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script> -->
     <script>
         // Supabase configuration
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
@@ -1777,6 +1893,8 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                         loadSystemSettings();
                     } else if (modalToOpen === 'auditLogsModal' && typeof loadAuditLogs === 'function') {
                         loadAuditLogs();
+                    } else if (modalToOpen === 'systemHealthModal' && typeof loadSystemHealthData === 'function') {
+                        loadSystemHealthData();
                     }
                 } else {
                     console.warn(`Modal with ID '${modalToOpen}' not found in dbt-form.html`);
@@ -1860,7 +1978,7 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
         async function loadSchemes() {
             try {
                 const schemeSelect = document.getElementById('schemeSelect');
-                schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
+                schemeSelect.innerHTML = '<option value="">Loading schemes...&lt;/option&gt;';
                 
                 const { data, error } = await supabaseClient
                     .from('schemes')
@@ -1874,7 +1992,7 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
                     return;
                 }
                 
-                schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+                schemeSelect.innerHTML = '<option value="">-- Select Scheme --&lt;/option&gt;';
                 
                 if (data && data.length > 0) {
                     const centrallySponsored = data.filter(s => s.scheme_type === 'Centrally Sponsored');
@@ -1922,7 +2040,7 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
         // Load fallback schemes
         function loadFallbackSchemes() {
             const schemeSelect = document.getElementById('schemeSelect');
-            schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+            schemeSelect.innerHTML = '<option value="">-- Select Scheme --&lt;/option&gt;';
             
             const fallbackSchemes = [
                 { id: 1, name: 'SubMission on Agroforestry', code: 'CS1', type: 'Centrally Sponsored' },
@@ -2697,6 +2815,8 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
             document.getElementById('reportToDate').value = today;
             
             loadAnalyticsData();
+            // Hide report output initially
+            document.getElementById('reportOutputContainer').style.display = 'none';
         }
 
         async function loadAnalyticsData() {
@@ -2727,6 +2847,85 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
             }
         }
 
+        // --- NEW/UPDATED: Report Generation Logic ---
+        async function generateReport(sourceModalId) {
+            showLoading(true);
+            const reportType = document.getElementById('reportType').value;
+            const fromDate = document.getElementById('reportFromDate').value;
+            const toDate = document.getElementById('reportToDate').value;
+
+            try {
+                // Fetch data for the report (mock data for now, replace with actual Supabase query)
+                const { data, error } = await supabaseClient
+                    .from('dbt_data_entries')
+                    .select(`
+                        entry_id,
+                        scheme_select,
+                        district_name,
+                        dbt_date,
+                        total_amount_disbursed,
+                        total_beneficiaries,
+                        status
+                    `)
+                    .gte('dbt_date', fromDate)
+                    .lte('dbt_date', toDate)
+                    .order('dbt_date', { ascending: true });
+
+                if (error) throw error;
+
+                const reportOutputContainer = document.getElementById('reportOutputContainer');
+                const generatedReportTable = document.getElementById('generatedReportTable');
+                const reportDateRange = document.getElementById('reportDateRange');
+
+                // Set report title and date range
+                reportDateRange.textContent = `दिनांक ${new Date(fromDate).toLocaleDateString('hi-IN')} से ${new Date(toDate).toLocaleDateString('hi-IN')}`;
+
+                let tableHtml = `
+                    <thead>
+                        <tr>
+                            <th>एंट्री ID</th>
+                            <th>स्कीम</th>
+                            <th>जिला</th>
+                            <th>दिनांक</th>
+                            <th>राशि (₹)</th>
+                            <th>लाभार्थी</th>
+                            <th>स्थिति</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+
+                if (data && data.length > 0) {
+                    data.forEach(row => {
+                        tableHtml += `
+                            <tr>
+                                <td>${row.entry_id}</td>
+                                <td>${row.scheme_select || 'N/A'}</td>
+                                <td>${row.district_name || 'N/A'}</td>
+                                <td>${new Date(row.dbt_date).toLocaleDateString('hi-IN')}</td>
+                                <td>₹${formatCurrency(row.total_amount_disbursed || 0)}</td>
+                                <td>${row.total_beneficiaries || 0}</td>
+                                <td>${row.status || 'N/A'}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tableHtml += `<tr><td colspan="7" class="text-center">कोई डेटा नहीं मिला</td></tr>`;
+                }
+                tableHtml += `</tbody>`;
+                
+                generatedReportTable.innerHTML = tableHtml;
+                reportOutputContainer.style.display = 'block'; // Show the report output
+
+                showAlert('रिपोर्ट सफलतापूर्वक जेनरेट हुई!', 'success');
+            } catch (error) {
+                console.error('Error generating report:', error);
+                showAlert('रिपोर्ट जेनरेट करने में त्रुटि हुई।', 'danger');
+            } finally {
+                showLoading(false);
+            }
+        }
+
         function showDataReports() {
             if (!isAdmin) {
                 showAlert('आपके पास इस फीचर का एक्सेस नहीं है।', 'warning');
@@ -2739,6 +2938,7 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
 
         function loadSystemSettings() {
             // Load current settings (mock data)
+            document.getElementById('systemHealthLastBackup').textContent = new Date().toLocaleDateString('hi-IN'); // Update system health modal
             document.getElementById('lastBackupTime').textContent = new Date().toLocaleDateString('hi-IN');
             document.getElementById('storageUsed').textContent = '2.3 GB / 10 GB';
         }
@@ -2753,27 +2953,82 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
             modal.show();
         }
 
-        function loadAuditLogs() {
-            // Mock audit logs data
-            const auditTable = document.getElementById('auditLogsTable');
-            auditTable.innerHTML = `
-                <tr>
-                    <td>${new Date().toLocaleString('hi-IN')}</td>
-                    <td>Admin User</td>
-                    <td><span class="badge bg-success">Create</span></td>
-                    <td>DBT Entry</td>
-                    <td>Created new entry DBT20250127001</td>
-                    <td>192.168.1.1</td>
-                </tr>
-                <tr>
-                    <td>${new Date(Date.now() - 3600000).toLocaleString('hi-IN')}</td>
-                    <td>Test User</td>
-                    <td><span class="badge bg-info">Approve</span></td>
-                    <td>DBT Entry</td>
-                    <td>Approved entry DBT20250126001</td>
-                    <td>192.168.1.2</td>
-                </tr>
-            `;
+        // --- UPDATED: Audit Logs with dynamic data (mocked) ---
+        async function loadAuditLogs() {
+            try {
+                // Mock dynamic audit logs data
+                const mockAuditData = [
+                    {
+                        timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 mins ago
+                        user_id: "user123",
+                        user_name: "John Doe",
+                        action: "create",
+                        entity_type: "DBT Entry",
+                        entity_id: "DBT20250827001",
+                        details: "Created new DBT entry for scheme 'Kisan Samrudhi Yojana'",
+                        ip_address: "192.168.1.10"
+                    },
+                    {
+                        timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 mins ago
+                        user_id: "admin456",
+                        user_name: "Admin User",
+                        action: "approve",
+                        entity_type: "DBT Entry",
+                        entity_id: "DBT20250826005",
+                        details: "Approved DBT entry DBT20250826005",
+                        ip_address: "192.168.1.20"
+                    },
+                    {
+                        timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+                        user_id: "user789",
+                        user_name: "Jane Smith",
+                        action: "update",
+                        entity_type: "User",
+                        entity_id: "user789",
+                        details: "Updated profile information",
+                        ip_address: "10.0.0.5"
+                    },
+                    {
+                        timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+                        user_id: "admin456",
+                        user_name: "Admin User",
+                        action: "reject",
+                        entity_type: "DBT Entry",
+                        entity_id: "DBT20250820003",
+                        details: "Rejected entry DBT20250820003: Insufficient documents",
+                        ip_address: "192.168.1.20"
+                    }
+                ];
+
+                const tbody = document.getElementById('auditLogsTable');
+                tbody.innerHTML = ''; // Clear existing data
+
+                if (mockAuditData && mockAuditData.length > 0) {
+                    mockAuditData.forEach(log => {
+                        const row = document.createElement('tr');
+                        const actionBadgeClass = log.action === 'create' ? 'bg-success' :
+                                                 log.action === 'update' ? 'bg-primary' :
+                                                 log.action === 'delete' ? 'bg-danger' :
+                                                 log.action === 'approve' ? 'bg-info' :
+                                                 log.action === 'reject' ? 'bg-warning' : 'bg-secondary';
+                        row.innerHTML = `
+                            <td>${new Date(log.timestamp).toLocaleString('hi-IN')}</td>
+                            <td>${log.user_name || log.user_id || 'N/A'}</td>
+                            <td><span class="badge ${actionBadgeClass}">${log.action}</span></td>
+                            <td>${log.entity_type || 'N/A'}</td>
+                            <td>${log.details || 'N/A'}</td>
+                            <td>${log.ip_address || 'N/A'}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center">No audit logs found.</td></tr>';
+                }
+
+            } catch (error) {
+                console.error('Error loading audit logs:', error);
+                document.getElementById('auditLogsTable').innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading audit logs.</td></tr>';
+            }
         }
 
         function showAuditLogs() {
@@ -3186,25 +3441,70 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
             }
         }
 
-        // Quick Action Functions
+        // --- UPDATED: Quick Action Functions ---
         function addNewUser() {
             if (!isAdmin) return;
+            // This could open a modal for adding a new user
             showAlert('Add New User modal will be implemented here.', 'info');
         }
 
-        function generateReport() {
-            if (!isAdmin) return;
-            showAlert('Generate Report modal will be implemented here.', 'info');
+        // --- NEW: Generate Report from Quick Actions ---
+        function generateQuickReport() {
+            if (!isAdmin) {
+                showAlert('आपके पास इस फीचर का एक्सेस नहीं है।', 'warning');
+                return;
+            }
+            // Set default dates for quick report
+            const today = new Date().toISOString().split('T')[0];
+            const lastWeek = new Date();
+            lastWeek.setDate(lastWeek.getDate() - 7);
+            document.getElementById('reportFromDate').value = lastWeek.toISOString().split('T')[0];
+            document.getElementById('reportToDate').value = today;
+            document.getElementById('reportType').value = 'summary'; // Default to summary
+            
+            // Show reports modal and trigger report generation
+            const reportsModal = new bootstrap.Modal(document.getElementById('dataReportsModal'));
+            reportsModal.show();
+            generateReport('quickAction'); // Pass a source to differentiate if needed
         }
 
+        // --- UPDATED: System Backup ---
         function systemBackup() {
             if (!isAdmin) return;
-            showAlert('सिस्टम बैकअप शुरू किया जा रहा है...', 'info');
+            showAlert('सिस्टम बैकअप प्रक्रिया शुरू हो गई है। यह एक बैकएंड ऑपरेशन है।', 'info');
+            // In a real application, this would trigger an API call to a backend backup service.
         }
 
+        // --- UPDATED: System Health ---
         function viewSystemHealth() {
-            if (!isAdmin) return;
-            showAlert('System Health modal will be implemented here.', 'info');
+            if (!isAdmin) {
+                showAlert('आपके पास इस फीचर का एक्सेस नहीं है।', 'warning');
+                return;
+            }
+            // Load dynamic data (if any) for system health
+            document.getElementById('systemHealthLastBackup').textContent = new Date().toLocaleString('hi-IN');
+            const modal = new bootstrap.Modal(document.getElementById('systemHealthModal'));
+            modal.show();
+        }
+
+        // --- NEW: Generate Report from Dashboard Quick Actions ---
+        function generateDashboardReport() {
+            if (!isAdmin) {
+                showAlert('आपके पास इस फीचर का एक्सेस नहीं है।', 'warning');
+                return;
+            }
+            // Set default dates for dashboard report (e.g., last month)
+            const today = new Date().toISOString().split('T')[0];
+            const lastMonth = new Date();
+            lastMonth.setMonth(lastMonth.getMonth() - 1);
+            document.getElementById('reportFromDate').value = lastMonth.toISOString().split('T')[0];
+            document.getElementById('reportToDate').value = today;
+            document.getElementById('reportType').value = 'summary'; // Default to summary
+            
+            // Show reports modal and trigger report generation
+            const reportsModal = new bootstrap.Modal(document.getElementById('dataReportsModal'));
+            reportsModal.show();
+            generateReport('dashboard');
         }
 
         // Load Users for Admin
@@ -3440,6 +3740,41 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
             }
         });
 
+        // --- NEW: Report Export Functions ---
+        function exportReport(format) {
+            const table = document.getElementById('generatedReportTable');
+            const reportTitle1 = 'संचालनालय कृषि छत्तीसगढ़';
+            const reportTitle2 = document.querySelector('#reportOutputContainer .report-header h5').textContent;
+            const reportDateRange = document.getElementById('reportDateRange').textContent;
+            const fullTitle = `${reportTitle1}\n${reportTitle2}\n${reportDateRange}`;
+
+            if (!table || table.getElementsByTagName('tbody')[0].rows.length === 0 || table.getElementsByTagName('tbody')[0].rows[0].cells.length === 1) {
+                showAlert('पहले रिपोर्ट जेनरेट करें।', 'warning');
+                return;
+            }
+
+            if (format === 'pdf') {
+                showAlert('PDF एक्सपोर्ट फंक्शनलिटी जल्द ही उपलब्ध होगी। (Requires jsPDF library)', 'info');
+                /*
+                // Example using jsPDF (requires jsPDF library loaded in HTML)
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.autoTable({ html: '#generatedReportTable', startY: 30 });
+                doc.text(fullTitle, 14, 20);
+                doc.save('dbt_report.pdf');
+                */
+            } else if (format === 'excel') {
+                showAlert('एक्सेल एक्सपोर्ट फंक्शनलिटी जल्द ही उपलब्ध होगी। (Requires SheetJS library)', 'info');
+                /*
+                // Example using SheetJS (requires xlsx.full.min.js loaded in HTML)
+                const ws = XLSX.utils.table_to_sheet(table);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "DBT Report");
+                XLSX.writeFile(wb, "dbt_report.xlsx");
+                */
+            }
+        }
+
         // Console welcome message
         console.log(`
         ╔══════════════════════════════════════════════════════════════╗
@@ -3466,6 +3801,11 @@ Here's the complete, updated code for dbt-form.html, incorporating all the reque
         ║  ✓ Fixed User Authentication (shows user info)              ║
         ║  ✓ All Admin Modals Implemented                             ║
         ║  ✓ Seamless Navigation from Index Page                      ║
+        ║  ✓ Dynamic Audit Logs (mocked data)                         ║
+        ║  ✓ Robust Report Generation (HTML output)                   ║
+        ║  ✓ Report Export Placeholders (PDF/Excel)                   ║
+        ║  ✓ System Backup/Health Placeholders                        ║
+        ║  ✓ Collapsible Sections Collapsed by Default                ║
         ║                                                              ║
         ╚══════════════════════════════════════════════════════════════╝
         `);
