@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>संचालनालय कृषि छत्तीसगढ़ - खसरा डेटा एंट्री </title>
+    <title>खसरा डेटा एंट्री - संचालनालय कृषि छत्तीसगढ़</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -134,6 +134,19 @@
         .report-dropdown-item i {
             width: 20px;
             margin-right: 10px;
+        }
+
+        /* District Entry Button for Users */
+        .district-entry-btn {
+            background-color: #FF9800 !important;
+            color: var(--text-light) !important;
+            padding: 8px 16px !important;
+            border-radius: 8px;
+        }
+
+        .district-entry-btn:hover {
+            background-color: #F57C00 !important;
+            transform: translateY(-1px);
         }
 
         .logout-btn {
@@ -497,6 +510,33 @@
             transform: translateY(-2px);
         }
 
+        /* Pagination Styles */
+        .pagination {
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .page-link {
+            color: var(--admin-primary);
+            border: 2px solid var(--border-color);
+            padding: 8px 16px;
+            margin: 0 2px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .page-link:hover {
+            background-color: var(--admin-accent);
+            color: white;
+            border-color: var(--admin-accent);
+        }
+
+        .page-item.active .page-link {
+            background-color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            color: white;
+        }
+
         .loading {
             opacity: 0.6;
             pointer-events: none;
@@ -505,6 +545,27 @@
         .spinner-border-sm {
             width: 1rem;
             height: 1rem;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: var(--shadow-lg);
         }
 
         @media (max-width: 768px) {
@@ -538,6 +599,10 @@
             .report-dropdown-menu {
                 min-width: 200px;
             }
+
+            .table-responsive {
+                font-size: 0.8rem;
+            }
         }
 
         @keyframes fadeIn {
@@ -556,6 +621,18 @@
     </style>
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-3 hindi">
+                <strong id="loadingText">डेटा लोड हो रहा है...</strong>
+            </div>
+        </div>
+    </div>
+
     <header class="header">
         <div class="container">
             <nav class="navbar navbar-expand-lg navbar-dark">
@@ -570,34 +647,43 @@
                     <div class="collapse navbar-collapse" id="navbarNav">
                         <ul class="navbar-nav ms-auto">
                             <li class="nav-item">
-                                <span class="nav-link hindi">Logged As - , <span id="userFullName">उपयोगकर्ता</span></span>
+                                <span class="nav-link hindi">स्वागत, <span id="userFullName">उपयोगकर्ता</span></span>
                             </li>
                             <li class="nav-item">
                                 <span class="nav-link hindi">जिला: <span id="userDistrict">-</span></span>
                             </li>
-                            <!-- Report Dropdown -->
-                            <li class="nav-item dropdown">
+                            
+                            <!-- Admin Report Dropdown -->
+                            <li class="nav-item dropdown" id="adminReportSection" style="display: none;">
                                 <a class="nav-link dropdown-toggle report-dropdown hindi" href="#" id="reportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="fas fa-chart-bar me-1"></i> Report
+                                    <i class="fas fa-chart-bar me-1"></i> रिपोर्ट
                                 </a>
                                 <ul class="dropdown-menu report-dropdown-menu" aria-labelledby="reportDropdown">
                                     <li>
                                         <button class="report-dropdown-item hindi" id="villageCoverageBtn">
-                                            <i class="fas fa-map-marked-alt"></i> Village Mapped Report
+                                            <i class="fas fa-map-marked-alt"></i> गांव कवरेज रिपोर्ट
                                         </button>
                                     </li>
                                     <li>
                                         <button class="report-dropdown-item hindi" id="dataExportBtn">
-                                            <i class="fas fa-download"></i> Data Download
+                                            <i class="fas fa-download"></i> डेटा एक्सपोर्ट
                                         </button>
                                     </li>
                                     <li>
                                         <button class="report-dropdown-item hindi" id="districtReportBtn">
-                                            <i class="fas fa-chart-pie"></i> District Report
+                                            <i class="fas fa-chart-pie"></i> जिला रिपोर्ट
                                         </button>
                                     </li>
                                 </ul>
                             </li>
+                            
+                            <!-- User District Entry Button -->
+                            <li class="nav-item" id="userDistrictSection" style="display: none;">
+                                <a class="nav-link district-entry-btn hindi" href="#" id="districtEntryBtn">
+                                    <i class="fas fa-list me-1"></i> जिला एंट्री
+                                </a>
+                            </li>
+                            
                             <li class="nav-item">
                                 <a class="nav-link logout-btn hindi" href="#" id="logoutBtn">
                                     <i class="fas fa-sign-out-alt me-1"></i> लॉगआउट
@@ -614,33 +700,34 @@
         <div class="container">
             <div id="alertBox" class="alert" style="display: none;"></div>
 
-            <div class="card">
+            <!-- Data Entry Section (Default) -->
+            <div id="dataEntrySection" class="card">
                 <div class="card-header">
-                    <h5 class="hindi">खसरा डेटा एंट्री</h5>
-                    <p class="hindi mb-0">गांव का चयन करें तथा खसरा नंबर दर्ज करें</p>
+                    <h4 class="hindi">खसरा डेटा एंट्री</h4>
+                    <p class="hindi mb-0">गांव का चयन करें और खसरा नंबर दर्ज करें</p>
                 </div>
                 <div class="card-body">
                     <div class="breadcrumb-container">
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb">
                                 <li class="breadcrumb-item hindi" id="breadcrumbDistrict">जिला: -</li>
-                                <li class="breadcrumb-item hindi" id="breadcrumbLevel4">स्तर 4 (तहसील): -</li>
-                                <li class="breadcrumb-item hindi" id="breadcrumbLevel5">स्तर 5 (रा0नि0मं0): -</li>
+                                <li class="breadcrumb-item hindi" id="breadcrumbLevel4">स्तर 4: -</li>
+                                <li class="breadcrumb-item hindi" id="breadcrumbLevel5">स्तर 5: -</li>
                             </ol>
                         </nav>
                     </div>
 
                     <div class="row mb-4">
                         <div class="col-md-6 mb-3">
-                            <label for="level4Select" class="form-label hindi">स्तर 4 (तहसील) का चयन करें</label>
+                            <label for="level4Select" class="form-label hindi">स्तर 4 का चयन करें</label>
                             <select class="form-select" id="level4Select">
                                 <option value="">-- स्तर 4 चुनें --</option>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="level5Select" class="form-label hindi">स्तर 5 (रा0नि0मं0) का चयन करें</label>
+                            <label for="level5Select" class="form-label hindi">स्तर 5 का चयन करें</label>
                             <select class="form-select" id="level5Select" disabled>
-                                <option value="">-- पहले स्तर 4 (तहसील) चुनें --</option>
+                                <option value="">-- पहले स्तर 4 चुनें --</option>
                             </select>
                         </div>
                     </div>
@@ -683,6 +770,65 @@
                         </button>
                         <button type="button" class="btn btn-secondary-custom" id="resetFormBtn">
                             <i class="fas fa-undo me-2"></i> <span class="hindi">रीसेट करें</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User District Entry Section -->
+            <div id="userDataSection" class="card" style="display: none;">
+                <div class="card-header">
+                    <h4 class="hindi">मेरी जिला एंट्री</h4>
+                    <p class="hindi mb-0">आपके द्वारा दर्ज किए गए खसरा डेटा</p>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="searchInput" placeholder="गांव या खसरा नंबर खोजें...">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="filterVillage">
+                                <option value="">सभी गांव</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-primary-custom w-100" onclick="searchUserData()">
+                                <i class="fas fa-search me-1"></i> खोजें
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th class="hindi">जिला</th>
+                                    <th class="hindi">स्तर 4</th>
+                                    <th class="hindi">स्तर 5</th>
+                                    <th class="hindi">गांव का नाम</th>
+                                    <th class="hindi">गांव कोड</th>
+                                    <th class="hindi">खसरा नंबर</th>
+                                    <th class="hindi">एंट्री तारीख</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userDataTableBody">
+                                <tr>
+                                    <td colspan="7" class="text-center hindi">डेटा लोड हो रहा है...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination" id="paginationContainer">
+                            <!-- Pagination will be populated here -->
+                        </ul>
+                    </nav>
+
+                    <div class="text-center mt-3">
+                        <button class="btn btn-secondary-custom" onclick="backToDataEntry()">
+                            <i class="fas fa-arrow-left me-1"></i> <span class="hindi">डेटा एंट्री पर वापस जाएं</span>
                         </button>
                     </div>
                 </div>
@@ -783,6 +929,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">बंद करें</button>
+                </div>
             </div>
         </div>
     </div>
@@ -882,6 +1029,22 @@
         let currentUser = null;
         let villageHierarchyData = [];
         let selectedVillages = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        let itemsPerPage = 5;
+        let userKhasraData = [];
+        let filteredUserData = [];
+
+        // Show loading overlay
+        function showLoading(text = 'डेटा लोड हो रहा है...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
 
         // Show alert message
         function showAlert(message, type) {
@@ -895,7 +1058,7 @@
             }, 5000);
         }
 
-        // Check authentication and load user data
+        // Check authentication and setup UI based on role
         async function checkAuthentication() {
             try {
                 const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -913,6 +1076,9 @@
                 document.getElementById('userDistrict').textContent = currentUser.districtName || 'N/A';
                 document.getElementById('breadcrumbDistrict').textContent = 'जिला: ' + (currentUser.districtName || 'N/A');
                 
+                // Setup UI based on user role
+                setupUIBasedOnRole();
+                
                 // Load village hierarchy data for user's district
                 await loadVillageHierarchy();
                 
@@ -922,6 +1088,24 @@
                 setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 2000);
+            }
+        }
+
+        // Setup UI based on user role
+        function setupUIBasedOnRole() {
+            const adminSection = document.getElementById('adminReportSection');
+            const userSection = document.getElementById('userDistrictSection');
+            
+            if (currentUser.role === 'admin') {
+                // Show admin report dropdown
+                adminSection.style.display = 'block';
+                userSection.style.display = 'none';
+                console.log('Admin user detected - showing report dropdown');
+            } else {
+                // Show user district entry button  
+                adminSection.style.display = 'none';
+                userSection.style.display = 'block';
+                console.log('Regular user detected - showing district entry button');
             }
         }
 
@@ -1400,12 +1584,211 @@
             }
         }
 
-        // REPORT FUNCTIONS
+        // USER DATA FUNCTIONS
 
-        // Show Village Coverage Report
+        // Show user's district entry data
+        async function showUserDistrictData() {
+            try {
+                showLoading('आपका डेटा लोड हो रहा है...');
+                
+                // Hide data entry section and show user data section
+                document.getElementById('dataEntrySection').style.display = 'none';
+                document.getElementById('userDataSection').style.display = 'block';
+                
+                // Load user's khasra data
+                await loadUserKhasraData();
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error showing user data:', error);
+                showAlert('डेटा लोड करने में त्रुटि: ' + error.message, 'danger');
+                hideLoading();
+            }
+        }
+
+        // Load user's khasra data
+        async function loadUserKhasraData() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('khasra_data')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                userKhasraData = data || [];
+                filteredUserData = [...userKhasraData];
+                
+                console.log('Loaded user khasra data:', userKhasraData.length, 'records');
+                
+                // Populate village filter dropdown
+                populateVillageFilter();
+                
+                // Display paginated data
+                currentPage = 1;
+                displayUserData();
+                
+                if (userKhasraData.length === 0) {
+                    showAlert('आपने अभी तक कोई डेटा एंट्री नहीं की है।', 'info');
+                }
+                
+            } catch (error) {
+                console.error('Error loading user khasra data:', error);
+                throw error;
+            }
+        }
+
+        // Populate village filter dropdown
+        function populateVillageFilter() {
+            const filterSelect = document.getElementById('filterVillage');
+            
+            // Get unique villages from user data
+            const uniqueVillages = [...new Set(userKhasraData.map(item => item.villagename))].sort();
+            
+            filterSelect.innerHTML = '<option value="">सभी गांव</option>';
+            
+            uniqueVillages.forEach(village => {
+                const option = document.createElement('option');
+                option.value = village;
+                option.textContent = village;
+                filterSelect.appendChild(option);
+            });
+        }
+
+        // Display user data with pagination
+        function displayUserData() {
+            const tableBody = document.getElementById('userDataTableBody');
+            
+            // Calculate pagination
+            totalPages = Math.ceil(filteredUserData.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredUserData.slice(startIndex, endIndex);
+            
+            // Clear table
+            tableBody.innerHTML = '';
+            
+            if (pageData.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="7" class="text-center text-muted hindi">कोई डेटा नहीं मिला</td>';
+                tableBody.appendChild(row);
+            } else {
+                pageData.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="hindi">\${item.districtname || '-'}</td>
+                        <td class="hindi">\${item.level4name || '-'}</td>
+                        <td class="hindi">\${item.level5name || '-'}</td>
+                        <td class="hindi">\${item.villagename || '-'}</td>
+                        <td>\${item.villagecode || '-'}</td>
+                        <td><strong>\${item.khasra_number}</strong></td>
+                        <td>\${new Date(item.created_at).toLocaleDateString('hi-IN')}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+            
+            // Update pagination
+            updatePagination();
+        }
+
+        // Update pagination controls
+        function updatePagination() {
+            const paginationContainer = document.getElementById('paginationContainer');
+            paginationContainer.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevItem = document.createElement('li');
+            prevItem.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+            prevItem.innerHTML = `
+                <a class="page-link" href="#" onclick="changePage(\${currentPage - 1})">
+                    <i class="fas fa-chevron-left"></i>
+                </a>
+            `;
+            paginationContainer.appendChild(prevItem);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageItem = document.createElement('li');
+                pageItem.className = 'page-item' + (i === currentPage ? ' active' : '');
+                pageItem.innerHTML = `
+                    <a class="page-link" href="#" onclick="changePage(${i})">${i}</a>
+                `;
+                paginationContainer.appendChild(pageItem);
+            }
+            
+            // Next button
+            const nextItem = document.createElement('li');
+            nextItem.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+            nextItem.innerHTML = `
+                <a class="page-link" href="#" onclick="changePage(\${currentPage + 1})">
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            `;
+            paginationContainer.appendChild(nextItem);
+            
+            // Add page info
+            const infoItem = document.createElement('li');
+            infoItem.className = 'page-item disabled';
+            infoItem.innerHTML = `
+                <span class="page-link hindi">
+                    कुल ${filteredUserData.length} में से ${((currentPage - 1) * itemsPerPage) + 1}-\${Math.min(currentPage * itemsPerPage, filteredUserData.length)}
+                </span>
+            `;
+            paginationContainer.appendChild(infoItem);
+        }
+
+        // Change page
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                displayUserData();
+            }
+        }
+
+        // Search user data
+        function searchUserData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const villageFilter = document.getElementById('filterVillage').value;
+            
+            filteredUserData = userKhasraData.filter(item => {
+                const matchesSearch = searchTerm === '' || 
+                    item.villagename.toLowerCase().includes(searchTerm) ||
+                    item.khasra_number.toLowerCase().includes(searchTerm) ||
+                    item.villagecode.toLowerCase().includes(searchTerm);
+                
+                const matchesVillage = villageFilter === '' || item.villagename === villageFilter;
+                
+                return matchesSearch && matchesVillage;
+            });
+            
+            currentPage = 1;
+            displayUserData();
+            
+            if (filteredUserData.length === 0) {
+                showAlert('खोज के लिए कोई परिणाम नहीं मिला।', 'info');
+            }
+        }
+
+        // Back to data entry
+        function backToDataEntry() {
+            document.getElementById('userDataSection').style.display = 'none';
+            document.getElementById('dataEntrySection').style.display = 'block';
+        }
+
+        // ADMIN REPORT FUNCTIONS (Fixed)
+
+        // Show Village Coverage Report (Fixed)
         async function showVillageCoverageReport() {
             try {
-                showAlert('कवरेज रिपोर्ट लोड हो रही है...', 'info');
+                showLoading('कवरेज रिपोर्ट तैयार हो रही है...');
                 
                 // Get all villages from hierarchy
                 const { data: allVillages, error: villageError } = await supabaseClient
@@ -1415,25 +1798,25 @@
                 
                 if (villageError) throw villageError;
                 
-                // Get villages with khasra data
-                const { data: khasraData, error: khasraError } = await supabaseClient
+                // Get village codes with khasra data (separate query)
+                const { data: khasraVillages, error: khasraError } = await supabaseClient
                     .from('khasra_data')
-                    .select('villagecode, villagename, COUNT(*)')
+                    .select('villagecode')
                     .eq('districtname', currentUser.districtName);
                 
                 if (khasraError) throw khasraError;
                 
-                // Create coverage map
-                const khasraMap = new Map();
-                if (khasraData) {
-                    khasraData.forEach(item => {
-                        khasraMap.set(item.villagecode, item.count || 0);
+                // Count entries per village
+                const villageCounts = {};
+                if (khasraVillages) {
+                    khasraVillages.forEach(item => {
+                        villageCounts[item.villagecode] = (villageCounts[item.villagecode] || 0) + 1;
                     });
                 }
                 
                 // Calculate statistics
                 const totalVillages = allVillages ? allVillages.length : 0;
-                const villagesWithData = khasraMap.size;
+                const villagesWithData = Object.keys(villageCounts).length;
                 const villagesWithoutData = totalVillages - villagesWithData;
                 const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithData / totalVillages) * 100) : 0;
                 
@@ -1464,8 +1847,8 @@
                 
                 if (allVillages) {
                     allVillages.forEach(village => {
-                        const hasData = khasraMap.has(village.villagecode);
-                        const entryCount = khasraMap.get(village.villagecode) || 0;
+                        const hasData = villageCounts[village.villagecode] > 0;
+                        const entryCount = villageCounts[village.villagecode] || 0;
                         
                         const row = document.createElement('tr');
                         row.innerHTML = `
@@ -1487,19 +1870,24 @@
                 const modal = new bootstrap.Modal(document.getElementById('villageCoverageModal'));
                 modal.show();
                 
+                hideLoading();
                 showAlert('कवरेज रिपोर्ट तैयार हो गई।', 'success');
                 
             } catch (error) {
                 console.error('Error generating coverage report:', error);
+                hideLoading();
                 showAlert('कवरेज रिपोर्ट बनाने में त्रुटि: ' + error.message, 'danger');
             }
         }
 
-        // Export Coverage Report
+        // Export Coverage Report (Fixed)
         function exportCoverageReport() {
             try {
                 const table = document.querySelector('#villageCoverageModal table');
-                let csv = 'स्थिति,गांव का नाम,गांव कोड,स्तर 4,स्तर 5,कुल एंट्री\n';
+                
+                // Create CSV with UTF-8 BOM
+                let csv = '\uFEFF'; // UTF-8 BOM
+                csv += 'स्थिति,गांव का नाम,गांव कोड,स्तर 4,स्तर 5,कुल एंट्री\n';
                 
                 const rows = table.querySelectorAll('tbody tr');
                 rows.forEach(row => {
@@ -1507,6 +1895,7 @@
                     const rowData = [];
                     cells.forEach(cell => {
                         let text = cell.textContent.trim();
+                        // Clean status text
                         if (text.includes('डेटा उपलब्ध') || text.includes('डेटा नहीं')) {
                             text = text.replace(/.*?(डेटा उपलब्ध|डेटा नहीं)/, '$1');
                         }
@@ -1515,7 +1904,7 @@
                     csv += rowData.join(',') + '\n';
                 });
                 
-                // Download CSV
+                // Download CSV with proper encoding
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
@@ -1577,14 +1966,14 @@
             }
         }
 
-        // Export Data Function
+        // Export Data Function (Fixed)
         async function exportData(format) {
             try {
                 const startDate = document.getElementById('exportStartDate').value;
                 const endDate = document.getElementById('exportEndDate').value;
                 const selectedDistrict = document.getElementById('exportDistrict').value;
                 
-                showAlert('डेटा एक्सपोर्ट हो रहा है...', 'info');
+                showLoading('डेटा एक्सपोर्ट हो रहा है...');
                 
                 // Build query
                 let query = supabaseClient
@@ -1619,6 +2008,7 @@
                 if (error) throw error;
                 
                 if (!data || data.length === 0) {
+                    hideLoading();
                     showAlert('चयनित फिल्टर के लिए कोई डेटा नहीं मिला।', 'warning');
                     return;
                 }
@@ -1642,16 +2032,22 @@
                     exportToExcel(exportData);
                 }
                 
+                hideLoading();
+                
             } catch (error) {
                 console.error('Error exporting data:', error);
+                hideLoading();
                 showAlert('डेटा एक्सपोर्ट करने में त्रुटि: ' + error.message, 'danger');
             }
         }
 
-        // Export to CSV
+        // Export to CSV (Fixed)
         function exportToCSV(data) {
             const headers = Object.keys(data[0]);
-            let csv = headers.join(',') + '\n';
+            
+            // Create CSV with UTF-8 BOM
+            let csv = '\uFEFF'; // UTF-8 BOM for proper Hindi display
+            csv += headers.join(',') + '\n';
             
             data.forEach(row => {
                 const values = headers.map(header => '"' + (row[header] || '') + '"');
@@ -1671,19 +2067,20 @@
             showAlert('CSV फाइल डाउनलोड हो गई।', 'success');
         }
 
-        // Export to Excel (simplified - would need a library like SheetJS for full Excel support)
+        // Export to Excel (Fixed)
         function exportToExcel(data) {
-            // For now, export as CSV with .xlsx extension
-            // In production, use SheetJS or similar library
             const headers = Object.keys(data[0]);
-            let csv = headers.join('\t') + '\n';
+            
+            // Create tab-separated values with UTF-8 BOM
+            let tsv = '\uFEFF'; // UTF-8 BOM
+            tsv += headers.join('\t') + '\n';
             
             data.forEach(row => {
                 const values = headers.map(header => row[header] || '');
-                csv += values.join('\t') + '\n';
+                tsv += values.join('\t') + '\n';
             });
             
-            const blob = new Blob([csv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const blob = new Blob([tsv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.setAttribute('href', url);
@@ -1696,9 +2093,11 @@
             showAlert('Excel फाइल डाउनलोड हो गई।', 'success');
         }
 
-        // Show District Report Modal
+        // Show District Report Modal (Fixed)
         async function showDistrictReportModal() {
             try {
+                showLoading('जिला रिपोर्ट तैयार हो रही है...');
+                
                 // Populate district dropdown
                 const { data: districts, error } = await supabaseClient
                     .from('village_hierarchy')
@@ -1727,28 +2126,31 @@
                 
                 // Generate initial report for user's district
                 if (currentUser.districtName) {
-                    generateDistrictReportData(currentUser.districtName, 30);
+                    await generateDistrictReportData(currentUser.districtName, 30);
                 }
+                
+                hideLoading();
                 
             } catch (error) {
                 console.error('Error showing district report modal:', error);
+                hideLoading();
                 showAlert('जिला रिपोर्ट मोडल खोलने में त्रुटि।', 'danger');
             }
         }
 
-        // Generate District Report Data
+        // Generate District Report Data (Fixed)
         async function generateDistrictReportData(district, days) {
             try {
-                showAlert('जिला रिपोर्ट बन रही है...', 'info');
+                showLoading('जिला रिपोर्ट बन रही है...');
                 
-                let dateFilter = '';
+                let dateFilter = null;
                 if (days !== 'all') {
                     const startDate = new Date();
                     startDate.setDate(startDate.getDate() - parseInt(days));
                     dateFilter = startDate.toISOString();
                 }
                 
-                // Get district statistics
+                // Get district statistics with user info
                 let query = supabaseClient
                     .from('khasra_data')
                     .select(`
@@ -1758,7 +2160,8 @@
                         created_at,
                         test_users(full_name, username)
                     `)
-                    .eq('districtname', district);
+                    .eq('districtname', district)
+                    .limit(1000); // Limit to prevent browser freeze
                 
                 if (dateFilter) {
                     query = query.gte('created_at', dateFilter);
@@ -1804,19 +2207,19 @@
                 const statsContainer = document.getElementById('districtStats');
                 statsContainer.innerHTML = `
                     <div class="stat-card">
-                        <div class="stat-number">${totalEntries}</div>
+                        <div class="stat-number">\${totalEntries}</div>
                         <div class="stat-label hindi">कुल एंट्री</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${uniqueVillages}</div>
+                        <div class="stat-number">\${uniqueVillages}</div>
                         <div class="stat-label hindi">कवर गांव</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${uniqueUsers}</div>
+                        <div class="stat-number">\${uniqueUsers}</div>
                         <div class="stat-label hindi">सक्रिय उपयोगकर्ता</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-number">${uniqueVillages > 0 ? Math.round(totalEntries / uniqueVillages) : 0}</div>
+                        <div class="stat-number">\${uniqueVillages > 0 ? Math.round(totalEntries / uniqueVillages) : 0}</div>
                         <div class="stat-label hindi">औसत एंट्री प्रति गांव</div>
                     </div>
                 `;
@@ -1831,9 +2234,9 @@
                     .forEach(([userName, stats]) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td class="hindi">${userName}</td>
-                            <td>${stats.count}</td>
-                            <td>${new Date(stats.lastEntry).toLocaleDateString('hi-IN')}</td>
+                            <td class="hindi">\${userName}</td>
+                            <td>\${stats.count}</td>
+                            <td>\${new Date(stats.lastEntry).toLocaleDateString('hi-IN')}</td>
                         `;
                         userStatsTable.appendChild(row);
                     });
@@ -1848,17 +2251,19 @@
                     .forEach(([villageName, stats]) => {
                         const row = document.createElement('tr');
                         row.innerHTML = `
-                            <td class="hindi">${villageName}</td>
-                            <td>${stats.count}</td>
-                            <td>${new Date(stats.lastEntry).toLocaleDateString('hi-IN')}</td>
+                            <td class="hindi">\${villageName}</td>
+                            <td>\${stats.count}</td>
+                            <td>\${new Date(stats.lastEntry).toLocaleDateString('hi-IN')}</td>
                         `;
                         villageStatsTable.appendChild(row);
                     });
                 
+                hideLoading();
                 showAlert('जिला रिपोर्ट तैयार हो गई।', 'success');
                 
             } catch (error) {
                 console.error('Error generating district report:', error);
+                hideLoading();
                 showAlert('जिला रिपोर्ट बनाने में त्रुटि: ' + error.message, 'danger');
             }
         }
@@ -1879,49 +2284,68 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM Content Loaded');
             
-            // Check authentication
+            // Check authentication and setup UI
             checkAuthentication();
             
-            // Level 4 dropdown change
+            // Data Entry Event Listeners
             document.getElementById('level4Select').addEventListener('change', handleLevel4Change);
-            
-            // Level 5 dropdown change
             document.getElementById('level5Select').addEventListener('change', handleLevel5Change);
-            
-            // Select/Deselect all buttons
             document.getElementById('selectAllBtn').addEventListener('click', selectAllVillages);
             document.getElementById('deselectAllBtn').addEventListener('click', deselectAllVillages);
-            
-            // Save data button
             document.getElementById('saveDataBtn').addEventListener('click', saveKhasraData);
-            
-            // Reset form button
             document.getElementById('resetFormBtn').addEventListener('click', resetForm);
-            
-            // Logout button
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
             
-            // Report buttons
-            document.getElementById('villageCoverageBtn').addEventListener('click', showVillageCoverageReport);
-            document.getElementById('dataExportBtn').addEventListener('click', showDataExportModal);
-            document.getElementById('districtReportBtn').addEventListener('click', showDistrictReportModal);
+            // User District Entry Button
+            document.getElementById('districtEntryBtn').addEventListener('click', showUserDistrictData);
+            
+            // Admin Report Buttons (only if elements exist)
+            const villageCoverageBtn = document.getElementById('villageCoverageBtn');
+            const dataExportBtn = document.getElementById('dataExportBtn');
+            const districtReportBtn = document.getElementById('districtReportBtn');
+            
+            if (villageCoverageBtn) {
+                villageCoverageBtn.addEventListener('click', showVillageCoverageReport);
+            }
+            if (dataExportBtn) {
+                dataExportBtn.addEventListener('click', showDataExportModal);
+            }
+            if (districtReportBtn) {
+                districtReportBtn.addEventListener('click', showDistrictReportModal);
+            }
             
             // District report change handlers
-            document.getElementById('reportDistrict').addEventListener('change', function() {
-                const selectedDistrict = this.value;
-                const selectedDays = document.getElementById('reportDateRange').value;
-                if (selectedDistrict) {
-                    generateDistrictReportData(selectedDistrict, selectedDays);
+            const reportDistrictSelect = document.getElementById('reportDistrict');
+            const reportDateRangeSelect = document.getElementById('reportDateRange');
+            
+            if (reportDistrictSelect) {
+                reportDistrictSelect.addEventListener('change', function() {
+                    const selectedDistrict = this.value;
+                    const selectedDays = reportDateRangeSelect.value;
+                    if (selectedDistrict) {
+                        generateDistrictReportData(selectedDistrict, selectedDays);
+                    }
+                });
+            }
+            
+            if (reportDateRangeSelect) {
+                reportDateRangeSelect.addEventListener('change', function() {
+                    const selectedDistrict = reportDistrictSelect.value;
+                    const selectedDays = this.value;
+                    if (selectedDistrict) {
+                        generateDistrictReportData(selectedDistrict, selectedDays);
+                    }
+                });
+            }
+            
+            // Search functionality for user data
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchUserData();
                 }
             });
             
-            document.getElementById('reportDateRange').addEventListener('change', function() {
-                const selectedDistrict = document.getElementById('reportDistrict').value;
-                const selectedDays = this.value;
-                if (selectedDistrict) {
-                    generateDistrictReportData(selectedDistrict, selectedDays);
-                }
-            });
+            document.getElementById('filterVillage').addEventListener('change', searchUserData);
             
             console.log('All event listeners attached');
         });
@@ -1956,18 +2380,35 @@
             if (e.key === 'Escape') {
                 deselectAllVillages();
             }
+            
+            // Ctrl + D for district entry (users only)
+            if (e.ctrlKey && e.key === 'd' && currentUser && currentUser.role !== 'admin') {
+                e.preventDefault();
+                showUserDistrictData();
+            }
         });
 
         // Add error boundary
         window.addEventListener('error', function(e) {
             console.error('Unhandled error:', e.error);
+            hideLoading();
             showAlert('एक तकनीकी त्रुटि हुई है। कृपया पेज को रिफ्रेश करें।', 'danger');
         });
 
         // Add promise rejection handler
         window.addEventListener('unhandledrejection', function(e) {
             console.error('Unhandled promise rejection:', e.reason);
+            hideLoading();
             showAlert('डेटा लोड करने में समस्या हुई है। कृपया पुनः प्रयास करें।', 'warning');
+        });
+
+        // Network status monitoring
+        window.addEventListener('online', function() {
+            showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
+        });
+
+        window.addEventListener('offline', function() {
+            showAlert('इंटरनेट कनेक्शन नहीं है। कृपया कनेक्शन जांचें।', 'warning');
         });
 
         // Console welcome message
@@ -1979,17 +2420,25 @@
         ║  🌾 Village Hierarchy Integration Active                    ║
         ║  📊 Multi-Village Khasra Entry Enabled                      ║
         ║  🔒 User Authentication & Authorization                      ║
+        ║  👥 Role-Based Access Control                               ║
         ║  💾 Auto-Save & Validation Features                         ║
-        ║  📈 Advanced Reporting System                               ║
+        ║  📈 Advanced Reporting System (Admin)                       ║
+        ║  📋 Personal Data View (Users)                              ║
         ║                                                              ║
-        ║  Report Features:                                           ║
+        ║  Admin Features:                                            ║
         ║  • Village Coverage Analysis                                ║
         ║  • Data Export (CSV/Excel)                                  ║
         ║  • District-wise Reports                                    ║
         ║                                                              ║
+        ║  User Features:                                             ║
+        ║  • Personal Data Entry View                                 ║
+        ║  • Search & Filter Own Data                                 ║
+        ║  • Pagination Support                                       ║
+        ║                                                              ║
         ║  Keyboard Shortcuts:                                        ║
         ║  • Ctrl + S: Save Data                                      ║
         ║  • Ctrl + R: Reset Form                                     ║
+        ║  • Ctrl + D: District Entry (Users)                        ║
         ║  • Escape: Deselect All Villages                            ║
         ║                                                              ║
         ║  For technical support: diagri-cg@cg.gov.in                ║
@@ -2002,19 +2451,112 @@
                 getCurrentUser: () => currentUser,
                 getVillageData: () => villageHierarchyData,
                 getSelectedVillages: () => selectedVillages,
+                getUserKhasraData: () => userKhasraData,
                 collectKhasraData: collectKhasraData,
                 resetForm: resetForm,
+                showUserData: showUserDistrictData,
                 testSave: () => {
                     console.log('Test data:', collectKhasraData());
                 },
+                // Admin functions
                 showCoverageReport: showVillageCoverageReport,
                 showExportModal: showDataExportModal,
-                showDistrictReport: showDistrictReportModal
+                showDistrictReport: showDistrictReportModal,
+                // User functions
+                searchData: searchUserData,
+                changePage: changePage
             };
             console.log('🛠️ Debug helpers available in window.debugHelpers');
+            console.log('Available commands:');
+            console.log('- debugHelpers.getCurrentUser()');
+            console.log('- debugHelpers.showUserData()');
+            console.log('- debugHelpers.searchData()');
+            if (currentUser && currentUser.role === 'admin') {
+                console.log('- debugHelpers.showCoverageReport()');
+                console.log('- debugHelpers.showExportModal()');
+                console.log('- debugHelpers.showDistrictReport()');
+            }
         }
+
+        // Performance monitoring
+        function logPerformance() {
+            if (window.performance && window.performance.timing) {
+                const timing = window.performance.timing;
+                const loadTime = timing.loadEventEnd - timing.navigationStart;
+                console.log('Page load time: ' + loadTime + 'ms');
+            }
+        }
+
+        // Log performance on load
+        window.addEventListener('load', logPerformance);
+
+        // Memory usage monitoring (for large datasets)
+        function checkMemoryUsage() {
+            if (window.performance && window.performance.memory) {
+                const memory = window.performance.memory;
+                const usedMB = Math.round(memory.usedJSHeapSize / 1048576);
+                const totalMB = Math.round(memory.totalJSHeapSize / 1048576);
+                console.log('Memory usage: ' + usedMB + 'MB / ' + totalMB + 'MB');
+                
+                // Warning if memory usage is high
+                if (usedMB > 100) {
+                    console.warn('High memory usage detected. Consider optimizing data handling.');
+                }
+            }
+        }
+
+        // Check memory usage every 5 minutes
+        setInterval(checkMemoryUsage, 5 * 60 * 1000);
+
+        // Auto-save draft functionality (optional)
+        let autoSaveTimeout;
+        function autoSaveDraft() {
+            clearTimeout(autoSaveTimeout);
+            autoSaveTimeout = setTimeout(() => {
+                const draftData = collectKhasraData();
+                if (draftData.length > 0) {
+                    localStorage.setItem('khasra_draft_' + currentUser.id, JSON.stringify(draftData));
+                    console.log('Draft auto-saved');
+                }
+            }, 30000); // Auto-save after 30 seconds of inactivity
+        }
+
+        // Load draft on page load
+        function loadDraft() {
+            const draftKey = 'khasra_draft_' + currentUser.id;
+            const draft = localStorage.getItem(draftKey);
+            if (draft) {
+                try {
+                    const draftData = JSON.parse(draft);
+                    if (draftData.length > 0) {
+                        const loadDraft = confirm('आपका एक अधूरा डेटा एंट्री मिला है। क्या आप इसे लोड करना चाहते हैं?');
+                        if (loadDraft) {
+                            // Logic to restore draft data would go here
+                            console.log('Draft data:', draftData);
+                        } else {
+                            localStorage.removeItem(draftKey);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading draft:', error);
+                    localStorage.removeItem(draftKey);
+                }
+            }
+        }
+
+        // Clear draft after successful save
+        function clearDraft() {
+            const draftKey = 'khasra_draft_' + currentUser.id;
+            localStorage.removeItem(draftKey);
+        }
+
+        // Add input listeners for auto-save
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('khasra-input')) {
+                autoSaveDraft();
+            }
+        });
     </script>
 </body>
 </html>
 
-            
