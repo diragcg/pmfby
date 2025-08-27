@@ -252,6 +252,7 @@
             justify-content: center;
             border: none;
             font-size: 1.1rem;
+            cursor: pointer;
         }
 
         .add-khasra-btn {
@@ -259,9 +260,17 @@
             color: white;
         }
 
+        .add-khasra-btn:hover {
+            background-color: var(--admin-secondary);
+        }
+
         .remove-khasra-btn {
             background-color: #DC3545;
             color: white;
+        }
+
+        .remove-khasra-btn:hover {
+            background-color: #B02A37;
         }
 
         .btn-primary-custom {
@@ -274,6 +283,7 @@
             font-size: 1.1rem;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             box-shadow: var(--shadow-sm);
+            cursor: pointer;
         }
 
         .btn-primary-custom:hover {
@@ -291,6 +301,7 @@
             border-radius: 8px;
             padding: 12px 30px;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
 
         .btn-secondary-custom:hover {
@@ -323,6 +334,12 @@
             background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
             color: #0C5460;
             border-left: 4px solid #17A2B8;
+        }
+
+        .alert-warning {
+            background: linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%);
+            color: #856404;
+            border-left: 4px solid #FFC107;
         }
 
         .loading {
@@ -367,6 +384,11 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-10px); }
         }
 
         .fade-in {
@@ -489,16 +511,19 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <script>
+        // Supabase configuration
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
         const { createClient } = supabase;
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
+        // Global variables
         let currentUser = null;
         let villageHierarchyData = [];
         let selectedVillages = [];
 
+        // Show alert message
         function showAlert(message, type) {
             const alertBox = document.getElementById('alertBox');
             alertBox.textContent = message;
@@ -510,6 +535,7 @@
             }, 5000);
         }
 
+        // Check authentication and load user data
         async function checkAuthentication() {
             try {
                 const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -520,11 +546,14 @@
                 }
                 
                 currentUser = JSON.parse(storedUser);
+                console.log('Current user:', currentUser);
                 
-                document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.username;
+                // Update UI with user info
+                document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.username || 'उपयोगकर्ता';
                 document.getElementById('userDistrict').textContent = currentUser.districtName || 'N/A';
                 document.getElementById('breadcrumbDistrict').textContent = `जिला: ${currentUser.districtName || 'N/A'}`;
                 
+                // Load village hierarchy data for user's district
                 await loadVillageHierarchy();
                 
             } catch (error) {
@@ -536,9 +565,10 @@
             }
         }
 
+        // Load village hierarchy data
         async function loadVillageHierarchy() {
             try {
-                if (!currentUser.districtName) {
+                if (!currentUser || !currentUser.districtName) {
                     showAlert('उपयोगकर्ता जिला जानकारी उपलब्ध नहीं है।', 'warning');
                     return;
                 }
@@ -551,11 +581,20 @@
                     .eq('districtname', currentUser.districtName)
                     .order('level4name', { ascending: true });
                 
-                if (error) throw error;
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
                 
                 villageHierarchyData = data || [];
                 console.log('Loaded village hierarchy data:', villageHierarchyData.length, 'records');
                 
+                if (villageHierarchyData.length === 0) {
+                    showAlert(`जिला "${currentUser.districtName}" के लिए कोई डेटा नहीं मिला।`, 'warning');
+                    return;
+                }
+                
+                // Populate level4 dropdown
                 populateLevel4Dropdown();
                 showAlert('डेटा सफलतापूर्वक लोड हो गया।', 'success');
                 
@@ -565,16 +604,20 @@
             }
         }
 
+        // Populate Level 4 dropdown
         function populateLevel4Dropdown() {
             const level4Select = document.getElementById('level4Select');
             
+            // Get unique level4 names
             const level4Options = [...new Set(villageHierarchyData
                 .map(item => item.level4name)
                 .filter(name => name && name.trim() !== '')
             )].sort();
             
+            // Clear existing options except first
             level4Select.innerHTML = '<option value="">-- स्तर 4 चुनें --</option>';
             
+            // Add level4 options
             level4Options.forEach(level4 => {
                 const option = document.createElement('option');
                 option.value = level4;
@@ -585,26 +628,31 @@
             console.log('Level 4 options loaded:', level4Options.length);
         }
 
+        // Handle Level 4 selection
         function handleLevel4Change() {
             const level4Select = document.getElementById('level4Select');
             const level5Select = document.getElementById('level5Select');
             const selectedLevel4 = level4Select.value;
             
+            // Update breadcrumb
             document.getElementById('breadcrumbLevel4').textContent = `स्तर 4: ${selectedLevel4 || '-'}`;
             document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
             
+            // Reset level5 and hide villages
             level5Select.innerHTML = '<option value="">-- स्तर 5 चुनें --</option>';
             level5Select.disabled = !selectedLevel4;
             hideVillagesSection();
             
             if (!selectedLevel4) return;
             
+            // Get unique level5 names for selected level4
             const level5Options = [...new Set(villageHierarchyData
                 .filter(item => item.level4name === selectedLevel4)
                 .map(item => item.level5name)
                 .filter(name => name && name.trim() !== '')
             )].sort();
             
+            // Populate level5 dropdown
             level5Options.forEach(level5 => {
                 const option = document.createElement('option');
                 option.value = level5;
@@ -615,19 +663,22 @@
             console.log('Level 5 options loaded:', level5Options.length);
         }
 
+        // Handle Level 5 selection
         function handleLevel5Change() {
             const level4Select = document.getElementById('level4Select');
             const level5Select = document.getElementById('level5Select');
             const selectedLevel4 = level4Select.value;
             const selectedLevel5 = level5Select.value;
             
-            document.getElementById('breadcrumbLevel5').textContent = `स्तर 5: ${selectedLevel5 || '-'}`;
+            // Update breadcrumb
+            document.getElementById('breadcrumbLevel5').textContent = `स्तर 5: \${selectedLevel5 || '-'}`;
             
             if (!selectedLevel4 || !selectedLevel5) {
                 hideVillagesSection();
                 return;
             }
             
+            // Filter villages for selected level4 and level5
             const villages = villageHierarchyData.filter(item => 
                 item.level4name === selectedLevel4 && 
                 item.level5name === selectedLevel5 &&
@@ -635,19 +686,23 @@
                 item.villagecode
             );
             
+            // Remove duplicates based on village code
             const uniqueVillages = villages.filter((village, index, self) =>
                 index === self.findIndex(v => v.villagecode === village.villagecode)
             ).sort((a, b) => a.villagename.localeCompare(b.villagename));
             
             console.log('Villages loaded:', uniqueVillages.length);
             
+            // Populate villages table
             populateVillagesTable(uniqueVillages);
             showVillagesSection();
         }
 
+        // Populate villages table
         function populateVillagesTable(villages) {
             const tableBody = document.getElementById('villagesTableBody');
             
+            // Clear existing content
             tableBody.innerHTML = '';
             
             if (villages.length === 0) {
@@ -657,9 +712,11 @@
                 return;
             }
             
+            // Create rows using DOM methods
             villages.forEach(village => {
                 const row = document.createElement('tr');
                 
+                // Checkbox cell
                 const checkboxCell = document.createElement('td');
                 checkboxCell.className = 'text-center';
                 
@@ -671,29 +728,35 @@
                 checkbox.setAttribute('data-level4', village.level4name);
                 checkbox.setAttribute('data-level5', village.level5name);
                 checkbox.setAttribute('data-level6', village.level6code || '');
-                checkbox.onchange = handleVillageSelection;
+                checkbox.addEventListener('change', handleVillageSelection);
                 
                 checkboxCell.appendChild(checkbox);
                 
+                // Village name cell
                 const nameCell = document.createElement('td');
                 nameCell.className = 'hindi';
                 nameCell.textContent = village.villagename;
                 
+                // Village code cell
                 const codeCell = document.createElement('td');
                 codeCell.textContent = village.villagecode;
                 
+                // Append cells to row
                 row.appendChild(checkboxCell);
                 row.appendChild(nameCell);
                 row.appendChild(codeCell);
                 
+                // Append row to table body
                 tableBody.appendChild(row);
             });
         }
 
+        // Show villages section
         function showVillagesSection() {
             document.getElementById('villagesSection').style.display = 'block';
         }
 
+        // Hide villages section
         function hideVillagesSection() {
             document.getElementById('villagesSection').style.display = 'none';
             document.getElementById('khasraEntrySection').style.display = 'none';
@@ -701,6 +764,7 @@
             selectedVillages = [];
         }
 
+        // Handle village selection
         function handleVillageSelection() {
             const checkboxes = document.querySelectorAll('.village-checkbox:checked');
             selectedVillages = [];
@@ -720,16 +784,18 @@
             
             if (selectedVillages.length > 0) {
                 showKhasraEntrySection();
-                document.getElementById('actionButtons').style.display = 'block
+                document.getElementById('actionButtons').style.display = 'block';
             } else {
                 document.getElementById('khasraEntrySection').style.display = 'none';
                 document.getElementById('actionButtons').style.display = 'none';
             }
         }
 
+        // Show khasra entry section
         function showKhasraEntrySection() {
             const container = document.getElementById('khasraEntryContainer');
             
+            // Clear existing content
             container.innerHTML = '';
             
             selectedVillages.forEach(village => {
@@ -758,7 +824,7 @@
                 addBtn.className = 'add-khasra-btn';
                 addBtn.title = 'खसरा नंबर जोड़ें';
                 addBtn.innerHTML = '<i class="fas fa-plus"></i>';
-                addBtn.onclick = () => addKhasraInput(village.villagecode);
+                addBtn.addEventListener('click', () => addKhasraInput(village.villagecode));
                 
                 inputGroup.appendChild(input);
                 inputGroup.appendChild(addBtn);
@@ -773,6 +839,7 @@
             document.getElementById('khasraEntrySection').style.display = 'block';
         }
 
+        // Add khasra input field
         function addKhasraInput(villageCode) {
             const villageCard = document.querySelector(`[data-village-code="${villageCode}"]`);
             const container = villageCard.querySelector('.khasra-inputs-container');
@@ -791,14 +858,14 @@
             addBtn.className = 'add-khasra-btn';
             addBtn.title = 'खसरा नंबर जोड़ें';
             addBtn.innerHTML = '<i class="fas fa-plus"></i>';
-            addBtn.onclick = () => addKhasraInput(villageCode);
+            addBtn.addEventListener('click', () => addKhasraInput(villageCode));
             
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
             removeBtn.className = 'remove-khasra-btn';
             removeBtn.title = 'खसरा नंबर हटाएं';
             removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
-            removeBtn.onclick = () => removeKhasraInput(removeBtn);
+            removeBtn.addEventListener('click', () => removeKhasraInput(removeBtn));
             
             inputGroup.appendChild(input);
             inputGroup.appendChild(addBtn);
@@ -807,6 +874,7 @@
             container.appendChild(inputGroup);
         }
 
+        // Remove khasra input field
         function removeKhasraInput(button) {
             const inputGroup = button.parentElement;
             inputGroup.style.animation = 'fadeOut 0.3s ease-in-out';
@@ -815,6 +883,7 @@
             }, 300);
         }
 
+        // Select all villages
         function selectAllVillages() {
             const checkboxes = document.querySelectorAll('.village-checkbox');
             checkboxes.forEach(checkbox => {
@@ -823,6 +892,7 @@
             handleVillageSelection();
         }
 
+        // Deselect all villages
         function deselectAllVillages() {
             const checkboxes = document.querySelectorAll('.village-checkbox');
             checkboxes.forEach(checkbox => {
@@ -831,6 +901,7 @@
             handleVillageSelection();
         }
 
+        // Collect khasra data
         function collectKhasraData() {
             const khasraData = [];
             
@@ -857,12 +928,14 @@
             return khasraData;
         }
 
+        // Validate khasra data
         function validateKhasraData(data) {
             if (data.length === 0) {
                 showAlert('कृपया कम से कम एक खसरा नंबर दर्ज करें।', 'warning');
                 return false;
             }
             
+            // Check for duplicate khasra numbers within same village
             const duplicates = [];
             const seen = new Set();
             
@@ -882,6 +955,7 @@
             return true;
         }
 
+        // Save khasra data
         async function saveKhasraData() {
             try {
                 const khasraData = collectKhasraData();
@@ -890,6 +964,7 @@
                     return;
                 }
                 
+                // Show loading state
                 const saveBtn = document.getElementById('saveDataBtn');
                 const originalText = saveBtn.innerHTML;
                 saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">सेव हो रहा है...</span>';
@@ -897,6 +972,7 @@
                 
                 console.log('Saving khasra data:', khasraData);
                 
+                // Insert data in batches
                 const batchSize = 100;
                 let totalSaved = 0;
                 
@@ -907,59 +983,93 @@
                         .from('khasra_data')
                         .insert(batch);
                     
-                    if (error) throw error;
+                    if (error) {
+                        console.error('Supabase insert error:', error);
+                        throw error;
+                    }
                     
                     totalSaved += batch.length;
                     console.log(`Saved batch ${Math.floor(i/batchSize) + 1}, total: ${totalSaved}`);
                 }
                 
                 showAlert(`सफलता! ${totalSaved} खसरा रिकॉर्ड सेव हो गए।`, 'success');
+                
+                // Reset form
                 resetForm();
                 
             } catch (error) {
                 console.error('Error saving khasra data:', error);
                 showAlert(`डेटा सेव करने में त्रुटि: ${error.message}`, 'danger');
             } finally {
+                // Reset button
                 const saveBtn = document.getElementById('saveDataBtn');
                 saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> <span class="hindi">डेटा सेव करें</span>';
                 saveBtn.disabled = false;
             }
         }
 
+        // Reset form
         function resetForm() {
+            // Reset dropdowns
             document.getElementById('level4Select').value = '';
             document.getElementById('level5Select').value = '';
             document.getElementById('level5Select').disabled = true;
             
+            // Reset breadcrumb
             document.getElementById('breadcrumbLevel4').textContent = 'स्तर 4: -';
             document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
             
+            // Hide sections
             hideVillagesSection();
+            
+            // Clear selected villages
             selectedVillages = [];
             
             console.log('Form reset completed');
         }
 
+        // Handle logout
         function handleLogout() {
             if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                // Clear storage
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
+                
+                // Redirect to login
                 window.location.href = 'login.html';
             }
         }
 
+        // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded');
+            
+            // Check authentication
             checkAuthentication();
             
+            // Level 4 dropdown change
             document.getElementById('level4Select').addEventListener('change', handleLevel4Change);
+            
+            // Level 5 dropdown change
             document.getElementById('level5Select').addEventListener('change', handleLevel5Change);
+            
+            // Select/Deselect all buttons
             document.getElementById('selectAllBtn').addEventListener('click', selectAllVillages);
             document.getElementById('deselectAllBtn').addEventListener('click', deselectAllVillages);
+            
+            // Save data button
             document.getElementById('saveDataBtn').addEventListener('click', saveKhasraData);
+            
+            // Reset form button
             document.getElementById('resetFormBtn').addEventListener('click', resetForm);
+            
+            // Logout button
             document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            
+            console.log('All event listeners attached');
         });
 
+        // Handle page unload
         window.addEventListener('beforeunload', function(e) {
             const khasraData = collectKhasraData();
             if (khasraData.length > 0) {
@@ -968,34 +1078,42 @@
             }
         });
 
+        // Add keyboard shortcuts
         document.addEventListener('keydown', function(e) {
+            // Ctrl + S to save
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
-                if (document.getElementById('saveDataBtn').style.display !== 'none') {
+                const saveBtn = document.getElementById('saveDataBtn');
+                if (saveBtn && saveBtn.style.display !== 'none' && !saveBtn.disabled) {
                     saveKhasraData();
                 }
             }
             
+            // Ctrl + R to reset
             if (e.ctrlKey && e.key === 'r') {
                 e.preventDefault();
                 resetForm();
             }
             
+            // Escape to deselect all
             if (e.key === 'Escape') {
                 deselectAllVillages();
             }
         });
 
+        // Add error boundary
         window.addEventListener('error', function(e) {
             console.error('Unhandled error:', e.error);
             showAlert('एक तकनीकी त्रुटि हुई है। कृपया पेज को रिफ्रेश करें।', 'danger');
         });
 
+        // Add promise rejection handler
         window.addEventListener('unhandledrejection', function(e) {
             console.error('Unhandled promise rejection:', e.reason);
             showAlert('डेटा लोड करने में समस्या हुई है। कृपया पुनः प्रयास करें।', 'warning');
         });
 
+        // Console welcome message
         console.log(`
         ╔══════════════════════════════════════════════════════════════╗
         ║                     खसरा डेटा एंट्री सिस्टम                  ║
@@ -1015,6 +1133,7 @@
         ╚══════════════════════════════════════════════════════════════╝
         `);
 
+        // Development helpers (remove in production)
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             window.debugHelpers = {
                 getCurrentUser: () => currentUser,
@@ -1031,3 +1150,4 @@
     </script>
 </body>
 </html>
+
