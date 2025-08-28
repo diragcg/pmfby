@@ -792,7 +792,7 @@
                             </select>
                         </div>
                         <div class="col-md-3">
-                            <button class="btn btn-primary-custom w-100" onclick="searchUserData()">
+                            <button class="btn btn-primary-custom w-100" onclick="UserDataManager.search()">
                                 <i class="fas fa-search me-1"></i> Find
                             </button>
                         </div>
@@ -802,7 +802,7 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th class="hindi">District/th>
+                                    <th class="hindi">District</th>
                                     <th class="hindi">Tehsil</th>
                                     <th class="hindi">RIName</th>
                                     <th class="hindi">Village Name</th>
@@ -827,7 +827,7 @@
                     </nav>
 
                     <div class="text-center mt-3">
-                        <button class="btn btn-secondary-custom" onclick="backToDataEntry()">
+                        <button class="btn btn-secondary-custom" onclick="UIUtils.toggleSection('userDataSection', 'dataEntrySection')">
                             <i class="fas fa-arrow-left me-1"></i> <span class="hindi">डेटा एंट्री पर वापस जाएं</span>
                         </button>
                     </div>
@@ -872,7 +872,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">बंद करें</button>
-                    <button type="button" class="btn btn-primary" onclick="exportCoverageReport()">
+                    <button type="button" class="btn btn-primary" onclick="ReportManager.exportCoverageReport()">
                         <i class="fas fa-download me-1"></i> रिपोर्ट डाउनलोड करें
                     </button>
                 </div>
@@ -895,7 +895,7 @@
                         <div class="export-card">
                             <h6 class="hindi"><i class="fas fa-file-csv text-success me-2"></i>CSV फॉर्मेट</h6>
                             <p class="hindi">सभी खसरा डेटा CSV फाइल में डाउनलोड करें</p>
-                            <button class="export-btn" onclick="exportData('csv')">
+                            <button class="export-btn" onclick="ReportManager.exportData('csv')">
                                 <i class="fas fa-download me-1"></i> CSV डाउनलोड
                             </button>
                         </div>
@@ -903,7 +903,7 @@
                         <div class="export-card">
                             <h6 class="hindi"><i class="fas fa-file-excel text-success me-2"></i>Excel फॉर्मेट</h6>
                             <p class="hindi">सभी खसरा डेटा Excel फाइल में डाउनलोड करें</p>
-                            <button class="export-btn" onclick="exportData('excel')">
+                            <button class="export-btn" onclick="ReportManager.exportData('excel')">
                                 <i class="fas fa-download me-1"></i> Excel डाउनलोड
                             </button>
                         </div>
@@ -1007,7 +1007,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" onclick="generateDistrictReport()">
+                    <button type="button" class="btn btn-primary" onclick="ReportManager.generateDistrictReport()">
                         <i class="fas fa-file-pdf me-1"></i> PDF Download
                     </button>
                 </div>
@@ -1018,1430 +1018,1409 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     <script>
-        // Supabase configuration
-        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-        
-        const { createClient } = supabase;
-        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+        // ==================== CONFIGURATION MODULE ====================
+        const Config = {
+            supabase: {
+                url: 'https://txjbfqrbbtvzlxpeegkv.supabase.co',
+                key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo'
+            },
+            pagination: {
+                itemsPerPage: 5
+            }
+        };
 
-        // Global variables
-        let currentUser = null;
-        let villageHierarchyData = [];
-        let selectedVillages = [];
-        let currentPage = 1;
-        let totalPages = 1;
-        let itemsPerPage = 5;
-        let userKhasraData = [];
-        let filteredUserData = [];
-
-        // Show loading overlay
-        function showLoading(text = 'Data Loading...') {
-            document.getElementById('loadingText').textContent = text;
-            document.getElementById('loadingOverlay').style.display = 'flex';
-        }
-
-        // Hide loading overlay
-        function hideLoading() {
-            document.getElementById('loadingOverlay').style.display = 'none';
-        }
-
-        // Show alert message
-        function showAlert(message, type) {
-            const alertBox = document.getElementById('alertBox');
-            alertBox.textContent = message;
-            alertBox.className = 'alert alert-' + type + ' hindi fade-in';
-            alertBox.style.display = 'block';
+        // ==================== STATE MANAGEMENT MODULE ====================
+        const AppState = {
+            currentUser: null,
+            villageHierarchyData: [],
+            selectedVillages: [],
+            userKhasraData: [],
+            filteredUserData: [],
+            pagination: {
+                currentPage: 1,
+                totalPages: 1
+            },
             
-            setTimeout(() => {
-                alertBox.style.display = 'none';
-            }, 5000);
-        }
+            setCurrentUser(user) {
+                this.currentUser = user;
+            },
+            
+            isAdmin() {
+                return this.currentUser?.role === 'admin';
+            },
+            
+            getUserDistrict() {
+                return this.currentUser?.districtName;
+            }
+        };
 
-        // Check authentication and setup UI based on role
-        async function checkAuthentication() {
-            try {
-                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+        // ==================== UI UTILITIES MODULE ====================
+        const UIUtils = {
+            showLoading(text = 'Data Loading...') {
+                document.getElementById('loadingText').textContent = text;
+                document.getElementById('loadingOverlay').style.display = 'flex';
+            },
+
+            hideLoading() {
+                document.getElementById('loadingOverlay').style.display = 'none';
+            },
+
+            showAlert(message, type) {
+                const alertBox = document.getElementById('alertBox');
+                alertBox.textContent = message;
+                alertBox.className = `alert alert-${type} hindi fade-in`;
+                alertBox.style.display = 'block';
                 
-                if (!storedUser) {
-                    window.location.href = 'login.html';
-                    return;
-                }
-                
-                currentUser = JSON.parse(storedUser);
-                console.log('Current user:', currentUser);
-                
-                // Update UI with user info
-                document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.username || 'उपयोगकर्ता';
-                document.getElementById('userDistrict').textContent = currentUser.districtName || 'N/A';
-                document.getElementById('breadcrumbDistrict').textContent = 'जिला: ' + (currentUser.districtName || 'N/A');
-                
-                // Setup UI based on user role
-                setupUIBasedOnRole();
-                
-                // Load village hierarchy data for user's district
-                await loadVillageHierarchy();
-                
-            } catch (error) {
-                console.error('Authentication error:', error);
-                showAlert('Credential Mistake,कृपया पुनः लॉगिन करें।', 'danger');
                 setTimeout(() => {
-                    window.location.href = 'login.html';
-                }, 2000);
-            }
-        }
+                    alertBox.style.display = 'none';
+                }, 5000);
+            },
 
-        // Setup UI based on user role
-        function setupUIBasedOnRole() {
-            const adminSection = document.getElementById('adminReportSection');
-            const userSection = document.getElementById('userDistrictSection');
+            toggleSection(hideId, showId) {
+                document.getElementById(hideId).style.display = 'none';
+                document.getElementById(showId).style.display = 'block';
+            },
+
+            updateBreadcrumb(level4 = '-', level5 = '-') {
+                document.getElementById('breadcrumbLevel4').textContent = `स्तर 4: ${level4}`;
+                document.getElementById('breadcrumbLevel5').textContent = `स्तर 5: ${level5}`;
+            }
+        };
+
+        // ==================== DATABASE MODULE ====================
+        const Database = {
+            client: null,
             
-            if (currentUser.role === 'admin') {
-                // Show admin report dropdown
-                adminSection.style.display = 'block';
-                userSection.style.display = 'none';
-                console.log('Admin user detected - showing report dropdown');
-            } else {
-                // Show user district entry button  
-                adminSection.style.display = 'none';
-                userSection.style.display = 'block';
-                console.log('Regular user detected - showing district entry button');
-            }
-        }
+            init() {
+                const { createClient } = supabase;
+                this.client = createClient(Config.supabase.url, Config.supabase.key);
+            },
 
-        // Load village hierarchy data
-        async function loadVillageHierarchy() {
-            try {
-                if (!currentUser || !currentUser.districtName) {
-                    showAlert('उपयोगकर्ता जिला जानकारी उपलब्ध नहीं है।', 'warning');
-                    return;
+            buildQuery(tableName, selectFields = '*') {
+                return this.client.from(tableName).select(selectFields);
+            },
+
+            // FIXED: Apply district filter only for non-admin users
+            applyDistrictFilter(query, districtField = 'districtname') {
+                if (!AppState.isAdmin()) {
+                    const district = AppState.getUserDistrict();
+                    if (district) {
+                        return query.eq(districtField, district);
+                    }
                 }
+                return query;
+            },
 
-                showAlert('Data is Loading...', 'info');
-                
-                let query = supabaseClient
-                    .from('village_hierarchy')
-                    .select('*')
-                    .order('level4name', { ascending: true });
-                
-                // Only filter by district for non-admin users
-                if (currentUser.role !== 'admin') {
-                    if (!currentUser.districtName) {
-                        showAlert('उपयोगकर्ता जिला जानकारी उपलब्ध नहीं है।', 'warning');
+            // FIXED: Apply user filter only for non-admin users
+            applyUserFilter(query, userField = 'user_id') {
+                if (!AppState.isAdmin()) {
+                    return query.eq(userField, AppState.currentUser.id);
+                }
+                return query;
+            }
+        };
+
+        // ==================== VILLAGE HIERARCHY MODULE ====================
+        const VillageManager = {
+            async loadHierarchy() {
+                try {
+                    UIUtils.showAlert('Data is Loading...', 'info');
+                    
+                    let query = Database.buildQuery('village_hierarchy')
+                        .order('level4name', { ascending: true });
+                    
+                    // FIXED: Apply district filter for non-admin users
+                    query = Database.applyDistrictFilter(query);
+                    
+                    const { data, error } = await query;
+                    
+                    if (error) throw error;
+                    
+                    AppState.villageHierarchyData = data || [];
+                    console.log('Loaded village hierarchy data:', AppState.villageHierarchyData.length, 'records');
+                    
+                    if (AppState.villageHierarchyData.length === 0) {
+                        const message = AppState.isAdmin() 
+                            ? 'No village data found in system' 
+                            : `जिला "${AppState.getUserDistrict()}" No Data Found`;
+                        UIUtils.showAlert(message, 'warning');
                         return;
                     }
-                    query = query.eq('districtname', currentUser.districtName);
+                    
+                    this.populateLevel4Dropdown();
+                    UIUtils.showAlert('Data Loaded', 'success');
+                    
+                } catch (error) {
+                    console.error('Error loading village hierarchy:', error);
+                    UIUtils.showAlert('Data Non Loaded', 'danger');
                 }
-                
-                const { data, error } = await query;
+            },
 
+            populateLevel4Dropdown() {
+                const level4Select = document.getElementById('level4Select');
                 
-                if (error) {
-                    console.error('Supabase error:', error);
-                    throw error;
-                }
+                const level4Options = [...new Set(AppState.villageHierarchyData
+                    .map(item => item.level4name)
+                    .filter(name => name && name.trim() !== '')
+                )].sort();
                 
-                villageHierarchyData = data || [];
-                console.log('Loaded village hierarchy data:', villageHierarchyData.length, 'records');
+                level4Select.innerHTML = '<option value="">-- स्तर 4 चुनें --</option>';
                 
-                if (villageHierarchyData.length === 0) {
-                    showAlert('जिला "' + currentUser.districtName + '" No Data Found', 'warning');
+                level4Options.forEach(level4 => {
+                    const option = document.createElement('option');
+                    option.value = level4;
+                    option.textContent = level4;
+                    level4Select.appendChild(option);
+                });
+                
+                console.log('Level 4 options loaded:', level4Options.length);
+            },
+
+            handleLevel4Change() {
+                const level4Select = document.getElementById('level4Select');
+                const level5Select = document.getElementById('level5Select');
+                const selectedLevel4 = level4Select.value;
+                
+                UIUtils.updateBreadcrumb(selectedLevel4 || '-', '-');
+                
+                level5Select.innerHTML = '<option value="">-- स्तर 5 चुनें --</option>';
+                level5Select.disabled = !selectedLevel4;
+                this.hideVillagesSection();
+                
+                if (!selectedLevel4) return;
+                
+                const level5Options = [...new Set(AppState.villageHierarchyData
+                    .filter(item => item.level4name === selectedLevel4)
+                    .map(item => item.level5name)
+                    .filter(name => name && name.trim() !== '')
+                )].sort();
+                
+                level5Options.forEach(level5 => {
+                    const option = document.createElement('option');
+                    option.value = level5;
+                    option.textContent = level5;
+                    level5Select.appendChild(option);
+                });
+                
+                console.log('Level 5 options loaded:', level5Options.length);
+            },
+
+            handleLevel5Change() {
+                const level4Select = document.getElementById('level4Select');
+                const level5Select = document.getElementById('level5Select');
+                const selectedLevel4 = level4Select.value;
+                const selectedLevel5 = level5Select.value;
+                
+                UIUtils.updateBreadcrumb(selectedLevel4 || '-', selectedLevel5 || '-');
+                
+                if (!selectedLevel4 || !selectedLevel5) {
+                    this.hideVillagesSection();
                     return;
                 }
                 
-                // Populate level4 dropdown
-                populateLevel4Dropdown();
-                showAlert('Data Loaded', 'success');
+                const villages = AppState.villageHierarchyData.filter(item => 
+                    item.level4name === selectedLevel4 && 
+                    item.level5name === selectedLevel5 &&
+                    item.villagename && 
+                    item.villagecode
+                );
                 
-            } catch (error) {
-                console.error('Error loading village hierarchy:', error);
-                showAlert('Data Non Loaded', 'danger');
-            }
-        }
+                const uniqueVillages = villages.filter((village, index, self) =>
+                    index === self.findIndex(v => v.villagecode === village.villagecode)
+                ).sort((a, b) => a.villagename.localeCompare(b.villagename));
+                
+                console.log('Villages loaded:', uniqueVillages.length);
+                
+                this.populateVillagesTable(uniqueVillages);
+                this.showVillagesSection();
+            },
 
-        // Populate Level 4 dropdown
-        function populateLevel4Dropdown() {
-            const level4Select = document.getElementById('level4Select');
-            
-            // Get unique level4 names
-            const level4Options = [...new Set(villageHierarchyData
-                .map(item => item.level4name)
-                .filter(name => name && name.trim() !== '')
-            )].sort();
-            
-            // Clear existing options except first
-            level4Select.innerHTML = '<option value="">-- स्तर 4 चुनें --</option>';
-            
-            // Add level4 options
-            level4Options.forEach(level4 => {
-                const option = document.createElement('option');
-                option.value = level4;
-                option.textContent = level4;
-                level4Select.appendChild(option);
-            });
-            
-            console.log('Level 4 options loaded:', level4Options.length);
-        }
-
-        // Handle Level 4 selection
-        function handleLevel4Change() {
-            const level4Select = document.getElementById('level4Select');
-            const level5Select = document.getElementById('level5Select');
-            const selectedLevel4 = level4Select.value;
-            
-            // Update breadcrumb
-            document.getElementById('breadcrumbLevel4').textContent = 'स्तर 4: ' + (selectedLevel4 || '-');
-            document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
-            
-            // Reset level5 and hide villages
-            level5Select.innerHTML = '<option value="">-- स्तर 5 चुनें --</option>';
-            level5Select.disabled = !selectedLevel4;
-            hideVillagesSection();
-            
-            if (!selectedLevel4) return;
-            
-            // Get unique level5 names for selected level4
-            const level5Options = [...new Set(villageHierarchyData
-                .filter(item => item.level4name === selectedLevel4)
-                .map(item => item.level5name)
-                .filter(name => name && name.trim() !== '')
-            )].sort();
-            
-            // Populate level5 dropdown
-            level5Options.forEach(level5 => {
-                const option = document.createElement('option');
-                option.value = level5;
-                option.textContent = level5;
-                level5Select.appendChild(option);
-            });
-            
-            console.log('Level 5 options loaded:', level5Options.length);
-        }
-
-        // Handle Level 5 selection
-        function handleLevel5Change() {
-            const level4Select = document.getElementById('level4Select');
-            const level5Select = document.getElementById('level5Select');
-            const selectedLevel4 = level4Select.value;
-            const selectedLevel5 = level5Select.value;
-            
-            // Update breadcrumb
-            document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: ' + (selectedLevel5 || '-');
-            
-            if (!selectedLevel4 || !selectedLevel5) {
-                hideVillagesSection();
-                return;
-            }
-            
-            // Filter villages for selected level4 and level5
-            const villages = villageHierarchyData.filter(item => 
-                item.level4name === selectedLevel4 && 
-                item.level5name === selectedLevel5 &&
-                item.villagename && 
-                item.villagecode
-            );
-            
-            // Remove duplicates based on village code
-            const uniqueVillages = villages.filter((village, index, self) =>
-                index === self.findIndex(v => v.villagecode === village.villagecode)
-            ).sort((a, b) => a.villagename.localeCompare(b.villagename));
-            
-            console.log('Villages loaded:', uniqueVillages.length);
-            
-            // Populate villages table
-            populateVillagesTable(uniqueVillages);
-            showVillagesSection();
-        }
-
-        // Populate villages table
-        function populateVillagesTable(villages) {
-            const tableBody = document.getElementById('villagesTableBody');
-            
-            // Clear existing content
-            tableBody.innerHTML = '';
-            
-            if (villages.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = '<td colspan="3" class="text-center text-muted hindi">No Village Found</td>';
-                tableBody.appendChild(row);
-                return;
-            }
-            
-            // Create rows using DOM methods
-            villages.forEach(village => {
-                const row = document.createElement('tr');
+            populateVillagesTable(villages) {
+                const tableBody = document.getElementById('villagesTableBody');
+                tableBody.innerHTML = '';
                 
-                // Checkbox cell
-                const checkboxCell = document.createElement('td');
-                checkboxCell.className = 'text-center';
+                if (villages.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="3" class="text-center text-muted hindi">No Village Found</td>';
+                    tableBody.appendChild(row);
+                    return;
+                }
                 
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.className = 'village-checkbox';
-                checkbox.value = village.villagecode;
-                checkbox.setAttribute('data-village-name', village.villagename);
-                checkbox.setAttribute('data-level4', village.level4name);
-                checkbox.setAttribute('data-level5', village.level5name);
-                checkbox.setAttribute('data-level6', village.level6code || '');
-                checkbox.addEventListener('change', handleVillageSelection);
-                
-                checkboxCell.appendChild(checkbox);
-                
-                // Village name cell
-                const nameCell = document.createElement('td');
-                nameCell.className = 'hindi';
-                nameCell.textContent = village.villagename;
-                
-                // Village code cell
-                const codeCell = document.createElement('td');
-                codeCell.textContent = village.villagecode;
-                
-                // Append cells to row
-                row.appendChild(checkboxCell);
-                row.appendChild(nameCell);
-                row.appendChild(codeCell);
-                
-                // Append row to table body
-                tableBody.appendChild(row);
-            });
-        }
-
-        // Show villages section
-        function showVillagesSection() {
-            document.getElementById('villagesSection').style.display = 'block';
-        }
-
-        // Hide villages section
-        function hideVillagesSection() {
-            document.getElementById('villagesSection').style.display = 'none';
-            document.getElementById('khasraEntrySection').style.display = 'none';
-            document.getElementById('actionButtons').style.display = 'none';
-            selectedVillages = [];
-        }
-
-        // Handle village selection
-        function handleVillageSelection() {
-            const checkboxes = document.querySelectorAll('.village-checkbox:checked');
-            selectedVillages = [];
-            
-            checkboxes.forEach(checkbox => {
-                selectedVillages.push({
-                    villagecode: checkbox.value,
-                    villagename: checkbox.getAttribute('data-village-name'),
-                    level4name: checkbox.getAttribute('data-level4'),
-                    level5name: checkbox.getAttribute('data-level5'),
-                    level6code: checkbox.getAttribute('data-level6'),
-                    districtname: currentUser.districtName
+                villages.forEach(village => {
+                    const row = document.createElement('tr');
+                    
+                    const checkboxCell = document.createElement('td');
+                    checkboxCell.className = 'text-center';
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'village-checkbox';
+                    checkbox.value = village.villagecode;
+                    checkbox.setAttribute('data-village-name', village.villagename);
+                    checkbox.setAttribute('data-level4', village.level4name);
+                    checkbox.setAttribute('data-level5', village.level5name);
+                    checkbox.setAttribute('data-level6', village.level6code || '');
+                    checkbox.setAttribute('data-district', village.districtname);
+                    checkbox.addEventListener('change', () => this.handleVillageSelection());
+                    
+                    checkboxCell.appendChild(checkbox);
+                    
+                    const nameCell = document.createElement('td');
+                    nameCell.className = 'hindi';
+                    nameCell.textContent = village.villagename;
+                    
+                    const codeCell = document.createElement('td');
+                    codeCell.textContent = village.villagecode;
+                    
+                    row.appendChild(checkboxCell);
+                    row.appendChild(nameCell);
+                    row.appendChild(codeCell);
+                    
+                    tableBody.appendChild(row);
                 });
-            });
-            
-            console.log('Selected villages:', selectedVillages.length);
-            
-            if (selectedVillages.length > 0) {
-                showKhasraEntrySection();
-                document.getElementById('actionButtons').style.display = 'block';
-            } else {
+            },
+
+            showVillagesSection() {
+                document.getElementById('villagesSection').style.display = 'block';
+            },
+
+            hideVillagesSection() {
+                document.getElementById('villagesSection').style.display = 'none';
                 document.getElementById('khasraEntrySection').style.display = 'none';
                 document.getElementById('actionButtons').style.display = 'none';
-            }
-        }
+                AppState.selectedVillages = [];
+            },
 
-        // Show khasra entry section
-        function showKhasraEntrySection() {
-            const container = document.getElementById('khasraEntryContainer');
-            
-            // Clear existing content
-            container.innerHTML = '';
-            
-            selectedVillages.forEach(village => {
-                const villageCard = document.createElement('div');
-                villageCard.className = 'khasra-village-card fade-in';
-                villageCard.setAttribute('data-village-code', village.villagecode);
+            handleVillageSelection() {
+                const checkboxes = document.querySelectorAll('.village-checkbox:checked');
+                AppState.selectedVillages = [];
                 
-                const titleDiv = document.createElement('div');
-                titleDiv.className = 'khasra-village-title hindi';
-                titleDiv.innerHTML = '<i class="fas fa-map-marker-alt me-2"></i>' + village.villagename + ' (' + village.villagecode + ')';
+                checkboxes.forEach(checkbox => {
+                    AppState.selectedVillages.push({
+                        villagecode: checkbox.value,
+                        villagename: checkbox.getAttribute('data-village-name'),
+                        level4name: checkbox.getAttribute('data-level4'),
+                        level5name: checkbox.getAttribute('data-level5'),
+                        level6code: checkbox.getAttribute('data-level6'),
+                        districtname: checkbox.getAttribute('data-district')
+                    });
+                });
                 
-                const inputsContainer = document.createElement('div');
-                inputsContainer.className = 'khasra-inputs-container';
+                console.log('Selected villages:', AppState.selectedVillages.length);
+                
+                if (AppState.selectedVillages.length > 0) {
+                    KhasraManager.showEntrySection();
+                    document.getElementById('actionButtons').style.display = 'block';
+                } else {
+                    document.getElementById('khasraEntrySection').style.display = 'none';
+                    document.getElementById('actionButtons').style.display = 'none';
+                }
+            },
+
+            selectAllVillages() {
+                const checkboxes = document.querySelectorAll('.village-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                });
+                this.handleVillageSelection();
+            },
+
+            deselectAllVillages() {
+                const checkboxes = document.querySelectorAll('.village-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+                this.handleVillageSelection();
+            }
+        };
+
+        // ==================== KHASRA MANAGEMENT MODULE ====================
+        const KhasraManager = {
+            showEntrySection() {
+                const container = document.getElementById('khasraEntryContainer');
+                container.innerHTML = '';
+                
+                AppState.selectedVillages.forEach(village => {
+                    const villageCard = document.createElement('div');
+                    villageCard.className = 'khasra-village-card fade-in';
+                    villageCard.setAttribute('data-village-code', village.villagecode);
+                    
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'khasra-village-title hindi';
+                    titleDiv.innerHTML = `<i class="fas fa-map-marker-alt me-2"></i>${village.villagename} (${village.villagecode})`;
+                    
+                    const inputsContainer = document.createElement('div');
+                    inputsContainer.className = 'khasra-inputs-container';
+                    
+                    const inputGroup = document.createElement('div');
+                    inputGroup.className = 'khasra-input-group';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'form-control khasra-input';
+                    input.placeholder = 'खसरा नंबर दर्ज करें';
+                    input.setAttribute('data-village-code', village.villagecode);
+                    
+                    const addBtn = document.createElement('button');
+                    addBtn.type = 'button';
+                    addBtn.className = 'add-khasra-btn';
+                    addBtn.title = 'खसरा नंबर जोड़ें';
+                    addBtn.innerHTML = '<i class="fas fa-plus"></i>';
+                    addBtn.addEventListener('click', () => this.addKhasraInput(village.villagecode));
+                    
+                    inputGroup.appendChild(input);
+                    inputGroup.appendChild(addBtn);
+                    inputsContainer.appendChild(inputGroup);
+                    
+                    villageCard.appendChild(titleDiv);
+                    villageCard.appendChild(inputsContainer);
+                    
+                    container.appendChild(villageCard);
+                });
+                
+                document.getElementById('khasraEntrySection').style.display = 'block';
+            },
+
+            addKhasraInput(villageCode) {
+                const villageCard = document.querySelector(`[data-village-code="${villageCode}"]`);
+                const container = villageCard.querySelector('.khasra-inputs-container');
                 
                 const inputGroup = document.createElement('div');
-                inputGroup.className = 'khasra-input-group';
+                inputGroup.className = 'khasra-input-group fade-in';
                 
                 const input = document.createElement('input');
                 input.type = 'text';
                 input.className = 'form-control khasra-input';
                 input.placeholder = 'खसरा नंबर दर्ज करें';
-                input.setAttribute('data-village-code', village.villagecode);
+                input.setAttribute('data-village-code', villageCode);
                 
                 const addBtn = document.createElement('button');
                 addBtn.type = 'button';
                 addBtn.className = 'add-khasra-btn';
                 addBtn.title = 'खसरा नंबर जोड़ें';
                 addBtn.innerHTML = '<i class="fas fa-plus"></i>';
-                addBtn.addEventListener('click', () => addKhasraInput(village.villagecode));
+                addBtn.addEventListener('click', () => this.addKhasraInput(villageCode));
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'remove-khasra-btn';
+                removeBtn.title = 'खसरा नंबर हटाएं';
+                removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
+                removeBtn.addEventListener('click', () => this.removeKhasraInput(removeBtn));
                 
                 inputGroup.appendChild(input);
                 inputGroup.appendChild(addBtn);
-                inputsContainer.appendChild(inputGroup);
+                inputGroup.appendChild(removeBtn);
                 
-                villageCard.appendChild(titleDiv);
-                villageCard.appendChild(inputsContainer);
+                container.appendChild(inputGroup);
+            },
+
+            removeKhasraInput(button) {
+                const inputGroup = button.parentElement;
+                inputGroup.style.animation = 'fadeOut 0.3s ease-in-out';
+                setTimeout(() => {
+                    inputGroup.remove();
+                }, 300);
+            },
+
+            collectKhasraData() {
+                const khasraData = [];
                 
-                container.appendChild(villageCard);
-            });
-            
-            document.getElementById('khasraEntrySection').style.display = 'block';
-        }
-
-        // Add khasra input field
-        function addKhasraInput(villageCode) {
-            const villageCard = document.querySelector('[data-village-code="' + villageCode + '"]');
-            const container = villageCard.querySelector('.khasra-inputs-container');
-            
-            const inputGroup = document.createElement('div');
-            inputGroup.className = 'khasra-input-group fade-in';
-            
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = 'form-control khasra-input';
-            input.placeholder = 'खसरा नंबर दर्ज करें';
-            input.setAttribute('data-village-code', villageCode);
-            
-            const addBtn = document.createElement('button');
-            addBtn.type = 'button';
-            addBtn.className = 'add-khasra-btn';
-            addBtn.title = 'खसरा नंबर जोड़ें';
-            addBtn.innerHTML = '<i class="fas fa-plus"></i>';
-            addBtn.addEventListener('click', () => addKhasraInput(villageCode));
-            
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'remove-khasra-btn';
-            removeBtn.title = 'खसरा नंबर हटाएं';
-            removeBtn.innerHTML = '<i class="fas fa-minus"></i>';
-            removeBtn.addEventListener('click', () => removeKhasraInput(removeBtn));
-            
-            inputGroup.appendChild(input);
-            inputGroup.appendChild(addBtn);
-            inputGroup.appendChild(removeBtn);
-            
-            container.appendChild(inputGroup);
-        }
-
-        // Remove khasra input field
-        function removeKhasraInput(button) {
-            const inputGroup = button.parentElement;
-            inputGroup.style.animation = 'fadeOut 0.3s ease-in-out';
-            setTimeout(() => {
-                inputGroup.remove();
-            }, 300);
-        }
-
-        // Select all villages
-        function selectAllVillages() {
-            const checkboxes = document.querySelectorAll('.village-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = true;
-            });
-            handleVillageSelection();
-        }
-
-        // Deselect all villages
-        function deselectAllVillages() {
-            const checkboxes = document.querySelectorAll('.village-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = false;
-            });
-            handleVillageSelection();
-        }
-
-        // Collect khasra data
-        function collectKhasraData() {
-            const khasraData = [];
-            
-            selectedVillages.forEach(village => {
-                const inputs = document.querySelectorAll('input[data-village-code="' + village.villagecode + '"]');
-                
-                inputs.forEach(input => {
-                    const khasraNumber = input.value.trim();
-                    if (khasraNumber) {
-                        khasraData.push({
-                            user_id: currentUser.id,
-                            districtname: village.districtname,
-                            level4name: village.level4name,
-                            level5name: village.level5name,
-                            level6code: village.level6code,
-                            villagename: village.villagename,
-                            villagecode: village.villagecode,
-                            khasra_number: khasraNumber
-                        });
-                    }
+                AppState.selectedVillages.forEach(village => {
+                    const inputs = document.querySelectorAll(`input[data-village-code="${village.villagecode}"]`);
+                    
+                    inputs.forEach(input => {
+                        const khasraNumber = input.value.trim();
+                        if (khasraNumber) {
+                            khasraData.push({
+                                user_id: AppState.currentUser.id,
+                                districtname: village.districtname,
+                                level4name: village.level4name,
+                                level5name: village.level5name,
+                                level6code: village.level6code,
+                                villagename: village.villagename,
+                                villagecode: village.villagecode,
+                                khasra_number: khasraNumber
+                            });
+                        }
+                    });
                 });
-            });
-            
-            return khasraData;
-        }
-
-        // Validate khasra data
-        function validateKhasraData(data) {
-            if (data.length === 0) {
-                showAlert('Atleast Enter a Single Khasra', 'warning');
-                return false;
-            }
-            
-            // Check for duplicate khasra numbers within same village
-            const duplicates = [];
-            const seen = new Set();
-            
-            data.forEach(item => {
-                const key = item.villagecode + '-' + item.khasra_number;
-                if (seen.has(key)) {
-                    duplicates.push(item.villagename + ' में खसरा नंबर ' + item.khasra_number);
-                }
-                seen.add(key);
-            });
-            
-            if (duplicates.length > 0) {
-                showAlert('डुप्लिकेट खसरा नंबर मिले: ' + duplicates.join(', '), 'warning');
-                return false;
-            }
-            
-            return true;
-        }
-
-        // Save khasra data
-        async function saveKhasraData() {
-            try {
-                const khasraData = collectKhasraData();
                 
-                if (!validateKhasraData(khasraData)) {
+                return khasraData;
+            },
+
+            validateKhasraData(data) {
+                if (data.length === 0) {
+                    UIUtils.showAlert('Atleast Enter a Single Khasra', 'warning');
+                    return false;
+                }
+                
+                const duplicates = [];
+                const seen = new Set();
+                
+                data.forEach(item => {
+                    const key = `${item.villagecode}-${item.khasra_number}`;
+                    if (seen.has(key)) {
+                        duplicates.push(`${item.villagename} में खसरा नंबर ${item.khasra_number}`);
+                    }
+                    seen.add(key);
+                });
+                
+                if (duplicates.length > 0) {
+                    UIUtils.showAlert(`डुप्लिकेट खसरा नंबर मिले: ${duplicates.join(', ')}`, 'warning');
+                    return false;
+                }
+                
+                return true;
+            },
+
+            async saveKhasraData() {
+                try {
+                    const khasraData = this.collectKhasraData();
+                    
+                    if (!this.validateKhasraData(khasraData)) {
+                        return;
+                    }
+                    
+                    const saveBtn = document.getElementById('saveDataBtn');
+                    const originalText = saveBtn.innerHTML;
+                    saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">सेव हो रहा है...</span>';
+                    saveBtn.disabled = true;
+                    
+                    console.log('Saving khasra data:', khasraData);
+                    
+                    const batchSize = 100;
+                    let totalSaved = 0;
+                    
+                    for (let i = 0; i < khasraData.length; i += batchSize) {
+                        const batch = khasraData.slice(i, i + batchSize);
+                        
+                        const { data, error } = await Database.client
+                            .from('khasra_data')
+                            .insert(batch);
+                        
+                        if (error) {
+                            console.error('Supabase insert error:', error);
+                            throw error;
+                        }
+                        
+                        totalSaved += batch.length;
+                        console.log(`Saved batch ${Math.floor(i/batchSize) + 1}, total: ${totalSaved}`);
+                    }
+                    
+                    UIUtils.showAlert(`Data Saved ${totalSaved} खसरा Saved in Server`, 'success');
+                    this.resetForm();
+                    
+                } catch (error) {
+                    console.error('Error saving khasra data:', error);
+                    UIUtils.showAlert(`डेटा सेव करने में त्रुटि: \${error.message}`, 'danger');
+                } finally {
+                    const saveBtn = document.getElementById('saveDataBtn');
+                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> <span class="hindi">डेटा सेव करें</span>';
+                    saveBtn.disabled = false;
+                }
+            },
+
+            resetForm() {
+                document.getElementById('level4Select').value = '';
+                document.getElementById('level5Select').value = '';
+                document.getElementById('level5Select').disabled = true;
+                
+                UIUtils.updateBreadcrumb('-', '-');
+                VillageManager.hideVillagesSection();
+                AppState.selectedVillages = [];
+                
+                console.log('Form reset completed');
+            }
+        };
+
+        // ==================== USER DATA MANAGEMENT MODULE ====================
+                const UserDataManager = {
+            async load() {
+                try {
+                    let query = Database.buildQuery('khasra_data')
+                        .order('created_at', { ascending: false });
+                    
+                    // FIXED: Apply user filter for non-admin users
+                    query = Database.applyUserFilter(query);
+                    
+                    const { data, error } = await query;
+                    
+                    if (error) throw error;
+                    
+                    AppState.userKhasraData = data || [];
+                    AppState.filteredUserData = [...AppState.userKhasraData];
+                    
+                    console.log('Loaded user khasra data:', AppState.userKhasraData.length, 'records');
+                    
+                    this.populateVillageFilter();
+                    AppState.pagination.currentPage = 1;
+                    this.display();
+                    
+                    if (AppState.userKhasraData.length === 0) {
+                        UIUtils.showAlert('No Entry Yet', 'info');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading user khasra data:', error);
+                    throw error;
+                }
+            },
+
+            populateVillageFilter() {
+                const filterSelect = document.getElementById('filterVillage');
+                const uniqueVillages = [...new Set(AppState.userKhasraData.map(item => item.villagename))].sort();
+                
+                filterSelect.innerHTML = '<option value="">All Villages</option>';
+                
+                uniqueVillages.forEach(village => {
+                    const option = document.createElement('option');
+                    option.value = village;
+                    option.textContent = village;
+                    filterSelect.appendChild(option);
+                });
+            },
+
+            display() {
+                const tableBody = document.getElementById('userDataTableBody');
+                
+                AppState.pagination.totalPages = Math.ceil(AppState.filteredUserData.length / Config.pagination.itemsPerPage);
+                const startIndex = (AppState.pagination.currentPage - 1) * Config.pagination.itemsPerPage;
+                const endIndex = startIndex + Config.pagination.itemsPerPage;
+                const pageData = AppState.filteredUserData.slice(startIndex, endIndex);
+                
+                tableBody.innerHTML = '';
+                
+                if (pageData.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted hindi">No Data Found</td></tr>';
                     return;
                 }
                 
-                // Show loading state
-                const saveBtn = document.getElementById('saveDataBtn');
-                const originalText = saveBtn.innerHTML;
-                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">सेव हो रहा है...</span>';
-                saveBtn.disabled = true;
-                
-                console.log('Saving khasra data:', khasraData);
-                
-                // Insert data in batches
-                const batchSize = 100;
-                let totalSaved = 0;
-                
-                for (let i = 0; i < khasraData.length; i += batchSize) {
-                    const batch = khasraData.slice(i, i + batchSize);
-                    
-                    const { data, error } = await supabaseClient
-                        .from('khasra_data')
-                        .insert(batch);
-                    
-                    if (error) {
-                        console.error('Supabase insert error:', error);
-                        throw error;
-                    }
-                    
-                    totalSaved += batch.length;
-                    console.log('Saved batch ' + (Math.floor(i/batchSize) + 1) + ', total: ' + totalSaved);
-                }
-                
-                showAlert('Data Saved ' + totalSaved + ' खसरा Saved in Server', 'success');
-                
-                // Reset form
-                resetForm();
-                
-            } catch (error) {
-                console.error('Error saving khasra data:', error);
-                showAlert('डेटा सेव करने में त्रुटि: ' + error.message, 'danger');
-            } finally {
-                // Reset button
-                const saveBtn = document.getElementById('saveDataBtn');
-                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> <span class="hindi">डेटा सेव करें</span>';
-                saveBtn.disabled = false;
-            }
-        }
-
-        // Reset form
-        function resetForm() {
-            // Reset dropdowns
-            document.getElementById('level4Select').value = '';
-            document.getElementById('level5Select').value = '';
-            document.getElementById('level5Select').disabled = true;
-            
-            // Reset breadcrumb
-            document.getElementById('breadcrumbLevel4').textContent = 'स्तर 4: -';
-            document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
-            
-            // Hide sections
-            hideVillagesSection();
-            
-            // Clear selected villages
-            selectedVillages = [];
-            
-            console.log('Form reset completed');
-        }
-
-        // Handle logout
-        function handleLogout() {
-            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-                // Clear storage
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
-                
-                // Redirect to login
-                window.location.href = 'login.html';
-            }
-        }
-
-        // USER DATA FUNCTIONS
-
-        // Show user's district entry data
-        async function showUserDistrictData() {
-            try {
-                showLoading('Your Data is Populating...');
-                
-                // Hide data entry section and show user data section
-                document.getElementById('dataEntrySection').style.display = 'none';
-                document.getElementById('userDataSection').style.display = 'block';
-                
-                // Load user's khasra data
-                await loadUserKhasraData();
-                
-                hideLoading();
-                
-            } catch (error) {
-                console.error('Error showing user data:', error);
-                showAlert('Error in Loading: ' + error.message, 'danger');
-                hideLoading();
-            }
-        }
-
-        // Load user's khasra data
-        async function loadUserKhasraData() {
-            try {
-                let query = supabaseClient
-                    .from('khasra_data')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-                
-                // Only filter by user_id for non-admin users
-                if (currentUser.role !== 'admin') {
-                    query = query.eq('user_id', currentUser.id);
-                }
-                
-                const { data, error } = await query;
-                if (error) throw error;
-                
-                userKhasraData = data || [];
-                filteredUserData = [...userKhasraData];
-                
-                console.log('Loaded user khasra data:', userKhasraData.length, 'records');
-                
-                // Populate village filter dropdown
-                populateVillageFilter();
-                
-                // Display paginated data
-                currentPage = 1;
-                displayUserData();
-                
-                if (userKhasraData.length === 0) {
-                    showAlert('No Entry Yet', 'info');
-                }
-                
-            } catch (error) {
-                console.error('Error loading user khasra data:', error);
-                throw error;
-            }
-        }
-
-        // Populate village filter dropdown
-        function populateVillageFilter() {
-            const filterSelect = document.getElementById('filterVillage');
-            
-            // Get unique villages from user data
-            const uniqueVillages = [...new Set(userKhasraData.map(item => item.villagename))].sort();
-            
-            filterSelect.innerHTML = '<option value="">All Villages</option>';
-            
-            uniqueVillages.forEach(village => {
-                const option = document.createElement('option');
-                option.value = village;
-                option.textContent = village;
-                filterSelect.appendChild(option);
-            });
-        }
-
-        // Display user data with pagination - FIXED
-        function displayUserData() {
-            const tableBody = document.getElementById('userDataTableBody');
-            
-            // Calculate pagination
-            totalPages = Math.ceil(filteredUserData.length / itemsPerPage);
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const pageData = filteredUserData.slice(startIndex, endIndex);
-            
-            // Clear table
-            tableBody.innerHTML = '';
-            
-            if (pageData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted hindi">No Data Found</td></tr>';
-                return;
-            }
-            
-            // Build table HTML using string concatenation - FIXED
-            let tableHTML = '';
-            pageData.forEach(item => {
-                tableHTML += '<tr>' +
-                    '<td class="hindi">' + (item.districtname || '-') + '</td>' +
-                    '<td class="hindi">' + (item.level4name || '-') + '</td>' +
-                    '<td class="hindi">' + (item.level5name || '-') + '</td>' +
-                    '<td class="hindi">' + (item.villagename || '-') + '</td>' +
-                    '<td>' + (item.villagecode || '-') + '</td>' +
-                    '<td><strong>' + (item.khasra_number || '-') + '</strong></td>' +
-                    '<td>' + new Date(item.created_at).toLocaleDateString('hi-IN') + '</td>' +
-                    '</tr>';
-            });
-            
-            tableBody.innerHTML = tableHTML;
-            
-            // Update pagination
-            updatePagination();
-        }
-
-        // Update pagination controls
-        function updatePagination() {
-            const paginationContainer = document.getElementById('paginationContainer');
-            paginationContainer.innerHTML = '';
-            
-            if (totalPages <= 1) return;
-            
-            // Previous button
-            const prevItem = document.createElement('li');
-            prevItem.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
-            prevItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage - 1) + ')"><i class="fas fa-chevron-left"></i></a>';
-            paginationContainer.appendChild(prevItem);
-            
-            // Page numbers
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
-            
-            for (let i = startPage; i <= endPage; i++) {
-                const pageItem = document.createElement('li');
-                pageItem.className = 'page-item' + (i === currentPage ? ' active' : '');
-                pageItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + i + ')">' + i + '</a>';
-                paginationContainer.appendChild(pageItem);
-            }
-            
-            // Next button
-            const nextItem = document.createElement('li');
-            nextItem.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
-            nextItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage + 1) + ')"><i class="fas fa-chevron-right"></i></a>';
-            paginationContainer.appendChild(nextItem);
-            
-            // Add page info
-            const infoItem = document.createElement('li');
-            infoItem.className = 'page-item disabled';
-            infoItem.innerHTML = '<span class="page-link hindi">कुल ' + filteredUserData.length + ' में से ' + (((currentPage - 1) * itemsPerPage) + 1) + '-' + Math.min(currentPage * itemsPerPage, filteredUserData.length) + '</span>';
-            paginationContainer.appendChild(infoItem);
-        }
-
-        // Change page
-        function changePage(page) {
-            if (page >= 1 && page <= totalPages) {
-                currentPage = page;
-                displayUserData();
-            }
-        }
-
-        // Search user data
-        function searchUserData() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const villageFilter = document.getElementById('filterVillage').value;
-            
-            filteredUserData = userKhasraData.filter(item => {
-                const matchesSearch = searchTerm === '' || 
-                    item.villagename.toLowerCase().includes(searchTerm) ||
-                    item.khasra_number.toLowerCase().includes(searchTerm) ||
-                    item.villagecode.toLowerCase().includes(searchTerm);
-                
-                const matchesVillage = villageFilter === '' || item.villagename === villageFilter;
-                
-                return matchesSearch && matchesVillage;
-            });
-            
-            currentPage = 1;
-            displayUserData();
-            
-            if (filteredUserData.length === 0) {
-                showAlert('No Result Found', 'info');
-            }
-        }
-
-        // Back to data entry
-        function backToDataEntry() {
-            document.getElementById('userDataSection').style.display = 'none';
-            document.getElementById('dataEntrySection').style.display = 'block';
-        }
-
-        // ADMIN REPORT FUNCTIONS (Fixed)
-
-        // Show Village Coverage Report (Fixed)
-        async function showVillageCoverageReport() {
-            try {
-                showLoading('Rpt is being Ready...');
-                
-                // Get all villages from hierarchy
-                let villageQuery = supabaseClient
-                    .from('village_hierarchy')
-                    .select('villagecode, villagename, level4name, level5name, districtname');
-                
-                // Only filter by district for non-admin users
-                if (currentUser.role !== 'admin') {
-                    villageQuery = villageQuery.eq('districtname', currentUser.districtName);
-                }
-                
-                const { data: allVillages, error: villageError } = await villageQuery;
-
-                
-                if (villageError) throw villageError;
-                
-                // Get village codes with khasra data (separate query)
-                let khasraQuery = supabaseClient
-                    .from('khasra_data')
-                    .select('villagecode, districtname');
-                
-                // Only filter by district for non-admin users
-                if (currentUser.role !== 'admin') {
-                    khasraQuery = khasraQuery.eq('districtname', currentUser.districtName);
-                }
-                
-                const { data: khasraVillages, error: khasraError } = await khasraQuery;
-                // FIXED: Filter to show ONLY villages with data (green dots only)
-                const villagesWithData = allVillages ? allVillages.filter(village => 
-                    villageCounts[village.villagecode] > 0
-                ) : [];
-                
-                // Populate coverage table - ONLY villages with data
-                if (villagesWithData.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted hindi">No villages with data found</td></tr>';
-                } else {
-                    villagesWithData.forEach(village => {
-                        const entryCount = villageCounts[village.villagecode] || 0;
-                        // ... rest of the code to show only villages with data
-                    });
-                }
-
-                if (khasraError) throw khasraError;
-                
-                // Count entries per village
-                const villageCounts = {};
-                if (khasraVillages) {
-                    khasraVillages.forEach(item => {
-                        villageCounts[item.villagecode] = (villageCounts[item.villagecode] || 0) + 1;
-                    });
-                }
-                
-                // Calculate statistics
-                const totalVillages = allVillages ? allVillages.length : 0;
-                const villagesWithData = Object.keys(villageCounts).length;
-                const villagesWithoutData = totalVillages - villagesWithData;
-                const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithData / totalVillages) * 100) : 0;
-                
-                // Populate statistics - FIXED
-                const statsContainer = document.getElementById('coverageStats');
-                statsContainer.innerHTML = 
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + totalVillages + '</div>' +
-                        '<div class="stat-label hindi">Total Data</div>' +
-                    '</div>' +
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + villagesWithData + '</div>' +
-                        '<div class="stat-label hindi">Village Having Data</div>' +
-                    '</div>' +
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + villagesWithoutData + '</div>' +
-                        '<div class="stat-label hindi">Village without Data</div>' +
-                    '</div>' +
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + coveragePercentage + '%</div>' +
-                        '<div class="stat-label hindi">Percentage of Error</div>' +
-                    '</div>';
-                
-                // Populate coverage table
-                const tableBody = document.getElementById('coverageTableBody');
-                tableBody.innerHTML = '';
-                
-                if (allVillages) {
-                    allVillages.forEach(village => {
-                        const hasData = villageCounts[village.villagecode] > 0;
-                        const entryCount = villageCounts[village.villagecode] || 0;
-                        
-                        const row = document.createElement('tr');
-                        row.innerHTML = 
-                            '<td>' +
-                                '<span class="coverage-indicator ' + (hasData ? 'has-data' : 'no-data') + '"></span>' +
-                                (hasData ? 'डेटा उपलब्ध' : 'डेटा नहीं') +
-                            '</td>' +
-                            '<td class="hindi">' + village.villagename + '</td>' +
-                            '<td>' + village.villagecode + '</td>' +
-                            '<td class="hindi">' + (village.level4name || '-') + '</td>' +
-                            '<td class="hindi">' + (village.level5name || '-') + '</td>' +
-                            '<td>' + entryCount + '</td>';
-                        tableBody.appendChild(row);
-                    });
-                }
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('villageCoverageModal'));
-                modal.show();
-                
-                hideLoading();
-                showAlert('Coverage Rpt Downloaded', 'success');
-                
-            } catch (error) {
-                console.error('Error generating coverage report:', error);
-                hideLoading();
-                showAlert('Error During Rpt: ' + error.message, 'danger');
-            }
-        }
-
-        // Export Coverage Report (Fixed)
-        function exportCoverageReport() {
-            try {
-                const table = document.querySelector('#villageCoverageModal table');
-                
-                // Create CSV with UTF-8 BOM
-                let csv = '\uFEFF'; // UTF-8 BOM
-                csv += 'स्थिति,गांव का नाम,गांव कोड,स्तर 4,स्तर 5,कुल एंट्री\n';
-                
-                const rows = table.querySelectorAll('tbody tr');
-                rows.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    const rowData = [];
-                    cells.forEach(cell => {
-                        let text = cell.textContent.trim();
-                        // Clean status text
-                        if (text.includes('डेटा उपलब्ध') || text.includes('डेटा नहीं')) {
-                            text = text.replace(/.*?(डेटा उपलब्ध|डेटा नहीं)/, '\$1');
-                        }
-                        rowData.push('"' + text + '"');
-                    });
-                    csv += rowData.join(',') + '\n';
+                let tableHTML = '';
+                pageData.forEach(item => {
+                    tableHTML += '<tr>' +
+                        `<td class="hindi">${item.districtname || '-'}</td>` +
+                        `<td class="hindi">${item.level4name || '-'}</td>` +
+                        `<td class="hindi">${item.level5name || '-'}</td>` +
+                        `<td class="hindi">${item.villagename || '-'}</td>` +
+                        `<td>${item.villagecode || '-'}</td>` +
+                        `<td><strong>${item.khasra_number || '-'}</strong></td>` +
+                        `<td>${new Date(item.created_at).toLocaleDateString('hi-IN')}</td>` +
+                        '</tr>';
                 });
                 
-                // Download CSV with proper encoding
+                tableBody.innerHTML = tableHTML;
+                this.updatePagination();
+            },
+
+            updatePagination() {
+                const paginationContainer = document.getElementById('paginationContainer');
+                paginationContainer.innerHTML = '';
+                
+                if (AppState.pagination.totalPages <= 1) return;
+                
+                // Previous button
+                const prevItem = document.createElement('li');
+                prevItem.className = 'page-item' + (AppState.pagination.currentPage === 1 ? ' disabled' : '');
+                prevItem.innerHTML = `<a class="page-link" href="#" onclick="UserDataManager.changePage(${AppState.pagination.currentPage - 1})"><i class="fas fa-chevron-left"></i></a>`;
+                paginationContainer.appendChild(prevItem);
+                
+                // Page numbers
+                const startPage = Math.max(1, AppState.pagination.currentPage - 2);
+                const endPage = Math.min(AppState.pagination.totalPages, AppState.pagination.currentPage + 2);
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageItem = document.createElement('li');
+                    pageItem.className = 'page-item' + (i === AppState.pagination.currentPage ? ' active' : '');
+                    pageItem.innerHTML = `<a class="page-link" href="#" onclick="UserDataManager.changePage(${i})">${i}</a>`;
+                    paginationContainer.appendChild(pageItem);
+                }
+                
+                // Next button
+                const nextItem = document.createElement('li');
+                nextItem.className = 'page-item' + (AppState.pagination.currentPage === AppState.pagination.totalPages ? ' disabled' : '');
+                nextItem.innerHTML = `<a class="page-link" href="#" onclick="UserDataManager.changePage(${AppState.pagination.currentPage + 1})"><i class="fas fa-chevron-right"></i></a>`;
+                paginationContainer.appendChild(nextItem);
+                
+                // Page info
+                const infoItem = document.createElement('li');
+                infoItem.className = 'page-item disabled';
+                const startRecord = ((AppState.pagination.currentPage - 1) * Config.pagination.itemsPerPage) + 1;
+                const endRecord = Math.min(AppState.pagination.currentPage * Config.pagination.itemsPerPage, AppState.filteredUserData.length);
+                infoItem.innerHTML = `<span class="page-link hindi">कुल ${AppState.filteredUserData.length} में से ${startRecord}-${endRecord}</span>`;
+                paginationContainer.appendChild(infoItem);
+            },
+
+            changePage(page) {
+                if (page >= 1 && page <= AppState.pagination.totalPages) {
+                    AppState.pagination.currentPage = page;
+                    this.display();
+                }
+            },
+
+            search() {
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+                const villageFilter = document.getElementById('filterVillage').value;
+                
+                AppState.filteredUserData = AppState.userKhasraData.filter(item => {
+                    const matchesSearch = searchTerm === '' || 
+                        item.villagename.toLowerCase().includes(searchTerm) ||
+                        item.khasra_number.toLowerCase().includes(searchTerm) ||
+                        item.villagecode.toLowerCase().includes(searchTerm);
+                    
+                    const matchesVillage = villageFilter === '' || item.villagename === villageFilter;
+                    
+                    return matchesSearch && matchesVillage;
+                });
+                
+                AppState.pagination.currentPage = 1;
+                this.display();
+                
+                if (AppState.filteredUserData.length === 0) {
+                    UIUtils.showAlert('No Result Found', 'info');
+                }
+            },
+
+            async show() {
+                try {
+                    UIUtils.showLoading('Your Data is Populating...');
+                    
+                    UIUtils.toggleSection('dataEntrySection', 'userDataSection');
+                    await this.load();
+                    
+                    UIUtils.hideLoading();
+                    
+                } catch (error) {
+                    console.error('Error showing user data:', error);
+                    UIUtils.showAlert(`Error in Loading: ${error.message}`, 'danger');
+                    UIUtils.hideLoading();
+                }
+            }
+        };
+
+        // ==================== REPORT MANAGEMENT MODULE ====================
+        const ReportManager = {
+            // FIXED: Show Village Coverage Report - Admin sees all districts, ONLY villages with data
+            async showVillageCoverageReport() {
+                try {
+                    UIUtils.showLoading('Rpt is being Ready...');
+                    
+                    // Get all villages from hierarchy
+                    let villageQuery = Database.buildQuery('village_hierarchy', 'villagecode, villagename, level4name, level5name, districtname');
+                    
+                    // FIXED: Apply district filter for non-admin users
+                    villageQuery = Database.applyDistrictFilter(villageQuery);
+                    
+                    const { data: allVillages, error: villageError } = await villageQuery;
+                    
+                    if (villageError) throw villageError;
+                    
+                    // Get village codes with khasra data
+                    let khasraQuery = Database.buildQuery('khasra_data', 'villagecode, districtname');
+                    
+                    // FIXED: Apply district filter for non-admin users
+                    khasraQuery = Database.applyDistrictFilter(khasraQuery);
+                    
+                    const { data: khasraVillages, error: khasraError } = await khasraQuery;
+                    
+                    if (khasraError) throw khasraError;
+                    
+                    // Count entries per village
+                    const villageCounts = {};
+                    if (khasraVillages) {
+                        khasraVillages.forEach(item => {
+                            villageCounts[item.villagecode] = (villageCounts[item.villagecode] || 0) + 1;
+                        });
+                    }
+                    
+                    // FIXED: Filter to show ONLY villages with data (green dots only)
+                    const villagesWithData = allVillages ? allVillages.filter(village => 
+                        villageCounts[village.villagecode] > 0
+                    ) : [];
+                    
+                    // Calculate statistics
+                    const totalVillages = allVillages ? allVillages.length : 0;
+                    const villagesWithDataCount = villagesWithData.length;
+                    const villagesWithoutData = totalVillages - villagesWithDataCount;
+                    const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithDataCount / totalVillages) * 100) : 0;
+                    
+                    // Populate statistics
+                    const statsContainer = document.getElementById('coverageStats');
+                    statsContainer.innerHTML = 
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${totalVillages}</div>` +
+                            '<div class="stat-label hindi">Total Villages</div>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${villagesWithDataCount}</div>` +
+                            '<div class="stat-label hindi">Villages Having Data</div>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${villagesWithoutData}</div>` +
+                            '<div class="stat-label hindi">Villages without Data</div>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${coveragePercentage}%</div>` +
+                            '<div class="stat-label hindi">Coverage Percentage</div>' +
+                        '</div>';
+                    
+                    // FIXED: Populate coverage table - ONLY villages with data
+                    const tableBody = document.getElementById('coverageTableBody');
+                    tableBody.innerHTML = '';
+                    
+                    if (villagesWithData.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted hindi">No villages with data found</td></tr>';
+                    } else {
+                        villagesWithData.forEach(village => {
+                            const entryCount = villageCounts[village.villagecode] || 0;
+                            
+                            const row = document.createElement('tr');
+                            row.innerHTML = 
+                                '<td>' +
+                                    '<span class="coverage-indicator has-data"></span>' +
+                                    'डेटा उपलब्ध' +
+                                '</td>' +
+                                `<td class="hindi">${village.villagename}</td>` +
+                                `<td>${village.villagecode}</td>` +
+                                `<td class="hindi">${village.level4name || '-'}</td>` +
+                                `<td class="hindi">${village.level5name || '-'}</td>` +
+                                `<td>${entryCount}</td>`;
+                            tableBody.appendChild(row);
+                        });
+                    }
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('villageCoverageModal'));
+                    modal.show();
+                    
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert('Coverage Report Generated', 'success');
+                    
+                } catch (error) {
+                    console.error('Error generating coverage report:', error);
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert(`Error During Report Generation: ${error.message}`, 'danger');
+                }
+            },
+
+            exportCoverageReport() {
+                try {
+                    const table = document.querySelector('#villageCoverageModal table');
+                    
+                    let csv = '\uFEFF'; // UTF-8 BOM
+                    csv += 'स्थिति,गांव का नाम,गांव कोड,स्तर 4,स्तर 5,कुल एंट्री\n';
+                    
+                    const rows = table.querySelectorAll('tbody tr');
+                    rows.forEach(row => {
+                        const cells = row.querySelectorAll('td');
+                        if (cells.length > 1) {
+                            const rowData = [];
+                            cells.forEach(cell => {
+                                let text = cell.textContent.trim();
+                                if (text.includes('डेटा उपलब्ध')) {
+                                    text = 'डेटा उपलब्ध';
+                                }
+                                rowData.push(`"${text}"`);
+                            });
+                            csv += rowData.join(',') + '\n';
+                        }
+                    });
+                    
+                    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement('a');
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', `Village_Coverage_Report_${new Date().toISOString().split('T')[0]}.csv`);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    UIUtils.showAlert('Report Downloaded', 'success');
+                    
+                } catch (error) {
+                    console.error('Error exporting coverage report:', error);
+                    UIUtils.showAlert('Error in Exporting', 'danger');
+                }
+            },
+
+            // FIXED: Show Data Export Modal - Admin sees all districts
+            async showDataExportModal() {
+                try {
+                    let districtQuery = Database.buildQuery('village_hierarchy', 'districtname')
+                        .order('districtname');
+                    
+                    const { data: districts, error } = await districtQuery;
+                    
+                    if (!error && districts) {
+                        const uniqueDistricts = [...new Set(districts.map(d => d.districtname))];
+                        const exportDistrictSelect = document.getElementById('exportDistrict');
+                        exportDistrictSelect.innerHTML = '<option value="">All Districts</option>';
+                        
+                        uniqueDistricts.forEach(district => {
+                            const option = document.createElement('option');
+                            option.value = district;
+                            option.textContent = district;
+                            // For non-admin users, pre-select their district
+                            if (!AppState.isAdmin() && district === AppState.getUserDistrict()) {
+                                option.selected = true;
+                            }
+                            exportDistrictSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Set default dates (last 30 days)
+                    const endDate = new Date();
+                    const startDate = new Date();
+                    startDate.setDate(startDate.getDate() - 30);
+                    
+                    document.getElementById('exportEndDate').value = endDate.toISOString().split('T')[0];
+                    document.getElementById('exportStartDate').value = startDate.toISOString().split('T')[0];
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('dataExportModal'));
+                    modal.show();
+                    
+                } catch (error) {
+                    console.error('Error showing export modal:', error);
+                    UIUtils.showAlert('Error in Opening Export Module', 'danger');
+                }
+            },
+
+            // FIXED: Export Data Function - Admin can export all districts
+            async exportData(format) {
+                try {
+                    const startDate = document.getElementById('exportStartDate').value;
+                    const endDate = document.getElementById('exportEndDate').value;
+                    const selectedDistrict = document.getElementById('exportDistrict').value;
+                    
+                    UIUtils.showLoading('Data is Downloading...');
+                    
+                    let query = Database.buildQuery('khasra_data', 'districtname, level4name, level5name, level6code, villagename, villagecode, khasra_number, created_at, test_users(full_name, username)');
+                    
+                    // FIXED: Apply district filter only for non-admin users or if admin selected specific district
+                    if (!AppState.isAdmin()) {
+                        query = query.eq('districtname', AppState.getUserDistrict());
+                    } else if (selectedDistrict) {
+                        query = query.eq('districtname', selectedDistrict);
+                    }
+                    
+                    // Apply date filters
+                    if (startDate) {
+                        query = query.gte('created_at', startDate + 'T00:00:00');
+                    }
+                    
+                    if (endDate) {
+                        query = query.lte('created_at', endDate + 'T23:59:59');
+                    }
+                    
+                    const { data, error } = await query.order('created_at', { ascending: false });
+                    
+                    if (error) throw error;
+                    
+                    if (!data || data.length === 0) {
+                        UIUtils.hideLoading();
+                        UIUtils.showAlert('No Data for Selected Filter', 'warning');
+                        return;
+                    }
+                    
+                    const exportData = data.map(item => ({
+                        'जिला': item.districtname,
+                        'स्तर 4': item.level4name,
+                        'स्तर 5': item.level5name,
+                        'स्तर 6 कोड': item.level6code,
+                        'गांव का नाम': item.villagename,
+                        'गांव कोड': item.villagecode,
+                        'खसरा नंबर': item.khasra_number,
+                        'उपयोगकर्ता': item.test_users?.full_name || item.test_users?.username || 'N/A',
+                        'एंट्री तारीख': new Date(item.created_at).toLocaleDateString('hi-IN')
+                    }));
+                    
+                    if (format === 'csv') {
+                        this.exportToCSV(exportData);
+                    } else if (format === 'excel') {
+                        this.exportToExcel(exportData);
+                    }
+                    
+                    UIUtils.hideLoading();
+                    
+                } catch (error) {
+                    console.error('Error exporting data:', error);
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert(`Error During Download: ${error.message}`, 'danger');
+                }
+            },
+
+            exportToCSV(data) {
+                const headers = Object.keys(data[0]);
+                
+                let csv = '\uFEFF'; // UTF-8 BOM
+                csv += headers.join(',') + '\n';
+                
+                data.forEach(row => {
+                    const values = headers.map(header => `"${row[header] || ''}"`);
+                    csv += values.join(',') + '\n';
+                });
+                
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
-                link.setAttribute('download', 'Villge_Rpt' + new Date().toISOString().split('T')[0] + '.csv');
+                link.setAttribute('download', `खसरा_डेटा_${new Date().toISOString().split('T')[0]}.csv`);
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
                 
-                showAlert('Report Downloaded', 'success');
-                
-            } catch (error) {
-                console.error('Error exporting coverage report:', error);
-                showAlert('Error in Exporting', 'danger');
-            }
-        }
+                UIUtils.showAlert('CSV File Downloaded', 'success');
+            },
 
-        // Show Data Export Modal
-        async function showDataExportModal() {
-            try {
-                // Populate district filter
-                let districtQuery = supabaseClient
-                    .from('village_hierarchy')
-                    .select('districtname')
-                    .order('districtname');
+            exportToExcel(data) {
+                const headers = Object.keys(data[0]);
                 
-                const { data: districts, error } = await districtQuery;
-                if (!error && districts) {
-                    const uniqueDistricts = [...new Set(districts.map(d => d.districtname))];
-                    const exportDistrictSelect = document.getElementById('exportDistrict');
-                    exportDistrictSelect.innerHTML = '<option value="">All District</option>';
+                let tsv = '\uFEFF'; // UTF-8 BOM
+                tsv += headers.join('\t') + '\n';
+                
+                data.forEach(row => {
+                    const values = headers.map(header => row[header] || '');
+                    tsv += values.join('\t') + '\n';
+                });
+                
+                const blob = new Blob([tsv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `खसरा_डेटा_${new Date().toISOString().split('T')[0]}.xlsx`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                UIUtils.showAlert('Excel File Downloaded', 'success');
+            },
+
+            // FIXED: Show District Report Modal - Admin sees all districts
+            async showDistrictReportModal() {
+                try {
+                    UIUtils.showLoading('Generating District Report...');
                     
-                    uniqueDistricts.forEach(district => {
-                        const option = document.createElement('option');
-                        option.value = district;
-                        option.textContent = district;
-                        if (district === currentUser.districtName) {
-                            option.selected = true;
-                        }
-                        exportDistrictSelect.appendChild(option);
-                    });
-                }
-                
-                // Set default dates (last 30 days)
-                const endDate = new Date();
-                const startDate = new Date();
-                startDate.setDate(startDate.getDate() - 30);
-                
-                document.getElementById('exportEndDate').value = endDate.toISOString().split('T')[0];
-                document.getElementById('exportStartDate').value = startDate.toISOString().split('T')[0];
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('dataExportModal'));
-                modal.show();
-                
-            } catch (error) {
-                console.error('Error showing export modal:', error);
-                showAlert('Error in Downloading Module', 'danger');
-            }
-        }
-
-        // Export Data Function (Fixed)
-        async function exportData(format) {
-            try {
-                const startDate = document.getElementById('exportStartDate').value;
-                const endDate = document.getElementById('exportEndDate').value;
-                const selectedDistrict = document.getElementById('exportDistrict').value;
-                
-                showLoading('Data is Downloading...');
-                
-                // Build query
-                let query = supabaseClient
-                    .from('khasra_data')
-                    .select('districtname, level4name, level5name, level6code, villagename, villagecode, khasra_number, created_at, test_users(full_name, username)');
-                
-                // Apply filters
-                // Apply district filter only for non-admin users or if admin selected specific district
-                if (currentUser.role !== 'admin') {
-                    query = query.eq('districtname', currentUser.districtName);
-                } else if (selectedDistrict) {
-                    query = query.eq('districtname', selectedDistrict);
-                }
-
-                if (startDate) {
-                    query = query.gte('created_at', startDate + 'T00:00:00');
-                }
-                
-                if (endDate) {
-                    query = query.lte('created_at', endDate + 'T23:59:59');
-                }
-                
-                const { data, error } = await query.order('created_at', { ascending: false });
-                
-                if (error) throw error;
-                
-                if (!data || data.length === 0) {
-                    hideLoading();
-                    showAlert('No Data for Selected Filter', 'warning');
-                    return;
-                }
-                
-                // Prepare data for export
-                const exportData = data.map(item => ({
-                    'जिला': item.districtname,
-                    'स्तर 4': item.level4name,
-                    'स्तर 5': item.level5name,
-                    'स्तर 6 कोड': item.level6code,
-                    'गांव का नाम': item.villagename,
-                    'गांव कोड': item.villagecode,
-                    'खसरा नंबर': item.khasra_number,
-                    'उपयोगकर्ता': item.test_users?.full_name || item.test_users?.username || 'N/A',
-                    'एंट्री तारीख': new Date(item.created_at).toLocaleDateString('hi-IN')
-                }));
-                
-                if (format === 'csv') {
-                    exportToCSV(exportData);
-                } else if (format === 'excel') {
-                    exportToExcel(exportData);
-                }
-                
-                hideLoading();
-                
-            } catch (error) {
-                console.error('Error exporting data:', error);
-                hideLoading();
-                showAlert('Error During Downloading: ' + error.message, 'danger');
-            }
-        }
-
-        // Export to CSV (Fixed)
-        function exportToCSV(data) {
-            const headers = Object.keys(data[0]);
-            
-            // Create CSV with UTF-8 BOM
-            let csv = '\uFEFF'; // UTF-8 BOM for proper Hindi display
-            csv += headers.join(',') + '\n';
-            
-            data.forEach(row => {
-                const values = headers.map(header => '"' + (row[header] || '') + '"');
-                csv += values.join(',') + '\n';
-            });
-            
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'खसरा_डेटा_' + new Date().toISOString().split('T')[0] + '.csv');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showAlert('CSV File Downloaded', 'success');
-        }
-
-        // Export to Excel (Fixed)
-        function exportToExcel(data) {
-            const headers = Object.keys(data[0]);
-            
-            // Create tab-separated values with UTF-8 BOM
-            let tsv = '\uFEFF'; // UTF-8 BOM
-            tsv += headers.join('\t') + '\n';
-            
-            data.forEach(row => {
-                const values = headers.map(header => row[header] || '');
-                tsv += values.join('\t') + '\n';
-            });
-            
-            const blob = new Blob([tsv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', 'खसरा_डेटा_' + new Date().toISOString().split('T')[0] + '.xlsx');
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            showAlert('Excel File Downloaded', 'success');
-        }
-
-        // Show District Report Modal (Fixed)
-        async function showDistrictReportModal() {
-            try {
-                showLoading('Generating District Report...');
-                
-                // Populate district dropdown
-                const { data: districts, error } = await supabaseClient
-                    .from('village_hierarchy')
-                    .select('districtname')
-                    .order('districtname');
-                
-                if (!error && districts) {
-                    const uniqueDistricts = [...new Set(districts.map(d => d.districtname))];
-                    const reportDistrictSelect = document.getElementById('reportDistrict');
-                    reportDistrictSelect.innerHTML = '<option value="">-- जिला चुनें --</option>';
+                    let districtQuery = Database.buildQuery('village_hierarchy', 'districtname')
+                        .order('districtname');
                     
-                    uniqueDistricts.forEach(district => {
-                        const option = document.createElement('option');
-                        option.value = district;
-                        option.textContent = district;
-                        if (district === currentUser.districtName) {
-                            option.selected = true;
-                        }
-                        reportDistrictSelect.appendChild(option);
-                    });
-                }
-                
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('districtReportModal'));
-                modal.show();
-                
-                // Generate initial report for user's district
-                if (currentUser.districtName) {
-                    await generateDistrictReportData(currentUser.districtName, 30);
-                }
-                
-                hideLoading();
-                
-            } catch (error) {
-                console.error('Error showing district report modal:', error);
-                hideLoading();
-                showAlert('Error in Opening District Module', 'danger');
-            }
-        }
-
-        // Generate District Report Data (Fixed)
-        async function generateDistrictReportData(district, days) {
-            try {
-                showLoading('Generating District Report...');
-                
-                let dateFilter = null;
-                if (days !== 'all') {
-                    const startDate = new Date();
-                    startDate.setDate(startDate.getDate() - parseInt(days));
-                    dateFilter = startDate.toISOString();
-                }
-                
-                // Get district statistics with user info
-                let query = supabaseClient
-                    .from('khasra_data')
-                    .select('id, villagecode, villagename, created_at, test_users(full_name, username)')
-                    .eq('districtname', district)
-                    .limit(1000); // Limit to prevent browser freeze
-                
-                if (dateFilter) {
-                    query = query.gte('created_at', dateFilter);
-                }
-                
-                const { data: khasraData, error } = await query;
-                
-                if (error) throw error;
-                
-                // Calculate statistics
-                const totalEntries = khasraData ? khasraData.length : 0;
-                const uniqueVillages = khasraData ? new Set(khasraData.map(item => item.villagecode)).size : 0;
-                const uniqueUsers = khasraData ? new Set(khasraData.map(item => item.test_users?.username)).size : 0;
-                
-                // User-wise statistics
-                const userStats = {};
-                const villageStats = {};
-                
-                if (khasraData) {
-                    khasraData.forEach(item => {
-                        const userName = item.test_users?.full_name || item.test_users?.username || 'Unknown';
-                        const villageName = item.villagename;
+                    const { data: districts, error } = await districtQuery;
+                    
+                    if (!error && districts) {
+                        const uniqueDistricts = [...new Set(districts.map(d => d.districtname))];
+                        const reportDistrictSelect = document.getElementById('reportDistrict');
+                        reportDistrictSelect.innerHTML = '<option value="">-- जिला चुनें --</option>';
                         
-                        if (!userStats[userName]) {
-                            userStats[userName] = { count: 0, lastEntry: item.created_at };
-                        }
-                        userStats[userName].count++;
-                        if (new Date(item.created_at) > new Date(userStats[userName].lastEntry)) {
-                            userStats[userName].lastEntry = item.created_at;
-                        }
-                        
-                        if (!villageStats[villageName]) {
-                            villageStats[villageName] = { count: 0, lastEntry: item.created_at };
-                        }
-                        villageStats[villageName].count++;
-                        if (new Date(item.created_at) > new Date(villageStats[villageName].lastEntry)) {
-                            villageStats[villageName].lastEntry = item.created_at;
+                        uniqueDistricts.forEach(district => {
+                            const option = document.createElement('option');
+                            option.value = district;
+                            option.textContent = district;
+                            // For non-admin users, pre-select and show only their district
+                            if (!AppState.isAdmin()) {
+                                if (district === AppState.getUserDistrict()) {
+                                    option.selected = true;
+                                } else {
+                                    return; // Skip other districts for non-admin users
+                                }
+                            } else if (district === AppState.getUserDistrict()) {
+                                option.selected = true;
+                            }
+                            reportDistrictSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('districtReportModal'));
+                    modal.show();
+                    
+                    // Generate initial report
+                    const initialDistrict = AppState.getUserDistrict();
+                    if (initialDistrict) {
+                        await this.generateDistrictReportData(initialDistrict, 30);
+                    }
+                    
+                    UIUtils.hideLoading();
+                    
+                } catch (error) {
+                    console.error('Error showing district report modal:', error);
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert('Error in Opening District Module', 'danger');
+                }
+            },
+
+            // FIXED: Generate District Report Data - Admin can see any district
+            async generateDistrictReportData(district, days) {
+                try {
+                    UIUtils.showLoading('Generating District Report...');
+                    
+                    let dateFilter = null;
+                    if (days !== 'all') {
+                        const startDate = new Date();
+                        startDate.setDate(startDate.getDate() - parseInt(days));
+                        dateFilter = startDate.toISOString();
+                    }
+                    
+                    let query = Database.buildQuery('khasra_data', 'id, villagecode, villagename, created_at, test_users(full_name, username)')
+                        .eq('districtname', district)
+                        .limit(1000);
+                    
+                    if (dateFilter) {
+                        query = query.gte('created_at', dateFilter);
+                    }
+                    
+                    const { data: khasraData, error } = await query;
+                    
+                    if (error) throw error;
+                    
+                    // Calculate statistics
+                    const totalEntries = khasraData ? khasraData.length : 0;
+                    const uniqueVillages = khasraData ? new Set(khasraData.map(item => item.villagecode)).size : 0;
+                    const uniqueUsers = khasraData ? new Set(khasraData.map(item => item.test_users?.username)).size : 0;
+                    
+                    // User-wise and village-wise statistics
+                    const userStats = {};
+                    const villageStats = {};
+                    
+                    if (khasraData) {
+                        khasraData.forEach(item => {
+                            const userName = item.test_users?.full_name || item.test_users?.username || 'Unknown';
+                            const villageName = item.villagename;
+                            
+                            if (!userStats[userName]) {
+                                userStats[userName] = { count: 0, lastEntry: item.created_at };
+                            }
+                            userStats[userName].count++;
+                            if (new Date(item.created_at) > new Date(userStats[userName].lastEntry)) {
+                                userStats[userName].lastEntry = item.created_at;
+                            }
+                            
+                            if (!villageStats[villageName]) {
+                                villageStats[villageName] = { count: 0, lastEntry: item.created_at };
+                            }
+                            villageStats[villageName].count++;
+                            if (new Date(item.created_at) > new Date(villageStats[villageName].lastEntry)) {
+                                villageStats[villageName].lastEntry = item.created_at;
+                            }
+                        });
+                    }
+                    
+                    // Populate statistics
+                    const statsContainer = document.getElementById('districtStats');
+                    statsContainer.innerHTML = 
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${totalEntries}</div>` +
+                            '<div class="stat-label hindi">Total Entries</div>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${uniqueVillages}</div>` +
+                            '<div class="stat-label hindi">Villages Covered</div>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${uniqueUsers}</div>` +
+                            '<div class="stat-label hindi">Active Users</div>' +
+                        '</div>' +
+                        '<div class="stat-card">' +
+                            `<div class="stat-number">${uniqueVillages > 0 ? Math.round(totalEntries / uniqueVillages) : 0}</div>` +
+                            '<div class="stat-label hindi">Average Entries</div>' +
+                        '</div>';
+                    
+                    // Populate user stats table
+                    const userStatsTable = document.getElementById('userStatsTable');
+                    userStatsTable.innerHTML = '';
+                    
+                    Object.entries(userStats)
+                        .sort(([,a], [,b]) => b.count - a.count)
+                        .slice(0, 10)
+                        .forEach(([userName, stats]) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = 
+                                `<td class="hindi">${userName}</td>` +
+                                `<td>${stats.count}</td>` +
+                                `<td>${new Date(stats.lastEntry).toLocaleDateString('hi-IN')}</td>`;
+                            userStatsTable.appendChild(row);
+                        });
+                    
+                    // Populate village stats table
+                    const villageStatsTable = document.getElementById('villageStatsTable');
+                    villageStatsTable.innerHTML = '';
+                    
+                    Object.entries(villageStats)
+                        .sort(([,a], [,b]) => b.count - a.count)
+                        .slice(0, 10)
+                        .forEach(([villageName, stats]) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = 
+                                `<td class="hindi">${villageName}</td>` +
+                                `<td>${stats.count}</td>` +
+                                `<td>${new Date(stats.lastEntry).toLocaleDateString('hi-IN')}</td>`;
+                            villageStatsTable.appendChild(row);
+                        });
+                    
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert('District Report Generated', 'success');
+                    
+                } catch (error) {
+                    console.error('Error generating district report:', error);
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert(`Error during generation: ${error.message}`, 'danger');
+                }
+            },
+
+            generateDistrictReport() {
+                const selectedDistrict = document.getElementById('reportDistrict').value;
+                const selectedDays = document.getElementById('reportDateRange').value;
+                
+                if (selectedDistrict) {
+                    this.generateDistrictReportData(selectedDistrict, selectedDays);
+                } else {
+                    UIUtils.showAlert('Please Select District', 'warning');
+                }
+            }
+        };
+
+        // ==================== AUTHENTICATION MODULE ====================
+        const AuthManager = {
+            async checkAuthentication() {
+                try {
+                    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                    
+                    if (!storedUser) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    
+                    AppState.setCurrentUser(JSON.parse(storedUser));
+                    console.log('Current user:', AppState.currentUser);
+                    
+                    // Update UI with user info
+                    document.getElementById('userFullName').textContent = AppState.currentUser.fullName || AppState.currentUser.username || 'उपयोगकर्ता';
+                    document.getElementById('userDistrict').textContent = AppState.getUserDistrict() || 'N/A';
+                    document.getElementById('breadcrumbDistrict').textContent = `जिला: \${AppState.getUserDistrict() || 'N/A'}`;
+                    
+                    this.setupUIBasedOnRole();
+                    await VillageManager.loadHierarchy();
+                    
+                } catch (error) {
+                    console.error('Authentication error:', error);
+                    UIUtils.showAlert('Credential Mistake,कृपया पुनः लॉगिन करें।', 'danger');
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                }
+            },
+
+            setupUIBasedOnRole() {
+                const adminSection = document.getElementById('adminReportSection');
+                const userSection = document.getElementById('userDistrictSection');
+                
+                if (AppState.isAdmin()) {
+                    // Show admin report dropdown
+                    adminSection.style.display = 'block';
+                    userSection.style.display = 'none';
+                    console.log('Admin user detected - showing report dropdown');
+                } else {
+                    // Show user district entry button  
+                    adminSection.style.display = 'none';
+                    userSection.style.display = 'block';
+                    console.log('Regular user detected - showing district entry button');
+                }
+            },
+
+            handleLogout() {
+                if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                    localStorage.removeItem('user');
+                    sessionStorage.removeItem('user');
+                    window.location.href = 'login.html';
+                }
+            }
+        };
+
+        // ==================== EVENT HANDLERS MODULE ====================
+        const EventHandlers = {
+            init() {
+                // Data Entry Event Listeners
+                document.getElementById('level4Select').addEventListener('change', () => VillageManager.handleLevel4Change());
+                document.getElementById('level5Select').addEventListener('change', () => VillageManager.handleLevel5Change());
+                document.getElementById('selectAllBtn').addEventListener('click', () => VillageManager.selectAllVillages());
+                document.getElementById('deselectAllBtn').addEventListener('click', () => VillageManager.deselectAllVillages());
+                document.getElementById('saveDataBtn').addEventListener('click', () => KhasraManager.saveKhasraData());
+                document.getElementById('resetFormBtn').addEventListener('click', () => KhasraManager.resetForm());
+                document.getElementById('logoutBtn').addEventListener('click', () => AuthManager.handleLogout());
+                
+                // User District Entry Button
+                document.getElementById('districtEntryBtn').addEventListener('click', () => UserDataManager.show());
+                
+                // Admin Report Buttons (only if elements exist)
+                const villageCoverageBtn = document.getElementById('villageCoverageBtn');
+                const dataExportBtn = document.getElementById('dataExportBtn');
+                const districtReportBtn = document.getElementById('districtReportBtn');
+                
+                if (villageCoverageBtn) {
+                    villageCoverageBtn.addEventListener('click', () => ReportManager.showVillageCoverageReport());
+                }
+                if (dataExportBtn) {
+                    dataExportBtn.addEventListener('click', () => ReportManager.showDataExportModal());
+                }
+                if (districtReportBtn) {
+                    districtReportBtn.addEventListener('click', () => ReportManager.showDistrictReportModal());
+                }
+                
+                // District report change handlers
+                const reportDistrictSelect = document.getElementById('reportDistrict');
+                const reportDateRangeSelect = document.getElementById('reportDateRange');
+                
+                if (reportDistrictSelect) {
+                    reportDistrictSelect.addEventListener('change', function() {
+                        const selectedDistrict = this.value;
+                        const selectedDays = reportDateRangeSelect.value;
+                        if (selectedDistrict) {
+                            ReportManager.generateDistrictReportData(selectedDistrict, selectedDays);
                         }
                     });
                 }
                 
-                // Populate statistics - FIXED
-                const statsContainer = document.getElementById('districtStats');
-                statsContainer.innerHTML = 
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + totalEntries + '</div>' +
-                        '<div class="stat-label hindi">Total Entries</div>' +
-                    '</div>' +
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + uniqueVillages + '</div>' +
-                        '<div class="stat-label hindi">Village Covered</div>' +
-                    '</div>' +
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + uniqueUsers + '</div>' +
-                        '<div class="stat-label hindi">Active Users</div>' +
-                    '</div>' +
-                    '<div class="stat-card">' +
-                        '<div class="stat-number">' + (uniqueVillages > 0 ? Math.round(totalEntries / uniqueVillages) : 0) + '</div>' +
-                        '<div class="stat-label hindi">Average Entries</div>' +
-                    '</div>';
-                
-                // Populate user stats table - FIXED
-                const userStatsTable = document.getElementById('userStatsTable');
-                userStatsTable.innerHTML = '';
-                
-                Object.entries(userStats)
-                    .sort(([,a], [,b]) => b.count - a.count)
-                    .slice(0, 10)
-                    .forEach(([userName, stats]) => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = 
-                            '<td class="hindi">' + userName + '</td>' +
-                            '<td>' + stats.count + '</td>' +
-                            '<td>' + new Date(stats.lastEntry).toLocaleDateString('hi-IN') + '</td>';
-                        userStatsTable.appendChild(row);
+                if (reportDateRangeSelect) {
+                    reportDateRangeSelect.addEventListener('change', function() {
+                        const selectedDistrict = reportDistrictSelect.value;
+                        const selectedDays = this.value;
+                        if (selectedDistrict) {
+                            ReportManager.generateDistrictReportData(selectedDistrict, selectedDays);
+                        }
                     });
+                }
                 
-                // Populate village stats table - FIXED
-                const villageStatsTable = document.getElementById('villageStatsTable');
-                villageStatsTable.innerHTML = '';
+                // Search functionality for user data
+                document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        UserDataManager.search();
+                    }
+                });
                 
-                Object.entries(villageStats)
-                    .sort(([,a], [,b]) => b.count - a.count)
-                    .slice(0, 10)
-                    .forEach(([villageName, stats]) => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = 
-                            '<td class="hindi">' + villageName + '</td>' +
-                            '<td>' + stats.count + '</td>' +
-                            '<td>' + new Date(stats.lastEntry).toLocaleDateString('hi-IN') + '</td>';
-                        villageStatsTable.appendChild(row);
-                    });
+                document.getElementById('filterVillage').addEventListener('change', () => UserDataManager.search());
                 
-                hideLoading();
-                showAlert('District Report Ready।', 'success');
+                // Keyboard shortcuts
+                document.addEventListener('keydown', function(e) {
+                    // Ctrl + S to save
+                    if (e.ctrlKey && e.key === 's') {
+                        e.preventDefault();
+                        const saveBtn = document.getElementById('saveDataBtn');
+                        if (saveBtn && saveBtn.style.display !== 'none' && !saveBtn.disabled) {
+                            KhasraManager.saveKhasraData();
+                        }
+                    }
+                    
+                    // Ctrl + R to reset
+                    if (e.ctrlKey && e.key === 'r') {
+                        e.preventDefault();
+                        KhasraManager.resetForm();
+                    }
+                    
+                    // Escape to deselect all
+                    if (e.key === 'Escape') {
+                        VillageManager.deselectAllVillages();
+                    }
+                    
+                    // Ctrl + D for district entry (users only)
+                    if (e.ctrlKey && e.key === 'd' && AppState.currentUser && !AppState.isAdmin()) {
+                        e.preventDefault();
+                        UserDataManager.show();
+                    }
+                });
                 
-            } catch (error) {
-                console.error('Error generating district report:', error);
-                hideLoading();
-                showAlert('Error during generation: ' + error.message, 'danger');
+                // Page unload warning
+                window.addEventListener('beforeunload', function(e) {
+                    const khasraData = KhasraManager.collectKhasraData();
+                    if (khasraData.length > 0) {
+                        e.preventDefault();
+                        e.returnValue = 'Your data is not process successfully, Do you realy Exit from page?';
+                    }
+                });
+                
+                // Network status monitoring
+                window.addEventListener('online', () => UIUtils.showAlert('Internet Connection Restored', 'success'));
+                window.addEventListener('offline', () => UIUtils.showAlert('No Internet', 'warning'));
+                
+                // Error boundaries
+                window.addEventListener('error', function(e) {
+                    console.error('Unhandled error:', e.error);
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert('Server Error .... Refresh the Page', 'danger');
+                });
+                
+                window.addEventListener('unhandledrejection', function(e) {
+                    console.error('Unhandled promise rejection:', e.reason);
+                    UIUtils.hideLoading();
+                    UIUtils.showAlert('Error in Data Loading, Try after sometimes', 'warning');
+                });
+                
+                console.log('All event listeners attached');
             }
-        }
+        };
 
-        // Generate District Report (triggered by dropdown changes)
-        function generateDistrictReport() {
-            const selectedDistrict = document.getElementById('reportDistrict').value;
-            const selectedDays = document.getElementById('reportDateRange').value;
-            
-            if (selectedDistrict) {
-                generateDistrictReportData(selectedDistrict, selectedDays);
-            } else {
-                showAlert('Please Select District', 'warning');
+        // ==================== APPLICATION INITIALIZATION ====================
+        const App = {
+            async init() {
+                try {
+                    console.log('🚀 Initializing Khasra Data Entry System...');
+                    
+                    // Initialize database connection
+                    Database.init();
+                    
+                    // Setup event handlers
+                    EventHandlers.init();
+                    
+                    // Check authentication and setup UI
+                    await AuthManager.checkAuthentication();
+                    
+                    console.log('✅ Application initialized successfully');
+                    
+                } catch (error) {
+                    console.error('❌ Application initialization failed:', error);
+                    UIUtils.showAlert('Application failed to initialize', 'danger');
+                }
             }
-        }
+        };
 
-        // Event listeners
+        // ==================== DOM READY ====================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM Content Loaded');
-            
-            // Check authentication and setup UI
-            checkAuthentication();
-            
-            // Data Entry Event Listeners
-            document.getElementById('level4Select').addEventListener('change', handleLevel4Change);
-            document.getElementById('level5Select').addEventListener('change', handleLevel5Change);
-            document.getElementById('selectAllBtn').addEventListener('click', selectAllVillages);
-            document.getElementById('deselectAllBtn').addEventListener('click', deselectAllVillages);
-            document.getElementById('saveDataBtn').addEventListener('click', saveKhasraData);
-            document.getElementById('resetFormBtn').addEventListener('click', resetForm);
-            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-            
-            // User District Entry Button
-            document.getElementById('districtEntryBtn').addEventListener('click', showUserDistrictData);
-            
-            // Admin Report Buttons (only if elements exist)
-            const villageCoverageBtn = document.getElementById('villageCoverageBtn');
-            const dataExportBtn = document.getElementById('dataExportBtn');
-            const districtReportBtn = document.getElementById('districtReportBtn');
-            
-            if (villageCoverageBtn) {
-                villageCoverageBtn.addEventListener('click', showVillageCoverageReport);
-            }
-            if (dataExportBtn) {
-                dataExportBtn.addEventListener('click', showDataExportModal);
-            }
-            if (districtReportBtn) {
-                districtReportBtn.addEventListener('click', showDistrictReportModal);
-            }
-            
-            // District report change handlers
-            const reportDistrictSelect = document.getElementById('reportDistrict');
-            const reportDateRangeSelect = document.getElementById('reportDateRange');
-            
-            if (reportDistrictSelect) {
-                reportDistrictSelect.addEventListener('change', function() {
-                    const selectedDistrict = this.value;
-                    const selectedDays = reportDateRangeSelect.value;
-                    if (selectedDistrict) {
-                        generateDistrictReportData(selectedDistrict, selectedDays);
-                    }
-                });
-            }
-            
-            if (reportDateRangeSelect) {
-                reportDateRangeSelect.addEventListener('change', function() {
-                    const selectedDistrict = reportDistrictSelect.value;
-                    const selectedDays = this.value;
-                    if (selectedDistrict) {
-                        generateDistrictReportData(selectedDistrict, selectedDays);
-                    }
-                });
-            }
-            
-            // Search functionality for user data
-            document.getElementById('searchInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchUserData();
-                }
-            });
-            
-            document.getElementById('filterVillage').addEventListener('change', searchUserData);
-            
-            console.log('All event listeners attached');
+            App.init();
         });
 
-        // Handle page unload
-        window.addEventListener('beforeunload', function(e) {
-            const khasraData = collectKhasraData();
-            if (khasraData.length > 0) {
-                e.preventDefault();
-                e.returnValue = 'Your data is not process successfully, Do you realy Exit from page?';
-            }
-        });
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', function(e) {
-            // Ctrl + S to save
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                const saveBtn = document.getElementById('saveDataBtn');
-                if (saveBtn && saveBtn.style.display !== 'none' && !saveBtn.disabled) {
-                    saveKhasraData();
-                }
-            }
-            
-            // Ctrl + R to reset
-            if (e.ctrlKey && e.key === 'r') {
-                e.preventDefault();
-                resetForm();
-            }
-            
-            // Escape to deselect all
-            if (e.key === 'Escape') {
-                deselectAllVillages();
-            }
-            
-            // Ctrl + D for district entry (users only)
-            if (e.ctrlKey && e.key === 'd' && currentUser && currentUser.role !== 'admin') {
-                e.preventDefault();
-                showUserDistrictData();
-            }
-        });
-
-        // Add error boundary
-        window.addEventListener('error', function(e) {
-            console.error('Unhandled error:', e.error);
-            hideLoading();
-            showAlert('Server Error .... Refresh the Page', 'danger');
-        });
-
-        // Add promise rejection handler
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('Unhandled promise rejection:', e.reason);
-            hideLoading();
-            showAlert('Error in Data Loading, Try after sometimes', 'warning');
-        });
-
-        // Network status monitoring
-        window.addEventListener('online', function() {
-            showAlert('Internet Connection Restored', 'success');
-        });
-
-        window.addEventListener('offline', function() {
-            showAlert('No Internet', 'warning');
-        });
-
-        // Console welcome message
+        // ==================== CONSOLE WELCOME MESSAGE ====================
         console.log(`
         ╔══════════════════════════════════════════════════════════════╗
         ║                     खसरा डेटा एंट्री सिस्टम                  ║
-        ║                    Khasra Data Entry System                  ║
+        ║                 Khasra Data Entry System (MODULAR)           ║
         ║                                                              ║
         ║  🌾 Village Hierarchy Integration Active                    ║
         ║  📊 Multi-Village Khasra Entry Enabled                      ║
         ║  🔒 User Authentication & Authorization                      ║
-        ║  👥 Role-Based Access Control                               ║
+        ║  👥 Role-Based Access Control (FIXED)                      ║
         ║  💾 Auto-Save & Validation Features                         ║
-        ║  📈 Advanced Reporting System (Admin)                       ║
+        ║  📈 Advanced Reporting System (Admin - All Districts)       ║
         ║  📋 Personal Data View (Users)                              ║
         ║                                                              ║
-        ║  Admin Features:                                            ║
-        ║  • Village Coverage Analysis                                ║
-        ║  • Data Export (CSV/Excel)                                  ║
-        ║  • District-wise Reports                                    ║
+        ║  MODULAR ARCHITECTURE:                                      ║
+        ║  • Config Module - Configuration management                 ║
+        ║  • AppState Module - State management                       ║
+        ║  • UIUtils Module - UI utilities                            ║
+        ║  • Database Module - Data access layer                      ║
+        ║  • VillageManager Module - Village operations               ║
+        ║  • KhasraManager Module - Khasra operations                 ║
+        ║  • UserDataManager Module - User data management            ║
+        ║  • ReportManager Module - Report generation                 ║
+        ║  • AuthManager Module - Authentication                      ║
+        ║  • EventHandlers Module - Event management                  ║
+        ║                                                              ║
+        ║  Admin Features (FIXED):                                    ║
+        ║  • Village Coverage Analysis (All Districts)                ║
+        ║  • Data Export (CSV/Excel) (All Districts)                  ║
+        ║  • District-wise Reports (All Districts)                    ║
+        ║  • Shows ONLY villages with data (Green dots)               ║
         ║                                                              ║
         ║  User Features:                                             ║
         ║  • Personal Data Entry View                                 ║
@@ -2454,72 +2433,108 @@
         ║  • Ctrl + D: District Entry (Users)                        ║
         ║  • Escape: Deselect All Villages                            ║
         ║                                                              ║
+        ║  FIXES APPLIED:                                             ║
+        ║  ✅ Admin can see ALL districts data                        ║
+        ║  ✅ Village coverage shows ONLY villages with data          ║
+        ║  ✅ All export functions work for all districts (Admin)     ║
+        ║  ✅ District reports show all districts (Admin)             ║
+        ║  ✅ Regular users still restricted to their district        ║
+        ║  ✅ Modular architecture for easy maintenance               ║
+        ║                                                              ║
+        ║  LEARNING BENEFITS:                                         ║
+        ║  • Easy to understand individual modules                    ║
+        ║  • Easy to modify specific functionality                    ║
+        ║  • Easy to debug issues                                     ║
+        ║  • Easy to add new features                                 ║
+        ║                                                              ║
         ║  For technical support: diagri-cg@cg.gov.in                ║
         ╚══════════════════════════════════════════════════════════════╝
         `);
 
-        // Development helpers (remove in production)
+        // ==================== DEVELOPMENT HELPERS ====================
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             window.debugHelpers = {
-                getCurrentUser: () => currentUser,
-                getVillageData: () => villageHierarchyData,
-                getSelectedVillages: () => selectedVillages,
-                getUserKhasraData: () => userKhasraData,
-                collectKhasraData: collectKhasraData,
-                resetForm: resetForm,
-                showUserData: showUserDistrictData,
+                // State helpers
+                getCurrentUser: () => AppState.currentUser,
+                getVillageData: () => AppState.villageHierarchyData,
+                getSelectedVillages: () => AppState.selectedVillages,
+                getUserKhasraData: () => AppState.userKhasraData,
+                
+                // Module helpers
+                Config,
+                AppState,
+                UIUtils,
+                Database,
+                VillageManager,
+                KhasraManager,
+                UserDataManager,
+                ReportManager,
+                AuthManager,
+                
+                // Quick actions
                 testSave: () => {
-                    console.log('Test data:', collectKhasraData());
+                    console.log('Test data:', KhasraManager.collectKhasraData());
                 },
-                // Admin functions
-                showCoverageReport: showVillageCoverageReport,
-                showExportModal: showDataExportModal,
-                showDistrictReport: showDistrictReportModal,
-                // User functions
-                searchData: searchUserData,
-                changePage: changePage
+                resetApp: () => {
+                    KhasraManager.resetForm();
+                },
+                showUserData: () => {
+                    UserDataManager.show();
+                },
+                testAdminAccess: () => {
+                    console.log('Current user role:', AppState.currentUser?.role);
+                    console.log('Is admin:', AppState.isAdmin());
+                    console.log('Should see all districts:', AppState.isAdmin());
+                }
             };
+            
             console.log('🛠️ Debug helpers available in window.debugHelpers');
-            console.log('Available commands:');
-            console.log('- debugHelpers.getCurrentUser()');
-            console.log('- debugHelpers.showUserData()');
-            console.log('- debugHelpers.searchData()');
-            if (currentUser && currentUser.role === 'admin') {
-                console.log('- debugHelpers.showCoverageReport()');
-                console.log('- debugHelpers.showExportModal()');
-                console.log('- debugHelpers.showDistrictReport()');
-            }
+            console.log('📚 Available modules and methods:');
+            console.log('• debugHelpers.Config - Configuration');
+            console.log('• debugHelpers.AppState - Application state');
+            console.log('• debugHelpers.UIUtils - UI utilities');
+            console.log('• debugHelpers.VillageManager - Village operations');
+            console.log('• debugHelpers.KhasraManager - Khasra operations');
+            console.log('• debugHelpers.UserDataManager - User data management');
+            console.log('• debugHelpers.ReportManager - Report generation');
+            console.log('• debugHelpers.testAdminAccess() - Test admin permissions');
         }
 
-        // Performance monitoring
+        // ==================== PERFORMANCE MONITORING ====================
         function logPerformance() {
             if (window.performance && window.performance.timing) {
                 const timing = window.performance.timing;
                 const loadTime = timing.loadEventEnd - timing.navigationStart;
-                console.log('Page load time: ' + loadTime + 'ms');
+                console.log(`⚡ Page load time: ${loadTime}ms`);
             }
         }
 
-        // Log performance on load
         window.addEventListener('load', logPerformance);
 
-        // Memory usage monitoring (for large datasets)
+        // Memory usage monitoring
         function checkMemoryUsage() {
             if (window.performance && window.performance.memory) {
                 const memory = window.performance.memory;
                 const usedMB = Math.round(memory.usedJSHeapSize / 1048576);
                 const totalMB = Math.round(memory.totalJSHeapSize / 1048576);
-                console.log('Memory usage: ' + usedMB + 'MB / ' + totalMB + 'MB');
+                console.log(`💾 Memory usage: ${usedMB}MB / ${totalMB}MB`);
                 
-                // Warning if memory usage is high
                 if (usedMB > 100) {
-                    console.warn('High memory usage detected. Consider optimizing data handling.');
+                    console.warn('⚠️ High memory usage detected. Consider optimizing data handling.');
                 }
             }
         }
 
-        // Check memory usage every 5 minutes
-        setInterval(checkMemoryUsage, 5 * 60 * 1000);
+        setInterval(checkMemoryUsage, 5 * 60 * 1000); // Check every 5 minutes
+
+        console.log('🎉 MODULAR KHASRA DATA ENTRY SYSTEM LOADED SUCCESSFULLY!');
+        console.log('✅ ALL ADMIN FIXES APPLIED');
+        console.log('🔧 MODULAR ARCHITECTURE IMPLEMENTED');
+        console.log('📚 PERFECT FOR LEARNING AND MAINTENANCE');
+        
     </script>
 </body>
 </html>
+
+                
+
