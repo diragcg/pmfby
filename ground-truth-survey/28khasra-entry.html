@@ -802,7 +802,7 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
-                                    <th class="hindi">District</th>
+                                    <th class="hindi">District/th>
                                     <th class="hindi">Tehsil</th>
                                     <th class="hindi">RIName</th>
                                     <th class="hindi">Village Name</th>
@@ -1109,9 +1109,14 @@
             }
         }
 
-        // FIXED: Load village hierarchy data - Admin sees all districts, users see only their district
+        // Load village hierarchy data
         async function loadVillageHierarchy() {
             try {
+                if (!currentUser || !currentUser.districtName) {
+                    showAlert('उपयोगकर्ता जिला जानकारी उपलब्ध नहीं है।', 'warning');
+                    return;
+                }
+
                 showAlert('Data is Loading...', 'info');
                 
                 let query = supabaseClient
@@ -1129,6 +1134,7 @@
                 }
                 
                 const { data, error } = await query;
+
                 
                 if (error) {
                     console.error('Supabase error:', error);
@@ -1139,10 +1145,7 @@
                 console.log('Loaded village hierarchy data:', villageHierarchyData.length, 'records');
                 
                 if (villageHierarchyData.length === 0) {
-                    const message = currentUser.role === 'admin' 
-                        ? 'No village data found in system' 
-                        : 'जिला "' + currentUser.districtName + '" No Data Found';
-                    showAlert(message, 'warning');
+                    showAlert('जिला "' + currentUser.districtName + '" No Data Found', 'warning');
                     return;
                 }
                 
@@ -1615,7 +1618,7 @@
             }
         }
 
-        // FIXED: Load user's khasra data - Admin sees all users' data
+        // Load user's khasra data
         async function loadUserKhasraData() {
             try {
                 let query = supabaseClient
@@ -1629,7 +1632,6 @@
                 }
                 
                 const { data, error } = await query;
-                
                 if (error) throw error;
                 
                 userKhasraData = data || [];
@@ -1786,7 +1788,7 @@
 
         // ADMIN REPORT FUNCTIONS (Fixed)
 
-        // FIXED: Show Village Coverage Report - Admin sees all districts, ONLY villages with data
+        // Show Village Coverage Report (Fixed)
         async function showVillageCoverageReport() {
             try {
                 showLoading('Rpt is being Ready...');
@@ -1802,6 +1804,7 @@
                 }
                 
                 const { data: allVillages, error: villageError } = await villageQuery;
+
                 
                 if (villageError) throw villageError;
                 
@@ -1816,7 +1819,21 @@
                 }
                 
                 const { data: khasraVillages, error: khasraError } = await khasraQuery;
+                // FIXED: Filter to show ONLY villages with data (green dots only)
+                const villagesWithData = allVillages ? allVillages.filter(village => 
+                    villageCounts[village.villagecode] > 0
+                ) : [];
                 
+                // Populate coverage table - ONLY villages with data
+                if (villagesWithData.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted hindi">No villages with data found</td></tr>';
+                } else {
+                    villagesWithData.forEach(village => {
+                        const entryCount = villageCounts[village.villagecode] || 0;
+                        // ... rest of the code to show only villages with data
+                    });
+                }
+
                 if (khasraError) throw khasraError;
                 
                 // Count entries per village
@@ -1827,52 +1844,46 @@
                     });
                 }
                 
-                // FIXED: Filter to show ONLY villages with data (green dots only)
-                const villagesWithData = allVillages ? allVillages.filter(village => 
-                    villageCounts[village.villagecode] > 0
-                ) : [];
-                
                 // Calculate statistics
                 const totalVillages = allVillages ? allVillages.length : 0;
-                const villagesWithDataCount = villagesWithData.length;
-                const villagesWithoutData = totalVillages - villagesWithDataCount;
-                const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithDataCount / totalVillages) * 100) : 0;
+                const villagesWithData = Object.keys(villageCounts).length;
+                const villagesWithoutData = totalVillages - villagesWithData;
+                const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithData / totalVillages) * 100) : 0;
                 
                 // Populate statistics - FIXED
                 const statsContainer = document.getElementById('coverageStats');
                 statsContainer.innerHTML = 
                     '<div class="stat-card">' +
                         '<div class="stat-number">' + totalVillages + '</div>' +
-                        '<div class="stat-label hindi">Total Villages</div>' +
+                        '<div class="stat-label hindi">Total Data</div>' +
                     '</div>' +
                     '<div class="stat-card">' +
-                        '<div class="stat-number">' + villagesWithDataCount + '</div>' +
-                        '<div class="stat-label hindi">Villages Having Data</div>' +
+                        '<div class="stat-number">' + villagesWithData + '</div>' +
+                        '<div class="stat-label hindi">Village Having Data</div>' +
                     '</div>' +
                     '<div class="stat-card">' +
                         '<div class="stat-number">' + villagesWithoutData + '</div>' +
-                        '<div class="stat-label hindi">Villages without Data</div>' +
+                        '<div class="stat-label hindi">Village without Data</div>' +
                     '</div>' +
                     '<div class="stat-card">' +
                         '<div class="stat-number">' + coveragePercentage + '%</div>' +
-                        '<div class="stat-label hindi">Coverage Percentage</div>' +
+                        '<div class="stat-label hindi">Percentage of Error</div>' +
                     '</div>';
                 
-                // FIXED: Populate coverage table - ONLY villages with data
+                // Populate coverage table
                 const tableBody = document.getElementById('coverageTableBody');
                 tableBody.innerHTML = '';
                 
-                if (villagesWithData.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted hindi">No villages with data found</td></tr>';
-                } else {
-                    villagesWithData.forEach(village => {
+                if (allVillages) {
+                    allVillages.forEach(village => {
+                        const hasData = villageCounts[village.villagecode] > 0;
                         const entryCount = villageCounts[village.villagecode] || 0;
                         
                         const row = document.createElement('tr');
                         row.innerHTML = 
                             '<td>' +
-                                '<span class="coverage-indicator has-data"></span>' +
-                                'डेटा उपलब्ध' +
+                                '<span class="coverage-indicator ' + (hasData ? 'has-data' : 'no-data') + '"></span>' +
+                                (hasData ? 'डेटा उपलब्ध' : 'डेटा नहीं') +
                             '</td>' +
                             '<td class="hindi">' + village.villagename + '</td>' +
                             '<td>' + village.villagecode + '</td>' +
@@ -1888,12 +1899,12 @@
                 modal.show();
                 
                 hideLoading();
-                showAlert('Coverage Report Generated', 'success');
+                showAlert('Coverage Rpt Downloaded', 'success');
                 
             } catch (error) {
                 console.error('Error generating coverage report:', error);
                 hideLoading();
-                showAlert('Error During Report Generation: ' + error.message, 'danger');
+                showAlert('Error During Rpt: ' + error.message, 'danger');
             }
         }
 
@@ -1909,18 +1920,16 @@
                 const rows = table.querySelectorAll('tbody tr');
                 rows.forEach(row => {
                     const cells = row.querySelectorAll('td');
-                    if (cells.length > 1) { // Skip "no data" message rows
-                        const rowData = [];
-                        cells.forEach(cell => {
-                            let text = cell.textContent.trim();
-                            // Clean status text
-                            if (text.includes('डेटा उपलब्ध')) {
-                                text = 'डेटा उपलब्ध';
-                            }
-                            rowData.push('"' + text + '"');
-                        });
-                        csv += rowData.join(',') + '\n';
-                    }
+                    const rowData = [];
+                    cells.forEach(cell => {
+                        let text = cell.textContent.trim();
+                        // Clean status text
+                        if (text.includes('डेटा उपलब्ध') || text.includes('डेटा नहीं')) {
+                            text = text.replace(/.*?(डेटा उपलब्ध|डेटा नहीं)/, '\$1');
+                        }
+                        rowData.push('"' + text + '"');
+                    });
+                    csv += rowData.join(',') + '\n';
                 });
                 
                 // Download CSV with proper encoding
@@ -1928,7 +1937,7 @@
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
-                link.setAttribute('download', 'Village_Coverage_Report_' + new Date().toISOString().split('T')[0] + '.csv');
+                link.setAttribute('download', 'Villge_Rpt' + new Date().toISOString().split('T')[0] + '.csv');
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
@@ -1942,7 +1951,7 @@
             }
         }
 
-        // FIXED: Show Data Export Modal - Admin sees all districts
+        // Show Data Export Modal
         async function showDataExportModal() {
             try {
                 // Populate district filter
@@ -1952,18 +1961,16 @@
                     .order('districtname');
                 
                 const { data: districts, error } = await districtQuery;
-                
                 if (!error && districts) {
                     const uniqueDistricts = [...new Set(districts.map(d => d.districtname))];
                     const exportDistrictSelect = document.getElementById('exportDistrict');
-                    exportDistrictSelect.innerHTML = '<option value="">All Districts</option>';
+                    exportDistrictSelect.innerHTML = '<option value="">All District</option>';
                     
                     uniqueDistricts.forEach(district => {
                         const option = document.createElement('option');
                         option.value = district;
                         option.textContent = district;
-                        // For non-admin users, pre-select their district
-                        if (currentUser.role !== 'admin' && district === currentUser.districtName) {
+                        if (district === currentUser.districtName) {
                             option.selected = true;
                         }
                         exportDistrictSelect.appendChild(option);
@@ -1984,11 +1991,11 @@
                 
             } catch (error) {
                 console.error('Error showing export modal:', error);
-                showAlert('Error in Opening Export Module', 'danger');
+                showAlert('Error in Downloading Module', 'danger');
             }
         }
 
-        // FIXED: Export Data Function - Admin can export all districts
+        // Export Data Function (Fixed)
         async function exportData(format) {
             try {
                 const startDate = document.getElementById('exportStartDate').value;
@@ -2002,14 +2009,14 @@
                     .from('khasra_data')
                     .select('districtname, level4name, level5name, level6code, villagename, villagecode, khasra_number, created_at, test_users(full_name, username)');
                 
+                // Apply filters
                 // Apply district filter only for non-admin users or if admin selected specific district
                 if (currentUser.role !== 'admin') {
                     query = query.eq('districtname', currentUser.districtName);
                 } else if (selectedDistrict) {
                     query = query.eq('districtname', selectedDistrict);
                 }
-                
-                // Apply date filters
+
                 if (startDate) {
                     query = query.gte('created_at', startDate + 'T00:00:00');
                 }
@@ -2052,7 +2059,7 @@
             } catch (error) {
                 console.error('Error exporting data:', error);
                 hideLoading();
-                showAlert('Error During Download: ' + error.message, 'danger');
+                showAlert('Error During Downloading: ' + error.message, 'danger');
             }
         }
 
@@ -2108,18 +2115,16 @@
             showAlert('Excel File Downloaded', 'success');
         }
 
-        // FIXED: Show District Report Modal - Admin sees all districts
+        // Show District Report Modal (Fixed)
         async function showDistrictReportModal() {
             try {
                 showLoading('Generating District Report...');
                 
                 // Populate district dropdown
-                let districtQuery = supabaseClient
+                const { data: districts, error } = await supabaseClient
                     .from('village_hierarchy')
                     .select('districtname')
                     .order('districtname');
-                
-                const { data: districts, error } = await districtQuery;
                 
                 if (!error && districts) {
                     const uniqueDistricts = [...new Set(districts.map(d => d.districtname))];
@@ -2130,14 +2135,7 @@
                         const option = document.createElement('option');
                         option.value = district;
                         option.textContent = district;
-                        // For non-admin users, pre-select and show only their district
-                        if (currentUser.role !== 'admin') {
-                            if (district === currentUser.districtName) {
-                                option.selected = true;
-                            } else {
-                                return; // Skip other districts for non-admin users
-                            }
-                        } else if (district === currentUser.districtName) {
+                        if (district === currentUser.districtName) {
                             option.selected = true;
                         }
                         reportDistrictSelect.appendChild(option);
@@ -2148,10 +2146,9 @@
                 const modal = new bootstrap.Modal(document.getElementById('districtReportModal'));
                 modal.show();
                 
-                // Generate initial report
-                const initialDistrict = currentUser.districtName;
-                if (initialDistrict) {
-                    await generateDistrictReportData(initialDistrict, 30);
+                // Generate initial report for user's district
+                if (currentUser.districtName) {
+                    await generateDistrictReportData(currentUser.districtName, 30);
                 }
                 
                 hideLoading();
@@ -2163,7 +2160,7 @@
             }
         }
 
-        // FIXED: Generate District Report Data - Admin can see any district
+        // Generate District Report Data (Fixed)
         async function generateDistrictReportData(district, days) {
             try {
                 showLoading('Generating District Report...');
@@ -2231,7 +2228,7 @@
                     '</div>' +
                     '<div class="stat-card">' +
                         '<div class="stat-number">' + uniqueVillages + '</div>' +
-                        '<div class="stat-label hindi">Villages Covered</div>' +
+                        '<div class="stat-label hindi">Village Covered</div>' +
                     '</div>' +
                     '<div class="stat-card">' +
                         '<div class="stat-number">' + uniqueUsers + '</div>' +
@@ -2275,7 +2272,7 @@
                     });
                 
                 hideLoading();
-                showAlert('District Report Generated', 'success');
+                showAlert('District Report Ready।', 'success');
                 
             } catch (error) {
                 console.error('Error generating district report:', error);
@@ -2436,16 +2433,15 @@
         ║  🌾 Village Hierarchy Integration Active                    ║
         ║  📊 Multi-Village Khasra Entry Enabled                      ║
         ║  🔒 User Authentication & Authorization                      ║
-        ║  👥 Role-Based Access Control (FIXED)                      ║
+        ║  👥 Role-Based Access Control                               ║
         ║  💾 Auto-Save & Validation Features                         ║
-        ║  📈 Advanced Reporting System (Admin - All Districts)       ║
+        ║  📈 Advanced Reporting System (Admin)                       ║
         ║  📋 Personal Data View (Users)                              ║
         ║                                                              ║
-        ║  Admin Features (FIXED):                                    ║
-        ║  • Village Coverage Analysis (All Districts)                ║
-        ║  • Data Export (CSV/Excel) (All Districts)                  ║
-        ║  • District-wise Reports (All Districts)                    ║
-        ║  • Shows ONLY villages with data (Green dots)               ║
+        ║  Admin Features:                                            ║
+        ║  • Village Coverage Analysis                                ║
+        ║  • Data Export (CSV/Excel)                                  ║
+        ║  • District-wise Reports                                    ║
         ║                                                              ║
         ║  User Features:                                             ║
         ║  • Personal Data Entry View                                 ║
@@ -2457,13 +2453,6 @@
         ║  • Ctrl + R: Reset Form                                     ║
         ║  • Ctrl + D: District Entry (Users)                        ║
         ║  • Escape: Deselect All Villages                            ║
-        ║                                                              ║
-        ║  FIXES APPLIED:                                             ║
-        ║  ✅ Admin can see ALL districts data                        ║
-        ║  ✅ Village coverage shows ONLY villages with data          ║
-        ║  ✅ All export functions work for all districts (Admin)     ║
-        ║  ✅ District reports show all districts (Admin)             ║
-        ║  ✅ Regular users still restricted to their district        ║
         ║                                                              ║
         ║  For technical support: diagri-cg@cg.gov.in                ║
         ╚══════════════════════════════════════════════════════════════╝
@@ -2534,5 +2523,3 @@
     </script>
 </body>
 </html>
-
-
