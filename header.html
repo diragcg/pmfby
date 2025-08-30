@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>संचालनालय कृषि छत्तीसगढ़</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -163,6 +164,155 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
 
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(15px);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-header h2 {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            font-size: 20px;
+            margin: 0;
+        }
+
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.2s;
+        }
+
+        .close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .modal-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+
+        .login-submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .login-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .login-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(220, 53, 69, 0.1);
+            border-radius: 6px;
+            display: none;
+        }
+
+        .success-message {
+            color: #28a745;
+            font-size: 14px;
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 6px;
+            display: none;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header-strip {
@@ -201,6 +351,15 @@
             .main-content {
                 margin: 10px;
             }
+
+            .modal-content {
+                margin: 10% auto;
+                width: 95%;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
         }
     </style>
 </head>
@@ -215,10 +374,10 @@
                 </div>
             </div>
             <div class="login-section">
-                <a href="login.html" class="login-btn">
+                <button class="login-btn" onclick="openLoginModal()">
                     <i class="fas fa-sign-in-alt"></i>
                     लॉगिन करें
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -253,5 +412,169 @@
             </ul>
         </div>
     </nav>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>लॉगिन करें</h2>
+                <span class="close" onclick="closeLoginModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">यूजरनेम</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">पासवर्ड</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="login-submit-btn" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        लॉगिन करें
+                    </button>
+                    <div id="errorMessage" class="error-message"></div>
+                    <div id="successMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Supabase configuration
+        import { supabaseClient } from './supabase-config.js';
+
+        // Modal functions
+        window.openLoginModal = function() {
+            document.getElementById('loginModal').style.display = 'block';
+            document.getElementById('username').focus();
+        }
+
+        window.closeLoginModal = function() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('loginForm').reset();
+            hideMessages();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('loginModal');
+            if (event.target === modal) {
+                closeLoginModal();
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeLoginModal();
+            }
+        });
+
+        // Hide messages
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            hideMessages();
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            hideMessages();
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loginBtn = document.getElementById('loginBtn');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                showError('कृपया सभी फील्ड भरें');
+                return;
+            }
+
+            // Disable login button
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> लॉगिन हो रहा है...';
+
+            try {
+                // Query user from test_users table
+                const { data: users, error } = await supabaseClient
+                    .from('test_users')
+                    .select('id, username, password_hash, full_name, role, is_active')
+                    .eq('username', username)
+                    .limit(1);
+
+                if (error) {
+                    throw new Error('डेटाबेस एरर: ' + error.message);
+                }
+
+                if (!users || users.length === 0) {
+                    showError('गलत यूजरनेम या पासवर्ड');
+                    return;
+                }
+
+                const user = users[0];
+
+                // Check if user is active
+                if (!user.is_active) {
+                    showError('आपका अकाउंट निष्क्रिय है। कृपया एडमिन से संपर्क करें।');
+                    return;
+                }
+
+                // Simple password check (in production, use proper hashing)
+                // For now, assuming password_hash contains plain text for testing
+                if (user.password_hash !== password) {
+                    showError('गलत यूजरनेम या पासवर्ड');
+                    return;
+                }
+
+                // Update last login and online status
+                await supabaseClient
+                    .from('test_users')
+                    .update({
+                        last_login: new Date().toISOString(),
+                        is_online: true,
+                        last_activity: new Date().toISOString()
+                    })
+                    .eq('id', user.id);
+
+                // Store user session
+                sessionStorage.setItem('userId', user.id);
+                sessionStorage.setItem('username', user.username);
+                sessionStorage.setItem('fullName', user.full_name);
+                sessionStorage.setItem('role', user.role);
+
+                showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
+
+                // Redirect to dashboard after 1 second
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1000);
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('लॉगिन में त्रुटि: ' + error.message);
+            } finally {
+                // Re-enable login button
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> लॉगिन करें';
+            }
+        });
+    </script>
 </body>
 </html>
