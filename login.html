@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="./supabase-config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Background overlay for better readability */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(248, 249, 250, 0.85);
+            z-index: -1;
+        }
+
+        /* Clean Header Strip - Slightly Darker - Shrunk to match navbar */
+        .header-strip {
+            background: rgba(204, 206, 206, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0 20px;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .cg-logo {
+            height: 60px;
+            width: auto;
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .logo-text p {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 400;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info {
+            text-align: right;
+            color: #2c3e50;
+        }
+
+        .user-info .username {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-info .role {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        /* Clean Navigation with Curved Bottom Edges */
+        .navbar {
+            background: rgba(52, 58, 64, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #dee2e6;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            margin: 0 20px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            gap: 8px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: #037af1;
+            border-radius: 12px;
+            padding: 12px 20px;
+        }
+
+        .nav-link i {
+            font-size: 14px;
+        }
+
+        /* Dropdown Styles */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            z-index: 1000;
+            border: 1px solid #dee2e6;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 12px 16px;
+            color: #2c3e50;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .dropdown-item:hover {
+            background: #0480fc;
+            color: white;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .dropdown-item:first-child {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        /* Profile and Logout specific styles */
+        .profile-link, .logout-link {
+            margin-left: auto;
+        }
+
+        .logout-link {
+            background: #dc3545;
+            border-radius: 12px;
+            padding: 12px 20px !important;
+        }
+
+        .logout-link:hover {
+            background: #c82333 !important;
+        }
+
+        .profile-link:hover {
+            background: #28a745;
+            border-radius: 8px;
+            padding: 12px 12px;
+        }
+
+        /* Content area styling for better visibility */
+        .main-content {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            margin: 20px;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-strip {
+                margin: 0 10px;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .logo-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-menu {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .nav-link {
+                padding: 12px 15px;
+                font-size: 13px;
+            }
+
+            .navbar {
+                margin: 0 10px;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            .dropdown-content {
+                position: static;
+                display: block;
+                box-shadow: none;
+                border: none;
+                background: rgba(73, 80, 87, 0.95);
+                border-radius: 0;
+            }
+
+            .dropdown-item {
+                color: #44a6f6;
+                border-bottom: 1px solid #6c757d;
+            }
+
+            .dropdown-item:hover {
+                background: #6c757d;
+            }
+
+            .main-content {
+                margin: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-strip">
+        <div class="header-container">
+            <div class="logo-section">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                <div class="logo-text">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>Directorate of Agriculture, Chhattisgarh</p>
+                </div>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="username" id="user-name">Loading...</div>
+                    <div class="role" id="user-role">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link active">
+                        <i class="fas fa-home"></i>
+                        होम
+                    </a>
+                </li>
+                
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-th-large"></i>
+                        सेक्शन
+                        <i class="fas fa-chevron-down"></i>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="pmfby.html" class="dropdown-item">
+                            <i class="fas fa-seedling"></i> PMFBY
+                        </a>
+                        <a href="dbt.html" class="dropdown-item">
+                            <i class="fas fa-money-bill-transfer"></i> DBT
+                        </a>
+                        <a href="store.html" class="dropdown-item">
+                            <i class="fas fa-store"></i> STORE
+                        </a>
+                        <a href="gt.html" class="dropdown-item">
+                            <i class="fas fa-chart-line"></i> GT
+                        </a>
+                        <a href="kcc.html" class="dropdown-item">
+                            <i class="fas fa-credit-card"></i> KCC
+                        </a>
+                        <a href="seed.html" class="dropdown-item">
+                            <i class="fas fa-spa"></i> SEED
+                        </a>
+                        <a href="fertilizer.html" class="dropdown-item">
+                            <i class="fas fa-flask"></i> FERTILIZER
+                        </a>
+                        <a href="pesticide.html" class="dropdown-item">
+                            <i class="fas fa-bug"></i> PESTICIDE
+                        </a>
+                        <a href="stat.html" class="dropdown-item">
+                            <i class="fas fa-chart-bar"></i> STAT
+                        </a>
+                    </div>
+                </li>
+
+                <li class="nav-item profile-link">
+                    <a href="profile.html" class="nav-link">
+                        <i class="fas fa-user"></i>
+                        प्रोफाइल
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="#" class="nav-link logout-link" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        लॉगआउट
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <script type="module">
+        import { supabaseClient } from './supabase-config.js';
+
+        // Load user data on page load
+        window.addEventListener('DOMContentLoaded', async function() {
+            await loadUserData();
+        });
+
+        async function loadUserData() {
+            try {
+                // Get user ID from session storage or local storage
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                
+                if (!userId) {
+                    // Redirect to login if no user session
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // Fetch user data from test_users table
+                const { data: user, error } = await supabaseClient
+                    .from('test_users')
+                    .select('full_name, role, username')
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    console.error('Error fetching user data:', error);
+                    document.getElementById('user-name').textContent = 'Unknown User';
+                    document.getElementById('user-role').textContent = 'Unknown Role';
+                    return;
+                }
+
+                if (user) {
+                    // Update user info in header
+                    document.getElementById('user-name').textContent = user.full_name || user.username;
+                    document.getElementById('user-role').textContent = user.role || 'User';
+                    
+                    // Update last activity
+                    await supabaseClient
+                        .from('test_users')
+                        .update({ 
+                            last_activity: new Date().toISOString(),
+                            is_online: true 
+                        })
+                        .eq('id', userId);
+                }
+
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                document.getElementById('user-name').textContent = 'Error Loading';
+                document.getElementById('user-role').textContent = 'Error Loading';
+            }
+        }
+
+        // Logout function
+        window.logout = async function() {
+            try {
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                
+                if (userId) {
+                    // Update user status to offline
+                    await supabaseClient
+                        .from('test_users')
+                        .update({ 
+                            is_online: false,
+                            last_activity: new Date().toISOString()
+                        })
+                        .eq('id', userId);
+                }
+
+                // Clear session data
+                sessionStorage.removeItem('userId');
+                localStorage.removeItem('userId');
+                
+                // Redirect to login page
+                window.location.href = 'login.html';
+                
+            } catch (error) {
+                console.error('Error during logout:', error);
+                // Still redirect even if there's an error
+                window.location.href = 'login.html';
+            }
+        }
+
+        // Make loadUserData available globally for other scripts
+        window.loadUserData = loadUserData;
+    </script>
+</body>
+</html>
