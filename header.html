@@ -181,17 +181,17 @@
             background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center;
             background-size: cover;
             position: relative;
-            margin: 3% auto;
+            margin: 2% auto;
             padding: 0;
             border-radius: 20px;
             width: 90%;
-            max-width: 450px;
+            max-width: 500px;
             box-shadow: 0 15px 40px rgba(0,0,0,0.4);
             animation: modalSlideIn 0.4s ease-out;
             overflow: hidden;
         }
 
-        /* Modal background overlay */
+        /* Modal background overlay - lighter for maize visibility */
         .modal-content::before {
             content: '';
             position: absolute;
@@ -199,8 +199,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(2px);
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(1px);
             z-index: 1;
         }
 
@@ -242,7 +242,7 @@
         .modal-cg-logo {
             height: 50px;
             width: auto;
-            filter: brightness(0) invert(1);
+            filter: brightness(0) invert(1) drop-shadow(1px 1px 2px rgba(0,0,0,0.3));
         }
 
         .modal-header h2 {
@@ -302,7 +302,7 @@
             font-size: 15px;
         }
 
-        .form-group input {
+        .form-group input, .form-group select {
             width: 100%;
             padding: 15px;
             border: 2px solid #e9ecef;
@@ -314,7 +314,7 @@
             backdrop-filter: blur(5px);
         }
 
-        .form-group input:focus {
+        .form-group input:focus, .form-group select:focus {
             outline: none;
             border-color: #007bff;
             box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1);
@@ -369,6 +369,60 @@
             border-left: 4px solid #28a745;
         }
 
+        /* CAPTCHA Modal Styles */
+        .captcha-modal-content {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(15px);
+            margin: 10% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        #captchaCanvas {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        #captchaInput {
+            font-family: 'Arial', monospace;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 3px;
+        }
+
+        #refreshCaptcha {
+            height: 60px;
+            width: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e9ecef;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #refreshCaptcha:hover {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .header-strip {
@@ -411,7 +465,7 @@
             .modal-content {
                 margin: 5% auto;
                 width: 95%;
-                max-width: 400px;
+                max-width: 450px;
             }
 
             .modal-body {
@@ -509,6 +563,14 @@
                         </label>
                         <input type="password" id="password" name="password" placeholder="अपना पासवर्ड दर्ज करें" required>
                     </div>
+                    <div class="form-group">
+                        <label for="district">
+                            <i class="fas fa-map-marker-alt"></i> जिला
+                        </label>
+                        <select id="district" name="district" required>
+                            <option value="">-- जिला चुनें --</option>
+                        </select>
+                    </div>
                     <button type="submit" class="login-submit-btn" id="loginBtn">
                         <i class="fas fa-sign-in-alt"></i>
                         लॉगिन करें
@@ -520,14 +582,168 @@
         </div>
     </div>
 
+    <!-- CAPTCHA Modal -->
+    <div id="captchaModal" class="modal">
+        <div class="captcha-modal-content">
+            <div class="modal-header">
+                <h2>सुरक्षा सत्यापन</h2>
+                <span class="close" onclick="closeCaptchaModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p class="hindi mb-3" style="text-align: center;">कृपया नीचे दिए गए नंबर को दर्ज करें:</p>
+                
+                <!-- CAPTCHA Display -->
+                <div class="captcha-container mb-4">
+                    <canvas id="captchaCanvas" width="200" height="60"></canvas>
+                    <button type="button" id="refreshCaptcha" title="Refresh CAPTCHA">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                
+                <!-- CAPTCHA Input -->
+                <div class="form-group">
+                    <input type="text" id="captchaInput" placeholder="6-digit number" maxlength="6" style="text-align: center; font-size: 18px; letter-spacing: 3px;">
+                </div>
+                
+                <div id="captchaError" class="error-message">
+                    गलत कैप्चा! कृपया पुनः प्रयास करें।
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
+                    <button type="button" class="btn" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 8px;" onclick="closeCaptchaModal()">रद्द करें</button>
+                    <button type="button" class="btn" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 8px;" id="verifyCaptcha">सत्यापित करें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
         // Import Supabase configuration
         import { supabaseClient } from './supabase-config.js';
+
+        // CAPTCHA functionality - Bold Numerical Only
+        let currentCaptcha = '';
+        let tempLoginData = {};
+
+        function generateCaptcha() {
+            // Generate 6-digit numerical captcha
+            let captcha = '';
+            for (let i = 0; i < 6; i++) {
+                captcha += Math.floor(Math.random() * 10).toString();
+            }
+            return captcha;
+        }
+
+        function drawCaptcha() {
+            const canvas = document.getElementById('captchaCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Generate new numerical captcha
+            currentCaptcha = generateCaptcha();
+            
+            // Set background
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add noise lines
+            for (let i = 0; i < 3; i++) {
+                ctx.strokeStyle = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.2)`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.stroke();
+            }
+            
+            // Draw bold numerical captcha text
+            ctx.font = 'bold 32px Arial'; // Bold and larger font
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            for (let i = 0; i < currentCaptcha.length; i++) {
+                const digit = currentCaptcha[i];
+                const x = 25 + (i * 30); // Better spacing for numbers
+                const y = 30 + (Math.random() * 8 - 4); // Slight vertical offset
+                const rotation = (Math.random() * 0.3 - 0.15); // Less rotation for numbers
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rotation);
+                
+                // Bold black color for better visibility
+                ctx.fillStyle = `rgb(${Math.floor(Math.random() * 80)}, ${Math.floor(Math.random() * 80)}, ${Math.floor(Math.random() * 80)})`;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1;
+                
+                // Draw text with stroke for bold effect
+                ctx.fillText(digit, 0, 0);
+                ctx.strokeText(digit, 0, 0);
+                
+                ctx.restore();
+            }
+            
+            // Add fewer noise dots for numerical clarity
+            for (let i = 0; i < 30; i++) {
+                ctx.fillStyle = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, \${Math.floor(Math.random() * 255)}, 0.2)`;
+                ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1, 1);
+            }
+        }
+
+        // Hash password with SHA-256
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Load districts from Supabase
+        async function loadDistricts() {
+            try {
+                const districtSelect = document.getElementById('district');
+                
+                // Fetch districts from the districts table
+                const { data, error } = await supabaseClient
+                    .from('districts')
+                    .select('id, name')
+                    .order('name', { ascending: true });
+                    
+                if (error) throw error;
+                
+                // Clear existing options except the first one
+                while (districtSelect.options.length > 1) {
+                    districtSelect.remove(1);
+                }
+                
+                // Add districts to dropdown
+                if (data) {
+                    data.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading districts:', error);
+                const districtSelect = document.getElementById('district');
+                const errorOption = document.createElement('option');
+                errorOption.value = "";
+                errorOption.textContent = "जिला लोड करने में त्रुटि";
+                errorOption.style.color = "#C62828";
+                districtSelect.appendChild(errorOption);
+            }
+        }
 
         // Modal functions
         window.openLoginModal = function() {
             document.getElementById('loginModal').style.display = 'block';
             document.getElementById('username').focus();
+            loadDistricts();
         }
 
         window.closeLoginModal = function() {
@@ -536,11 +752,26 @@
             hideMessages();
         }
 
+        window.closeCaptchaModal = function() {
+            document.getElementById('captchaModal').style.display = 'none';
+            document.getElementById('captchaInput').value = '';
+            document.getElementById('captchaError').style.display = 'none';
+            
+            // Reset login button
+            const submitBtn = document.getElementById('loginBtn');
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> लॉगिन करें';
+            submitBtn.disabled = false;
+        }
+
         // Close modal when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('loginModal');
-            if (event.target === modal) {
+            const loginModal = document.getElementById('loginModal');
+            const captchaModal = document.getElementById('captchaModal');
+            if (event.target === loginModal) {
                 closeLoginModal();
+            }
+            if (event.target === captchaModal) {
+                closeCaptchaModal();
             }
         }
 
@@ -548,6 +779,7 @@
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeLoginModal();
+                closeCaptchaModal();
             }
         });
 
@@ -573,57 +805,100 @@
             successDiv.style.display = 'block';
         }
 
+        // CAPTCHA event listeners
+        document.getElementById('refreshCaptcha').addEventListener('click', function() {
+            drawCaptcha();
+            document.getElementById('captchaInput').value = '';
+            document.getElementById('captchaError').style.display = 'none';
+        });
+
+        document.getElementById('verifyCaptcha').addEventListener('click', function() {
+            const userInput = document.getElementById('captchaInput').value;
+            const errorDiv = document.getElementById('captchaError');
+            
+            if (userInput === currentCaptcha) {
+                // CAPTCHA verified, proceed with login
+                errorDiv.style.display = 'none';
+                document.getElementById('captchaModal').style.display = 'none';
+                
+                // Continue with actual login process
+                proceedWithLogin();
+            } else {
+                // Wrong CAPTCHA
+                errorDiv.style.display = 'block';
+                drawCaptcha(); // Generate new CAPTCHA
+                document.getElementById('captchaInput').value = '';
+            }
+        });
+
+        // Allow Enter key to verify CAPTCHA
+        document.getElementById('captchaInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('verifyCaptcha').click();
+            }
+        });
+
         // Login form submission
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const loginBtn = document.getElementById('loginBtn');
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
+            // Store form data temporarily
+            tempLoginData = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value,
+                districtId: document.getElementById('district').value,
+            };
 
-            if (!username || !password) {
+            // Validate form data
+            if (!tempLoginData.username || !tempLoginData.password || !tempLoginData.districtId) {
                 showError('कृपया सभी फील्ड भरें');
                 return;
             }
-
-            // Disable login button
+            
+            // Show loading state
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> सत्यापन हो रहा है...';
             loginBtn.disabled = true;
-            loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> लॉगिन हो रहा है...';
+            
+            // Show CAPTCHA modal
+            drawCaptcha();
+            document.getElementById('captchaModal').style.display = 'block';
+            document.getElementById('captchaInput').focus();
+        });
 
+        // Actual login process after CAPTCHA verification
+        async function proceedWithLogin() {
             try {
-                // Query user from test_users table with district info
-                const { data: users, error } = await supabaseClient
+                const { username, password, districtId } = tempLoginData;
+                
+                // Hash the password
+                const hashedPassword = await hashPassword(password);
+                
+                // Check user credentials with district info
+                const { data, error } = await supabaseClient
                     .from('test_users')
                     .select(`
-                        id, username, password_hash, full_name, role, is_active,
+                        id, username, password_hash, full_name, role, is_active, district_id,
                         districts (
                             id, name
                         )
                     `)
                     .eq('username', username)
-                    .limit(1);
+                    .eq('is_active', true)
+                    .single();
 
-                if (error) {
-                    throw new Error('डेटाबेस एरर: ' + error.message);
+                if (error || !data) {
+                    throw new Error('अमान्य यूजरनेम या पासवर्ड');
                 }
 
-                if (!users || users.length === 0) {
-                    showError('गलत यूजरनेम या पासवर्ड');
-                    return;
+                // Verify password
+                if (data.password_hash !== hashedPassword) {
+                    throw new Error('अमान्य यूजरनेम या पासवर्ड');
                 }
 
-                const user = users[0];
-
-                // Check if user is active
-                if (!user.is_active) {
-                    showError('आपका अकाउंट निष्क्रिय है। कृपया एडमिन से संपर्क करें।');
-                    return;
-                }
-
-                // Simple password check (in production, use proper hashing)
-                if (user.password_hash !== password) {
-                    showError('गलत यूजरनेम या पासवर्ड');
-                    return;
+                // Verify district matches (UUID comparison)
+                if (data.district_id && data.district_id !== districtId) {
+                    throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
                 }
 
                 // Update last login and online status
@@ -634,34 +909,72 @@
                         is_online: true,
                         last_activity: new Date().toISOString()
                     })
-                    .eq('id', user.id);
+                    .eq('id', data.id);
 
                 // Store user session
-                sessionStorage.setItem('userId', user.id);
-                sessionStorage.setItem('username', user.username);
-                sessionStorage.setItem('fullName', user.full_name);
-                sessionStorage.setItem('role', user.role);
-                if (user.districts) {
-                    sessionStorage.setItem('districtId', user.districts.id);
-                    sessionStorage.setItem('districtName', user.districts.name);
-                }
+                const userData = {
+                    id: data.id,
+                    username: data.username,
+                    fullName: data.full_name,
+                    role: data.role,
+                    districtId: data.district_id,
+                    districtName: data.districts ? data.districts.name : 'Unknown District',
+                    loginTime: new Date().toISOString()
+                };
+
+                sessionStorage.setItem('userId', data.id);
+                sessionStorage.setItem('username', data.username);
+                sessionStorage.setItem('fullName', data.full_name);
+                sessionStorage.setItem('role', data.role);
+                sessionStorage.setItem('districtId', data.district_id);
+                sessionStorage.setItem('districtName', userData.districtName);
 
                 showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
 
+                // Close modals
+                document.getElementById('captchaModal').style.display = 'none';
+                document.getElementById('loginModal').style.display = 'none';
+
                 // Redirect to dashboard after 1.5 seconds
                 setTimeout(() => {
-                    window.location.href = 'dashboard.html';
+                    window.location.href = 'selectmodule.html';
                 }, 1500);
 
             } catch (error) {
                 console.error('Login error:', error);
-                showError('लॉगिन में त्रुटि: ' + error.message);
-            } finally {
-                // Re-enable login button
-                loginBtn.disabled = false;
+                showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+                
+                // Reset login button
+                const loginBtn = document.getElementById('loginBtn');
                 loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> लॉगिन करें';
+                loginBtn.disabled = false;
+                
+                // Close CAPTCHA modal
+                document.getElementById('captchaModal').style.display = 'none';
+                
+                // Clear temp data
+                tempLoginData = {};
             }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for existing login
+            const userId = sessionStorage.getItem('userId');
+            if (userId) {
+                // Redirect if already logged in
+                window.location.href = 'selectmodule.html';
+                return;
+            }
+
+            // Initialize CAPTCHA
+            drawCaptcha();
         });
+
+        // Make functions globally available
+        window.drawCaptcha = drawCaptcha;
+        window.proceedWithLogin = proceedWithLogin;
     </script>
 </body>
 </html>
+
