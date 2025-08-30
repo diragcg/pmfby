@@ -8,17 +8,22 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script type="module" src="./supabase-config.js"></script>
     <style>
+        /* General & Layout */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed; background-size: cover; min-height: 100vh; position: relative; }
         body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.3); z-index: -1; }
         .page-loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.9); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px); }
         .page-loading .spinner { width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
         .page-loading .loading-text { margin-left: 15px; font-size: 18px; color: #007bff; font-weight: 600; }
+
+        /* Admin Toolbar */
         .admin-toolbar { background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 10px 20px; margin: 10px 20px 0 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); display: none; align-items: center; gap: 15px; backdrop-filter: blur(10px); }
         .admin-toolbar.show { display: flex; }
         .admin-toolbar h3 { font-size: 16px; font-weight: 600; margin-right: auto; }
         .admin-btn { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 14px; display: flex; align-items: center; gap: 5px; }
         .admin-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+
+        /* Header */
         .header-strip { background: rgba(204, 206, 206, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #e9ecef; padding: 15px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin: 20px 20px 0 20px; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; }
         .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; }
         .logo-section { display: flex; align-items: center; gap: 15px; }
@@ -29,6 +34,8 @@
         .user-info { background: linear-gradient(135deg, #e8f5e8, #f0f8f0); color: #b8860b; padding: 12px 18px; border-radius: 12px; box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2); transition: all 0.3s ease; border: 1px solid rgba(184, 134, 11, 0.3); min-width: 200px; }
         .user-info:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(184, 134, 11, 0.3); }
         .user-display { font-weight: 600; font-size: 14px; color: #b8860b; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); text-align: center; }
+
+        /* Navigation */
         .navbar { background: rgba(52, 58, 64, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid #dee2e6; border-bottom-left-radius: 15px; border-bottom-right-radius: 15px; margin: 0 20px; position: relative; z-index: 1000; }
         .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
         .nav-menu { display: flex; list-style: none; margin: 0; padding: 0; align-items: center; }
@@ -48,6 +55,8 @@
         .logout-link { background: #dc3545; border-radius: 12px; padding: 12px 20px !important; }
         .logout-link:hover, .logout-link:focus { background: #c82333 !important; outline: 2px solid #dc3545; outline-offset: 2px; }
         .profile-link:hover, .profile-link:focus { background: #28a745; border-radius: 8px; padding: 12px 12px; outline: 2px solid #28a745; outline-offset: 2px; }
+
+        /* Main Content & Cards */
         .main-content { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); margin: 20px; border-radius: 15px; padding: 30px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .dashboard-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 25px; margin-top: 20px; }
         .dashboard-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); border-radius: 15px; padding: 35px 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255, 255, 255, 0.3); position: relative; overflow: hidden; will-change: transform; cursor: pointer; }
@@ -70,6 +79,8 @@
         .edit-card-btn { background: #28a745; color: white; }
         .delete-card-btn { background: #dc3545; color: white; }
         .admin-card-btn:hover { transform: scale(1.1); }
+
+        /* General Form & Modal Styling */
         .btn-loading { position: relative; color: transparent !important; }
         .btn-loading::after { content: ''; position: absolute; width: 16px; height: 16px; top: 50%; left: 50%; margin-left: -8px; margin-top: -8px; border: 2px solid #ffffff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
         .toast { position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; color: white; font-weight: 500; z-index: 10001; transform: translateX(400px); transition: transform 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 350px; }
@@ -102,6 +113,8 @@
         .icon-option { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 2px solid transparent; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: rgba(255, 255, 255, 0.1); }
         .icon-option:hover, .icon-option.selected { border-color: #037af1; background: rgba(3, 122, 241, 0.2); }
         .icon-option i { font-size: 18px; color: white; }
+
+        /* Navigation Manager Styles */
         .nav-manager { background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 20px; margin: 20px 0; }
         .nav-item-row { display: flex; align-items: center; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 10px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .drag-handle { cursor: grab; color: #6c757d; margin-right: 15px; font-size: 16px; }
@@ -112,134 +125,32 @@
         .nav-item-actions { display: flex; gap: 8px; }
 
         /* User Management Styles */
-        .user-list-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 20px 0;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-        .user-row {
-            display: flex;
-            align-items: center;
-            padding: 15px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            transition: all 0.2s ease-in-out;
-        }
-        .user-row:hover {
-            background: #f8f9fa;
-        }
-        .user-info-display {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-        .user-name {
-            font-weight: 600;
-            color: #2c3e50;
-            font-size: 15px;
-        }
-        .user-email, .user-role-status {
-            font-size: 12px;
-            color: #6c757d;
-        }
-        .user-online-status {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: #ced4da; /* Grey for offline */
-            margin-right: 10px;
-            flex-shrink: 0;
-        }
-        .user-online-status.online {
-            background-color: #28a745; /* Green for online */
-        }
-        .user-actions {
-            display: flex;
-            gap: 8px;
-            flex-shrink: 0;
-        }
-        .user-action-btn {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            transition: all 0.3s;
-        }
+        .user-list-container { background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 20px; margin: 20px 0; max-height: 70vh; overflow-y: auto; }
+        .user-row { display: flex; align-items: center; padding: 15px; border: 1px solid #dee2e6; border-radius: 8px; margin-bottom: 10px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: all 0.2s ease-in-out; }
+        .user-row:hover { background: #f8f9fa; }
+        .user-info-display { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        .user-name { font-weight: 600; color: #2c3e50; font-size: 15px; }
+        .user-email, .user-role-status { font-size: 12px; color: #6c757d; }
+        .user-online-status { width: 10px; height: 10px; border-radius: 50%; background-color: #ced4da; margin-right: 10px; flex-shrink: 0; }
+        .user-online-status.online { background-color: #28a745; }
+        .user-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .user-action-btn { width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 12px; transition: all 0.3s; }
         .edit-user-btn { background: #007bff; color: white; }
         .toggle-active-btn { background: #ffc107; color: #212529; }
         .user-action-btn:hover { transform: scale(1.1); }
 
         /* Analytics Dashboard Styles */
-        .analytics-section {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .analytics-section h3 {
-            color: #2c3e50;
-            margin-bottom: 15px;
-            font-size: 18px;
-            border-bottom: 1px solid #e9ecef;
-            padding-bottom: 10px;
-        }
-        .analytics-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        .analytics-table th, .analytics-table td {
-            border: 1px solid #dee2e6;
-            padding: 10px;
-            text-align: left;
-            font-size: 13px;
-            color: #495057;
-        }
-        .analytics-table th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        .analytics-summary {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 15px;
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-        .summary-card {
-            background: #e9f5ff;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            flex: 1;
-            min-width: 150px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .summary-card .value {
-            font-size: 24px;
-            font-weight: 700;
-            color: #007bff;
-            margin-bottom: 5px;
-        }
-        .summary-card .label {
-            font-size: 12px;
-            color: #6c757d;
-        }
-        /* New styles for Form Designer Enhancements */
+        .analytics-section { background: rgba(255, 255, 255, 0.95); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .analytics-section h3 { color: #2c3e50; margin-bottom: 15px; font-size: 18px; border-bottom: 1px solid #e9ecef; padding-bottom: 10px; }
+        .analytics-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .analytics-table th, .analytics-table td { border: 1px solid #dee2e6; padding: 10px; text-align: left; font-size: 13px; color: #495057; }
+        .analytics-table th { background-color: #f8f9fa; font-weight: 600; color: #2c3e50; }
+        .analytics-summary { display: flex; justify-content: space-around; margin-top: 15px; flex-wrap: wrap; gap: 15px; }
+        .summary-card { background: #e9f5ff; padding: 15px; border-radius: 8px; text-align: center; flex: 1; min-width: 150px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .summary-card .value { font-size: 24px; font-weight: 700; color: #007bff; margin-bottom: 5px; }
+        .summary-card .label { font-size: 12px; color: #6c757d; }
+        
+        /* Dynamic Form Designer Enhancements */
         .designer-field-row {
             background: rgba(255,255,255,0.1);
             padding: 15px;
@@ -288,11 +199,33 @@
             font-weight: 600;
             color: #007bff; /* Blue for type */
         }
+        .designer-field-row .sub-section {
+            background: rgba(255,255,255,0.08);
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            border: 1px dashed rgba(255,255,255,0.2);
+        }
+        .designer-field-row .sub-section h6 {
+            color: #e0e0e0;
+            font-size: 14px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            padding-bottom: 5px;
+        }
 
-
+        /* Animations & Media Queries */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @keyframes modalSlideIn { from { opacity: 0; transform: translateY(-50px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-        @media (max-width: 768px) { .header-strip { margin: 10px 10px 0 10px; } .admin-toolbar { margin: 10px 10px 0 10px; flex-direction: column; gap: 10px; } .header-container { flex-direction: column; gap: 15px; text-align: center; } .nav-menu { flex-wrap: wrap; justify-content: center; } .navbar { margin: 0 10px; } .main-content { margin: 10px; padding: 20px; } .dashboard-cards { grid-template-columns: 1fr; gap: 20px; } .form-row { grid-template-columns: 1fr; } .nav-item-row { flex-direction: column; gap: 10px; text-align: center; } .user-row { flex-wrap: wrap; gap: 10px; } .user-info-display { text-align: center; width: 100%; } .user-online-status { margin: 0 auto; } .user-actions { width: 100%; justify-content: center; } .analytics-summary { flex-direction: column; } }
+        @media (max-width: 768px) {
+            .header-strip { margin: 10px 10px 0 10px; } .admin-toolbar { margin: 10px 10px 0 10px; flex-direction: column; gap: 10px; }
+            .header-container { flex-direction: column; gap: 15px; text-align: center; } .nav-menu { flex-wrap: wrap; justify-content: center; }
+            .navbar { margin: 0 10px; } .main-content { margin: 10px; padding: 20px; }
+            .dashboard-cards { grid-template-columns: 1fr; gap: 20px; } .form-row { grid-template-columns: 1fr; }
+            .nav-item-row { flex-direction: column; gap: 10px; text-align: center; } .user-row { flex-wrap: wrap; gap: 10px; }
+            .user-info-display { text-align: center; width: 100%; } .user-online-status { margin: 0 auto; }
+            .user-actions { width: 100%; justify-content: center; } .analytics-summary { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
@@ -745,9 +678,24 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="formNavCategory">नेवीगेशन कैटेगरी चुनें *</label>
-                    <select id="formNavCategory" name="formNavCategory" class="form-select" required></select>
+                    <label for="formNavParentItem">नेवीगेशन सेक्शन चुनें *</label> <!-- Changed label -->
+                    <select id="formNavParentItem" name="formNavParentItem" class="form-select" required></select> <!-- Changed ID -->
                 </div>
+
+                <div class="form-group">
+                    <label for="dynamicCardDescHi">कार्ड विवरण (हिंदी)</label>
+                    <textarea id="dynamicCardDescHi" name="dynamicCardDescHi" class="form-control" rows="2" placeholder="इस डायनेमिक फॉर्म के लिए डैशबोर्ड कार्ड का विवरण"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="dynamicCardDescEn">Card Description (English)</label>
+                    <textarea id="dynamicCardDescEn" name="dynamicCardDescEn" class="form-control" rows="2" placeholder="Description for the dashboard card"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>कार्ड आइकन चुनें</label>
+                    <div class="icon-picker" id="dynamicCardIconPicker"></div>
+                    <input type="hidden" id="selectedDynamicCardIcon" name="selectedDynamicCardIcon" value="fas fa-file-alt">
+                </div>
+
 
                 <div class="d-grid mt-4">
                     <button id="btnProcessExcel" class="profile-submit-btn">Preview Designer</button>
@@ -815,8 +763,9 @@
         let editMode = false;
         let currentUser = null;
         let allDistricts = [];
-        let lastExcelHeaders = []; // Store headers from Excel for dynamic form creation
-        let lastDynamicTableName = ''; // Store the proposed table name
+        let lastExcelHeaders = [];
+        let lastDynamicTableName = '';
+        let allNavParentItems = []; // To store top-level nav items for selection
 
         const availableIcons = [
             'fas fa-home', 'fas fa-user', 'fas fa-cog', 'fas fa-chart-bar',
@@ -837,6 +786,7 @@
             await loadUserData();
             await loadDynamicContent();
             await fetchDistricts();
+            await fetchNavParentItems(); // Fetch parent nav items
             setupEventListeners();
             setupAccessibility();
             setupRealtimeSubscriptions();
@@ -922,6 +872,37 @@
             }
         }
 
+        async function fetchNavParentItems() {
+            try {
+                // Fetch top-level navigation items to use as parents for dynamic forms
+                const { data, error } = await supabaseClient
+                    .from('navigation_items')
+                    .select('id, name_hi')
+                    .is('parent_id', null) // Only top-level items
+                    .eq('is_active', true)
+                    .order('display_order', { ascending: true });
+
+                if (error) throw error;
+                allNavParentItems = data;
+
+                const formNavParentItemSelect = document.getElementById('formNavParentItem');
+                if (formNavParentItemSelect) {
+                    formNavParentItemSelect.innerHTML = '<option value="">सेक्शन चुनें</option>';
+                    allNavParentItems.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = item.id;
+                        option.textContent = item.name_hi;
+                        formNavParentItemSelect.appendChild(option);
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error fetching parent navigation items:', error);
+                showToast('नेवीगेशन सेक्शन लोड करने में त्रुटि', 'error');
+            }
+        }
+
+
         async function loadDynamicContent() {
             try {
                 await Promise.all([loadDashboardCards(), loadNavigationItems()]);
@@ -991,13 +972,6 @@
 
         async function loadNavigationItems() {
             try {
-                const { data: categories, error: catError } = await supabaseClient
-                    .from('navigation_categories')
-                    .select('*')
-                    .order('display_order', { ascending: true });
-
-                if (catError) throw catError;
-
                 const { data: navItems, error: itemError } = await supabaseClient
                     .from('navigation_items')
                     .select('*, navigation_categories(name_hi, name_en)')
@@ -1009,21 +983,36 @@
                 const dropdownContainer = document.getElementById('dynamicDropdown');
                 dropdownContainer.innerHTML = '';
 
-                categories.forEach(category => {
-                    const categoryHeader = document.createElement('div');
-                    categoryHeader.className = 'dropdown-category';
-                    categoryHeader.textContent = category.name_hi;
-                    dropdownContainer.appendChild(categoryHeader);
+                // Group items by parent_id (null for top-level, then children)
+                const topLevelItems = navItems.filter(item => item.parent_id === null);
+                const childItems = navItems.filter(item => item.parent_id !== null);
 
-                    navItems.filter(item => item.category_id === category.id)
-                        .forEach(item => {
-                            const navElement = document.createElement('a');
-                            navElement.href = item.url;
-                            navElement.className = 'dropdown-item';
-                            if (item.is_external) navElement.target = '_blank';
-                            navElement.innerHTML = `<i class="${item.icon_class}"></i> ${item.name_hi}`;
-                            dropdownContainer.appendChild(navElement);
+                topLevelItems.forEach(parentItem => {
+                    // Create main dropdown item
+                    const parentNavElement = document.createElement('a');
+                    parentNavElement.href = parentItem.url;
+                    parentNavElement.className = 'dropdown-item';
+                    if (parentItem.is_external) parentNavElement.target = '_blank';
+                    parentNavElement.innerHTML = `<i class="${parentItem.icon_class}"></i> ${parentItem.name_hi}`;
+                    dropdownContainer.appendChild(parentNavElement);
+
+                    // If this parent has children, add them
+                    const children = childItems.filter(child => child.parent_id === parentItem.id)
+                                                .sort((a, b) => a.display_order - b.display_order);
+                    
+                    if (children.length > 0) {
+                        // Add a visual separator or indent for children if desired
+                        // For simplicity, just appending children directly for now
+                        children.forEach(child => {
+                            const childNavElement = document.createElement('a');
+                            childNavElement.href = child.url;
+                            childNavElement.className = 'dropdown-item';
+                            if (child.is_external) childNavElement.target = '_blank';
+                            // Indent children slightly for visual hierarchy
+                            childNavElement.innerHTML = `<i class="${child.icon_class}" style="margin-left: 15px;"></i> ${child.name_hi}`;
+                            dropdownContainer.appendChild(childNavElement);
                         });
+                    }
                 });
 
             } catch (error) {
@@ -1031,6 +1020,7 @@
                 showToast('नेवीगेशन लोड करने में त्रुटि', 'error');
             }
         }
+
 
         function setupRealtimeSubscriptions() {
             supabaseClient
@@ -1086,14 +1076,13 @@
                 })
                 .subscribe();
             
-            // Realtime for form_definitions changes (new forms created/updated)
             supabaseClient
                 .channel('form_definitions_changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'form_definitions' }, (payload) => {
-                    // This will be important when we implement a "Manage Dynamic Forms" dashboard
                     console.log('Form definitions updated:', payload);
-                    // Reload dynamic forms list if it were visible
+                    // If you had a dedicated "Manage Dynamic Forms" dashboard, you'd update it here.
                     showToast('फॉर्म परिभाषाएं अपडेट हो गईं', 'info');
+                    loadDynamicContent(); // To ensure new forms appear as cards/nav items
                 })
                 .subscribe();
         }
@@ -1130,7 +1119,7 @@
                 document.getElementById('toggleEditMode').addEventListener('click', toggleEditMode);
                 document.getElementById('userManagementBtn').addEventListener('click', openUserManagementModal);
                 document.getElementById('analyticsDashboardBtn').addEventListener('click', openAnalyticsDashboardModal);
-                document.getElementById('createDynamicFormBtn').addEventListener('click', openDynamicFormCreatorModal); // New button event
+                document.getElementById('createDynamicFormBtn').addEventListener('click', openDynamicFormCreatorModal);
             }
 
             document.getElementById('closeAddCardModal').addEventListener('click', closeAddCardModal);
@@ -1141,7 +1130,7 @@
             document.getElementById('closeUserManagementModal').addEventListener('click', closeUserManagementModal);
             document.getElementById('closeEditUserModal').addEventListener('click', closeEditUserModal);
             document.getElementById('closeAnalyticsDashboardModal').addEventListener('click', closeAnalyticsDashboardModal);
-            document.getElementById('closeDynamicFormCreatorModal').addEventListener('click', closeDynamicFormCreatorModal); // New close button
+            document.getElementById('closeDynamicFormCreatorModal').addEventListener('click', closeDynamicFormCreatorModal);
             document.getElementById('closeProfileModal').addEventListener('click', closeProfileModal);
 
             document.getElementById('addCardForm').addEventListener('submit', handleAddCard);
@@ -1154,8 +1143,8 @@
             document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); if (confirm('लॉगआउट करें?')) logout(); });
 
             setupProfileFormHandlers();
-            setupIconPickers();
-            setupNavIconPickers();
+            setupIconPickers(); // For static cards
+            setupNavIconPickers(); // For static nav items
 
             // Dynamic Form Creator events
             document.getElementById('btnProcessExcel').addEventListener('click', processExcelForDynamicForm);
@@ -1165,46 +1154,40 @@
                 document.getElementById('inputExcel').value = '';
                 document.getElementById('inputTableName').value = '';
                 document.getElementById('dynamicFormMessages').style.display = 'none';
+                document.getElementById('dynamicCardDescHi').value = '';
+                document.getElementById('dynamicCardDescEn').value = '';
+                // Reset icon picker for dynamic card
+                const dynamicCardIconPicker = document.getElementById('dynamicCardIconPicker');
+                dynamicCardIconPicker.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+                if (dynamicCardIconPicker.children.length > 0) dynamicCardIconPicker.children[0].classList.add('selected');
+                document.getElementById('selectedDynamicCardIcon').value = 'fas fa-file-alt';
+            });
+            setupDynamicCardIconPicker(); // Setup for the dynamic form creator modal
+        }
+
+        function setupIconPickers() { // For static card modals
+            const pickers = ['iconPicker', 'editIconPicker'];
+            pickers.forEach(pickerId => {
+                const picker = document.getElementById(pickerId);
+                if (picker) {
+                    picker.innerHTML = '';
+                    availableIcons.forEach(iconClass => {
+                        const iconOption = document.createElement('div');
+                        iconOption.className = 'icon-option';
+                        iconOption.innerHTML = `<i class="${iconClass}"></i>`;
+                        iconOption.addEventListener('click', function() {
+                            picker.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+                            this.classList.add('selected');
+                            document.getElementById(pickerId === 'iconPicker' ? 'selectedIcon' : 'editSelectedIcon').value = iconClass;
+                        });
+                        picker.appendChild(iconOption);
+                    });
+                    if (picker.children.length > 0) picker.children[0].classList.add('selected');
+                }
             });
         }
 
-        function setupIconPickers() {
-            const picker = document.getElementById('iconPicker');
-            if (picker) {
-                picker.innerHTML = '';
-                availableIcons.forEach(iconClass => {
-                    const iconOption = document.createElement('div');
-                    iconOption.className = 'icon-option';
-                    iconOption.innerHTML = `<i class="${iconClass}"></i>`;
-                    iconOption.addEventListener('click', function() {
-                        picker.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
-                        this.classList.add('selected');
-                        document.getElementById('selectedIcon').value = iconClass;
-                    });
-                    picker.appendChild(iconOption);
-                });
-                if (picker.children.length > 0) picker.children[0].classList.add('selected');
-            }
-
-            const editPicker = document.getElementById('editIconPicker');
-            if (editPicker) {
-                editPicker.innerHTML = '';
-                availableIcons.forEach(iconClass => {
-                    const iconOption = document.createElement('div');
-                    iconOption.className = 'icon-option';
-                    iconOption.innerHTML = `<i class="${iconClass}"></i>`;
-                    iconOption.addEventListener('click', function() {
-                        editPicker.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
-                        this.classList.add('selected');
-                        document.getElementById('editSelectedIcon').value = iconClass;
-                    });
-                    editPicker.appendChild(iconOption);
-                });
-                if (editPicker.children.length > 0) editPicker.children[0].classList.add('selected');
-            }
-        }
-
-        function setupNavIconPickers() {
+        function setupNavIconPickers() { // For static nav item modals
             const pickers = ['navIconPicker', 'editNavIconPicker'];
             pickers.forEach(pickerId => {
                 const picker = document.getElementById(pickerId);
@@ -1225,6 +1208,32 @@
                 }
             });
         }
+
+        function setupDynamicCardIconPicker() { // For dynamic form creator modal
+            const picker = document.getElementById('dynamicCardIconPicker');
+            if (picker) {
+                picker.innerHTML = '';
+                availableIcons.forEach(iconClass => {
+                    const iconOption = document.createElement('div');
+                    iconOption.className = 'icon-option';
+                    iconOption.innerHTML = `<i class="${iconClass}"></i>`;
+                    iconOption.addEventListener('click', function() {
+                        picker.querySelectorAll('.icon-option').forEach(opt => opt.classList.remove('selected'));
+                        this.classList.add('selected');
+                        document.getElementById('selectedDynamicCardIcon').value = iconClass;
+                    });
+                    picker.appendChild(iconOption);
+                });
+                // Default to fas fa-file-alt
+                const defaultIconOption = picker.querySelector(`.icon-option i.fas.fa-file-alt`);
+                if (defaultIconOption) {
+                    defaultIconOption.parentElement.classList.add('selected');
+                } else if (picker.children.length > 0) {
+                    picker.children[0].classList.add('selected');
+                }
+            }
+        }
+
 
         function toggleEditMode() {
             editMode = !editMode;
@@ -1493,7 +1502,7 @@
                 const { count: activeUsers, error: activeUsersError } = await supabaseClient
                     .from('test_users')
                     .select('id', { count: 'exact', head: true })
-                    .eq('is_online', true); // Assuming 'is_online' indicates active
+                    .eq('is_online', true);
                 if (activeUsersError) throw activeUsersError;
                 document.getElementById('activeUsersCount').textContent = activeUsers;
 
@@ -1516,7 +1525,6 @@
                 const topCardsTableBody = document.getElementById('topCardsTableBody');
                 topCardsTableBody.innerHTML = '';
                 
-                // Grouping and counting clicks for top cards
                 const cardClickCounts = {};
                 topCards.forEach(click => {
                     const cardTitle = click.dashboard_cards ? click.dashboard_cards.title_hi : 'Unknown Card';
@@ -1556,7 +1564,7 @@
             try {
                 const { error } = await supabaseClient
                     .from('card_clicks')
-                    .insert({ card_id: cardId, user_id: currentUser.id, ip_address: '0.0.0.0' }); // IP address will be resolved by Supabase if RLS is set up for it.
+                    .insert({ card_id: cardId, user_id: currentUser.id, ip_address: '0.0.0.0' });
                 if (error) throw error;
             } catch (error) {
                 console.error('Error logging card click:', error);
@@ -1564,7 +1572,7 @@
         }
 
         async function logAdminAction(actionType, description, targetEntityId = null) {
-            if (!isAdmin || !currentUser) return; // Only log if admin is performing action
+            if (!isAdmin || !currentUser) return;
 
             try {
                 const { error } = await supabaseClient
@@ -1584,10 +1592,17 @@
         // Dynamic Form Creator Modals and Functions
         async function openDynamicFormCreatorModal() {
             document.getElementById('dynamicFormCreatorModal').style.display = 'block';
-            await populateNavCategories('formNavCategory'); // Populate dropdown for form category
+            await populateFormNavParentItems('formNavParentItem'); // Populate dropdown for parent nav item
             document.getElementById('inputExcel').focus();
-            document.getElementById('designerPreviewArea').style.display = 'none'; // Hide designer preview initially
+            document.getElementById('designerPreviewArea').style.display = 'none';
             document.getElementById('dynamicFormMessages').style.display = 'none';
+            // Reset fields
+            document.getElementById('inputExcel').value = '';
+            document.getElementById('inputTableName').value = '';
+            document.getElementById('dynamicCardDescHi').value = '';
+            document.getElementById('dynamicCardDescEn').value = '';
+            document.getElementById('selectedDynamicCardIcon').value = 'fas fa-file-alt';
+            setupDynamicCardIconPicker(); // Reset icon selection
         }
 
         function closeDynamicFormCreatorModal() {
@@ -1596,6 +1611,9 @@
             document.getElementById('inputTableName').value = '';
             document.getElementById('designerPreviewArea').style.display = 'none';
             document.getElementById('dynamicFormMessages').style.display = 'none';
+            document.getElementById('dynamicCardDescHi').value = '';
+            document.getElementById('dynamicCardDescEn').value = '';
+            document.getElementById('selectedDynamicCardIcon').value = 'fas fa-file-alt';
         }
 
         function sanitizeIdentifier(name) {
@@ -1607,22 +1625,37 @@
             return s;
         }
 
+        async function populateFormNavParentItems(selectId) {
+            const selectElement = document.getElementById(selectId);
+            if (!selectElement) return;
+
+            selectElement.innerHTML = '<option value="">सेक्शन चुनें</option>';
+            allNavParentItems.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = item.name_hi;
+                selectElement.appendChild(option);
+            });
+        }
+
         async function processExcelForDynamicForm() {
             const f = document.getElementById('inputExcel').files[0];
             if (!f) {
-                document.getElementById('dynamicFormMessages').textContent = 'कृपया Excel फ़ाइल चुनें';
+                document.getElementById('dynamicFormMessages').textContent = 'कृपया Excel फ़ाइल अपलोड करें';
                 document.getElementById('dynamicFormMessages').style.display = 'block';
+                document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 return;
             }
-            if (!document.getElementById('formNavCategory').value) {
-                document.getElementById('dynamicFormMessages').textContent = 'कृपया नेवीगेशन कैटेगरी चुनें';
+            if (!document.getElementById('formNavParentItem').value) {
+                document.getElementById('dynamicFormMessages').textContent = 'कृपया नेवीगेशन सेक्शन चुनें';
                 document.getElementById('dynamicFormMessages').style.display = 'block';
+                document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 return;
             }
             
             document.getElementById('dynamicFormMessages').textContent = 'Excel फ़ाइल प्रोसेस हो रही है...';
             document.getElementById('dynamicFormMessages').style.display = 'block';
-            document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(0, 123, 255, 0.2)'; // Info color
+            document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
 
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -1633,7 +1666,7 @@
                     
                     if (!rows || !rows.length || !rows[0].length) {
                         document.getElementById('dynamicFormMessages').textContent = 'फ़ाइल में हेडर नहीं मिले';
-                        document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)'; // Error color
+                        document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                         return;
                     }
 
@@ -1642,12 +1675,12 @@
                     
                     renderDynamicFormDesigner(lastDynamicTableName, lastExcelHeaders);
                     document.getElementById('designerPreviewArea').style.display = 'block';
-                    document.getElementById('dynamicFormMessages').style.display = 'none'; // Clear messages on success
+                    document.getElementById('dynamicFormMessages').style.display = 'none';
                     
                 } catch(err) {
                     console.error(err);
                     document.getElementById('dynamicFormMessages').textContent = 'फ़ाइल पढ़ने में त्रुटि: ' + (err.message || JSON.stringify(err));
-                    document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)'; // Error color
+                    document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 }
             };
             reader.readAsArrayBuffer(f);
@@ -1660,7 +1693,7 @@
                 const sanitizedColName = sanitizeColName(h, i);
                 const row = document.createElement('div');
                 row.className = 'designer-field-row';
-                row.dataset.colIndex = i; // Store original index for referencing
+                row.dataset.colIndex = i;
 
                 row.innerHTML = `
                     <h5>फ़ील्ड: ${h || `Column ${i+1}`}</h5>
@@ -1682,68 +1715,67 @@
                         </select>
                     </div>
                     
-                    <h6>नियम (Algorithm)</h6>
-                    <div class="form-group form-check">
-                        <input type="checkbox" class="form-check-input field-required" id="fieldRequired${i}">
-                        <label class="form-check-label" for="fieldRequired${i}">अनिवार्य फ़ील्ड</label>
-                    </div>
+                    <div class="sub-section">
+                        <h6>नियम (Algorithm)</h6>
+                        <div class="form-group form-check">
+                            <input type="checkbox" class="form-check-input field-required" id="fieldRequired${i}">
+                            <label class="form-check-label" for="fieldRequired${i}">अनिवार्य फ़ील्ड</label>
+                        </div>
 
-                    <div class="form-row validation-rules-section" style="display:none;">
-                        <div class="form-group">
-                            <label class="form-label">न्यूनतम लंबाई/मान</label>
-                            <input type="number" class="form-control field-min-val" placeholder="Min Length/Value">
+                        <div class="form-row validation-rules-section" style="display:none;">
+                            <div class="form-group">
+                                <label class="form-label">न्यूनतम लंबाई/मान</label>
+                                <input type="number" class="form-control field-min-val" placeholder="Min Length/Value">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">अधिकतम लंबाई/मान</label>
+                                <input type="number" class="form-control field-max-val" placeholder="Max Length/Value">
+                            </div>
+                            <div class="form-group col-12">
+                                <label class="form-label">रेगेक्स पैटर्न (केवल पाठ के लिए)</label>
+                                <input type="text" class="form-control field-regex" placeholder="^\\d{10}$ (e.g., 10 digit number)">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">अधिकतम लंबाई/मान</label>
-                            <input type="number" class="form-control field-max-val" placeholder="Max Length/Value">
-                        </div>
-                        <div class="form-group col-12">
-                            <label class="form-label">रेगेक्स पैटर्न (केवल पाठ के लिए)</label>
-                            <input type="text" class="form-control field-regex" placeholder="^\\d{10}$ (e.g., 10 digit number)">
-                        </div>
-                    </div>
 
-                    <div class="form-group calculation-section" style="display:none;">
-                        <label class="form-label">गणना सूत्र (उदा: field_A + field_B)</label>
-                        <input type="text" class="form-control field-calc-formula" placeholder="field_qty * field_price">
-                    </div>
+                        <div class="form-group calculation-section" style="display:none;">
+                            <label class="form-label">गणना सूत्र (उदा: field_A + field_B)</label>
+                            <input type="text" class="form-control field-calc-formula" placeholder="field_qty * field_price">
+                        </div>
 
-                    <div class="form-row visibility-section" style="display:none;">
-                        <div class="form-group">
-                            <label class="form-label">इस फ़ील्ड को दिखाएं यदि...</label>
-                            <select class="form-select field-visibility-parent">
-                                <option value="">कोई नहीं</option>
-                                <!-- Other fields will be populated here -->
-                            </select>
+                        <div class="form-row visibility-section" style="display:none;">
+                            <div class="form-group">
+                                <label class="form-label">इस फ़ील्ड को दिखाएं यदि...</label>
+                                <select class="form-select field-visibility-parent">
+                                    <option value="">कोई नहीं</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">ऑपरेटर</label>
+                                <select class="form-select field-visibility-operator">
+                                    <option value="==">बराबर (==)</option>
+                                    <option value="!=">बराबर नहीं (!=)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">मान</label>
+                                <input type="text" class="form-control field-visibility-value" placeholder="ट्रिगर मान">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">ऑपरेटर</label>
-                            <select class="form-select field-visibility-operator">
-                                <option value="==">बराबर (==)</option>
-                                <option value="!=">बराबर नहीं (!=)</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">मान</label>
-                            <input type="text" class="form-control field-visibility-value" placeholder="ट्रिगर मान">
-                        </div>
-                    </div>
+                    </div> <!-- End sub-section -->
                 `;
                 container.appendChild(row);
 
-                // Add event listeners for dynamic rule visibility
                 const fieldTypeSelect = row.querySelector('.field-type');
                 const validationSection = row.querySelector('.validation-rules-section');
                 const calculationSection = row.querySelector('.calculation-section');
+                const visibilitySection = row.querySelector('.visibility-section');
                 const visibilityParentSelect = row.querySelector('.field-visibility-parent');
 
-                // Populate visibility parent fields (excluding current field)
                 populateVisibilityParentFields(visibilityParentSelect, headers.map((h,idx) => ({name: sanitizeColName(h,idx), label: h || `Column ${idx+1}`})), sanitizedColName);
 
                 fieldTypeSelect.addEventListener('change', function() {
                     updateFieldRuleVisibility(row, this.value);
                 });
-                // Initial update based on default type
                 updateFieldRuleVisibility(row, fieldTypeSelect.value);
             });
         }
@@ -1765,58 +1797,58 @@
             const calculationSection = rowElement.querySelector('.calculation-section');
             const minValInput = rowElement.querySelector('.field-min-val');
             const maxValInput = rowElement.querySelector('.field-max-val');
-            const regexInput = rowElement.querySelector('.field-regex');
+            const regexInputGroup = rowElement.querySelector('.field-regex').parentElement;
 
-            // Reset inputs
-            minValInput.value = '';
-            maxValInput.value = '';
-            regexInput.value = '';
+            validationSection.style.display = 'block';
+            minValInput.value = ''; maxValInput.value = ''; rowElement.querySelector('.field-regex').value = '';
             rowElement.querySelector('.field-calc-formula').value = '';
             rowElement.querySelector('.field-visibility-parent').value = '';
             rowElement.querySelector('.field-visibility-operator').value = '==';
             rowElement.querySelector('.field-visibility-value').value = '';
 
-            // Show/hide validation rules based on type
-            validationSection.style.display = 'block';
+
             if (fieldType === 'text') {
-                minValInput.setAttribute('type', 'number'); // Length
-                maxValInput.setAttribute('type', 'number'); // Length
+                minValInput.setAttribute('type', 'number');
+                maxValInput.setAttribute('type', 'number');
                 minValInput.placeholder = 'न्यूनतम लंबाई';
                 maxValInput.placeholder = 'अधिकतम लंबाई';
-                regexInput.parentElement.style.display = 'block';
+                regexInputGroup.style.display = 'block';
             } else if (fieldType === 'number') {
-                minValInput.setAttribute('type', 'number'); // Value
-                maxValInput.setAttribute('type', 'number'); // Value
+                minValInput.setAttribute('type', 'number');
+                maxValInput.setAttribute('type', 'number');
                 minValInput.placeholder = 'न्यूनतम मान';
                 maxValInput.placeholder = 'अधिकतम मान';
-                regexInput.parentElement.style.display = 'none';
-            } else { // date, boolean, etc.
-                validationSection.style.display = 'none'; // Hide for now for date/boolean
+                regexInputGroup.style.display = 'none';
+            } else { // date, boolean
+                validationSection.style.display = 'none';
             }
 
-            // Show/hide calculation section (only for number fields)
             calculationSection.style.display = (fieldType === 'number') ? 'block' : 'none';
-            
-            // Visibility section is always available
             rowElement.querySelector('.visibility-section').style.display = 'flex';
         }
 
         async function createDynamicTableAndSaveDef() {
             const submitBtn = document.getElementById('btnCreateDynamicForm');
             const excelFile = document.getElementById('inputExcel').files[0];
-            const formNavCategory = document.getElementById('formNavCategory').value;
+            const formNavParentItemId = document.getElementById('formNavParentItem').value;
+            const dynamicCardDescHi = document.getElementById('dynamicCardDescHi').value.trim();
+            const dynamicCardDescEn = document.getElementById('dynamicCardDescEn').value.trim();
+            const selectedDynamicCardIcon = document.getElementById('selectedDynamicCardIcon').value;
+
 
             if (!excelFile) {
                 document.getElementById('dynamicFormMessages').textContent = 'कृपया Excel फ़ाइल अपलोड करें।';
                 document.getElementById('dynamicFormMessages').style.display = 'block';
+                document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 return;
             }
-            if (!formNavCategory) {
-                document.getElementById('dynamicFormMessages').textContent = 'कृपया नेवीगेशन कैटेगरी चुनें।';
+            if (!formNavParentItemId) {
+                document.getElementById('dynamicFormMessages').textContent = 'कृपया नेवीगेशन सेक्शन चुनें।';
                 document.getElementById('dynamicFormMessages').style.display = 'block';
+                document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 return;
             }
-
+            
             document.getElementById('dynamicFormMessages').textContent = 'टेबल बनाई जा रही है और परिभाषा सहेजी जा रही है...';
             document.getElementById('dynamicFormMessages').style.display = 'block';
             document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
@@ -1837,7 +1869,6 @@
                     let colName = rowElement.querySelector('.field-name').value.trim();
                     const fieldType = rowElement.querySelector('.field-type').value;
 
-                    // Ensure unique column names
                     const baseColName = colName;
                     let s = 1;
                     while (seenColNames.has(colName.toLowerCase())) {
@@ -1864,7 +1895,7 @@
                     const operator = rowElement.querySelector('.field-visibility-operator').value;
                     const value = rowElement.querySelector('.field-visibility-value').value.trim();
 
-                    if (parentField && value) { // Operator is always selected if parentField is selected
+                    if (parentField && value) {
                         visibilityCondition.field = parentField;
                         visibilityCondition.operator = operator;
                         visibilityCondition.value = value;
@@ -1896,42 +1927,71 @@
                     district_id INTEGER REFERENCES public.districts(id)
                 );`;
 
-                // Execute DDL via RPC
-                const { error: rpcErr } = await supabase.rpc('execute_sql_script', { sql_text: ddl });
+                const { data: rpcResult, error: rpcErr } = await supabaseClient.rpc('execute_sql_script', { sql_text: ddl });
                 if (rpcErr) throw new Error('Failed to create table: ' + rpcErr.message);
-                
-                const formDef = {
-                    table_name: tableName,
-                    label: lastDynamicTableName, // Use the sanitized name as label
-                    created_by: currentUser.id,
-                    created_at: new Date().toISOString(),
-                    fields: fields,
-                    navigation_category_id: parseInt(formNavCategory), // Link to chosen category
-                    district_id: currentUser.districts ? currentUser.districts.id : null // Tie to admin's district
-                };
-                
-                // Save form definition
-                const { data: defData, error: insertErr } = await supabase.from('form_definitions').insert([formDef]).select('id');
-                if (insertErr) throw new Error('Failed to save definition: ' + insertErr.message);
+                if (rpcResult && rpcResult.startsWith('ERROR')) throw new Error('Failed to create table: ' + rpcResult); // Check RPC result for errors
 
-                // Create a new navigation item for this dynamic form
-                const newNavItem = {
-                    name_hi: formDef.label,
-                    name_en: formDef.label, // For now, same as Hindi
-                    url: `dynamic_data_entry.html?form=${tableName}`, // Link to generic data entry page
-                    icon_class: 'fas fa-file-alt', // Default icon for dynamic forms
-                    category_id: parseInt(formNavCategory),
-                    display_order: 999, // High order to appear last or can be managed later
+
+                // 1. Create Dashboard Card for this dynamic form
+                const newCardData = {
+                    title_hi: lastDynamicTableName,
+                    title_en: lastDynamicTableName, // Can be made dynamic later
+                    description_hi: dynamicCardDescHi || 'इस फॉर्म में डेटा दर्ज करें',
+                    description_en: dynamicCardDescEn || 'Enter data into this form',
+                    icon_class: selectedDynamicCardIcon || 'fas fa-file-alt',
+                    target_url: `dynamic_data_entry.html?form=${tableName}`, // Link to generic data entry page
+                    category: 'dynamic_forms', // A new category for dynamic forms
+                    is_active: true,
+                    display_order: 999, // Can be managed later
+                    created_by: currentUser.id,
+                };
+                const { data: cardInsertData, error: cardInsertError } = await supabaseClient
+                    .from('dashboard_cards')
+                    .insert([newCardData])
+                    .select('id');
+                if (cardInsertError) throw new Error('Failed to create dashboard card: ' + cardInsertError.message);
+                const newCardId = cardInsertData[0].id;
+                logAdminAction('CARD_ADDED', `Added dynamic form card: ${lastDynamicTableName}`, newCardId);
+
+
+                // 2. Create Navigation Item for this dynamic form
+                const newNavItemData = {
+                    name_hi: lastDynamicTableName,
+                    name_en: lastDynamicTableName, // Can be made dynamic later
+                    url: `dynamic_data_entry.html?form=${tableName}`,
+                    icon_class: selectedDynamicCardIcon || 'fas fa-file-alt',
+                    parent_id: parseInt(formNavParentItemId), // Link to chosen parent nav item
+                    display_order: 999, // Can be managed later
                     is_active: true,
                     created_by: currentUser.id,
                 };
-                const { error: navItemError } = await supabase.from('navigation_items').insert([newNavItem]);
-                if (navItemError) console.error('Error creating navigation item for dynamic form:', navItemError);
+                const { data: navItemInsertData, error: navItemInsertError } = await supabaseClient
+                    .from('navigation_items')
+                    .insert([newNavItemData])
+                    .select('id');
+                if (navItemInsertError) throw new Error('Failed to create navigation item: ' + navItemInsertError.message);
+                const newNavItemId = navItemInsertData[0].id;
+                logAdminAction('NAV_ITEM_ADDED', `Added dynamic form nav item: ${lastDynamicTableName}`, newNavItemId);
+
+
+                // 3. Save Form Definition
+                const formDef = {
+                    table_name: tableName,
+                    label: lastDynamicTableName,
+                    description: dynamicCardDescHi || 'इस फॉर्म में डेटा दर्ज करें', // Use card desc as form desc
+                    created_by: currentUser.id,
+                    created_at: new Date().toISOString(),
+                    fields: fields,
+                    navigation_item_id: newNavItemId, // Link to the created nav item
+                    dashboard_card_id: newCardId, // Link to the created dashboard card
+                    district_id: currentUser.districts ? currentUser.districts.id : null
+                };
+                const { data: defData, error: insertErr } = await supabaseClient.from('form_definitions').insert([formDef]).select('id');
+                if (insertErr) throw new Error('Failed to save definition: ' + insertErr.message);
+                logAdminAction('DYNAMIC_FORM_CREATED', `Created dynamic form definition: ${tableName}`, defData[0].id);
 
 
                 showToast(`टेबल और फॉर्म परिभाषा बनाई गई: ${tableName}`, 'success');
-                logAdminAction('DYNAMIC_FORM_CREATED', `Created dynamic form: ${tableName}`, defData[0].id);
-
                 closeDynamicFormCreatorModal();
                 loadDynamicContent(); // Reload nav and cards to show new form
 
@@ -1969,7 +2029,7 @@
             closeUserManagementModal();
             closeEditUserModal();
             closeAnalyticsDashboardModal();
-            closeDynamicFormCreatorModal(); // Close dynamic form creator
+            closeDynamicFormCreatorModal();
             closeProfileModal();
         }
 
@@ -2076,7 +2136,7 @@
             } catch (error) {
                 console.error('Error updating card:', error);
                 showEditCardError('कार्ड अपडेट करने में त्रुटि: ' + error.message);
-                showToast('कार्ड अपडेट करने में त्रुटि', 'error');
+                showToast('카드 업데이트 오류', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-save"></i> परिवर्तन सहेजें';
@@ -2115,7 +2175,7 @@
 
             } catch (error) {
                 console.error('Error loading card for edit:', error);
-                showToast('कार्ड लोड करने में त्रुटि', 'error');
+                showToast('카드 लोड करने में त्रुटि', 'error');
             }
         }
 
@@ -2190,7 +2250,7 @@
                         <i class="fas fa-grip-vertical drag-handle"></i>
                         <div class="nav-item-info">
                             <div class="nav-item-title"><i class="${item.icon_class}"></i> ${item.name_hi}</div>
-                            <div class="nav-item-url">${item.url} (${item.navigation_categories.name_hi})</div>
+                            <div class="nav-item-url">${item.url} (${item.navigation_categories ? item.navigation_categories.name_hi : 'कोई कैटेगरी नहीं'})</div>
                         </div>
                         <div class="nav-item-actions">
                             <button class="admin-card-btn edit-card-btn" onclick="editNavItem(${item.id})" title="संपादित करें">
