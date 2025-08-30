@@ -215,48 +215,77 @@
             modal.show();
         }
 
-        // Handle login
+        // Handle login - FIXED VERSION
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const username = document.getElementById('username').value;
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const district = document.getElementById('district').value;
-
+        
             if (!username || !password || !district) {
                 alert('सभी फील्ड भरें');
                 return;
             }
-
+        
+            console.log('🔍 Login attempt:', { username, portal: currentPortal });
+        
             try {
-                const { data, error } = await supabaseClient
+                // First, let's see what users exist
+                const { data: allUsers, error: fetchError } = await supabaseClient
                     .from('test_users')
-                    .select('*')
-                    .eq('username', username)
-                    .eq('password', password)
-                    .eq('status', 'active');
-
-                if (data && data.length > 0) {
-                    const user = data[0];
-                    if (user.portal_access === currentPortal || user.portal_access === 'all') {
-                        alert(`स्वागत ${user.name}!`);
-                        localStorage.setItem('user', JSON.stringify({
-                            ...user,
-                            district: district,
-                            portal: currentPortal
-                        }));
-                        window.location.href = 'dashboard.html';
-                    } else {
-                        alert('इस पोर्टल के लिए एक्सेस नहीं है');
-                    }
-                } else {
-                    alert('गलत लॉगिन जानकारी');
+                    .select('*');
+        
+                console.log('📊 All users in database:', allUsers);
+        
+                if (fetchError) {
+                    console.error('Database fetch error:', fetchError);
+                    alert('डेटाबेस कनेक्शन में समस्या');
+                    return;
                 }
+        
+                // Find matching user
+                const user = allUsers.find(u => {
+                    console.log('Checking user:', {
+                        db_username: u.username,
+                        input_username: username,
+                        username_match: u.username === username,
+                        db_password: u.password,
+                        input_password: password,
+                        password_match: u.password === password,
+                        db_portal: u.portal_access,
+                        current_portal: currentPortal,
+                        portal_match: u.portal_access === currentPortal || u.portal_access === 'all',
+                        status: u.status,
+                        status_active: u.status === 'active'
+                    });
+        
+                    return u.username === username && 
+                           u.password === password && 
+                           (u.portal_access === currentPortal || u.portal_access === 'all') &&
+                           u.status === 'active';
+                });
+        
+                console.log('🎯 Found user:', user);
+        
+                if (user) {
+                    alert(`स्वागत ${user.name}!`);
+                    localStorage.setItem('user', JSON.stringify({
+                        ...user,
+                        district: district,
+                        portal: currentPortal
+                    }));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert('गलत लॉगिन जानकारी या पोर्टल एक्सेस नहीं है');
+                }
+        
             } catch (error) {
-                console.error('Login error:', error);
-                alert('लॉगिन में त्रुटि');
+                console.error('❌ Login error:', error);
+                alert('लॉगिन में त्रुटि: ' + error.message);
             }
         });
+
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
