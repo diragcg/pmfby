@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* Lighter background overlay for better image visibility */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: -1;
+        }
+
+        /* Clean Header Strip - More transparent */
+        .header-strip {
+            background: rgba(204, 206, 206, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(233, 236, 239, 0.5);
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 0 20px;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .cg-logo {
+            height: 60px;
+            width: auto;
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .logo-text p {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 400;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .login-btn {
+            background: rgba(0, 123, 255, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            backdrop-filter: blur(5px);
+        }
+
+        .login-btn:hover {
+            background: rgba(0, 86, 179, 0.9);
+            transform: translateY(-1px);
+        }
+
+        /* Clean Navigation - More transparent */
+        .navbar {
+            background: rgba(52, 58, 64, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(222, 226, 230, 0.3);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            margin: 0 20px;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            gap: 8px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: rgba(3, 122, 241, 0.8);
+            border-radius: 12px;
+            padding: 12px 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .nav-link i {
+            font-size: 14px;
+        }
+
+        /* Content area styling for better visibility */
+        .main-content {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            margin: 20px;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Enhanced Modal Styles - FIXED ISSUES */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center;
+            background-size: cover;
+            position: relative;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 380px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            animation: modalSlideIn 0.4s ease-out;
+        }
+
+        /* Modal background overlay - MUCH lighter for maize visibility */
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(0.5px);
+            z-index: 1;
+        }
+
+        .modal-content > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            background: rgba(0, 123, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 18px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .modal-logo-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 3px;
+        }
+
+        .modal-cg-logo {
+            height: 35px;
+            width: auto;
+            /* FIXED: Removed white filter, added proper contrast */
+            filter: drop-shadow(1px 1px 2px rgba(0,0,0,0.5)) brightness(1.1) contrast(1.2);
+        }
+
+        .modal-header h2 {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            font-size: 16px;
+            margin: 0;
+            font-weight: 600;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+            /* FIXED: Reduced width for narrower container */
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .modal-header p {
+            font-size: 11px;
+            opacity: 0.9;
+            margin-top: 2px;
+            font-weight: 400;
+            /* FIXED: Reduced width for narrower container */
+            max-width: 260px;
+            margin: 2px auto 0;
+        }
+
+        .close {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 22px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(5px);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-weight: 600;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            font-size: 13px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 7px;
+            font-size: 13px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .login-submit-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 11px;
+            border: none;
+            border-radius: 7px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+        }
+
+        .login-submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 123, 255, 0.4);
+        }
+
+        .login-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(220, 53, 69, 0.1);
+            border-radius: 5px;
+            display: none;
+            border-left: 3px solid #dc3545;
+        }
+
+        .success-message {
+            color: #28a745;
+            font-size: 12px;
+            margin-top: 10px;
+            padding: 8px;
+            background: rgba(40, 167, 69, 0.1);
+            border-radius: 5px;
+            display: none;
+            border-left: 3px solid #28a745;
+        }
+
+        /* CAPTCHA Modal Styles - SMALLER */
+        .captcha-modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            margin: 15% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 320px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        .captcha-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        #captchaCanvas {
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        #captchaInput {
+            font-family: 'Arial', monospace;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        #refreshCaptcha {
+            height: 50px;
+            width: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid #e9ecef;
+            background: #f8f9fa;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        #refreshCaptcha:hover {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        /* Responsive - TIGHTER */
+        @media (max-width: 768px) {
+            .header-strip {
+                margin: 0 10px;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .logo-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-menu {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .nav-link {
+                padding: 12px 15px;
+                font-size: 13px;
+            }
+
+            .navbar {
+                margin: 0 10px;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            .main-content {
+                margin: 10px;
+            }
+
+            .modal-content {
+                margin: 3% auto;
+                width: 95%;
+                max-width: 350px;
+                max-height: 90vh;
+            }
+
+            .modal-body {
+                padding: 18px;
+            }
+
+            .modal-header {
+                padding: 15px;
+            }
+
+            .modal-cg-logo {
+                height: 30px;
+            }
+
+            .modal-header h2 {
+                font-size: 14px;
+                max-width: 250px;
+            }
+
+            .modal-header p {
+                font-size: 10px;
+                max-width: 230px;
+            }
+
+            .captcha-modal-content {
+                margin: 20% auto;
+                max-width: 300px;
+            }
+
+            #captchaCanvas {
+                width: 160px;
+                height: 45px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .modal-content {
+                margin: 2% auto;
+                width: 98%;
+                max-height: 95vh;
+                max-width: 320px;
+            }
+
+            .form-group {
+                margin-bottom: 14px;
+            }
+
+            .form-group input, .form-group select {
+                padding: 9px;
+                font-size: 12px;
+            }
+
+            .login-submit-btn {
+                padding: 10px;
+                font-size: 14px;
+            }
+
+            .modal-header h2 {
+                font-size: 13px;
+                max-width: 220px;
+            }
+
+            .modal-header p {
+                font-size: 9px;
+                max-width: 200px;
+            }
+        }
+
+        /* Spinner CSS for loading button */
+        .spinner-border {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            vertical-align: text-bottom;
+            border: 0.125em solid currentColor;
+            border-right-color: transparent;
+            border-radius: 50%;
+            animation: spinner-border 0.75s linear infinite;
+        }
+        .spinner-border-sm {
+            width: 0.875rem;
+            height: 0.875rem;
+            border-width: 0.125em;
+        }
+        @keyframes spinner-border {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-strip">
+        <div class="header-container">
+            <div class="logo-section">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                <div class="logo-text">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>Directorate of Agriculture, Chhattisgarh</p>
+                </div>
+            </div>
+            <div class="login-section">
+                <button class="login-btn" onclick="openLoginModal()">
+                    <i class="fas fa-sign-in-alt"></i>
+                    लॉगिन करें
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link active">
+                        <i class="fas fa-home"></i>
+                        होम
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="contact.html" class="nav-link">
+                        <i class="fas fa-phone"></i>
+                        संपर्क
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="portal.html" class="nav-link">
+                        <i class="fas fa-laptop"></i>
+                        पोर्टल
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="policy.html" class="nav-link">
+                        <i class="fas fa-file-alt"></i>
+                        नीति
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- COMPACT Login Modal with Visible Maize Background -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-logo-section">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="modal-cg-logo">
+                    <div>
+                        <h2>संचालनालय कृषि - लॉगिन</h2>
+                        <p>Directorate of Agriculture, Chhattisgarh</p>
+                    </div>
+                </div>
+                <span class="close" onclick="closeLoginModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-user"></i> यूजरनेम
+                        </label>
+                        <input type="text" id="username" name="username" placeholder="यूजरनेम दर्ज करें" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="fas fa-lock"></i> पासवर्ड
+                        </label>
+                        <input type="password" id="password" name="password" placeholder="पासवर्ड दर्ज करें" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="district">
+                            <i class="fas fa-map-marker-alt"></i> जिला
+                        </label>
+                        <select id="district" name="district" required>
+                            <option value="">-- जिला चुनें --</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="login-submit-btn" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        लॉगिन करें
+                    </button>
+                    <div id="errorMessage" class="error-message"></div>
+                    <div id="successMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- COMPACT CAPTCHA Modal -->
+    <div id="captchaModal" class="modal">
+        <div class="captcha-modal-content">
+            <div class="modal-header">
+                <h2 style="font-size: 16px;">सुरक्षा सत्यापन</h2>
+                <span class="close" onclick="closeCaptchaModal()">&times;</span>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <p style="text-align: center; margin-bottom: 15px; font-size: 14px;">नीचे दिए गए नंबर को दर्ज करें:</p>
+                
+                <!-- CAPTCHA Display -->
+                <div class="captcha-container" style="margin-bottom: 15px;">
+                    <canvas id="captchaCanvas" width="180" height="50"></canvas>
+                    <button type="button" id="refreshCaptcha" title="नया कैप्चा">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                
+                <!-- CAPTCHA Input -->
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <input type="text" id="captchaInput" placeholder="6-digit number" maxlength="6">
+                </div>
+                
+                <div id="captchaError" class="error-message">
+                    गलत कैप्चा! कृपया पुनः प्रयास करें।
+                </div>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px;">
+                    <button type="button" style="background: #6c757d; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px;" onclick="closeCaptchaModal()">रद्द करें</button>
+                    <button type="button" style="background: #007bff; color: white; padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px;" id="verifyCaptcha">सत्यापित करें</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import Supabase configuration
+        import { supabaseClient } from './supabase-config.js';
+
+        // CAPTCHA functionality - Bold Numerical Only
+        let currentCaptcha = '';
+        let tempLoginData = {};
+
+        function generateCaptcha() {
+            // Generate 6-digit numerical captcha
+            let captcha = '';
+            for (let i = 0; i < 6; i++) {
+                captcha += Math.floor(Math.random() * 10).toString();
+            }
+            return captcha;
+        }
+
+        function drawCaptcha() {
+            const canvas = document.getElementById('captchaCanvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Generate new numerical captcha
+            currentCaptcha = generateCaptcha();
+            
+            // Set background
+            ctx.fillStyle = '#f8f9fa';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Add noise lines
+            for (let i = 0; i < 3; i++) {
+                ctx.strokeStyle = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, 0.2)`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+                ctx.stroke();
+            }
+            
+            // Draw bold numerical captcha text
+            ctx.font = 'bold 24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            for (let i = 0; i < currentCaptcha.length; i++) {
+                const digit = currentCaptcha[i];
+                const x = 20 + (i * 25);
+                const y = 25 + (Math.random() * 6 - 3);
+                const rotation = (Math.random() * 0.2 - 0.1);
+                
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate(rotation);
+                
+                // Bold black color for better visibility
+                ctx.fillStyle = `rgb(${Math.floor(Math.random() * 80)}, ${Math.floor(Math.random() * 80)}, ${Math.floor(Math.random() * 80)})`;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 1;
+                
+                // Draw text with stroke for bold effect
+                ctx.fillText(digit, 0, 0);
+                ctx.strokeText(digit, 0, 0);
+                
+                ctx.restore();
+            }
+            
+            // Add fewer noise dots for numerical clarity
+            for (let i = 0; i < 20; i++) {
+                ctx.fillStyle = `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, \${Math.floor(Math.random() * 255)}, 0.2)`;
+                ctx.fillRect(Math.random() * canvas.width, Math.random() * canvas.height, 1, 1);
+            }
+        }
+
+        // Hash password with SHA-256
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Load districts from Supabase
+        async function loadDistricts() {
+            try {
+                const districtSelect = document.getElementById('district');
+                
+                // Fetch districts from the districts table
+                const { data, error } = await supabaseClient
+                    .from('districts')
+                    .select('id, name')
+                    .order('name', { ascending: true });
+                    
+                if (error) throw error;
+                
+                // Clear existing options except the first one
+                while (districtSelect.options.length > 1) {
+                    districtSelect.remove(1);
+                }
+                
+                // Add districts to dropdown
+                if (data) {
+                    data.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading districts:', error);
+                const districtSelect = document.getElementById('district');
+                const errorOption = document.createElement('option');
+                errorOption.value = "";
+                errorOption.textContent = "जिला लोड करने में त्रुटि";
+                errorOption.style.color = "#C62828";
+                districtSelect.appendChild(errorOption);
+            }
+        }
+
+        // Modal functions
+        window.openLoginModal = function() {
+            document.getElementById('loginModal').style.display = 'block';
+            document.getElementById('username').focus();
+            loadDistricts();
+        }
+
+        window.closeLoginModal = function() {
+            document.getElementById('loginModal').style.display = 'none';
+            document.getElementById('loginForm').reset();
+            hideMessages();
+        }
+
+        window.closeCaptchaModal = function() {
+            document.getElementById('captchaModal').style.display = 'none';
+            document.getElementById('captchaInput').value = '';
+            document.getElementById('captchaError').style.display = 'none';
+            
+            // Reset login button
+            const submitBtn = document.getElementById('loginBtn');
+            submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> लॉगिन करें';
+            submitBtn.disabled = false;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const loginModal = document.getElementById('loginModal');
+            const captchaModal = document.getElementById('captchaModal');
+            if (event.target === loginModal) {
+                closeLoginModal();
+            }
+            if (event.target === captchaModal) {
+                closeCaptchaModal();
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeLoginModal();
+                closeCaptchaModal();
+            }
+        });
+
+        // Hide messages
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+
+        // Show error message
+        function showError(message) {
+            hideMessages();
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Show success message
+        function showSuccess(message) {
+            hideMessages();
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        // CAPTCHA event listeners
+        document.getElementById('refreshCaptcha').addEventListener('click', function() {
+            drawCaptcha();
+            document.getElementById('captchaInput').value = '';
+            document.getElementById('captchaError').style.display = 'none';
+        });
+
+        document.getElementById('verifyCaptcha').addEventListener('click', function() {
+            const userInput = document.getElementById('captchaInput').value;
+            const errorDiv = document.getElementById('captchaError');
+            
+            if (userInput === currentCaptcha) {
+                // CAPTCHA verified, proceed with login
+                errorDiv.style.display = 'none';
+                document.getElementById('captchaModal').style.display = 'none';
+                
+                // Continue with actual login process
+                proceedWithLogin();
+            } else {
+                // Wrong CAPTCHA
+                errorDiv.style.display = 'block';
+                drawCaptcha(); // Generate new CAPTCHA
+                document.getElementById('captchaInput').value = '';
+            }
+        });
+
+        // Allow Enter key to verify CAPTCHA
+        document.getElementById('captchaInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('verifyCaptcha').click();
+            }
+        });
+
+        // Login form submission
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Store form data temporarily
+            tempLoginData = {
+                username: document.getElementById('username').value.trim(),
+                password: document.getElementById('password').value,
+                districtId: document.getElementById('district').value,
+            };
+
+            // Validate form data
+            if (!tempLoginData.username || !tempLoginData.password || !tempLoginData.districtId) {
+                showError('कृपया सभी फील्ड भरें');
+                return;
+            }
+            
+            // Show loading state
+            const loginBtn = document.getElementById('loginBtn');
+            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width: 1rem; height: 1rem;"></span> सत्यापन हो रहा है...';
+            loginBtn.disabled = true;
+            
+            // Show CAPTCHA modal
+            drawCaptcha();
+            document.getElementById('captchaModal').style.display = 'block';
+            document.getElementById('captchaInput').focus();
+        });
+
+        // Actual login process after CAPTCHA verification
+        async function proceedWithLogin() {
+            try {
+                const { username, password, districtId } = tempLoginData;
+                
+                // Hash the password
+                const hashedPassword = await hashPassword(password);
+                
+                // Check user credentials with district info
+                const { data, error } = await supabaseClient
+                    .from('test_users')
+                    .select(`
+                        id, username, password_hash, full_name, role, is_active, district_id,
+                        districts (
+                            id, name
+                        )
+                    `)
+                    .eq('username', username)
+                    .eq('is_active', true)
+                    .single();
+
+                if (error || !data) {
+                    throw new Error('अमान्य यूजरनेम या पासवर्ड');
+                }
+
+                // Verify password
+                if (data.password_hash !== hashedPassword) {
+                    throw new Error('अमान्य यूजरनेम या पासवर्ड');
+                }
+
+                // Verify district matches (UUID comparison)
+                if (data.district_id && data.district_id !== districtId) {
+                    throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
+                }
+
+                // Update last login and online status
+                await supabaseClient
+                    .from('test_users')
+                    .update({
+                        last_login: new Date().toISOString(),
+                        is_online: true,
+                        last_activity: new Date().toISOString()
+                    })
+                    .eq('id', data.id);
+
+                // Store user session
+                const userData = {
+                    id: data.id,
+                    username: data.username,
+                    fullName: data.full_name,
+                    role: data.role,
+                    districtId: data.district_id,
+                    districtName: data.districts ? data.districts.name : 'Unknown District',
+                    loginTime: new Date().toISOString()
+                };
+
+                sessionStorage.setItem('userId', data.id);
+                sessionStorage.setItem('username', data.username);
+                sessionStorage.setItem('fullName', data.full_name);
+                sessionStorage.setItem('role', data.role);
+                sessionStorage.setItem('districtId', data.district_id);
+                sessionStorage.setItem('districtName', userData.districtName);
+
+                showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
+
+                // Close modals
+                document.getElementById('captchaModal').style.display = 'none';
+                document.getElementById('loginModal').style.display = 'none';
+
+                // Redirect to dashboard after 1.5 seconds
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 1500);
+
+            } catch (error) {
+                console.error('Login error:', error);
+                showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+                
+                // Reset login button
+                const loginBtn = document.getElementById('loginBtn');
+                loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> लॉगिन करें';
+                loginBtn.disabled = false;
+                
+                // Close CAPTCHA modal
+                document.getElementById('captchaModal').style.display = 'none';
+                
+                // Clear temp data
+                tempLoginData = {};
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for existing login
+            const userId = sessionStorage.getItem('userId');
+            if (userId) {
+                // Redirect if already logged in
+                window.location.href = 'dashboard.html';
+                return;
+            }
+
+            // Initialize CAPTCHA
+            drawCaptcha();
+        });
+
+        // Make functions globally available
+        window.drawCaptcha = drawCaptcha;
+        window.proceedWithLogin = proceedWithLogin;
+
+        // Console welcome message for debugging
+        console.log(`
+        ╔══════════════════════════════════════════════════════════════╗
+        ║                संचालनालय कृषि छत्तीसगढ़                      ║
+        ║                Agriculture Department Portal                  ║
+        ║                                                              ║
+        ║  🌾 FIXED: Compact Login Modal with Maize Background        ║
+        ║  🔒 FIXED: CG Logo Visibility in Blue Header                ║
+        ║  📊 FIXED: Narrower Container Width                         ║
+        ║  📋 Bold Numerical CAPTCHA Security                         ║
+        ║  🚀 Redirects to: dashboard.html                            ║
+        ║                                                              ║
+        ║  Issues Fixed:                                               ║
+        ║  ✅ CG Logo now visible (removed white filter)              ║
+        ║  ✅ Modal container width reduced to 380px                  ║
+        ║  ✅ Maize background clearly visible (40% overlay)          ║
+        ║  ✅ Responsive design optimized                             ║
+        ╚══════════════════════════════════════════════════════════════╝
+        `);
+    </script>
+</body>
+</html>
