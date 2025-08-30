@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="./supabase-config.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed;
+            background-size: cover;
+            min-height: 100vh;
+            position: relative;
+        }
+
+        /* FIXED: Much lighter background overlay for maize visibility */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: -1;
+        }
+
+        /* Clean Header Strip - FIXED: Added top margin */
+        .header-strip {
+            background: rgba(204, 206, 206, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px 20px 0 20px;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .cg-logo {
+            height: 60px;
+            width: auto;
+        }
+
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .logo-text p {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 400;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* FIXED: Light pale green background with yellow text - single line display */
+        .user-info {
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+            color: #b8860b;
+            padding: 12px 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(184, 134, 11, 0.3);
+            min-width: 200px;
+        }
+
+        .user-info:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(184, 134, 11, 0.3);
+        }
+
+        .user-display {
+            font-weight: 600;
+            font-size: 14px;
+            color: #b8860b;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        /* Clean Navigation with Curved Bottom Edges - FIXED: Added z-index */
+        .navbar {
+            background: rgba(52, 58, 64, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #dee2e6;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            margin: 0 20px;
+            position: relative;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            align-items: center;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            gap: 8px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            background: #037af1;
+            border-radius: 12px;
+            padding: 12px 20px;
+        }
+
+        .nav-link i {
+            font-size: 14px;
+        }
+
+        /* Dropdown Styles - FIXED: Increased z-index */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            z-index: 9999;
+            border: 1px solid #dee2e6;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 12px 16px;
+            color: #2c3e50;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #f8f9fa;
+        }
+
+        .dropdown-item:hover {
+            background: #0480fc;
+            color: white;
+        }
+
+        .dropdown-item:last-child {
+            border-bottom: none;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        .dropdown-item:first-child {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        /* Profile and Logout specific styles */
+        .profile-link, .logout-link {
+            margin-left: auto;
+        }
+
+        .logout-link {
+            background: #dc3545;
+            border-radius: 12px;
+            padding: 12px 20px !important;
+        }
+
+        .logout-link:hover {
+            background: #c82333 !important;
+        }
+
+        .profile-link:hover {
+            background: #28a745;
+            border-radius: 8px;
+            padding: 12px 12px;
+        }
+
+        /* Content area styling for better visibility */
+        .main-content {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            margin: 20px;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Dashboard Cards with Better Padding */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 20px;
+        }
+
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(8px);
+            border-radius: 15px;
+            padding: 35px 25px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.18);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        .card-icon {
+            font-size: 56px;
+            color: #007bff;
+            margin-bottom: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .dashboard-card:hover .card-icon {
+            transform: scale(1.1);
+            color: #0056b3;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+
+        .card-description {
+            font-size: 15px;
+            color: #6c757d;
+            text-align: center;
+            line-height: 1.6;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            padding: 0 10px;
+        }
+
+        .card-link {
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .card-link:hover {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        /* Profile Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center;
+            background-size: cover;
+            position: relative;
+            margin: 3% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 450px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            animation: modalSlideIn 0.4s ease-out;
+        }
+
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(0.5px);
+            z-index: 1;
+        }
+
+        .modal-content > * {
+            position: relative;
+            z-index: 2;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            background: rgba(204, 206, 206, 0.95);
+            backdrop-filter: blur(10px);
+            color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .modal-header h2 {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            font-size: 20px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .close:hover {
+            background: rgba(255, 255, 255, 0.4);
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            padding: 25px;
+            background: rgba(52, 58, 64, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: white;
+            font-weight: 500;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #037af1;
+            box-shadow: 0 0 0 3px rgba(3, 122, 241, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .profile-submit-btn {
+            width: 100%;
+            background: #037af1;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            margin-top: 10px;
+        }
+
+        .profile-submit-btn:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .profile-submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message, .success-message {
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+
+        .success-message {
+            background: rgba(40, 167, 69, 0.2);
+            color: #51cf66;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+
+        /* Responsive - FIXED: Added top margin for mobile */
+        @media (max-width: 768px) {
+            .header-strip {
+                margin: 10px 10px 0 10px;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            .header-container {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .logo-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-menu {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .nav-link {
+                padding: 12px 15px;
+                font-size: 13px;
+            }
+
+            .navbar {
+                margin: 0 10px;
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+            }
+
+            .dropdown-content {
+                position: static;
+                display: block;
+                box-shadow: none;
+                border: none;
+                background: rgba(73, 80, 87, 0.95);
+                border-radius: 0;
+            }
+
+            .dropdown-item {
+                color: #44a6f6;
+                border-bottom: 1px solid #6c757d;
+            }
+
+            .dropdown-item:hover {
+                background: #6c757d;
+            }
+
+            .main-content {
+                margin: 10px;
+                padding: 20px;
+            }
+
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .dashboard-card {
+                padding: 30px 20px;
+            }
+
+            .modal-content {
+                margin: 5% auto;
+                width: 95%;
+                max-width: 400px;
+            }
+
+            .modal-body {
+                padding: 20px;
+            }
+
+            .user-info {
+                min-width: 150px;
+                padding: 10px 15px;
+            }
+
+            .user-display {
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header-strip">
+        <div class="header-container">
+            <div class="logo-section">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                <div class="logo-text">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>Directorate of Agriculture, Chhattisgarh</p>
+                </div>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="user-display" id="user-display">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link active">
+                        <i class="fas fa-home"></i>
+                        होम
+                    </a>
+                </li>
+                
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link">
+                        <i class="fas fa-th-large"></i>
+                        सेक्शन
+                        <i class="fas fa-chevron-down"></i>
+                    </a>
+                    <div class="dropdown-content">
+                        <a href="pmfby.html" class="dropdown-item">
+                            <i class="fas fa-seedling"></i> PMFBY
+                        </a>
+                        <a href="dbt.html" class="dropdown-item">
+                            <i class="fas fa-money-bill-transfer"></i> DBT
+                        </a>
+                        <a href="store.html" class="dropdown-item">
+                            <i class="fas fa-store"></i> STORE
+                        </a>
+                        <a href="gt.html" class="dropdown-item">
+                            <i class="fas fa-chart-line"></i> GT
+                        </a>
+                        <a href="kcc.html" class="dropdown-item">
+                            <i class="fas fa-credit-card"></i> KCC
+                        </a>
+                        <a href="seed.html" class="dropdown-item">
+                            <i class="fas fa-spa"></i> SEED
+                        </a>
+                        <a href="fertilizer.html" class="dropdown-item">
+                            <i class="fas fa-flask"></i> FERTILIZER
+                        </a>
+                        <a href="pesticide.html" class="dropdown-item">
+                            <i class="fas fa-bug"></i> PESTICIDE
+                        </a>
+                        <a href="stat.html" class="dropdown-item">
+                            <i class="fas fa-chart-bar"></i> STAT
+                        </a>
+                    </div>
+                </li>
+
+                <li class="nav-item profile-link">
+                    <a href="#" class="nav-link" id="profileLink">
+                        <i class="fas fa-user"></i>
+                        प्रोफाइल
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="#" class="nav-link logout-link" id="logoutLink">
+                        <i class="fas fa-sign-out-alt"></i>
+                        लॉगआउट
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="main-content">
+        <div class="dashboard-cards">
+            <a href="dbt.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-money-bill-transfer"></i>
+                    </div>
+                    <h3 class="card-title">DBT</h3>
+                    <p class="card-description">डायरेक्ट बेनिफिट ट्रांसफर सिस्टम</p>
+                </div>
+            </a>
+
+            <a href="store.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3 class="card-title">STORE</h3>
+                    <p class="card-description">भंडारण प्रबंधन सिस्टम</p>
+                </div>
+            </a>
+
+            <a href="gt.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="card-title">GT</h3>
+                    <p class="card-description">ग्राउंड ट्रुथ वेरिफिकेशन</p>
+                </div>
+            </a>
+
+            <a href="kcc.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <h3 class="card-title">KCC</h3>
+                    <p class="card-description">किसान क्रेडिट कार्ड</p>
+                </div>
+            </a>
+
+            <a href="seed.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-spa"></i>
+                    </div>
+                    <h3 class="card-title">SEED</h3>
+                    <p class="card-description">बीज वितरण प्रबंधन</p>
+                </div>
+            </a>
+
+            <a href="fertilizer.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-flask"></i>
+                    </div>
+                    <h3 class="card-title">FERTILIZER</h3>
+                    <p class="card-description">उर्वरक वितरण सिस्टम</p>
+                </div>
+            </a>
+
+            <a href="pesticide.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-bug"></i>
+                    </div>
+                    <h3 class="card-title">PESTICIDE</h3>
+                    <p class="card-description">कीटनाशक प्रबंधन</p>
+                </div>
+            </a>
+
+            <a href="stat.html" class="card-link">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3 class="card-title">STAT</h3>
+                    <p class="card-description">सांख्यिकी और रिपोर्ट</p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>प्रोफाइल सेटिंग्स</h2>
+                <span class="close" id="closeProfileModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <div class="form-group">
+                        <label for="currentPassword">
+                            <i class="fas fa-lock"></i> वर्तमान पासवर्ड
+                        </label>
+                        <input type="password" id="currentPassword" name="currentPassword" placeholder="वर्तमान पासवर्ड दर्ज करें" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">
+                            <i class="fas fa-key"></i> नया पासवर्ड
+                        </label>
+                        <input type="password" id="newPassword" name="newPassword" placeholder="नया पासवर्ड दर्ज करें" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">
+                            <i class="fas fa-check-circle"></i> पासवर्ड की पुष्टि करें
+                        </label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="नया पासवर्ड दोबारा दर्ज करें" required>
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="profileBtn">
+                        <i class="fas fa-save"></i>
+                        पासवर्ड अपडेट करें
+                    </button>
+                    <div id="profileErrorMessage" class="error-message"></div>
+                    <div id="profileSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { supabaseClient } from './supabase-config.js';
+
+        // Load user data on page load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadUserData();
+            setupEventListeners();
+        });
+
+        async function loadUserData() {
+            try {
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                
+                if (!userId) {
+                    window.location.href = 'header.html';
+                    return;
+                }
+
+                // Fetch user data with district info - FIXED: Single line display
+                const { data: user, error } = await supabaseClient
+                    .from('test_users')
+                    .select(`
+                        full_name, role, username,
+                        districts (
+                            name
+                        )
+                    `)
+                    .eq('id', userId)
+                    .single();
+
+                if (error) {
+                    console.error('Error fetching user data:', error);
+                    document.getElementById('user-display').textContent = 'Unknown User';
+                    return;
+                }
+
+                if (user) {
+                    const displayName = user.full_name || user.username;
+                    const districtName = user.districts ? user.districts.name : 'Unknown District';
+                    
+                    // FIXED: Display user and district on same line
+                    document.getElementById('user-display').textContent = `${displayName} - ${districtName}`;
+                    
+                    // Update last activity
+                    await supabaseClient
+                        .from('test_users')
+                        .update({ 
+                            last_activity: new Date().toISOString(),
+                            is_online: true 
+                        })
+                        .eq('id', userId);
+                }
+
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                document.getElementById('user-display').textContent = 'Error Loading';
+            }
+        }
+
+        // FIXED: Proper event listeners setup
+        function setupEventListeners() {
+            // Profile modal events
+            document.getElementById('profileLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                openProfileModal();
+            });
+
+            document.getElementById('closeProfileModal').addEventListener('click', closeProfileModal);
+
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                const profileModal = document.getElementById('profileModal');
+                if (event.target === profileModal) {
+                    closeProfileModal();
+                }
+            }
+
+            // Close modal with Escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeProfileModal();
+                }
+            });
+
+            // Profile form submission
+            document.getElementById('profileForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const profileBtn = document.getElementById('profileBtn');
+                const currentPassword = document.getElementById('currentPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                // Validate form data
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    showProfileError('कृपया सभी फील्ड भरें');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    showProfileError('नया पासवर्ड और पुष्टि पासवर्ड मेल नहीं खाते');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    showProfileError('नया पासवर्ड कम से कम 6 अक्षर का होना चाहिए');
+                    return;
+                }
+
+                // Show loading state
+                profileBtn.disabled = true;
+                profileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> अपडेट हो रहा है...';
+
+                try {
+                    const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                    
+                    if (!userId) {
+                        throw new Error('उपयोगकर्ता सत्र समाप्त हो गया है');
+                    }
+
+                    // Hash current password to verify
+                    const hashedCurrentPassword = await hashPassword(currentPassword);
+
+                    // Verify current password
+                    const { data: user, error: verifyError } = await supabaseClient
+                        .from('test_users')
+                        .select('password_hash')
+                        .eq('id', userId)
+                        .single();
+
+                    if (verifyError || !user) {
+                        throw new Error('उपयोगकर्ता जानकारी प्राप्त करने में त्रुटि');
+                    }
+
+                    if (user.password_hash !== hashedCurrentPassword) {
+                        throw new Error('वर्तमान पासवर्ड गलत है');
+                    }
+
+                    // Hash new password
+                    const hashedNewPassword = await hashPassword(newPassword);
+
+                    // Update password in database
+                    const { error: updateError } = await supabaseClient
+                        .from('test_users')
+                        .update({
+                            password_hash: hashedNewPassword,
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', userId);
+
+                    if (updateError) {
+                        throw new Error('पासवर्ड अपडेट करने में त्रुटि: ' + updateError.message);
+                    }
+
+                    showProfileSuccess('पासवर्ड सफलतापूर्वक अपडेट हो गया!');
+                    
+                    // Clear form after 2 seconds
+                    setTimeout(() => {
+                        document.getElementById('profileForm').reset();
+                        hideProfileMessages();
+                        closeProfileModal(); // Close modal after success
+                    }, 2000);
+
+                } catch (error) {
+                    console.error('Profile update error:', error);
+                    showProfileError(error.message || 'पासवर्ड अपडेट करने में त्रुटि हुई');
+                } finally {
+                    // Re-enable button
+                    profileBtn.disabled = false;
+                    profileBtn.innerHTML = '<i class="fas fa-save"></i> पासवर्ड अपडेट करें';
+                }
+            });
+
+            // Logout event listener
+            document.getElementById('logoutLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                logout();
+            });
+        }
+
+        // Hash password with SHA-256
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Profile Modal Functions
+        window.openProfileModal = function() {
+            document.getElementById('profileModal').style.display = 'block';
+            document.getElementById('currentPassword').focus();
+            hideProfileMessages(); // Clear messages on open
+        }
+
+        window.closeProfileModal = function() {
+            document.getElementById('profileModal').style.display = 'none';
+            document.getElementById('profileForm').reset();
+            hideProfileMessages();
+        }
+
+        // Hide profile messages
+        function hideProfileMessages() {
+            document.getElementById('profileErrorMessage').style.display = 'none';
+            document.getElementById('profileSuccessMessage').style.display = 'none';
+        }
+
+        // Show profile error message
+        function showProfileError(message) {
+            hideProfileMessages();
+            const errorDiv = document.getElementById('profileErrorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Show profile success message
+        function showProfileSuccess(message) {
+            hideProfileMessages();
+            const successDiv = document.getElementById('profileSuccessMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+
+        // Logout function
+        window.logout = async function() {
+            try {
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                
+                if (userId) {
+                    // Update user status to offline
+                    await supabaseClient
+                        .from('test_users')
+                        .update({ 
+                            is_online: false,
+                            last_activity: new Date().toISOString()
+                        })
+                        .eq('id', userId);
+                }
+
+                // Clear session data
+                sessionStorage.removeItem('userId');
+                localStorage.removeItem('userId');
+                
+                // Redirect to login page
+                window.location.href = 'header.html';
+                
+            } catch (error) {
+                console.error('Error during logout:', error);
+                // Still redirect even if there's an error
+                window.location.href = 'header.html';
+            }
+        }
+
+        // Make functions globally available
+        window.loadUserData = loadUserData;
+        window.openProfileModal = openProfileModal; // Ensure this is globally accessible
+        window.closeProfileModal = closeProfileModal; // Ensure this is globally accessible
+
+        // Add spinner CSS for loading button
+        const style = document.createElement('style');
+        style.textContent = `
+            .fa-spin {
+                animation: fa-spin 1s infinite linear;
+            }
+            @keyframes fa-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
