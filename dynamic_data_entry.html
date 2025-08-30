@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>डायनेमिक डेटा एंट्री (संचालनालय कृषि छत्तीसगढ़)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="./supabase-config.js"></script>
+    <style>
+        /* General & Layout */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed; background-size: cover; min-height: 100vh; position: relative; color: white; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: -1; }
+
+        .container {
+            max-width: 700px;
+            margin: 50px auto;
+            background: rgba(52, 58, 64, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s;
+        }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #037af1;
+            box-shadow: 0 0 0 3px rgba(3, 122, 241, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        .form-group .form-check-label {
+            display: inline-block;
+            margin-bottom: 0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: #28a745;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message, .success-message {
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        .success-message {
+            background: rgba(40, 167, 69, 0.2);
+            color: #51cf66;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        .hidden-field {
+            display: none !important;
+        }
+        .validation-error {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+        .calculated-field-label {
+            color: #51cf66 !important; /* Highlight calculated fields */
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(52, 58, 64, 0.8);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10;
+            border-radius: 15px;
+        }
+        .loading-overlay .spinner {
+            width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #037af1; border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="formTitle">लोड हो रहा है...</h1>
+            <p id="formDescription">डायनेमिक फॉर्म डेटा एंट्री</p>
+        </div>
+
+        <div class="loading-overlay" id="formLoadingOverlay">
+            <div class="spinner"></div>
+        </div>
+
+        <form id="dynamicDataEntryForm" style="display:none;">
+            <!-- Dynamic form fields will be rendered here -->
+            <button type="submit" class="submit-btn" id="submitFormBtn">डेटा सबमिट करें</button>
+            <div id="formErrorMessage" class="error-message"></div>
+            <div id="formSuccessMessage" class="success-message"></div>
+        </form>
+    </div>
+
+    <script type="module">
+        import { supabaseClient } from './supabase-config.js';
+
+        let currentUser = null;
+        let formDefinition = null;
+        let dynamicTableName = '';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            dynamicTableName = urlParams.get('form');
+
+            if (!dynamicTableName) {
+                document.getElementById('formTitle').textContent = 'त्रुटि: फॉर्म नहीं मिला';
+                document.getElementById('formDescription').textContent = 'कोई फॉर्म टेबल नाम प्रदान नहीं किया गया।';
+                hideLoadingOverlay();
+                return;
+            }
+
+            currentUser = await getCurrentUser();
+            if (!currentUser) {
+                alert('लॉगिन आवश्यक है। आपको लॉगिन पेज पर रीडायरेक्ट किया जाएगा।');
+                window.location.href = 'header.html'; // Redirect to login
+                return;
+            }
+
+            await loadFormDefinition();
+            if (formDefinition) {
+                renderDynamicForm();
+                setupFormEventListeners();
+            } else {
+                document.getElementById('formTitle').textContent = 'त्रुटि: फॉर्म परिभाषा नहीं मिली';
+                document.getElementById('formDescription').textContent = `फॉर्म "${dynamicTableName}" के लिए कोई परिभाषा नहीं मिली।`;
+            }
+            hideLoadingOverlay();
+        });
+
+        function getCurrentUser() {
+            const userString = localStorage.getItem('user') || sessionStorage.getItem('user');
+            return userString ? JSON.parse(userString) : null;
+        }
+
+        async function loadFormDefinition() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('form_definitions')
+                    .select('*')
+                    .eq('table_name', dynamicTableName)
+                    .single();
+
+                if (error) throw error;
+                formDefinition = data;
+
+                document.getElementById('formTitle').textContent = formDefinition.label || dynamicTableName;
+                document.getElementById('formDescription').textContent = formDefinition.description || 'कृपया डेटा दर्ज करें';
+
+            } catch (error) {
+                console.error('Error loading form definition:', error);
+                showFormMessage('फॉर्म परिभाषा लोड करने में त्रुटि: ' + error.message, 'error');
+                formDefinition = null;
+            }
+        }
+
+        function renderDynamicForm() {
+            const formContainer = document.getElementById('dynamicDataEntryForm');
+            formContainer.style.display = 'block';
+            formContainer.innerHTML = ''; // Clear previous fields
+
+            const fieldsHtml = formDefinition.fields.map((field, index) => {
+                let inputHtml = '';
+                let fieldType = field.type;
+                let inputType = 'text'; // Default HTML input type
+
+                // Map custom types to HTML input types
+                if (fieldType === 'number') inputType = 'number';
+                else if (fieldType === 'date') inputType = 'date';
+                else if (fieldType === 'boolean') inputType = 'checkbox';
+                // For other types like 'select', 'textarea', etc., we'd need more logic here
+
+                if (inputType === 'textarea') {
+                    inputHtml = `<textarea id="field-${field.name}" name="${field.name}" class="form-control" placeholder="${field.label}" ${field.validation_rules?.required ? 'required' : ''}></textarea>`;
+                } else if (inputType === 'checkbox') {
+                    inputHtml = `<input type="checkbox" id="field-${field.name}" name="${field.name}" class="form-check-input" ${field.validation_rules?.required ? 'required' : ''}>`;
+                } else {
+                    inputHtml = `<input type="${inputType}" id="field-${field.name}" name="${field.name}" class="form-control" placeholder="${field.label}" ${field.validation_rules?.required ? 'required' : ''}>`;
+                }
+
+                // Determine if it's a calculated field
+                const isCalculated = !!field.calculation_formula;
+                const labelClass = isCalculated ? 'calculated-field-label' : '';
+                const disabledAttr = isCalculated ? 'disabled' : ''; // Calculated fields are disabled for direct input
+
+                return `
+                    <div class="form-group field-group-${field.name}" data-field-name="${field.name}" data-field-type="${field.type}" ${field.visibility_condition ? 'data-visibility-field="' + field.visibility_condition.field + '" data-visibility-operator="' + field.visibility_condition.operator + '" data-visibility-value="' + field.visibility_condition.value + '"' : ''}>
+                        <label for="field-${field.name}" class="${labelClass}">${field.label} ${field.validation_rules?.required ? '*' : ''}</label>
+                        ${inputHtml}
+                        <span id="error-${field.name}" class="validation-error" style="display:none;"></span>
+                    </div>
+                `;
+            }).join('');
+
+            formContainer.innerHTML = fieldsHtml + formContainer.innerHTML; // Add submit button back
+            const submitBtn = document.createElement('button');
+            submitBtn.type = 'submit';
+            submitBtn.className = 'submit-btn';
+            submitBtn.id = 'submitFormBtn';
+            submitBtn.textContent = 'डेटा सबमिट करें';
+
+            const formErrorMessage = document.createElement('div');
+            formErrorMessage.id = 'formErrorMessage';
+            formErrorMessage.className = 'error-message';
+
+            const formSuccessMessage = document.createElement('div');
+            formSuccessMessage.id = 'formSuccessMessage';
+            formSuccessMessage.className = 'success-message';
+
+            formContainer.appendChild(submitBtn);
+            formContainer.appendChild(formErrorMessage);
+            formContainer.appendChild(formSuccessMessage);
+
+            // Initial visibility and calculation setup
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement) {
+                    // Setup event listeners for validation and calculation
+                    inputElement.addEventListener('input', () => {
+                        validateField(field);
+                        recalculateAllFields();
+                        updateFieldVisibility();
+                    });
+                    if (field.type === 'checkbox') { // Checkbox 'change' event
+                        inputElement.addEventListener('change', () => {
+                            validateField(field);
+                            recalculateAllFields();
+                            updateFieldVisibility();
+                        });
+                    }
+                }
+            });
+            recalculateAllFields(); // Initial calculation
+            updateFieldVisibility(); // Initial visibility
+        }
+
+        function setupFormEventListeners() {
+            document.getElementById('dynamicDataEntryForm').addEventListener('submit', handleFormSubmission);
+        }
+
+        async function handleFormSubmission(event) {
+            event.preventDefault();
+            hideFormMessages();
+
+            const submitBtn = document.getElementById('submitFormBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> सबमिट हो रहा है...';
+
+            let isValid = true;
+            const formData = {};
+
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement) {
+                    const fieldValue = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value;
+                    formData[field.name] = fieldValue;
+
+                    if (!validateField(field)) {
+                        isValid = false;
+                    }
+                }
+            });
+
+            if (!isValid) {
+                showFormMessage('कृपया फॉर्म में त्रुटियों को ठीक करें।', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'डेटा सबमिट करें';
+                return;
+            }
+
+            try {
+                // Add created_by and district_id
+                formData.created_by = currentUser.id;
+                formData.district_id = currentUser.districts ? currentUser.districts.id : null;
+
+                const { error } = await supabaseClient
+                    .from(dynamicTableName)
+                    .insert([formData]);
+
+                if (error) throw error;
+
+                showFormMessage('डेटा सफलतापूर्वक सबमिट किया गया!', 'success');
+                document.getElementById('dynamicDataEntryForm').reset(); // Clear form
+                recalculateAllFields(); // Recalculate after reset
+                updateFieldVisibility(); // Re-apply visibility
+                setTimeout(() => hideFormMessages(), 3000);
+
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                showFormMessage('डेटा सबमिट करने में त्रुटि: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'डेटा सबमिट करें';
+            }
+        }
+
+        function validateField(field) {
+            const inputElement = document.getElementById(`field-${field.name}`);
+            const errorElement = document.getElementById(`error-${field.name}`);
+            if (!inputElement || !errorElement) return true;
+
+            const fieldValue = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value.trim();
+            let errorMessage = '';
+
+            if (field.validation_rules) {
+                const rules = field.validation_rules;
+
+                if (rules.required && (fieldValue === '' || fieldValue === false)) {
+                    errorMessage = 'यह फ़ील्ड अनिवार्य है।';
+                } else if (field.type === 'text') {
+                    if (rules.min && fieldValue.length < rules.min) {
+                        errorMessage = `न्यूनतम ${rules.min} अक्षर आवश्यक हैं।`;
+                    } else if (rules.max && fieldValue.length > rules.max) {
+                        errorMessage = `अधिकतम ${rules.max} अक्षर अनुमत हैं।`;
+                    } else if (rules.regex && !new RegExp(rules.regex).test(fieldValue)) {
+                        errorMessage = 'अवैध प्रारूप।';
+                    }
+                } else if (field.type === 'number') {
+                    const numValue = parseFloat(fieldValue);
+                    if (!isNaN(numValue)) {
+                        if (rules.min && numValue < rules.min) {
+                            errorMessage = `न्यूनतम मान ${rules.min} है।`;
+                        } else if (rules.max && numValue > rules.max) {
+                            errorMessage = `अधिकतम मान ${rules.max} है।`;
+                        }
+                    } else if (fieldValue !== '' && rules.required) { // Only if not empty and required, otherwise just invalid
+                         errorMessage = 'अवैध संख्या।';
+                    }
+                }
+                // Add more type-specific validation here (e.g., date formats)
+            }
+
+            if (errorMessage) {
+                errorElement.textContent = errorMessage;
+                errorElement.style.display = 'block';
+                inputElement.style.borderColor = '#dc3545'; // Highlight error
+                return false;
+            } else {
+                errorElement.style.display = 'none';
+                inputElement.style.borderColor = ''; // Reset border
+                return true;
+            }
+        }
+
+        function recalculateAllFields() {
+            const fieldValues = {};
+            // First, gather all current input values
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement) {
+                    fieldValues[field.name] = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value;
+                }
+            });
+
+            // Then, iterate and apply calculations
+            formDefinition.fields.forEach(field => {
+                if (field.calculation_formula) {
+                    const inputElement = document.getElementById(`field-${field.name}`);
+                    if (inputElement) {
+                        try {
+                            // Replace field names in formula with their current values
+                            let formula = field.calculation_formula;
+                            for (const key in fieldValues) {
+                                // Ensure field names are replaced correctly, avoiding partial matches
+                                const regex = new RegExp(`\\b${key}\\b`, 'g'); // \b for whole word match
+                                formula = formula.replace(regex, `parseFloat(fieldValues['${key}'] || 0)`);
+                            }
+                            
+                            // Safely evaluate the formula
+                            const calculatedValue = eval(formula); // Using eval for simplicity, but be cautious in production
+                            if (!isNaN(calculatedValue)) {
+                                inputElement.value = calculatedValue.toFixed(2); // Format numbers
+                            } else {
+                                inputElement.value = ''; // Clear if calculation results in NaN
+                            }
+                            fieldValues[field.name] = inputElement.value; // Update fieldValues for subsequent calculations
+                            inputElement.dispatchEvent(new Event('input')); // Trigger validation/visibility for dependent fields
+                        } catch (e) {
+                            console.error(`Error evaluating formula for ${field.name}: ${e}`);
+                            inputElement.value = '';
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateFieldVisibility() {
+            const currentFieldValues = {};
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement) {
+                    currentFieldValues[field.name] = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value;
+                }
+            });
+
+            formDefinition.fields.forEach(field => {
+                const fieldGroup = document.querySelector(`.field-group-${field.name}`);
+                if (!fieldGroup) return;
+
+                if (field.visibility_condition) {
+                    const condition = field.visibility_condition;
+                    const parentValue = currentFieldValues[condition.field];
+                    let isVisible = false;
+
+                    switch (condition.operator) {
+                        case '==':
+                            isVisible = String(parentValue) === String(condition.value);
+                            break;
+                        case '!=':
+                            isVisible = String(parentValue) !== String(condition.value);
+                            break;
+                        // Add more operators (>, <, >=, <=) if needed
+                    }
+
+                    if (isVisible) {
+                        fieldGroup.classList.remove('hidden-field');
+                    } else {
+                        fieldGroup.classList.add('hidden-field');
+                        // Optionally clear value if hidden
+                        const inputElement = document.getElementById(`field-${field.name}`);
+                        if (inputElement) {
+                            inputElement.value = '';
+                            inputElement.checked = false; // For checkboxes
+                        }
+                    }
+                }
+            });
+        }
+
+        function showFormMessage(message, type) {
+            const errorDiv = document.getElementById('formErrorMessage');
+            const successDiv = document.getElementById('formSuccessMessage');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            if (type === 'error') {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else if (type === 'success') {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            }
+        }
+
+        function hideFormMessages() {
+            document.getElementById('formErrorMessage').style.display = 'none';
+            document.getElementById('formSuccessMessage').style.display = 'none';
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('formLoadingOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
