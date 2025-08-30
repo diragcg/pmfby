@@ -7,6 +7,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script type="module" src="./supabase-config.js"></script>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -946,7 +947,6 @@
         </div>
     </div>
 
-    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script type="module">
         import { supabaseClient } from './supabase-config.js';
 
@@ -963,7 +963,6 @@
         // For Dynamic Data Viewer
         let currentDynamicViewTableName = '';
         let currentDynamicViewFormDef = null;
-        let allDynamicTableData = []; // Data for the current dynamic table being viewed
         let dynamicDataViewerCurrentPage = 1;
         const dynamicDataViewerRowsPerPage = 10;
         
@@ -1134,7 +1133,7 @@
             try {
                 const { data, error } = await supabaseClient
                     .from('form_definitions')
-                    .select('id, table_name, label, description, created_at, navigation_items(name_hi), dashboard_cards(title_hi)');
+                    .select('id, table_name, label, description, created_at, navigation_items(name_hi), dashboard_cards(title_hi), parent_dashboard_card_id');
                 
                 if (error) throw error;
                 allDynamicForms = data;
@@ -1455,7 +1454,7 @@
             document.getElementById('closeDynamicFormCreatorModal').addEventListener('click', closeDynamicFormCreatorModal);
             document.getElementById('closeDynamicFormSelectorModal').addEventListener('click', closeDynamicFormSelectorModal);
             document.getElementById('closeManageDynamicFormsModal').addEventListener('click', closeManageDynamicFormsModal);
-            document.getElementById('closeDynamicDataViewerModal').addEventListener('click', closeDynamicDataViewerModal); // New close button
+            document.getElementById('closeDynamicDataViewerModal').addEventListener('click', closeDynamicDataViewerModal);
             document.getElementById('closeProfileModal').addEventListener('click', closeProfileModal);
 
             document.getElementById('addCardForm').addEventListener('submit', handleAddCard);
@@ -1468,8 +1467,8 @@
             document.getElementById('logoutLink').addEventListener('click', (e) => { e.preventDefault(); if (confirm('लॉगआउट करें?')) logout(); });
 
             setupProfileFormHandlers();
-            setupIconPickers();
-            setupNavIconPickers();
+            setupIconPickers(); // For static card modals
+            setupNavIconPickers(); // For static nav item modals
 
             // Dynamic Form Creator events
             document.getElementById('btnProcessExcel').addEventListener('click', processExcelForDynamicForm);
@@ -1484,11 +1483,11 @@
             });
 
             // Dynamic Data Viewer events
-            document.getElementById('applyDataViewerFilterBtn').addEventListener('click', () => viewDynamicFormData(currentDynamicViewFormDef, 1));
+            document.getElementById('applyDataViewerFilterBtn').addEventListener('click', () => fetchAndRenderDynamicTableData(currentDynamicViewFormDef, 1));
             document.getElementById('clearDataViewerFilterBtn').addEventListener('click', () => {
                 document.getElementById('dataViewerStartDate').value = '';
                 document.getElementById('dataViewerEndDate').value = '';
-                viewDynamicFormData(currentDynamicViewFormDef, 1);
+                fetchAndRenderDynamicTableData(currentDynamicViewFormDef, 1);
             });
             document.getElementById('exportDynamicExcelBtn').addEventListener('click', exportDynamicTableToExcel);
             document.getElementById('exportDynamicPdfBtn').addEventListener('click', exportDynamicTableToPdf);
@@ -1953,40 +1952,51 @@
         }
 
         async function processExcelForDynamicForm() {
+            const dynamicFormMessages = document.getElementById('dynamicFormMessages');
+            dynamicFormMessages.style.display = 'none';
+            dynamicFormMessages.style.backgroundColor = '';
+
             const f = document.getElementById('inputExcel').files[0];
+            const navParentItemValue = document.getElementById('formNavParentItem').value;
+            const parentDashboardCardValue = document.getElementById('formParentDashboardCard').value;
+
             if (!f) {
-                document.getElementById('dynamicFormMessages').textContent = 'कृपया Excel फ़ाइल अपलोड करें';
-                document.getElementById('dynamicFormMessages').style.display = 'block';
-                document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+                dynamicFormMessages.textContent = 'कृपया Excel फ़ाइल अपलोड करें।';
+                dynamicFormMessages.style.display = 'block';
+                dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 return;
             }
-            if (!document.getElementById('formNavParentItem').value) {
-                document.getElementById('dynamicFormMessages').textContent = 'कृपया नेवीगेशन सेक्शन चुनें';
-                document.getElementById('dynamicFormMessages').style.display = 'block';
-                document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+            if (!navParentItemValue) {
+                dynamicFormMessages.textContent = 'कृपया नेवीगेशन सेक्शन चुनें।';
+                dynamicFormMessages.style.display = 'block';
+                dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 return;
             }
-            if (!document.getElementById('formParentDashboardCard').value) {
-                document.getElementById('dynamicFormMessages').textContent = 'कृपया मैप करने के लिए डैशबोर्ड कार्ड चुनें';
-                document.getElementById('dynamicFormMessages').style.display = 'block';
-                document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+            if (!parentDashboardCardValue) {
+                dynamicFormMessages.textContent = 'कृपया मैप करने के लिए डैशबोर्ड कार्ड चुनें।';
+                dynamicFormMessages.style.display = 'block';
+                dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 return;
             }
             
-            document.getElementById('dynamicFormMessages').textContent = 'Excel फ़ाइल प्रोसेस हो रही है...';
-            document.getElementById('dynamicFormMessages').style.display = 'block';
-            document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
+            dynamicFormMessages.textContent = 'Excel फ़ाइल प्रोसेस हो रही है...';
+            dynamicFormMessages.style.display = 'block';
+            dynamicFormMessages.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
 
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
+                    if (typeof XLSX === 'undefined') {
+                        throw new Error("XLSX library not loaded. Check script tag for unpkg.com/xlsx/dist/xlsx.full.min.js");
+                    }
+
                     const wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                     const ws = wb.Sheets[wb.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
                     
                     if (!rows || !rows.length || !rows[0].length) {
-                        document.getElementById('dynamicFormMessages').textContent = 'फ़ाइल में हेडर नहीं मिले';
-                        document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+                        dynamicFormMessages.textContent = 'फ़ाइल में हेडर नहीं मिले।';
+                        dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                         return;
                     }
 
@@ -1995,13 +2005,20 @@
                     
                     renderDynamicFormDesigner(lastDynamicTableName, lastExcelHeaders);
                     document.getElementById('designerPreviewArea').style.display = 'block';
-                    document.getElementById('dynamicFormMessages').style.display = 'none';
+                    dynamicFormMessages.style.display = 'none';
                     
                 } catch(err) {
-                    console.error(err);
-                    document.getElementById('dynamicFormMessages').textContent = 'फ़ाइल पढ़ने में त्रुटि: ' + (err.message || JSON.stringify(err));
-                    document.getElementById('dynamicFormMessages').style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
+                    console.error("Error in processExcelForDynamicForm onload:", err);
+                    dynamicFormMessages.textContent = 'फ़ाइल पढ़ने में त्रुटि: ' + (err.message || JSON.stringify(err));
+                    dynamicFormMessages.style.display = 'block';
+                    dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 }
+            };
+            reader.onerror = (e) => {
+                console.error("FileReader error:", e);
+                dynamicFormMessages.textContent = 'फ़ाइल पढ़ने में त्रुटि (FileReader): ' + (e.message || "Unknown error");
+                dynamicFormMessages.style.display = 'block';
+                dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
             };
             reader.readAsArrayBuffer(f);
         }
@@ -2357,7 +2374,7 @@
             try {
                 const { data: forms, error } = await supabaseClient
                     .from('form_definitions')
-                    .select('id, table_name, label, created_at, navigation_items(name_hi), dashboard_cards(title_hi)')
+                    .select('id, table_name, label, created_at, navigation_items(name_hi), dashboard_cards(title_hi), parent_dashboard_card_id')
                     .order('created_at', { ascending: false });
 
                 if (error) throw error;
@@ -2393,7 +2410,7 @@
             }
         }
 
-        window.viewDynamicFormDefinition = async function(formDefId) { // Renamed from previous generic 'viewDefinition'
+        window.viewDynamicFormDefinition = async function(formDefId) {
             try {
                 const { data: formDef, error } = await supabaseClient
                     .from('form_definitions')
@@ -2403,7 +2420,6 @@
 
                 if (error) throw error;
 
-                // Re-use viewModal for form definition
                 document.getElementById('modalTableName').textContent = formDef.label || formDef.table_name;
                 document.getElementById('modalCreatedBy').textContent = formDef.test_users ? formDef.test_users.full_name : 'Unknown';
                 document.getElementById('modalCreatedAt').textContent = new Date(formDef.created_at).toLocaleString();
@@ -2428,7 +2444,7 @@
                 fieldsList.appendChild(mappedInfo);
 
 
-                document.getElementById('viewModal').style.display = 'block'; // Directly show modal
+                document.getElementById('viewModal').style.display = 'block';
 
             } catch (error) {
                 console.error('Error viewing dynamic form definition:', error);
@@ -2495,9 +2511,8 @@
                 dynamicDataViewerCurrentPage = page;
 
                 document.getElementById('dynamicDataViewerTitle').textContent = `डेटा देखें: ${formDef.label || formDef.table_name}`;
-                document.getElementById('dataViewerTableName').textContent = formDef.label || formDef.table_name; // Set table name in modal title
+                document.getElementById('dataViewerTableName').textContent = formDef.label || formDef.table_name;
 
-                // Clear previous filter values
                 document.getElementById('dataViewerStartDate').value = '';
                 document.getElementById('dataViewerEndDate').value = '';
 
@@ -2524,16 +2539,15 @@
             try {
                 let query = supabaseClient.from(currentDynamicViewTableName).select('*', { count: 'exact' });
 
-                // Apply district filter for non-admin users or if specified
                 if (!isAdmin && currentUser && currentUser.districts) {
                     query = query.eq('district_id', currentUser.districts.id);
-                } else if (isAdmin && currentUser && currentUser.districts) { // Admin only sees their district data if they're also district-bound
-                     // For now, admins can see all data. If you want admins to also filter by their district by default, uncomment this:
+                } else if (isAdmin && currentUser && currentUser.districts) {
+                     // Admins in a specific district might only see their district's data by default
+                     // Uncomment below if an admin should also be restricted by their own district_id
                      // query = query.eq('district_id', currentUser.districts.id);
                 }
 
 
-                // Apply date filters
                 const startDate = document.getElementById('dataViewerStartDate').value;
                 const endDate = document.getElementById('dataViewerEndDate').value;
 
@@ -2544,40 +2558,45 @@
                     query = query.lte('created_at', endDate + 'T23:59:59Z');
                 }
 
-                // Pagination
                 const offset = (dynamicDataViewerCurrentPage - 1) * dynamicDataViewerRowsPerPage;
                 query = query.range(offset, offset + dynamicDataViewerRowsPerPage - 1);
-                query = query.order('created_at', { ascending: false }); // Default sort
+                query = query.order('created_at', { ascending: false });
 
                 const { data, error, count } = await query;
 
                 if (error) throw error;
 
-                allDynamicTableData = data || []; // Store fetched data for export
+                allDynamicTableData = data || [];
 
                 if (allDynamicTableData.length > 0) {
-                    const headers = currentDynamicViewFormDef.fields.map(f => f.label); // Use labels for display
+                    const headers = currentDynamicViewFormDef.fields.map(f => f.label);
+                    headers.push('बनाया गया (द्वारा)', 'बनाया गया (समय)', 'जिला'); // Add default headers
+
                     const headerRow = document.createElement('tr');
                     headers.forEach(headerText => {
                         const th = document.createElement('th');
                         th.textContent = headerText;
                         headerRow.appendChild(th);
                     });
-                    // Add 'created_at' and 'created_by' headers
-                    headerRow.innerHTML += '<th>बनाया गया (द्वारा)</th><th>बनाया गया (समय)</th>';
                     tableHead.appendChild(headerRow);
 
-                    allDynamicTableData.forEach(row => {
+                    for (const row of allDynamicTableData) {
                         const tr = document.createElement('tr');
-                        currentDynamicViewFormDef.fields.forEach(field => {
+                        for (const field of currentDynamicViewFormDef.fields) {
                             const td = document.createElement('td');
                             td.textContent = row[field.name];
                             tr.appendChild(td);
-                        });
-                        // Add created_by and created_at
-                        tr.innerHTML += `<td>${row.created_by || 'N/A'}</td><td>${new Date(row.created_at).toLocaleString()}</td>`;
+                        }
+                        // Fetch district name for display
+                        let districtName = 'N/A';
+                        if (row.district_id) {
+                            const district = allDistricts.find(d => d.id === row.district_id);
+                            if (district) districtName = district.name;
+                        }
+
+                        tr.innerHTML += `<td>${row.created_by || 'N/A'}</td><td>${new Date(row.created_at).toLocaleString()}</td><td>${districtName}</td>`;
                         tableBody.appendChild(tr);
-                    });
+                    }
                     statusDiv.textContent = `कुल ${count} रिकॉर्ड मिले। पेज ${dynamicDataViewerCurrentPage} / ${Math.ceil(count / dynamicDataViewerRowsPerPage)}।`;
                 } else {
                     statusDiv.textContent = 'कोई डेटा उपलब्ध नहीं है।';
@@ -2606,7 +2625,7 @@
                 button.disabled = isDisabled;
                 button.textContent = page;
                 if (!isDisabled) {
-                    button.addEventListener('click', () => viewDynamicFormData(currentDynamicViewFormDef, page === 'Previous' ? dynamicDataViewerCurrentPage - 1 : page === 'Next' ? dynamicDataViewerCurrentPage + 1 : page));
+                    button.addEventListener('click', () => fetchAndRenderDynamicTableData(page === 'Previous' ? dynamicDataViewerCurrentPage - 1 : page === 'Next' ? dynamicDataViewerCurrentPage + 1 : page));
                 }
                 return button;
             };
@@ -2657,15 +2676,18 @@
             
             const wb = XLSX.utils.book_new();
             const headerLabels = currentDynamicViewFormDef.fields.map(f => f.label);
-            headerLabels.push('बनाया गया (द्वारा)', 'बनाया गया (समय)'); // Add default headers
+            headerLabels.push('बनाया गया (द्वारा)', 'बनाया गया (समय)', 'जिला');
 
             const exportData = allDynamicTableData.map(row => {
                 const rowData = {};
                 currentDynamicViewFormDef.fields.forEach(field => {
-                    rowData[field.label] = row[field.name]; // Use labels for keys
+                    rowData[field.label] = row[field.name];
                 });
                 rowData['बनाया गया (द्वारा)'] = row.created_by || 'N/A';
                 rowData['बनाया गया (समय)'] = new Date(row.created_at).toLocaleString();
+                
+                const district = allDistricts.find(d => d.id === row.district_id);
+                rowData['जिला'] = district ? district.name : 'N/A';
                 return rowData;
             });
 
@@ -2682,45 +2704,45 @@
             }
 
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'pt'); // 'l' for landscape
+            const doc = new jsPDF('l', 'pt');
 
             const headerLabels = currentDynamicViewFormDef.fields.map(f => f.label);
-            headerLabels.push('बनाया गया (द्वारा)', 'बनाया गया (समय)');
+            headerLabels.push('बनाया गया (द्वारा)', 'बनाया गया (समय)', 'जिला');
 
             const data = allDynamicTableData.map(row => {
                 const rowArray = currentDynamicViewFormDef.fields.map(field => String(row[field.name] || ''));
                 rowArray.push(String(row.created_by || 'N/A'), new Date(row.created_at).toLocaleString());
+                const district = allDistricts.find(d => d.id === row.district_id);
+                rowArray.push(district ? district.name : 'N/A');
                 return rowArray;
             });
 
             doc.autoTable({
                 head: [headerLabels],
                 body: data,
-                startY: 50, // Start below title
-                theme: 'plain', // Blank and white
+                startY: 50,
+                theme: 'plain',
                 styles: {
-                    font: 'Hind', // Use a font that supports Hindi if possible, or default
+                    font: 'Helvetica',
                     fontSize: 8,
-                    cellPadding: 3,
-                    textColor: [0, 0, 0], // Black text
-                    lineColor: [0, 0, 0], // Black lines
+                    cellPadding: 4,
+                    textColor: [0, 0, 0],
+                    lineColor: [0, 0, 0],
                     lineWidth: 0.5,
                 },
                 headStyles: {
-                    fillColor: [255, 255, 255], // White header background
-                    textColor: [0, 0, 0], // Black header text
+                    fillColor: [255, 255, 255],
+                    textColor: [0, 0, 0],
                     fontStyle: 'bold',
                 },
                 alternateRowStyles: {
-                    fillColor: [240, 240, 240] // Light grey for alternate rows
+                    fillColor: [240, 240, 240]
                 },
                 didDrawPage: function(data) {
-                    // Title
                     doc.setFontSize(16);
                     doc.setTextColor(0, 0, 0);
                     doc.text(`${currentDynamicViewFormDef.label} - सरकारी डेटा`, data.settings.margin.left, 30);
 
-                    // Footer
                     doc.setFontSize(8);
                     doc.setTextColor(100);
                     doc.text('पेज ' + doc.internal.getNumberOfPages(), data.settings.margin.left, doc.internal.pageSize.height - 10);
@@ -2944,7 +2966,7 @@
         window.toggleUserActiveStatus = toggleUserActiveStatus;
         window.viewDynamicFormDefinition = viewDynamicFormDefinition;
         window.deleteDynamicForm = deleteDynamicForm;
-        window.viewDynamicFormData = viewDynamicFormData; // Make globally available
+        window.viewDynamicFormData = viewDynamicFormData;
     </script>
 </body>
 </html>
