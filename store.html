@@ -3,174 +3,349 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>वाहन आबंटन प्रबंधन - डैशबोर्ड</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>वाहन आबंटन प्रबंधन - संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="https://github.com/diragcg/pmfby/blob/main/supabase-config.js"></script>
     <style>
+        /* General & Layout */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body { 
-            font-family: 'Poppins', sans-serif; 
-            font-weight: 100;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            min-height: 100vh;
-            letter-spacing: 0.3px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+            background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed; 
+            background-size: cover; 
+            min-height: 100vh; 
+            position: relative; 
+        }
+        body::before { 
+            content: ''; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(255, 255, 255, 0.3); 
+            z-index: -1; 
         }
         
-        .hindi { 
-            font-weight: 200;
-            letter-spacing: 0.2px;
+        .page-loading { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(255, 255, 255, 0.9); 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 10000; 
+            backdrop-filter: blur(5px); 
+        }
+        .page-loading .spinner { 
+            width: 50px; 
+            height: 50px; 
+            border: 4px solid #f3f3f3; 
+            border-top: 4px solid #007bff; 
+            border-radius: 50%; 
+            animation: spin 1s linear infinite; 
+        }
+        .page-loading .loading-text { 
+            margin-left: 15px; 
+            font-size: 18px; 
+            color: #007bff; 
+            font-weight: 600; 
+        }
+
+        /* Header */
+        .header-strip { 
+            background: rgba(204, 206, 206, 0.95); 
+            backdrop-filter: blur(10px); 
+            border-bottom: 1px solid #e9ecef; 
+            padding: 15px 0; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            margin: 20px 20px 0 20px; 
+            border-bottom-left-radius: 15px; 
+            border-bottom-right-radius: 15px; 
+        }
+        .header-container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            padding: 0 20px; 
+        }
+        .logo-section { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+        }
+        .cg-logo { 
+            height: 60px; 
+            width: auto; 
+        }
+        .logo-text h1 { 
+            font-size: 24px; 
+            font-weight: 600; 
+            color: #2c3e50; 
+            margin-bottom: 5px; 
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+        }
+        .logo-text p { 
+            font-size: 14px; 
+            color: #6c757d; 
+            font-weight: 400; 
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+        }
+        .user-section { 
+            display: flex; 
+            align-items: center; 
+            gap: 15px; 
+        }
+        .user-info { 
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0); 
+            color: #b8860b; 
+            padding: 12px 18px; 
+            border-radius: 12px; 
+            box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2); 
+            transition: all 0.3s ease; 
+            border: 1px solid rgba(184, 134, 11, 0.3); 
+            min-width: 200px; 
+        }
+        .user-info:hover { 
+            transform: translateY(-1px); 
+            box-shadow: 0 4px 12px rgba(184, 134, 11, 0.3); 
+        }
+        .user-display { 
+            font-weight: 600; 
+            font-size: 14px; 
+            color: #b8860b; 
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); 
+            text-align: center; 
+        }
+
+        /* Navigation */
+        .navbar { 
+            background: rgba(52, 58, 64, 0.95); 
+            backdrop-filter: blur(10px); 
+            border-bottom: 1px solid #dee2e6; 
+            border-bottom-left-radius: 15px; 
+            border-bottom-right-radius: 15px; 
+            margin: 0 20px; 
+            position: relative; 
+            z-index: 1000; 
+        }
+        .nav-container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 0 20px; 
+        }
+        .nav-menu { 
+            display: flex; 
+            list-style: none; 
+            margin: 0; 
+            padding: 0; 
+            align-items: center; 
+        }
+        .nav-item { 
+            position: relative; 
+        }
+        .nav-link { 
+            display: flex; 
+            align-items: center; 
+            padding: 15px 20px; 
+            color: #ffffff; 
+            text-decoration: none; 
+            font-size: 14px; 
+            font-weight: 500; 
+            transition: all 0.2s; 
+            gap: 8px; 
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+            border-radius: 8px; 
+        }
+        .nav-link:hover, .nav-link.active { 
+            background: #037af1; 
+            border-radius: 12px; 
+            padding: 12px 20px; 
+            color: white;
+            text-decoration: none;
+        }
+        .nav-link:focus { 
+            outline: 2px solid #037af1; 
+            outline-offset: 2px; 
+            background: #037af1; 
+        }
+        .nav-link i { 
+            font-size: 14px; 
+        }
+        .logout-link { 
+            margin-left: auto; 
+            background: #dc3545; 
+            border-radius: 12px; 
+            padding: 12px 20px !important; 
+        }
+        .logout-link:hover, .logout-link:focus { 
+            background: #c82333 !important; 
+            outline: 2px solid #dc3545; 
+            outline-offset: 2px; 
+        }
+
+        /* Main Content & Module Cards */
+        .main-content { 
+            background: rgba(255, 255, 255, 0.7); 
+            backdrop-filter: blur(8px); 
+            margin: 20px; 
+            border-radius: 15px; 
+            padding: 30px; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
         }
         
-        .navbar { background: linear-gradient(135deg, #1B5E20 0%, #2E7D32 100%); }
-        
-        /* User info styling */
-        .user-info {
-            color: #1fafed !important;
-            font-weight: 400;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px 10px;
-            border-radius: 15px;
+        .page-title { 
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(8px); 
+            padding: 20px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            margin-bottom: 30px; 
+            text-align: center; 
+        }
+        .page-title h3 { 
+            color: #2c3e50; 
+            margin: 0; 
+            font-weight: 500; 
+            font-size: 1.8rem; 
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+        }
+
+        .module-cards { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+            gap: 25px; 
+            margin-top: 20px; 
         }
         
-        /* Logout button styling */
-        .logout-btn {
-            background-color: #000000 !important;
-            border-color: #000000 !important;
-            color: white !important;
-            font-weight: 400;
-        }
-        .logout-btn:hover {
-            background-color: #333333 !important;
-            border-color: #333333 !important;
-        }
-        
-        /* Card base styling */
         .module-card { 
-            border-radius: 20px; 
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15); 
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border: none;
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(8px); 
+            border-radius: 15px; 
+            padding: 35px 25px; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            border: 1px solid rgba(255, 255, 255, 0.3); 
+            position: relative; 
+            overflow: hidden; 
+            will-change: transform; 
+            cursor: pointer; 
+            text-decoration: none;
+            color: inherit;
+            display: block;
             height: 280px;
         }
         
+        .module-card::before { 
+            content: ''; 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            right: 0; 
+            height: 4px; 
+            background: var(--card-accent); 
+            transform: scaleX(0); 
+            transition: transform 0.3s ease; 
+        }
+        
+        .module-card:hover::before { 
+            transform: scaleX(1); 
+        }
+        
         .module-card:hover { 
-            transform: translateY(-10px); 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            transform: translateY(-8px); 
+            box-shadow: 0 12px 35px rgba(0,0,0,0.18); 
+            background: rgba(255, 255, 255, 0.95); 
+            text-decoration: none;
+            color: inherit;
         }
         
-        .module-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: var(--card-accent);
+        .module-card:focus { 
+            outline: 2px solid #037af1; 
+            outline-offset: 2px; 
+            transform: translateY(-4px); 
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15); 
         }
-        
+
         /* Different card colors */
         .card-division { 
             --card-accent: #e74c3c;
-            background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
         }
         .card-district { 
             --card-accent: #3498db;
-            background: linear-gradient(135deg, #f0f8ff 0%, #e6f3ff 100%);
         }
         .card-field { 
             --card-accent: #f39c12;
-            background: linear-gradient(135deg, #fffbf0 0%, #fff3e0 100%);
         }
         .card-mstc-reg { 
             --card-accent: #9b59b6;
-            background: linear-gradient(135deg, #faf5ff 0%, #f3e5f5 100%);
         }
         .card-mstc-sold { 
             --card-accent: #1abc9c;
-            background: linear-gradient(135deg, #f0fffe 0%, #e6fffa 100%);
         }
         .card-reports { 
             --card-accent: #34495e;
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .card-icon { 
+            font-size: 56px; 
+            color: var(--card-accent); 
+            margin-bottom: 20px; 
+            text-align: center; 
+            transition: all 0.3s ease; 
         }
         
-        /* Icon colors */
-        .icon-division { color: #e74c3c; }
-        .icon-district { color: #3498db; }
-        .icon-field { color: #f39c12; }
-        .icon-mstc-reg { color: #9b59b6; }
-        .icon-mstc-sold { color: #1abc9c; }
-        .icon-reports { color: #34495e; }
+        .module-card:hover .card-icon { 
+            transform: scale(1.1); 
+        }
         
-        /* Button colors */
-        .btn-division { 
-            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        .card-title { 
+            font-size: 20px; 
+            font-weight: 700; 
+            color: var(--card-accent); 
+            margin-bottom: 15px; 
+            text-align: center; 
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+        }
+        
+        .card-description { 
+            font-size: 15px; 
+            color: #6c757d; 
+            text-align: center; 
+            line-height: 1.6; 
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+            padding: 0 10px; 
+            margin-bottom: 25px;
+        }
+
+        .card-button {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--card-accent), var(--card-accent));
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: all 0.3s ease;
             border: none;
-            color: white;
-            font-weight: 400;
+            cursor: pointer;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
         }
-        .btn-division:hover { 
-            background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+
+        .card-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             color: white;
+            text-decoration: none;
         }
-        
-        .btn-district { 
-            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-            border: none;
-            color: white;
-            font-weight: 400;
-        }
-        .btn-district:hover { 
-            background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
-            color: white;
-        }
-        
-        .btn-field { 
-            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
-            border: none;
-            color: white;
-            font-weight: 400;
-        }
-        .btn-field:hover { 
-            background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
-            color: white;
-        }
-        
-        .btn-mstc-reg { 
-            background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
-            border: none;
-            color: white;
-            font-weight: 400;
-        }
-        .btn-mstc-reg:hover { 
-            background: linear-gradient(135deg, #8e44ad 0%, #7d3c98 100%);
-            color: white;
-        }
-        
-        .btn-mstc-sold { 
-            background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%);
-            border: none;
-            color: white;
-            font-weight: 400;
-        }
-        .btn-mstc-sold:hover { 
-            background: linear-gradient(135deg, #16a085 0%, #138d75 100%);
-            color: white;
-        }
-        
-        .btn-reports { 
-            background: linear-gradient(135deg, #34495e 0%, #2c3e50 100%);
-            border: none;
-            color: white;
-            font-weight: 400;
-        }
-        .btn-reports:hover { 
-            background: linear-gradient(135deg, #2c3e50 0%, #1b2631 100%);
-            color: white;
-        }
-        
+
         /* Entry counter badge */
         .entry-counter {
             position: absolute;
@@ -191,26 +366,7 @@
             transform: scale(1.1);
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
-        
-        .card-icon { 
-            font-size: 3.5rem; 
-            margin-bottom: 20px;
-        }
-        
-        .card-title {
-            color: var(--card-accent);
-            font-weight: 600;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-        }
-        
-        .card-text {
-            color: #6c757d;
-            margin-bottom: 25px;
-            font-weight: 300;
-            line-height: 1.5;
-        }
-        
+
         /* Loading spinner for counters */
         .counter-loading {
             width: 16px;
@@ -220,242 +376,404 @@
             border-top-color: white;
             animation: spin 1s ease-in-out infinite;
         }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* Page title styling */
-        .page-title {
-            background: white;
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
-            text-align: center;
-        }
-        
-        .page-title h2 {
-            color: #2c3e50;
-            margin: 0;
-            font-weight: 500;
-            font-size: 1.8rem;
-        }
-        
-        /* Navbar brand styling */
-        .navbar-brand {
-            font-weight: 500;
-            font-size: 1.3rem;
-        }
-        
+
         /* Modal styling */
-        .modal-title {
-            font-weight: 500;
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
         }
         
-        .modal-body {
-            font-weight: 300;
+        .modal-content {
+            background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center;
+            background-size: cover;
+            position: relative;
+            margin: 3% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            animation: modalSlideIn 0.4s ease-out;
         }
         
-        .modal-body h4, .modal-body h5, .modal-body h6 {
-            font-weight: 500;
+        .modal-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(0.5px);
+            z-index: 1;
         }
         
-        /* List group items */
-        .list-group-item h6 {
-            font-weight: 400;
+        .modal-content > * {
+            position: relative;
+            z-index: 2;
         }
         
-        .list-group-item small {
-            font-weight: 300;
+        .modal-header {
+            background: rgba(204, 206, 206, 0.95);
+            backdrop-filter: blur(10px);
+            color: #2c3e50;
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         
-        /* Stats in modal */
-        .border.rounded h5, .border.rounded h4 {
+        .modal-header h2 {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            font-size: 20px;
+            margin: 0;
             font-weight: 600;
         }
         
-        .border.rounded small {
-            font-weight: 300;
+        .close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .close:hover, .close:focus {
+            background: rgba(255, 255, 255, 0.4);
+            transform: rotate(90deg);
+        }
+        
+        .modal-body {
+            padding: 25px;
+            background: rgba(52, 58, 64, 0.95);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+
+        /* Toast styling */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 10001;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 350px;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast-success {
+            background: #28a745;
+        }
+        .toast-error {
+            background: #dc3545;
+        }
+        .toast-info {
+            background: #007bff;
+        }
+
+        /* Animations */
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+        
+        @keyframes modalSlideIn { 
+            from { opacity: 0; transform: translateY(-50px) scale(0.95); } 
+            to { opacity: 1; transform: translateY(0) scale(1); } 
+        }
+
+        /* Media Queries */
+        @media (max-width: 768px) {
+            .header-strip { 
+                margin: 10px 10px 0 10px; 
+            }
+            .header-container { 
+                flex-direction: column; 
+                gap: 15px; 
+                text-align: center; 
+            }
+            .nav-menu { 
+                flex-wrap: wrap; 
+                justify-content: center; 
+            }
+            .navbar { 
+                margin: 0 10px; 
+            }
+            .main-content { 
+                margin: 10px; 
+                padding: 20px; 
+            }
+            .module-cards { 
+                grid-template-columns: 1fr; 
+                gap: 20px; 
+            }
         }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container">
-            <a class="navbar-brand hindi" href="#">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़" height="40" class="me-2">
-                संचालनलाय कृषि छत्तीसगढ़ 
-            </a>
-            <div class="navbar-nav ms-auto">
-                <span class="navbar-text me-3 hindi user-info" id="userInfo"></span>
-                <button class="btn btn-sm logout-btn" onclick="logout()">
-                    <i class="fas fa-sign-out-alt me-1"></i> लॉगआउट
-                </button>
+    <div id="pageLoading" class="page-loading">
+        <div class="spinner"></div>
+        <div class="loading-text">लोड हो रहा है...</div>
+    </div>
+
+    <div class="header-strip">
+        <div class="header-container">
+            <div class="logo-section">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                <div class="logo-text">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>Directorate of Agriculture, Chhattisgarh</p>
+                </div>
             </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="user-display" id="user-display">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-home"></i> होम
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link active">
+                        <i class="fas fa-truck"></i> वाहन आबंटन
+                    </a>
+                </li>
+                <li class="nav-item logout-link">
+                    <a href="#" class="nav-link" id="logoutLink">
+                        <i class="fas fa-sign-out-alt"></i> लॉगआउट
+                    </a>
+                </li>
+            </ul>
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <main class="main-content">
         <div class="page-title">
-            <h3class="hindi">वाहन आबंटन प्रबंधन मॉड्यूल</h3>
+            <h3>वाहन आबंटन प्रबंधन मॉड्यूल</h3>
         </div>
 
-        <div class="row g-4">
+        <div class="module-cards">
             <!-- संभाग स्तर कार्यालय -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-division h-100 text-center">
-                    <div class="entry-counter" id="divisionCounter" onclick="showEntryDetails('division')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-division mb-3">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <h5 class="card-title hindi">संभाग स्तर कार्यालय</h5>
-                        <p class="card-text hindi">संभागीय कार्यालयों के वाहन आबंटन का प्रबंधन</p>
-                        <a href="division-vehicles.html" class="btn btn-division">
-                            <i class="fas fa-edit me-2"></i>Tab Entry
-                        </a>
-                    </div>
+            <a href="division-vehicles.html" class="module-card card-division">
+                <div class="entry-counter" id="divisionCounter" onclick="event.preventDefault(); showEntryDetails('division')" title="Click to view entries">
+                    <div class="counter-loading"></div>
                 </div>
-            </div>
+                <div class="card-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h5 class="card-title">संभाग स्तर कार्यालय</h5>
+                <p class="card-description">संभागीय कार्यालयों के वाहन आबंटन का प्रबंधन</p>
+                <div style="text-align: center;">
+                    <span class="card-button">
+                        <i class="fas fa-edit me-2"></i>Tab Entry
+                    </span>
+                </div>
+            </a>
 
             <!-- जिला स्तर कार्यालय -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-district h-100 text-center">
-                    <div class="entry-counter" id="districtCounter" onclick="showEntryDetails('district')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-district mb-3">
-                            <i class="fas fa-city"></i>
-                        </div>
-                        <h5 class="card-title hindi">जिला स्तर कार्यालय</h5>
-                        <p class="card-text hindi">जिला कार्यालयों के वाहन आबंटन का प्रबंधन</p>
-                        <a href="district-vehicles.html" class="btn btn-district">
-                            <i class="fas fa-edit me-2"></i>Tab Entry
-                        </a>
-                    </div>
+            <a href="district-vehicles.html" class="module-card card-district">
+                <div class="entry-counter" id="districtCounter" onclick="event.preventDefault(); showEntryDetails('district')" title="Click to view entries">
+                    <div class="counter-loading"></div>
                 </div>
-            </div>
+                <div class="card-icon">
+                    <i class="fas fa-city"></i>
+                </div>
+                <h5 class="card-title">जिला स्तर कार्यालय</h5>
+                <p class="card-description">जिला कार्यालयों के वाहन आबंटन का प्रबंधन</p>
+                <div style="text-align: center;">
+                    <span class="card-button">
+                        <i class="fas fa-edit me-2"></i>Tab Entry
+                    </span>
+                </div>
+            </a>
 
             <!-- अन्य मैदानी कार्यालय -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-field h-100 text-center">
-                    <div class="entry-counter" id="fieldCounter" onclick="showEntryDetails('field')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-field mb-3">
-                            <i class="fas fa-home"></i>
-                        </div>
-                        <h5 class="card-title hindi">अन्य मैदानी कार्यालय</h5>
-                        <p class="card-text hindi">फील्ड कार्यालयों के वाहन आबंटन का प्रबंधन</p>
-                        <a href="field-vehicles.html" class="btn btn-field">
-                            <i class="fas fa-edit me-2"></i>Tab Entry
-                        </a>
-                    </div>
+            <a href="field-vehicles.html" class="module-card card-field">
+                <div class="entry-counter" id="fieldCounter" onclick="event.preventDefault(); showEntryDetails('field')" title="Click to view entries">
+                    <div class="counter-loading"></div>
                 </div>
-            </div>
+                <div class="card-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <h5 class="card-title">अन्य मैदानी कार्यालय</h5>
+                <p class="card-description">फील्ड कार्यालयों के वाहन आबंटन का प्रबंधन</p>
+                <div style="text-align: center;">
+                    <span class="card-button">
+                        <i class="fas fa-edit me-2"></i>Tab Entry
+                    </span>
+                </div>
+            </a>
 
             <!-- MSTC नीलामी पंजीकृत -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-mstc-reg h-100 text-center">
-                    <div class="entry-counter" id="mstcRegCounter" onclick="showEntryDetails('mstc-registered')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-mstc-reg mb-3">
-                            <i class="fas fa-gavel"></i>
-                        </div>
-                        <h5 class="card-title hindi">MSTC नीलामी पंजीकृत</h5>
-                        <p class="card-text hindi">नीलामी के लिए पंजीकृत वाहनों का डेटा</p>
-                        <a href="mstc-registered.html" class="btn btn-mstc-reg">
-                            <i class="fas fa-edit me-2"></i>Tab Entry
-                        </a>
-                    </div>
+            <a href="mstc-registered.html" class="module-card card-mstc-reg">
+                <div class="entry-counter" id="mstcRegCounter" onclick="event.preventDefault(); showEntryDetails('mstc-registered')" title="Click to view entries">
+                    <div class="counter-loading"></div>
                 </div>
-            </div>
+                <div class="card-icon">
+                    <i class="fas fa-gavel"></i>
+                </div>
+                <h5 class="card-title">MSTC नीलामी पंजीकृत</h5>
+                <p class="card-description">नीलामी के लिए पंजीकृत वाहनों का डेटा</p>
+                <div style="text-align: center;">
+                    <span class="card-button">
+                        <i class="fas fa-edit me-2"></i>Tab Entry
+                    </span>
+                </div>
+            </a>
 
             <!-- MSTC नीलामी बेचे गए -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-mstc-sold h-100 text-center">
-                    <div class="entry-counter" id="mstcSoldCounter" onclick="showEntryDetails('mstc-sold')" title="Click to view entries">
-                        <div class="counter-loading"></div>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-mstc-sold mb-3">
-                            <i class="fas fa-handshake"></i>
-                        </div>
-                        <h5 class="card-title hindi">MSTC नीलामी बेचे गए</h5>
-                        <p class="card-text hindi">नीलामी में बेचे गए वाहनों का डेटा</p>
-                        <a href="mstc-sold.html" class="btn btn-mstc-sold">
-                            <i class="fas fa-edit me-2"></i>Tab Entry
-                        </a>
-                    </div>
+            <a href="mstc-sold.html" class="module-card card-mstc-sold">
+                <div class="entry-counter" id="mstcSoldCounter" onclick="event.preventDefault(); showEntryDetails('mstc-sold')" title="Click to view entries">
+                    <div class="counter-loading"></div>
                 </div>
-            </div>
+                <div class="card-icon">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <h5 class="card-title">MSTC नीलामी बेचे गए</h5>
+                <p class="card-description">नीलामी में बेचे गए वाहनों का डेटा</p>
+                <div style="text-align: center;">
+                    <span class="card-button">
+                        <i class="fas fa-edit me-2"></i>Tab Entry
+                    </span>
+                </div>
+            </a>
 
             <!-- रिपोर्ट्स -->
-            <div class="col-md-6 col-lg-4">
-                <div class="card module-card card-reports h-100 text-center">
-                    <div class="entry-counter" id="reportsCounter" onclick="showEntryDetails('reports')" title="Click to view summary">
-                        <i class="fas fa-chart-bar"></i>
-                    </div>
-                    <div class="card-body d-flex flex-column justify-content-center">
-                        <div class="card-icon icon-reports mb-3">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <h5 class="card-title hindi">रिपोर्ट्स</h5>
-                        <p class="card-text hindi">सभी डेटा की रिपोर्ट्स देखें और डाउनलोड करें</p>
-                        <a href="reports.html" class="btn btn-reports">
-                            <i class="fas fa-file-alt me-2"></i>View Report
-                        </a>
-                    </div>
+            <a href="reports.html" class="module-card card-reports">
+                <div class="entry-counter" id="reportsCounter" onclick="event.preventDefault(); showEntryDetails('reports')" title="Click to view summary">
+                    <i class="fas fa-chart-bar"></i>
                 </div>
-            </div>
+                <div class="card-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+                <h5 class="card-title">रिपोर्ट्स</h5>
+                <p class="card-description">सभी डेटा की रिपोर्ट्स देखें और डाउनलोड करें</p>
+                <div style="text-align: center;">
+                    <span class="card-button">
+                        <i class="fas fa-file-alt me-2"></i>View Report
+                    </span>
+                </div>
+            </a>
         </div>
-    </div>
+    </main>
 
     <!-- Entry Details Modal -->
-    <div class="modal fade" id="entryDetailsModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title hindi" id="modalTitle">एंट्री विवरण</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="modalBody">
-                    <!-- Entry details will be loaded here -->
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+    <div class="modal" id="entryDetailsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">एंट्री विवरण</h2>
+                <span class="close" id="closeModal">&times;</span>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Entry details will be loaded here -->
             </div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-    <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script>
-        // Check authentication on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            checkAuth();
-            displayUserInfo();
-            loadEntryCounts();
-        });
+    <script type="module">
+        import { supabaseClient } from 'https://github.com/diragcg/pmfby/blob/main/supabase-config.js';
         
-        function displayUserInfo() {
-            const user = getCurrentUser();
-            if (user) {
-                document.getElementById('userInfo').textContent = 
-                    `${user.fullName} (${user.districtName})`;
+        let currentUser = null;
+
+        // Page loading
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.getElementById('pageLoading').style.display = 'none';
+            }, 500);
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadUserData();
+            await loadEntryCounts();
+            setupEventListeners();
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.className = `toast toast-\${type}`;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => toast.classList.add('show'), 100);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+
+        // Load user data
+        async function loadUserData() {
+            try {
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                if (!userId) {
+                    window.location.href = 'header.html';
+                    return;
+                }
+
+                const { data: user, error } = await supabaseClient
+                    .from('test_users')
+                    .select('id, full_name, role, username, districts (id, name)')
+                    .eq('id', userId)
+                    .single();
+
+                if (error || !user) {
+                    document.getElementById('user-display').textContent = 'Unknown User';
+                    return;
+                }
+
+                currentUser = user;
+                const displayName = user.full_name || user.username;
+                const districtName = user.districts ? user.districts.name : 'Unknown District';
+                document.getElementById('user-display').textContent = displayName + ' - ' + districtName;
+
+                await supabaseClient
+                    .from('test_users')
+                    .update({ last_activity: new Date().toISOString(), is_online: true })
+                    .eq('id', userId);
+
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                document.getElementById('user-display').textContent = 'Error Loading';
             }
         }
-        
+        // Load entry counts
         async function loadEntryCounts() {
             try {
                 // Load counts for all modules
@@ -506,25 +824,26 @@
             counter.innerHTML = count;
         }
 
+        // Show entry details modal
         async function showEntryDetails(moduleType) {
-            const modal = new bootstrap.Modal(document.getElementById('entryDetailsModal'));
+            const modal = document.getElementById('entryDetailsModal');
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
             
             // Set title based on module
             const titles = {
-                'division': 'संभाग स्तर कार्यालय - Detail Entires',
-                'district': 'जिला स्तर कार्यालय - Detail Entires', 
-                'field': 'अन्य मैदानी कार्यालय - Detail Entires',
-                'mstc-registered': 'MSTC नीलामी पंजीकृत - Detail Entires',
-                'mstc-sold': 'MSTC नीलामी बेचे गए - Detail Entires',
+                'division': 'संभाग स्तर कार्यालय - Detail Entries',
+                'district': 'जिला स्तर कार्यालय - Detail Entries', 
+                'field': 'अन्य मैदानी कार्यालय - Detail Entries',
+                'mstc-registered': 'MSTC नीलामी पंजीकृत - Detail Entries',
+                'mstc-sold': 'MSTC नीलामी बेचे गए - Detail Entries',
                 'reports': 'सभी मॉड्यूल - Summary'
             };
             
             modalTitle.textContent = titles[moduleType];
-            modalBody.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p class="mt-2">Loading...</p></div>';
+            modalBody.innerHTML = '<div style="text-center"><div class="spinner-border" role="status"></div><p style="margin-top: 10px;">Loading...</p></div>';
             
-            modal.show();
+            modal.style.display = 'block';
             
             try {
                 let content = '';
@@ -540,36 +859,30 @@
                     ]);
                     
                     content = `
-                        <div class="row text-center">
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-danger">${divisionCount}</h5>
-                                    <small class="hindi">संभाग स्तर</small>
-                                </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; text-align: center;">
+                            <div style="border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 15px; background: rgba(220, 53, 69, 0.1);">
+                                <h4 style="color: #e74c3c; margin-bottom: 5px;">${divisionCount}</h4>
+                                <small>संभाग स्तर</small>
                             </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-primary">${districtCount}</h5>
-                                    <small class="hindi">जिला स्तर</small>
-                                </div>
+                            <div style="border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 15px; background: rgba(52, 152, 219, 0.1);">
+                                <h4 style="color: #3498db; margin-bottom: 5px;">${districtCount}</h4>
+                                <small>जिला स्तर</small>
                             </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-warning">${fieldCount}</h5>
-                                    <small class="hindi">मैदानी कार्यालय</small>
-                                </div>
+                            <div style="border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 15px; background: rgba(243, 156, 18, 0.1);">
+                                <h4 style="color: #f39c12; margin-bottom: 5px;">${fieldCount}</h4>
+                                <small>मैदानी कार्यालय</small>
                             </div>
-                            <div class="col-6 mb-3">
-                                <div class="border rounded p-3">
-                                    <h5 class="text-info">${mstcRegCount}</h5>
-                                    <small class="hindi">MSTC पंजीकृत</small>
-                                </div>
+                            <div style="border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 15px; background: rgba(155, 89, 182, 0.1);">
+                                <h4 style="color: #9b59b6; margin-bottom: 5px;">${mstcRegCount}</h4>
+                                <small>MSTC पंजीकृत</small>
                             </div>
-                            <div class="col-12">
-                                <div class="border rounded p-3 bg-light">
-                                    <h4 class="text-success">${divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount}</h4>
-                                    <small class="hindi">कुल एंट्री</small>
-                                </div>
+                            <div style="border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 15px; background: rgba(26, 188, 156, 0.1);">
+                                <h4 style="color: #1abc9c; margin-bottom: 5px;">${mstcSoldCount}</h4>
+                                <small>MSTC बेचे गए</small>
+                            </div>
+                            <div style="border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 15px; background: rgba(46, 204, 113, 0.1); grid-column: span 2;">
+                                <h3 style="color: #2ecc71; margin-bottom: 5px;">${divisionCount + districtCount + fieldCount + mstcRegCount + mstcSoldCount}</h3>
+                                <small>कुल एंट्री</small>
                             </div>
                         </div>
                     `;
@@ -592,41 +905,85 @@
                     if (error) throw error;
                     
                     if (data && data.length > 0) {
-                        content = '<div class="list-group">';
+                        content = '<div style="display: flex; flex-direction: column; gap: 10px;">';
                         data.forEach((item, index) => {
                             const title = item.office_name_district || item.seller_office_name || `Entry ${index + 1}`;
                             const date = new Date(item.created_at).toLocaleDateString('hi-IN');
                             content += `
-                                <div class="list-group-item">
-                                    <div class="d-flex w-100 justify-content-between">
-                                        <h6 class="mb-1">${title}</h6>
-                                        <small>${date}</small>
+                                <div style="border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 15px; background: rgba(255,255,255,0.1);">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <h6 style="margin: 0; color: white;">${title}</h6>
+                                        <small style="color: #ccc;">${date}</small>
                                     </div>
                                 </div>
                             `;
                         });
                         content += '</div>';
-                        content += `<div class="mt-3 text-center"><small class="text-muted hindi">कुल ${await getTableCount(tableNames[moduleType])} Available Entry</small></div>`;
+                        content += `<div style="margin-top: 15px; text-align: center;"><small style="color: #ccc;">कुल ${await getTableCount(tableNames[moduleType])} Available Entry</small></div>`;
                     } else {
-                        content = '<div class="text-center text-muted hindi">No Entry Available</div>';
+                        content = '<div style="text-align: center; color: #ccc; padding: 20px;">No Entry Available</div>';
                     }
                 }
                 
                 modalBody.innerHTML = content;
                 
             } catch (error) {
-                modalBody.innerHTML = '<div class="text-center text-danger hindi">Error in Loading</div>';
+                modalBody.innerHTML = '<div style="text-align: center; color: #ff6b6b; padding: 20px;">Error in Loading</div>';
                 console.error('Error loading entry details:', error);
             }
         }
-        
-        function logout() {
-            if (confirm('Are Your Sure to Exit?')) {
-                localStorage.removeItem('user');
-                sessionStorage.removeItem('user');
-                window.location.href = 'index.html';
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Close modal
+            document.getElementById('closeModal').addEventListener('click', function() {
+                document.getElementById('entryDetailsModal').style.display = 'none';
+            });
+
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('entryDetailsModal');
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
+            // Logout functionality
+            document.getElementById('logoutLink').addEventListener('click', function(e) {
+                e.preventDefault();
+                if (confirm('Are You Sure to Exit?')) {
+                    logout();
+                }
+            });
+        }
+
+        // Make showEntryDetails globally available
+        window.showEntryDetails = showEntryDetails;
+
+        // Logout function
+        async function logout() {
+            try {
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                showToast('लॉगआउट हो रहा है...', 'info');
+                
+                if (userId) {
+                    await supabaseClient
+                        .from('test_users')
+                        .update({ is_online: false, last_activity: new Date().toISOString() })
+                        .eq('id', userId);
+                }
+
+                sessionStorage.removeItem('userId');
+                localStorage.removeItem('userId');
+                showToast('सफलतापूर्वक लॉगआउट हो गए', 'success');
+                setTimeout(() => { window.location.href = 'header.html'; }, 1000);
+                
+            } catch (error) {
+                showToast('लॉगआउट में त्रुटि', 'error');
+                setTimeout(() => { window.location.href = 'header.html'; }, 2000);
             }
         }
     </script>
 </body>
 </html>
+
