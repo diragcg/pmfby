@@ -640,8 +640,13 @@
                                         </button>
                                     </li>
                                     <li>
-                                        <button class="report-dropdown-item hindi" id="districtSummaryReportBtn">
-                                            <i class="fas fa-chart-pie"></i> District Summary Report
+                                        <button class="report-dropdown-item hindi" id="districtEntryStatusReportBtn"> <!-- NEW BUTTON -->
+                                            <i class="fas fa-list-alt"></i> जिला डेटा एंट्री स्थिति
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button class="report-dropdown-item hindi" id="districtAggregatedMetricsReportBtn"> <!-- NEW BUTTON -->
+                                            <i class="fas fa-chart-line"></i> जिला-वार एग्रीगेटेड सारांश
                                         </button>
                                     </li>
                                     <li>
@@ -885,18 +890,18 @@
         </div>
     </div>
 
-    <!-- District Summary Report Modal -->
-    <div class="modal fade report-modal" id="districtSummaryModal" tabindex="-1" aria-labelledby="districtSummaryModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+    <!-- District Entry Status Report Modal (NEW) -->
+    <div class="modal fade report-modal" id="districtEntryStatusModal" tabindex="-1" aria-labelledby="districtEntryStatusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title hindi" id="districtSummaryModalLabel">
-                        <i class="fas fa-chart-pie me-2"></i> जिला सारांश रिपोर्ट
+                    <h5 class="modal-title hindi" id="districtEntryStatusModalLabel">
+                        <i class="fas fa-list-alt me-2"></i> जिला डेटा एंट्री स्थिति रिपोर्ट
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <h5 class="report-section-title hindi">1. जिला डेटा एंट्री स्थिति</h5>
+                    <h5 class="report-section-title hindi">जिला डेटा एंट्री स्थिति</h5>
                     <div class="report-table-container">
                         <table class="table table-striped table-sm">
                             <thead>
@@ -910,8 +915,32 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">बंद करें</button>
+                    <button type="button" class="btn btn-primary" onclick="exportDistrictEntryStatus('pdf')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF डाउनलोड
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="exportDistrictEntryStatus('excel')">
+                        <i class="fas fa-file-excel me-1"></i> Excel डाउनलोड
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <h5 class="report-section-title hindi">2. जिला-वार एग्रीगेटेड सारांश</h5>
+    <!-- District Aggregated Metrics Report Modal (NEW) -->
+    <div class="modal fade report-modal" id="districtAggregatedMetricsModal" tabindex="-1" aria-labelledby="districtAggregatedMetricsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title hindi" id="districtAggregatedMetricsModalLabel">
+                        <i class="fas fa-chart-line me-2"></i> जिला-वार एग्रीगेटेड सारांश रिपोर्ट
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h5 class="report-section-title hindi">जिला-वार एग्रीगेटेड सारांश</h5>
                     <div class="report-table-container">
                         <table class="table table-striped table-sm">
                             <thead>
@@ -922,7 +951,7 @@
                                     <th class="hindi">कुल डेबिटेड प्रीमियम राशि (₹)</th>
                                 </tr>
                             </thead>
-                            <tbody id="districtAggregatedSummaryTableBody">
+                            <tbody id="districtAggregatedMetricsTableBody">
                                 <tr><td colspan="4" class="text-center hindi">लोड हो रहा है...</td></tr>
                             </tbody>
                         </table>
@@ -930,16 +959,17 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">बंद करें</button>
-                    <button type="button" class="btn btn-primary" onclick="exportDistrictSummary('pdf')">
+                    <button type="button" class="btn btn-primary" onclick="exportDistrictAggregatedMetrics('pdf')">
                         <i class="fas fa-file-pdf me-1"></i> PDF डाउनलोड
                     </button>
-                    <button type="button" class="btn btn-success" onclick="exportDistrictSummary('excel')">
+                    <button type="button" class="btn btn-success" onclick="exportDistrictAggregatedMetrics('excel')">
                         <i class="fas fa-file-excel me-1"></i> Excel डाउनलोड
                     </button>
                 </div>
             </div>
         </div>
     </div>
+
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
@@ -961,6 +991,23 @@
         let userPortalIssuesData = [];
         let filteredUserData = [];
         let adminPortalIssuesData = [];
+
+        // --- PDF Font Embedding (Important for Hindi) ---
+        // You would typically convert your .ttf font to a .js file using a tool like:
+        // https://github.com/MrRio/jsPDF/blob/master/docs/add_font.md
+        // Then, include that .js file here and use doc.addFileToVFS and doc.addFont.
+        // For demonstration, we'll set a generic font, but actual Hindi rendering needs proper embedding.
+        // Example:
+        /*
+        // If you have 'Mukta-Regular.js' generated from a TTF font:
+        // <script src="Mukta-Regular.js"></script>
+        // Then in your PDF functions:
+        // doc.addFileToVFS('Mukta-Regular.ttf', 'YOUR_BASE64_ENCODED_FONT_STRING_HERE');
+        // doc.addFont('Mukta-Regular.ttf', 'Mukta', 'normal');
+        // doc.setFont('Mukta');
+        */
+        const HINDI_FONT_NAME = 'Mukta'; // Use a generic name, assume embedded or browser default
+        const HINDI_FONT_STYLE = 'normal';
 
         // Show loading overlay
         function showLoading(text = 'डेटा लोड हो रहा है...') {
@@ -999,7 +1046,7 @@
                 console.log('Current user:', currentUser);
                 
                 // Update UI with user info - SIMPLE VERSION THAT WORKS
-                document.getElementById('userFullName').textContent = currentUser.full_name || currentUser.fullName || currentUser.username || 'उपयोगकर्ता';
+                document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.full_name || currentUser.username || 'उपयोगकर्ता';
                 document.getElementById('userDistrict').textContent = currentUser.districtName || 'N/A';
                 document.getElementById('breadcrumbDistrict').textContent = 'जिला: ' + (currentUser.districtName || 'N/A');
                 
@@ -1631,6 +1678,8 @@
                 // Hide other sections and show user data section
                 document.getElementById('dataEntrySection').style.display = 'none';
                 document.getElementById('adminPortalIssuesReportSection').style.display = 'none';
+                document.getElementById('districtEntryStatusModal').style.display = 'none'; // Ensure new modals are hidden
+                document.getElementById('districtAggregatedMetricsModal').style.display = 'none'; // Ensure new modals are hidden
                 document.getElementById('userDataSection').style.display = 'block';
                 
                 // Load user's portal issues data
@@ -1906,6 +1955,8 @@
                 // Hide other sections and show admin report section
                 document.getElementById('dataEntrySection').style.display = 'none';
                 document.getElementById('userDataSection').style.display = 'none';
+                document.getElementById('districtEntryStatusModal').style.display = 'none'; // Hide new modals
+                document.getElementById('districtAggregatedMetricsModal').style.display = 'none'; // Hide new modals
                 document.getElementById('adminPortalIssuesReportSection').style.display = 'block';
                 
                 // Load admin portal issues data
@@ -2005,11 +2056,12 @@
             const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
             
             // Add title
-            doc.setFontSize(16);
-            doc.text('Portal Issues Complete Report - Admin View', 20, 20);
-            doc.setFontSize(12);
-            doc.text('Generated on: ' + new Date().toLocaleDateString(), 20, 30);
-            doc.text('Total Records: ' + adminPortalIssuesData.length, 20, 40);
+            const title = 'District wise data reported on ncip techinical issues on ' + new Date().toLocaleDateString('en-GB');
+            doc.setFont(HINDI_FONT_NAME, HINDI_FONT_STYLE); // Set Hindi font
+            doc.setFontSize(14);
+            const textWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+            const xOffset = (doc.internal.pageSize.width - textWidth) / 2;
+            doc.text(title, xOffset, 15);
             
             // Prepare table data
             const tableData = adminPortalIssuesData.map(item => [
@@ -2028,9 +2080,25 @@
             doc.autoTable({
                 head: [['User', 'District', 'Village', 'Issue', 'Bank/FI', 'Affected', 'Insured Area (Ha)', 'Premium', 'Date']],
                 body: tableData,
-                startY: 50,
-                styles: { fontSize: 7 },
-                headStyles: { fillColor: [27, 94, 32] }
+                startY: 25, // Adjust startY after title
+                margin: { top: 10, left: 10, right: 10, bottom: 10 }, // Custom margins
+                styles: { 
+                    fontSize: 7, 
+                    cellPadding: 0.5, // Minimal padding
+                    halign: 'center', // Center align text in cells
+                    font: HINDI_FONT_NAME, // Apply Hindi font
+                    fontStyle: HINDI_FONT_STYLE
+                },
+                headStyles: { 
+                    fillColor: [27, 94, 32],
+                    halign: 'center',
+                    font: HINDI_FONT_NAME, // Apply Hindi font
+                    fontStyle: HINDI_FONT_STYLE
+                },
+                columnStyles: {
+                    3: { cellWidth: 35 }, // Portal Issue column wider
+                    4: { cellWidth: 25 }  // Bank/FI column wider
+                }
             });
             
             // Save PDF
@@ -2078,49 +2146,140 @@
         function backToDataEntry() {
             document.getElementById('userDataSection').style.display = 'none';
             document.getElementById('adminPortalIssuesReportSection').style.display = 'none';
+            // Also hide the new modals
+            const districtEntryStatusModal = bootstrap.Modal.getInstance(document.getElementById('districtEntryStatusModal'));
+            if (districtEntryStatusModal) districtEntryStatusModal.hide();
+            const districtAggregatedMetricsModal = bootstrap.Modal.getInstance(document.getElementById('districtAggregatedMetricsModal'));
+            if (districtAggregatedMetricsModal) districtAggregatedMetricsModal.hide();
+
             document.getElementById('dataEntrySection').style.display = 'block';
         }
 
         // NEW ADMIN DISTRICT SUMMARY REPORT FUNCTIONS
 
-        async function showDistrictSummaryReport() {
+        // Show District Entry Status Report (Summary 1)
+        async function showDistrictEntryStatusReport() {
             try {
-                showLoading('जिला सारांश रिपोर्ट लोड हो रही है...');
+                showLoading('जिला डेटा एंट्री स्थिति रिपोर्ट लोड हो रही है...');
 
-                // Hide other sections
-                document.getElementById('dataEntrySection').style.display = 'none';
-                document.getElementById('userDataSection').style.display = 'none';
-                document.getElementById('adminPortalIssuesReportSection').style.display = 'none';
+                // Fetch all districts from the master 'districts' table
+                const { data: allDistrictsFromMaster, error: districtsError } = await supabaseClient
+                    .from('districts')
+                    .select('name')
+                    .order('name', { ascending: true });
 
-                // Fetch all districts from village_hierarchy for consistency
-                const { data: allHierarchyDistricts, error: hierarchyError } = await supabaseClient
-                    .from('village_hierarchy')
+                if (districtsError) throw districtsError;
+                const uniqueAllDistricts = allDistrictsFromMaster.map(d => d.name);
+
+                // Fetch all portal issues data to identify districts with entries
+                const { data: allPortalIssuesData, error: portalDataError } = await supabaseClient
+                    .from('portal_issues_data')
                     .select('districtname');
 
-                if (hierarchyError) throw hierarchyError;
-                const uniqueAllDistricts = [...new Set(allHierarchyDistricts.map(d => d.districtname))].sort();
+                if (portalDataError) throw portalDataError;
 
-                // Fetch all portal issues data to determine district status and aggregate metrics
+                const districtsWithData = new Set(allPortalIssuesData.map(item => item.districtname));
+                const districtEntryStatusTableBody = document.getElementById('districtEntryStatusTableBody');
+                districtEntryStatusTableBody.innerHTML = ''; // Clear previous content
+
+                if (uniqueAllDistricts.length === 0) {
+                    districtEntryStatusTableBody.innerHTML = '<tr><td colspan="2" class="text-center hindi">कोई जिला नहीं मिला।</td></tr>';
+                } else {
+                    uniqueAllDistricts.forEach(district => {
+                        const status = districtsWithData.has(district) ? 'डेटा उपलब्ध' : 'डेटा नहीं';
+                        const statusClass = districtsWithData.has(district) ? 'text-success' : 'text-danger';
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td class="hindi">${district}</td><td class="hindi ${statusClass}"><strong>${status}</strong></td>`;
+                        districtEntryStatusTableBody.appendChild(row);
+                    });
+                }
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('districtEntryStatusModal'));
+                modal.show();
+
+                hideLoading();
+                showAlert('जिला डेटा एंट्री स्थिति रिपोर्ट तैयार है।', 'success');
+
+            } catch (error) {
+                console.error('Error generating district entry status report:', error);
+                hideLoading();
+                showAlert('जिला डेटा एंट्री स्थिति रिपोर्ट बनाने में त्रुटि: ' + error.message, 'danger');
+            }
+        }
+
+        // Export District Entry Status Report
+        function exportDistrictEntryStatus(format) {
+            const districtEntryStatusTable = document.getElementById('districtEntryStatusTableBody');
+            if (districtEntryStatusTable.children.length === 0 || districtEntryStatusTable.querySelector('.text-muted')) {
+                showAlert('एक्सपोर्ट के लिए कोई डेटा नहीं मिला।', 'warning');
+                return;
+            }
+
+            const reportDate = new Date().toLocaleDateString('en-GB');
+            const title = `जिला डेटा एंट्री स्थिति रिपोर्ट (${reportDate})`;
+
+            if (format === 'pdf') {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4'); // Portrait, mm, A4
+
+                doc.setFont(HINDI_FONT_NAME, HINDI_FONT_STYLE); // Set Hindi font
+                doc.setFontSize(14);
+                const textWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+                const xOffset = (doc.internal.pageSize.width - textWidth) / 2;
+                doc.text(title, xOffset, 15);
+                
+                doc.autoTable({
+                    html: '#districtEntryStatusTableBody',
+                    head: [['जिला', 'डेटा एंट्री स्थिति']],
+                    startY: 25,
+                    margin: { top: 10, left: 10, right: 10, bottom: 10 },
+                    styles: { 
+                        fontSize: 8, 
+                        cellPadding: 0.5, 
+                        halign: 'center',
+                        font: HINDI_FONT_NAME, 
+                        fontStyle: HINDI_FONT_STYLE
+                    },
+                    headStyles: { 
+                        fillColor: [27, 94, 32], 
+                        halign: 'center',
+                        font: HINDI_FONT_NAME, 
+                        fontStyle: HINDI_FONT_STYLE
+                    }
+                });
+
+                doc.save('District_Entry_Status_Report_' + new Date().toISOString().split('T')[0] + '.pdf');
+                showAlert('PDF रिपोर्ट डाउनलोड हो गई।', 'success');
+
+            } else if (format === 'excel') {
+                const wb = XLSX.utils.book_new();
+                const ws_data = [['जिला', 'डेटा एंट्री स्थिति']];
+                const rows = districtEntryStatusTable.querySelectorAll('tr');
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    ws_data.push([cells[0].textContent.trim(), cells[1].textContent.trim()]);
+                });
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                XLSX.utils.book_append_sheet(wb, ws, 'District Entry Status');
+
+                XLSX.writeFile(wb, 'District_Entry_Status_Report_' + new Date().toISOString().split('T')[0] + '.xlsx');
+                showAlert('Excel रिपोर्ट डाउनलोड हो गई।', 'success');
+            }
+        }
+
+        // Show District Aggregated Metrics Report (Summary 2)
+        async function showDistrictAggregatedMetricsReport() {
+            try {
+                showLoading('जिला-वार एग्रीगेटेड सारांश रिपोर्ट लोड हो रही है...');
+
+                // Fetch all portal issues data to aggregate metrics
                 const { data: allPortalIssuesData, error: portalDataError } = await supabaseClient
                     .from('portal_issues_data')
                     .select('districtname, villagecode, affected_farmers_count, is_premium_debited, premium_amount');
 
                 if (portalDataError) throw portalDataError;
 
-                // --- Summary Type 1: District Data Entry Status ---
-                const districtsWithData = new Set(allPortalIssuesData.map(item => item.districtname));
-                const districtEntryStatusTableBody = document.getElementById('districtEntryStatusTableBody');
-                districtEntryStatusTableBody.innerHTML = ''; // Clear previous content
-
-                uniqueAllDistricts.forEach(district => {
-                    const status = districtsWithData.has(district) ? 'डेटा उपलब्ध' : 'डेटा नहीं';
-                    const statusClass = districtsWithData.has(district) ? 'text-success' : 'text-danger';
-                    const row = document.createElement('tr');
-                    row.innerHTML = `<td class="hindi">${district}</td><td class="hindi ${statusClass}"><strong>${status}</strong></td>`;
-                    districtEntryStatusTableBody.appendChild(row);
-                });
-
-                // --- Summary Type 2: District-wise Aggregated Metrics ---
                 const aggregatedSummary = {};
                 allPortalIssuesData.forEach(item => {
                     if (!aggregatedSummary[item.districtname]) {
@@ -2137,101 +2296,100 @@
                     }
                 });
 
-                const districtAggregatedSummaryTableBody = document.getElementById('districtAggregatedSummaryTableBody');
-                districtAggregatedSummaryTableBody.innerHTML = ''; // Clear previous content
+                const districtAggregatedMetricsTableBody = document.getElementById('districtAggregatedMetricsTableBody');
+                districtAggregatedMetricsTableBody.innerHTML = ''; // Clear previous content
 
-                Object.keys(aggregatedSummary).sort().forEach(districtName => {
-                    const summary = aggregatedSummary[districtName];
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="hindi">${districtName}</td>
-                        <td>${summary.villagesWithData.size}</td>
-                        <td>${summary.totalAffectedFarmers}</td>
-                        <td>₹${summary.totalDebitedPremium.toLocaleString()}</td>
-                    `;
-                    districtAggregatedSummaryTableBody.appendChild(row);
-                });
+                if (Object.keys(aggregatedSummary).length === 0) {
+                    districtAggregatedMetricsTableBody.innerHTML = '<tr><td colspan="4" class="text-center hindi">कोई डेटा नहीं मिला।</td></tr>';
+                } else {
+                    Object.keys(aggregatedSummary).sort().forEach(districtName => {
+                        const summary = aggregatedSummary[districtName];
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="hindi">${districtName}</td>
+                            <td>${summary.villagesWithData.size}</td>
+                            <td>${summary.totalAffectedFarmers}</td>
+                            <td>₹${summary.totalDebitedPremium.toLocaleString()}</td>
+                        `;
+                        districtAggregatedMetricsTableBody.appendChild(row);
+                    });
+                }
 
                 // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('districtSummaryModal'));
+                const modal = new bootstrap.Modal(document.getElementById('districtAggregatedMetricsModal'));
                 modal.show();
 
                 hideLoading();
-                showAlert('जिला सारांश रिपोर्ट तैयार है।', 'success');
+                showAlert('जिला-वार एग्रीगेटेड सारांश रिपोर्ट तैयार है।', 'success');
 
             } catch (error) {
-                console.error('Error generating district summary report:', error);
+                console.error('Error generating district aggregated metrics report:', error);
                 hideLoading();
-                showAlert('जिला सारांश रिपोर्ट बनाने में त्रुटि: ' + error.message, 'danger');
+                showAlert('जिला-वार एग्रीगेटेड सारांश रिपोर्ट बनाने में त्रुटि: ' + error.message, 'danger');
             }
         }
 
-        // Export District Summary Report
-        function exportDistrictSummary(format) {
-            const districtEntryStatusTable = document.getElementById('districtEntryStatusTableBody');
-            const districtAggregatedSummaryTable = document.getElementById('districtAggregatedSummaryTableBody');
+        // Export District Aggregated Metrics Report
+        function exportDistrictAggregatedMetrics(format) {
+            const districtAggregatedMetricsTable = document.getElementById('districtAggregatedMetricsTableBody');
+            if (districtAggregatedMetricsTable.children.length === 0 || districtAggregatedMetricsTable.querySelector('.text-muted')) {
+                showAlert('एक्सपोर्ट के लिए कोई डेटा नहीं मिला।', 'warning');
+                return;
+            }
+
+            const reportDate = new Date().toLocaleDateString('en-GB');
+            const title = `जिला-वार एग्रीगेटेड सारांश रिपोर्ट (${reportDate})`;
 
             if (format === 'pdf') {
                 const { jsPDF } = window.jspdf;
-                const doc = new jsPDF('p', 'mm', 'a4');
+                const doc = new jsPDF('p', 'mm', 'a4'); // Portrait, mm, A4
 
-                doc.setFontSize(16);
-                doc.text('जिला सारांश रिपोर्ट', 20, 20);
-                doc.setFontSize(12);
-                doc.text('दिनांक: ' + new Date().toLocaleDateString(), 20, 30);
-
-                // Summary 1
-                doc.text('1. जिला डेटा एंट्री स्थिति', 20, 45);
+                doc.setFont(HINDI_FONT_NAME, HINDI_FONT_STYLE); // Set Hindi font
+                doc.setFontSize(14);
+                const textWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
+                const xOffset = (doc.internal.pageSize.width - textWidth) / 2;
+                doc.text(title, xOffset, 15);
+                
                 doc.autoTable({
-                    html: '#districtEntryStatusTableBody', // Target the tbody directly for data
-                    head: [['जिला', 'डेटा एंट्री स्थिति']],
-                    startY: 50,
-                    styles: { fontSize: 8 },
-                    headStyles: { fillColor: [27, 94, 32] }
-                });
-
-                // Summary 2
-                doc.text('2. जिला-वार एग्रीगेटेड सारांश', 20, doc.autoTable.previous.finalY + 15);
-                doc.autoTable({
-                    html: '#districtAggregatedSummaryTableBody', // Target the tbody directly for data
+                    html: '#districtAggregatedMetricsTableBody',
                     head: [['जिला', 'गांवों की संख्या', 'प्रभावित किसान', 'कुल डेबिटेड प्रीमियम राशि (₹)']],
-                    startY: doc.autoTable.previous.finalY + 20,
-                    styles: { fontSize: 8 },
-                    headStyles: { fillColor: [27, 94, 32] }
+                    startY: 25,
+                    margin: { top: 10, left: 10, right: 10, bottom: 10 },
+                    styles: { 
+                        fontSize: 8, 
+                        cellPadding: 0.5, 
+                        halign: 'center',
+                        font: HINDI_FONT_NAME, 
+                        fontStyle: HINDI_FONT_STYLE
+                    },
+                    headStyles: { 
+                        fillColor: [27, 94, 32], 
+                        halign: 'center',
+                        font: HINDI_FONT_NAME, 
+                        fontStyle: HINDI_FONT_STYLE
+                    }
                 });
 
-                doc.save('District_Summary_Report_' + new Date().toISOString().split('T')[0] + '.pdf');
+                doc.save('District_Aggregated_Metrics_Report_' + new Date().toISOString().split('T')[0] + '.pdf');
                 showAlert('PDF रिपोर्ट डाउनलोड हो गई।', 'success');
 
             } else if (format === 'excel') {
                 const wb = XLSX.utils.book_new();
-
-                // Summary 1
-                const ws1_data = [['जिला', 'डेटा एंट्री स्थिति']];
-                const rows1 = districtEntryStatusTable.querySelectorAll('tr');
-                rows1.forEach(row => {
+                const ws_data = [['जिला', 'गांवों की संख्या', 'प्रभावित किसान', 'कुल डेबिटेड प्रीमियम राशि (₹)']];
+                const rows = districtAggregatedMetricsTable.querySelectorAll('tr');
+                rows.forEach(row => {
                     const cells = row.querySelectorAll('td');
-                    ws1_data.push([cells[0].textContent.trim(), cells[1].textContent.trim()]);
-                });
-                const ws1 = XLSX.utils.aoa_to_sheet(ws1_data);
-                XLSX.utils.book_append_sheet(wb, ws1, 'District Entry Status');
-
-                // Summary 2
-                const ws2_data = [['जिला', 'गांवों की संख्या', 'प्रभावित किसान', 'कुल डेबिटेड प्रीमियम राशि (₹)']];
-                const rows2 = districtAggregatedSummaryTable.querySelectorAll('tr');
-                rows2.forEach(row => {
-                    const cells = row.querySelectorAll('td');
-                    ws2_data.push([
+                    ws_data.push([
                         cells[0].textContent.trim(),
                         cells[1].textContent.trim(),
                         cells[2].textContent.trim(),
                         cells[3].textContent.trim().replace('₹', '').replace(/,/g, '') // Clean amount for excel
                     ]);
                 });
-                const ws2 = XLSX.utils.aoa_to_sheet(ws2_data);
-                XLSX.utils.book_append_sheet(wb, ws2, 'District Aggregated Summary');
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                XLSX.utils.book_append_sheet(wb, ws, 'District Aggregated Summary');
 
-                XLSX.writeFile(wb, 'District_Summary_Report_' + new Date().toISOString().split('T')[0] + '.xlsx');
+                XLSX.writeFile(wb, 'District_Aggregated_Metrics_Report_' + new Date().toISOString().split('T')[0] + '.xlsx');
                 showAlert('Excel रिपोर्ट डाउनलोड हो गई।', 'success');
             }
         }
@@ -2282,14 +2440,18 @@
             
             // Admin Report Buttons
             const portalIssuesReportBtn = document.getElementById('portalIssuesReportBtn');
-            const districtSummaryReportBtn = document.getElementById('districtSummaryReportBtn'); // NEW
+            const districtEntryStatusReportBtn = document.getElementById('districtEntryStatusReportBtn'); // NEW
+            const districtAggregatedMetricsReportBtn = document.getElementById('districtAggregatedMetricsReportBtn'); // NEW
             const villageCoverageBtn = document.getElementById('villageCoverageBtn');
             
             if (portalIssuesReportBtn) {
                 portalIssuesReportBtn.addEventListener('click', showAdminPortalIssuesReport);
             }
-            if (districtSummaryReportBtn) { // NEW
-                districtSummaryReportBtn.addEventListener('click', showDistrictSummaryReport);
+            if (districtEntryStatusReportBtn) { // NEW
+                districtEntryStatusReportBtn.addEventListener('click', showDistrictEntryStatusReport);
+            }
+            if (districtAggregatedMetricsReportBtn) { // NEW
+                districtAggregatedMetricsReportBtn.addEventListener('click', showDistrictAggregatedMetricsReport);
             }
             if (villageCoverageBtn) {
                 villageCoverageBtn.addEventListener('click', showVillageCoverageReport);
