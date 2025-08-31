@@ -3,6 +3,755 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>डायनेमिक डेटा एंट्री (संचालनालय कृषि छत्तीसगढ़)</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="./supabase-config.js"></script>
+    <style>
+        /* General & Layout */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed; background-size: cover; min-height: 100vh; position: relative; color: white; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); z-index: -1; }
+
+        .container {
+            max-width: 700px;
+            margin: 50px auto;
+            background: rgba(52, 58, 64, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 10px;
+        }
+        .header p {
+            font-size: 14px;
+            color: #e0e0e0;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s;
+        }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #037af1;
+            box-shadow: 0 0 0 3px rgba(3, 122, 241, 0.2);
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .form-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        .form-group .form-check-label {
+            display: inline-block;
+            margin-bottom: 0;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background: #28a745;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            margin-top: 10px;
+        }
+        .submit-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message, .success-message {
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 14px;
+            display: none;
+        }
+        .error-message {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b6b;
+            border: 1px solid rgba(220, 53, 69, 0.3);
+        }
+        .success-message {
+            background: rgba(40, 167, 69, 0.2);
+            color: #51cf66;
+            border: 1px solid rgba(40, 167, 69, 0.3);
+        }
+        .hidden-field {
+            display: none !important;
+        }
+        .validation-error {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: 5px;
+            display: block;
+        }
+        .calculated-field-label {
+            color: #51cf66 !important; /* Highlight calculated fields */
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(52, 58, 64, 0.8);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 10;
+            border-radius: 15px;
+        }
+        .loading-overlay .spinner {
+            width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #037af1; border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 id="formTitle">लोड हो रहा है...</h1>
+            <p id="formDescription">डायनेमिक फॉर्म डेटा एंट्री</p>
+        </div>
+
+        <div class="loading-overlay" id="formLoadingOverlay">
+            <div class="spinner"></div>
+        </div>
+
+        <form id="dynamicDataEntryForm" style="display:none;">
+            <!-- Dynamic form fields will be rendered here -->
+            <button type="submit" class="submit-btn" id="submitFormBtn">डेटा सबमिट करें</button>
+            <div id="formErrorMessage" class="error-message"></div>
+            <div id="formSuccessMessage" class="success-message"></div>
+        </form>
+    </div>
+
+    <script type="module">
+        import { supabaseClient } from './supabase-config.js';
+
+        let currentUser = null;
+        let formDefinition = null;
+        let dynamicTableName = '';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            dynamicTableName = urlParams.get('form');
+
+            if (!dynamicTableName) {
+                document.getElementById('formTitle').textContent = 'त्रुटि: फॉर्म नहीं मिला';
+                document.getElementById('formDescription').textContent = 'कोई फॉर्म टेबल नाम प्रदान नहीं किया गया।';
+                hideLoadingOverlay();
+                return;
+            }
+
+            currentUser = await getCurrentUser();
+            if (!currentUser) {
+                alert('लॉगिन आवश्यक है। आपको डैशबोर्ड पर रीडायरेक्ट किया जाएगा।');
+                window.location.href = 'dashboard.html'; // Redirect to dashboard
+                return;
+            }
+
+            await loadFormDefinition();
+            if (formDefinition) {
+                renderDynamicForm();
+                setupFormEventListeners();
+            } else {
+                document.getElementById('formTitle').textContent = 'त्रुटि: फॉर्म परिभाषा नहीं मिली';
+                document.getElementById('formDescription').textContent = `फॉर्म "${dynamicTableName}" के लिए कोई परिभाषा नहीं मिली।`;
+            }
+            hideLoadingOverlay();
+        });
+
+        function getCurrentUser() {
+            const userString = localStorage.getItem('user') || sessionStorage.getItem('user');
+            return userString ? JSON.parse(userString) : null;
+        }
+
+        async function loadFormDefinition() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('form_definitions')
+                    .select('*')
+                    .eq('table_name', dynamicTableName)
+                    .single();
+
+                if (error) throw error;
+                formDefinition = data;
+
+                document.getElementById('formTitle').textContent = formDefinition.label || dynamicTableName;
+                document.getElementById('formDescription').textContent = formDefinition.description || 'कृपया डेटा दर्ज करें';
+
+            } catch (error) {
+                console.error('Error loading form definition:', error);
+                showFormMessage('फॉर्म परिभाषा लोड करने में त्रुटि: ' + error.message, 'error');
+                formDefinition = null;
+            }
+        }
+
+        function renderDynamicForm() {
+            const formContainer = document.getElementById('dynamicDataEntryForm');
+            formContainer.style.display = 'block';
+            formContainer.innerHTML = ''; // Clear previous fields
+
+            const fieldsHtml = formDefinition.fields.map((field, index) => {
+                let inputHtml = '';
+                let fieldType = field.type;
+                let inputType = 'text'; // Default HTML input type
+
+                if (fieldType === 'number') inputType = 'number';
+                else if (fieldType === 'date') inputType = 'date';
+                else if (fieldType === 'boolean') inputType = 'checkbox';
+                // Add other types like 'select', 'textarea' if needed
+
+                if (inputType === 'textarea') {
+                    inputHtml = `<textarea id="field-${field.name}" name="${field.name}" class="form-control" placeholder="${field.label}" ${field.validation_rules?.required ? 'required' : ''}></textarea>`;
+                } else if (inputType === 'checkbox') {
+                    inputHtml = `<input type="checkbox" id="field-${field.name}" name="${field.name}" class="form-check-input" ${field.validation_rules?.required ? 'required' : ''}>`;
+                } else {
+                    inputHtml = `<input type="${inputType}" id="field-${field.name}" name="${field.name}" class="form-control" placeholder="${field.label}" ${field.validation_rules?.required ? 'required' : ''}>`;
+                }
+
+                const isCalculated = !!field.calculation_formula;
+                const labelClass = isCalculated ? 'calculated-field-label' : '';
+                const disabledAttr = isCalculated ? 'disabled' : '';
+
+                return `
+                    <div class="form-group field-group-${field.name}" data-field-name="${field.name}" data-field-type="${field.type}" ${field.visibility_condition ? 'data-visibility-field="' + field.visibility_condition.field + '" data-visibility-operator="' + field.visibility_condition.operator + '" data-visibility-value="' + field.visibility_condition.value + '"' : ''}>
+                        <label for="field-${field.name}" class="${labelClass}">${field.label} ${field.validation_rules?.required ? '*' : ''}</label>
+                        ${inputHtml}
+                        <span id="error-${field.name}" class="validation-error" style="display:none;"></span>
+                    </div>
+                `;
+            }).join('');
+
+            formContainer.innerHTML = fieldsHtml; // Set fields
+            
+            const submitBtn = document.createElement('button');
+            submitBtn.type = 'submit';
+            submitBtn.className = 'submit-btn';
+            submitBtn.id = 'submitFormBtn';
+            submitBtn.textContent = 'डेटा सबमिट करें';
+
+            const formErrorMessage = document.createElement('div');
+            formErrorMessage.id = 'formErrorMessage';
+            formErrorMessage.className = 'error-message';
+
+            const formSuccessMessage = document.createElement('div');
+            formSuccessMessage.id = 'formSuccessMessage';
+            formSuccessMessage.className = 'success-message';
+
+            formContainer.appendChild(submitBtn);
+            formContainer.appendChild(formErrorMessage);
+            formContainer.appendChild(formSuccessMessage);
+
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement) {
+                    inputElement.addEventListener('input', () => {
+                        validateField(field);
+                        recalculateAllFields();
+                        updateFieldVisibility();
+                    });
+                    if (field.type === 'checkbox') {
+                        inputElement.addEventListener('change', () => {
+                            validateField(field);
+                            recalculateAllFields();
+                            updateFieldVisibility();
+                        });
+                    }
+                }
+            });
+            recalculateAllFields();
+            updateFieldVisibility();
+        }
+
+        function setupFormEventListeners() {
+            document.getElementById('dynamicDataEntryForm').addEventListener('submit', handleFormSubmission);
+        }
+
+        async function handleFormSubmission(event) {
+            event.preventDefault();
+            hideFormMessages();
+
+            const submitBtn = document.getElementById('submitFormBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> सबमिट हो रहा है...';
+
+            let isValid = true;
+            const formData = {};
+
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement && !inputElement.closest('.hidden-field')) {
+                    const fieldValue = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value.trim();
+                    formData[field.name] = fieldValue;
+
+                    if (!validateField(field)) {
+                        isValid = false;
+                    }
+                }
+            });
+
+            if (!isValid) {
+                showFormMessage('कृपया फॉर्म में त्रुटियों को ठीक करें।', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'डेटा सबमिट करें';
+                return;
+            }
+
+            try {
+                formData.created_by = currentUser.id;
+                formData.district_id = currentUser.districts ? currentUser.districts.id : null;
+
+                const { error } = await supabaseClient
+                    .from(dynamicTableName)
+                    .insert([formData]);
+
+                if (error) throw error;
+
+                showFormMessage('डेटा सफलतापूर्वक सबमिट किया गया!', 'success');
+                document.getElementById('dynamicDataEntryForm').reset();
+                recalculateAllFields();
+                updateFieldVisibility();
+                setTimeout(() => hideFormMessages(), 3000);
+
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                showFormMessage('डेटा सबमिट करने में त्रुटि: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'डेटा सबमिट करें';
+            }
+        }
+
+        function validateField(field) {
+            const inputElement = document.getElementById(`field-${field.name}`);
+            const errorElement = document.getElementById(`error-${field.name}`);
+            if (!inputElement || !errorElement) return true;
+            if (inputElement.closest('.hidden-field')) return true;
+
+            const fieldValue = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value.trim();
+            let errorMessage = '';
+
+            if (field.validation_rules) {
+                const rules = field.validation_rules;
+
+                if (rules.required && (fieldValue === '' || fieldValue === false)) {
+                    errorMessage = 'यह फ़ील्ड अनिवार्य है।';
+                } else if (field.type === 'text') {
+                    if (rules.min && fieldValue.length < rules.min) {
+                        errorMessage = `न्यूनतम ${rules.min} अक्षर आवश्यक हैं।`;
+                    } else if (rules.max && fieldValue.length > rules.max) {
+                        errorMessage = `अधिकतम ${rules.max} अक्षर अनुमत हैं।`;
+                    } else if (rules.regex && fieldValue !== '' && !new RegExp(rules.regex).test(fieldValue)) {
+                        errorMessage = 'अवैध प्रारूप।';
+                    }
+                } else if (field.type === 'number') {
+                    const numValue = parseFloat(fieldValue);
+                    if (fieldValue !== '' && isNaN(numValue)) {
+                        errorMessage = 'अवैध संख्या।';
+                    } else if (!isNaN(numValue)) {
+                        if (rules.min && numValue < rules.min) {
+                            errorMessage = `न्यूनतम मान ${rules.min} है।`;
+                        } else if (rules.max && numValue > rules.max) {
+                            errorMessage = `अधिकतम मान ${rules.max} है।`;
+                        }
+                    }
+                } else if (field.type === 'date') {
+                    if (fieldValue !== '' && isNaN(new Date(fieldValue).getTime())) {
+                        errorMessage = 'अवैध दिनांक प्रारूप।';
+                    }
+                }
+            }
+
+            if (errorMessage) {
+                errorElement.textContent = errorMessage;
+                errorElement.style.display = 'block';
+                inputElement.style.borderColor = '#dc3545';
+                return false;
+            } else {
+                errorElement.style.display = 'none';
+                inputElement.style.borderColor = '';
+                return true;
+            }
+        }
+
+        function recalculateAllFields() {
+            const fieldValues = {};
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement && !inputElement.closest('.hidden-field')) {
+                    fieldValues[field.name] = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value;
+                } else {
+                    fieldValues[field.name] = '';
+                }
+            });
+
+            formDefinition.fields.forEach(field => {
+                if (field.calculation_formula) {
+                    const inputElement = document.getElementById(`field-${field.name}`);
+                    if (inputElement && !inputElement.closest('.hidden-field')) {
+                        try {
+                            let formula = field.calculation_formula;
+                            for (const key in fieldValues) {
+                                const val = fieldValues[key];
+                                const replacement = typeof val === 'boolean' ? val : (parseFloat(val) || 0);
+                                const regex = new RegExp(`\\b${key}\\b`, 'g');
+                                formula = formula.replace(regex, replacement);
+                            }
+                            
+                            const calculatedValue = eval(formula);
+                            if (typeof calculatedValue === 'number' && !isNaN(calculatedValue)) {
+                                inputElement.value = calculatedValue.toFixed(2);
+                            } else {
+                                inputElement.value = '';
+                            }
+                            fieldValues[field.name] = inputElement.value;
+                            inputElement.dispatchEvent(new Event('input'));
+                        } catch (e) {
+                            console.error(`Error evaluating formula for ${field.name}: ${e}`);
+                            inputElement.value = '';
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateFieldVisibility() {
+            const currentFieldValues = {};
+            formDefinition.fields.forEach(field => {
+                const inputElement = document.getElementById(`field-${field.name}`);
+                if (inputElement) {
+                    currentFieldValues[field.name] = inputElement.type === 'checkbox' ? inputElement.checked : inputElement.value;
+                }
+            });
+
+            formDefinition.fields.forEach(field => {
+                const fieldGroup = document.querySelector(`.field-group-${field.name}`);
+                if (!fieldGroup) return;
+
+                if (field.visibility_condition) {
+                    const condition = field.visibility_condition;
+                    const parentValue = currentFieldValues[condition.field];
+                    let isVisible = false;
+
+                    switch (condition.operator) {
+                        case '==':
+                            isVisible = String(parentValue) === String(condition.value);
+                            break;
+                        case '!=':
+                            isVisible = String(parentValue) !== String(condition.value);
+                            break;
+                    }
+
+                    if (isVisible) {
+                        fieldGroup.classList.remove('hidden-field');
+                    } else {
+                        fieldGroup.classList.add('hidden-field');
+                        const inputElement = document.getElementById(`field-${field.name}`);
+                        if (inputElement) {
+                            inputElement.value = '';
+                            inputElement.checked = false;
+                            const errorElement = document.getElementById(`error-${field.name}`);
+                            if (errorElement) errorElement.style.display = 'none';
+                            inputElement.style.borderColor = '';
+                        }
+                    }
+                }
+            });
+        }
+
+        function showFormMessage(message, type) {
+            const errorDiv = document.getElementById('formErrorMessage');
+            const successDiv = document.getElementById('formSuccessMessage');
+            
+            errorDiv.style.display = 'none';
+            successDiv.style.display = 'none';
+
+            if (type === 'error') {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            } else if (type === 'success') {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            }
+        }
+
+        function hideFormMessages() {
+            document.getElementById('formErrorMessage').style.display = 'none';
+            document.getElementById('formSuccessMessage').style.display = 'none';
+        }
+
+        function hideLoadingOverlay() {
+            document.getElementById('formLoadingOverlay').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+
+
+Step 2: Database Schema Updates (IMPORTANT)
+Go to your Supabase Dashboard → SQL Editor and run these commands. This ensures all tables and the RPC function are correctly set up, including the district_id as UUID and form_definitions linking to existing cards.
+-- Ensure 'districts' table exists and its ID type is UUID
+-- If your 'districts' table uses INTEGER for its ID, adjust this.
+-- This assumes 'districts.id' is UUID based on previous error.
+CREATE TABLE IF NOT EXISTS districts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(), -- Assuming UUID for district IDs
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Add 'is_active' column to test_users for soft deletion (if not already added)
+ALTER TABLE test_users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
+
+-- Ensure 'role' column exists and has a default value (if not already present)
+ALTER TABLE test_users ALTER COLUMN role SET DEFAULT 'user';
+
+-- Enable RLS on test_users if not already enabled
+ALTER TABLE test_users ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies to avoid conflicts and clean up previous attempts
+DROP POLICY IF EXISTS "Users can view their own profile" ON test_users;
+DROP POLICY IF EXISTS "Admins can view all user profiles" ON test_users;
+DROP POLICY IF EXISTS "Users can update their own profile" ON test_users;
+DROP POLICY IF EXISTS "Admins can update any user profile" ON test_users;
+
+-- Policy 1: Allow users to view their own profile
+CREATE POLICY "Users can view their own profile" ON test_users FOR SELECT USING (auth.uid() = id);
+
+-- Policy 2: Allow admins to view all user profiles
+CREATE POLICY "Admins can view all user profiles" ON test_users FOR SELECT USING (EXISTS (SELECT 1 FROM test_users WHERE id = auth.uid() AND role = 'admin'));
+
+-- Policy 3: Allow users to update their own profile (e.g., password change, full_name, etc.)
+CREATE POLICY "Users can update their own profile" ON test_users FOR UPDATE USING (auth.uid() = id);
+
+-- Policy 4: Allow admins to update any user profile
+CREATE POLICY "Admins can update any user profile" ON test_users FOR UPDATE USING (EXISTS (SELECT 1 FROM test_users WHERE id = auth.uid() AND role = 'admin')) WITH CHECK (TRUE);
+
+
+-- Create the dashboard_cards table (if it doesn't exist)
+CREATE TABLE IF NOT EXISTS dashboard_cards (
+    id SERIAL PRIMARY KEY,
+    title_hi VARCHAR(100) NOT NULL,
+    title_en VARCHAR(100) NOT NULL,
+    description_hi TEXT,
+    description_en TEXT,
+    icon_class VARCHAR(50) DEFAULT 'fas fa-cube',
+    custom_icon_url TEXT,
+    target_url VARCHAR(255) NOT NULL,
+    category VARCHAR(50) DEFAULT 'general',
+    is_active BOOLEAN DEFAULT true,
+    display_order INTEGER DEFAULT 0,
+    created_by UUID REFERENCES test_users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for dashboard_cards
+ALTER TABLE dashboard_cards ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Enable read access for all users" ON dashboard_cards FOR SELECT USING (true);
+CREATE POLICY "Enable insert for authenticated users only" ON dashboard_cards FOR INSERT WITH CHECK (true);
+CREATE POLICY "Enable update for authenticated users only" ON dashboard_cards FOR UPDATE USING (true);
+CREATE POLICY "Enable delete for authenticated users only" ON dashboard_cards FOR DELETE USING (true);
+
+
+-- Create navigation_categories table (if it doesn't exist)
+CREATE TABLE IF NOT EXISTS navigation_categories (
+    id SERIAL PRIMARY KEY,
+    name_hi VARCHAR(100) NOT NULL,
+    name_en VARCHAR(100) NOT NULL,
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create navigation_items table (if it doesn't exist)
+CREATE TABLE IF NOT EXISTS navigation_items (
+    id SERIAL PRIMARY KEY,
+    name_hi VARCHAR(100) NOT NULL,
+    name_en VARCHAR(100) NOT NULL,
+    url VARCHAR(255) NOT NULL,
+    icon_class VARCHAR(50) DEFAULT 'fas fa-link',
+    parent_id INTEGER REFERENCES navigation_items(id), -- For nested navigation
+    category_id INTEGER REFERENCES navigation_categories(id), -- Link to a category
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_by UUID REFERENCES test_users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for navigation_categories and navigation_items
+ALTER TABLE navigation_categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all users to read navigation_categories" ON navigation_categories FOR SELECT USING (true);
+ALTER TABLE navigation_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all users to read navigation_items" ON navigation_items FOR SELECT USING (true);
+CREATE POLICY "Allow admins full access to navigation_items" ON navigation_items FOR ALL USING (EXISTS (SELECT 1 FROM test_users WHERE id = auth.uid() AND role = 'admin'));
+
+
+-- Create the form_definitions table (if it doesn't exist)
+CREATE TABLE IF NOT EXISTS form_definitions (
+    id SERIAL PRIMARY KEY,
+    table_name VARCHAR(255) NOT NULL UNIQUE,
+    label VARCHAR(255) NOT NULL,
+    description TEXT,
+    fields JSONB NOT NULL, -- Stores the schema and algorithm rules
+    navigation_item_id INTEGER REFERENCES navigation_items(id) ON DELETE SET NULL, -- Link to a specific nav item (child)
+    parent_dashboard_card_id INTEGER REFERENCES dashboard_cards(id) ON DELETE SET NULL, -- Link to an EXISTING parent dashboard card
+    district_id UUID REFERENCES districts(id) ON DELETE SET NULL, -- Link to admin's district (assuming districts.id is UUID)
+    created_by UUID REFERENCES test_users(id),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for form_definitions
+ALTER TABLE form_definitions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow admins full access to form_definitions" ON form_definitions FOR ALL USING (EXISTS (SELECT 1 FROM test_users WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Allow all users to read form_definitions" ON form_definitions FOR SELECT USING (true);
+
+
+-- Create a table to log card clicks
+CREATE TABLE IF NOT EXISTS card_clicks (
+    id SERIAL PRIMARY KEY,
+    card_id INTEGER REFERENCES dashboard_cards(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES test_users(id),
+    clicked_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    ip_address INET
+);
+
+-- Create a table to log admin actions
+CREATE TABLE IF NOT EXISTS admin_logs (
+    id SERIAL PRIMARY KEY,
+    admin_id UUID REFERENCES test_users(id),
+    action_type VARCHAR(50) NOT NULL, -- e.g., 'CARD_ADDED', 'CARD_UPDATED', 'USER_ROLE_CHANGED', 'NAV_ITEM_DELETED'
+    description TEXT,
+    target_entity_id TEXT, -- ID of the card, user, or nav item affected
+    logged_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for new tables
+ALTER TABLE card_clicks ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow authenticated users to log clicks" ON card_clicks FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Admins can read all card clicks" ON card_clicks FOR SELECT USING (EXISTS (SELECT 1 FROM test_users WHERE id = auth.uid() AND role = 'admin'));
+
+ALTER TABLE admin_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Only admins can log admin actions" ON admin_logs FOR INSERT WITH CHECK (EXISTS (SELECT 1 FROM test_users WHERE id = auth.uid() AND role = 'admin'));
+CREATE POLICY "Only admins can read admin logs" ON admin_logs FOR SELECT USING (EXISTS (SELECT 1 FROM test_users WHERE id = auth.uid() AND role = 'admin'));
+
+
+-- Create the RPC function to execute DDL (Data Definition Language)
+CREATE OR REPLACE FUNCTION execute_sql_script(sql_text TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    EXECUTE sql_text;
+    RETURN 'SQL script executed successfully.';
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN SQLERRM;
+END;
+$$;
+
+-- Grant usage to authenticated users (so the client can call it)
+GRANT EXECUTE ON FUNCTION execute_sql_script(text) TO authenticated;
+
+
+-- Enable Realtime for all relevant tables
+ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS dashboard_cards;
+ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS navigation_categories;
+ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS navigation_items;
+ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS form_definitions;
+ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS card_clicks;
+ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS admin_logs;
+
+-- Insert initial data if tables are empty (optional, for testing)
+INSERT INTO navigation_categories (name_hi, name_en, display_order)
+ON CONFLICT (name_hi) DO NOTHING
+VALUES
+('मुख्य सेवाएं', 'Main Services', 1),
+('रिपोर्ट्स', 'Reports', 2),
+('प्रबंधन', 'Management', 3);
+
+INSERT INTO navigation_items (name_hi, name_en, url, icon_class, parent_id, category_id, display_order)
+ON CONFLICT (name_hi) DO NOTHING
+VALUES
+('PMFBY', 'PMFBY', 'pmfby.html', 'fas fa-seedling', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 1),
+('DBT', 'DBT', 'dbt.html', 'fas fa-money-bill-transfer', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 2),
+('STORE', 'STORE', 'store.html', 'fas fa-store', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 3),
+('GT', 'GT', 'gt.html', 'fas fa-chart-line', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 4),
+('KCC', 'KCC', 'kcc.html', 'fas fa-credit-card', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 5),
+('SEED', 'SEED', 'seed.html', 'fas fa-spa', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 6),
+('FERTILIZER', 'FERTILIZER', 'fertilizer.html', 'fas fa-flask', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 7),
+('PESTICIDE', 'PESTICIDE', 'pesticide.html', NULL, NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'मुख्य सेवाएं'), 8),
+('STAT', 'STAT', 'stat.html', 'fas fa-chart-bar', NULL, (SELECT id FROM navigation_categories WHERE name_hi = 'रिपोर्ट्स'), 9);
+
+INSERT INTO dashboard_cards (title_hi, title_en, description_hi, description_en, icon_class, target_url, display_order)
+ON CONFLICT (title_hi) DO NOTHING
+VALUES
+('DBT', 'DBT', 'डायरेक्ट बेनिफिट ट्रांसफर सिस्टम', 'Direct Benefit Transfer System', 'fas fa-money-bill-transfer', 'dbt.html', 1),
+('STORE', 'STORE', 'भंडारण प्रबंधन सिस्टम', 'Storage Management System', 'fas fa-store', 'store.html', 2),
+('GT', 'GT', 'ग्राउंड ट्रुथ वेरिफिकेशन', 'Ground Truth Verification', 'fas fa-chart-line', 'gt.html', 3),
+('KCC', 'KCC', 'किसान क्रेडिट कार्ड', 'Kisan Credit Card', 'fas fa-credit-card', 'kcc.html', 4),
+('SEED', 'SEED', 'बीज वितरण प्रबंधन', 'Seed Distribution Management', 'fas fa-spa', 'seed.html', 5),
+('FERTILIZER', 'FERTILIZER', 'उर्वरक वितरण सिस्टम', 'Fertilizer Distribution System', 'fas fa-flask', 'fertilizer.html', 6),
+('PESTICIDE', 'PESTICIDE', 'कीटनाशक प्रबंधन', 'Pesticide Management', 'fas fa-bug', 'pesticide.html', 7),
+('STAT', 'STAT', 'सांख्यिकी और रिपोर्ट', 'Statistics and Reports', 'fas fa-chart-bar', 'stat.html', 8);
+
+
+
+Step 3: Replace dashboard.html
+Replace your entire dashboard.html file with the following code. This is the complete, corrected, and updated dashboard.
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>संचालनालय कृषि छत्तीसगढ़</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
