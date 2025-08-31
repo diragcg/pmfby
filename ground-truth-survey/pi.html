@@ -7,10 +7,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- PDF Generation Library -->
+    <!-- PDF and Excel Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-    <!-- Excel Export Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
@@ -94,6 +93,7 @@
             transform: translateY(-1px);
         }
 
+        /* Report Dropdown Styles */
         .report-dropdown {
             background-color: var(--report-blue) !important;
             color: var(--text-light) !important;
@@ -138,6 +138,7 @@
             margin-right: 10px;
         }
 
+        /* District Entry Button for Users */
         .district-entry-btn {
             background-color: #FF9800 !important;
             color: var(--text-light) !important;
@@ -272,6 +273,7 @@
             accent-color: var(--admin-accent);
         }
 
+        /* Portal Issues Entry Section */
         .portal-issues-section {
             background-color: #F8F9FA;
             border-radius: 8px;
@@ -465,14 +467,6 @@
             box-shadow: var(--shadow-lg);
         }
 
-        /* Report Table Styles */
-        .report-table {
-            max-height: 600px;
-            overflow-y: auto;
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-        }
-
         .export-buttons {
             margin-bottom: 20px;
         }
@@ -482,32 +476,25 @@
             margin-bottom: 10px;
         }
 
-        /* Statistics Cards */
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, var(--light-blue) 0%, #E1F5FE 100%);
-            padding: 20px;
+        .page-link {
+            color: var(--admin-primary);
+            border: 2px solid var(--border-color);
+            padding: 8px 16px;
+            margin: 0 2px;
             border-radius: 8px;
-            text-align: center;
-            border: 2px solid var(--report-blue);
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--report-blue);
-        }
-
-        .stat-label {
-            color: var(--text-dark);
             font-weight: 600;
-            margin-top: 5px;
+        }
+
+        .page-link:hover {
+            background-color: var(--admin-accent);
+            color: white;
+            border-color: var(--admin-accent);
+        }
+
+        .page-item.active .page-link {
+            background-color: var(--admin-primary);
+            border-color: var(--admin-primary);
+            color: white;
         }
 
         @media (max-width: 768px) {
@@ -544,10 +531,6 @@
                 width: 100%;
                 margin-bottom: 10px;
             }
-
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
         }
 
         @keyframes fadeIn {
@@ -562,27 +545,6 @@
 
         .fade-in {
             animation: fadeIn 0.3s ease-in-out;
-        }
-
-        .page-link {
-            color: var(--admin-primary);
-            border: 2px solid var(--border-color);
-            padding: 8px 16px;
-            margin: 0 2px;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-
-        .page-link:hover {
-            background-color: var(--admin-accent);
-            color: white;
-            border-color: var(--admin-accent);
-        }
-
-        .page-item.active .page-link {
-            background-color: var(--admin-primary);
-            border-color: var(--admin-primary);
-            color: white;
         }
     </style>
 </head>
@@ -633,11 +595,6 @@
                                     <li>
                                         <button class="report-dropdown-item hindi" id="villageCoverageBtn">
                                             <i class="fas fa-map-marked-alt"></i> Village Coverage
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button class="report-dropdown-item hindi" id="dataExportBtn">
-                                            <i class="fas fa-download"></i> Data Export
                                         </button>
                                     </li>
                                 </ul>
@@ -832,11 +789,6 @@
                     <p class="hindi mb-0">सभी पोर्टल इश्यू एंट्री की विस्तृत रिपोर्ट</p>
                 </div>
                 <div class="card-body">
-                    <!-- Statistics Cards -->
-                    <div class="stats-container" id="adminStatsContainer">
-                        <!-- Stats will be populated here -->
-                    </div>
-
                     <!-- Export Buttons for Admin -->
                     <div class="export-buttons">
                         <button class="btn btn-danger export-btn" onclick="exportAdminData('pdf')">
@@ -847,64 +799,27 @@
                         </button>
                     </div>
 
-                    <!-- Filters -->
-                    <div class="row mb-3">
-                        <div class="col-md-4">
-                            <select class="form-select" id="adminFilterDistrict">
-                                <option value="">All Districts</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <select class="form-select" id="adminFilterUser">
-                                <option value="">All Users</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-primary-custom w-100" onclick="filterAdminData()">
-                                <i class="fas fa-filter me-1"></i> Apply Filter
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Admin Report Table -->
-                    <div class="report-table">
+                    <div class="table-responsive">
                         <table class="table table-striped table-sm">
                             <thead>
                                 <tr>
-                                    <th class="hindi">ID</th>
                                     <th class="hindi">User</th>
-                                    <th class="hindi">Year</th>
-                                    <th class="hindi">Season</th>
                                     <th class="hindi">District</th>
-                                    <th class="hindi">Tehsil</th>
-                                    <th class="hindi">RI Name</th>
                                     <th class="hindi">Village</th>
-                                    <th class="hindi">Village Code</th>
                                     <th class="hindi">Portal Issue</th>
-                                    <th class="hindi">Bank/FI Name</th>
-                                    <th class="hindi">Bank Contact</th>
+                                    <th class="hindi">Bank/FI</th>
                                     <th class="hindi">Affected Farmers</th>
-                                    <th class="hindi">Premium Debited</th>
-                                    <th class="hindi">Premium Amount</th>
-                                    <th class="hindi">Premium Farmers</th>
-                                    <th class="hindi">Debit Dates</th>
-                                    <th class="hindi">Created At</th>
+                                    <th class="hindi">Premium</th>
+                                    <th class="hindi">Date</th>
                                 </tr>
                             </thead>
                             <tbody id="adminReportTableBody">
                                 <tr>
-                                    <td colspan="18" class="text-center hindi">डेटा लोड हो रहा है...</td>
+                                    <td colspan="8" class="text-center hindi">डेटा लोड हो रहा है...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-
-                    <!-- Admin Pagination -->
-                    <nav aria-label="Admin Page navigation">
-                        <ul class="pagination justify-content-center" id="adminPaginationContainer">
-                            <!-- Admin Pagination will be populated here -->
-                        </ul>
-                    </nav>
 
                     <div class="text-center mt-3">
                         <button class="btn btn-secondary-custom" onclick="backToDataEntry()">
@@ -936,10 +851,6 @@
         let userPortalIssuesData = [];
         let filteredUserData = [];
         let adminPortalIssuesData = [];
-        let filteredAdminData = [];
-        let adminCurrentPage = 1;
-        let adminTotalPages = 1;
-        let adminItemsPerPage = 15;
 
         // Show loading overlay
         function showLoading(text = 'डेटा लोड हो रहा है...') {
@@ -964,33 +875,7 @@
             }, 5000);
         }
 
-        // Get district name from district_id - FIXED
-        async function getDistrictName(districtId) {
-            try {
-                if (!districtId) return null;
-                
-                console.log('Looking up district for ID:', districtId);
-                
-                const { data, error } = await supabaseClient
-                    .from('districts')
-                    .select('name')
-                    .eq('id', districtId)
-                    .single();
-                
-                if (error) {
-                    console.error('District lookup error:', error);
-                    return null;
-                }
-                
-                console.log('District found:', data);
-                return data?.name || null;
-            } catch (error) {
-                console.error('Error fetching district name:', error);
-                return null;
-            }
-        }
-
-        // Check authentication and setup UI based on role
+        // Check authentication and setup UI based on role - USING YOUR WORKING VERSION
         async function checkAuthentication() {
             try {
                 const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -1003,35 +888,16 @@
                 currentUser = JSON.parse(storedUser);
                 console.log('Current user:', currentUser);
                 
-                // Update UI with user info - FIXED for your table structure
-                document.getElementById('userFullName').textContent = 
-                    currentUser.full_name || currentUser.fullName || currentUser.username || 'उपयोगकर्ता';
-                
-                // Get district name from district_id - FIXED
-                if (currentUser.district_id) {
-                    const districtName = await getDistrictName(currentUser.district_id);
-                    if (districtName) {
-                        document.getElementById('userDistrict').textContent = districtName;
-                        document.getElementById('breadcrumbDistrict').textContent = 'जिला: ' + districtName;
-                        currentUser.districtName = districtName; // Add to currentUser object
-                    } else {
-                        document.getElementById('userDistrict').textContent = 'District Not Found';
-                        document.getElementById('breadcrumbDistrict').textContent = 'जिला: District Not Found';
-                    }
-                } else {
-                    document.getElementById('userDistrict').textContent = 'No District Assigned';
-                    document.getElementById('breadcrumbDistrict').textContent = 'जिला: No District Assigned';
-                }
+                // Update UI with user info - SIMPLE VERSION THAT WORKS
+                document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.full_name || currentUser.username || 'उपयोगकर्ता';
+                document.getElementById('userDistrict').textContent = currentUser.districtName || 'N/A';
+                document.getElementById('breadcrumbDistrict').textContent = 'जिला: ' + (currentUser.districtName || 'N/A');
                 
                 // Setup UI based on user role
                 setupUIBasedOnRole();
                 
                 // Load village hierarchy data for user's district
-                if (currentUser.districtName) {
-                    await loadVillageHierarchy();
-                } else {
-                    showAlert('उपयोगकर्ता को कोई जिला असाइन नहीं है।', 'warning');
-                }
+                await loadVillageHierarchy();
                 
             } catch (error) {
                 console.error('Authentication error:', error);
@@ -1286,7 +1152,7 @@
             }
         }
 
-        // Show portal issues entry section - FIXED FORMAT
+        // Show portal issues entry section - CORRECTED
         function showPortalIssuesSection() {
             const container = document.getElementById('portalIssuesContainer');
             
@@ -1310,19 +1176,19 @@
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label class="form-label hindi">पोर्टल की वास्तविक समस्या (Red Flag Issue)</label>
-                            <textarea class="form-control portal-issue-input" rows="3" placeholder="पोर्टल में आने वाली तकनीकी समस्या का विवरण दें..." data-village-code="\${village.villagecode}"></textarea>
+                            <textarea class="form-control portal-issue-input" rows="3" placeholder="पोर्टल में आने वाली तकनीकी समस्या का विवरण दें..." data-village-code="${village.villagecode}"></textarea>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label hindi">बैंक/FI का नाम</label>
-                            <input type="text" class="form-control bank-name-input" placeholder="बैंक या वित्तीय संस्थान का नाम" data-village-code="\${village.villagecode}">
+                            <input type="text" class="form-control bank-name-input" placeholder="बैंक या वित्तीय संस्थान का नाम" data-village-code="${village.villagecode}">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label hindi">बैंक/FI का संपर्क नंबर</label>
-                            <input type="tel" class="form-control bank-contact-input" placeholder="संपर्क नंबर" data-village-code="\${village.villagecode}">
+                            <input type="tel" class="form-control bank-contact-input" placeholder="संपर्क नंबर" data-village-code="${village.villagecode}">
                         </div>
                         <div class="col-md-12 mb-3">
                             <label class="form-label hindi">पोर्टल की तकनीकी समस्या के कारण नामांकन से छूटे हुए ऋणी किसानों की संख्या</label>
-                            <input type="number" class="form-control affected-farmers-input" placeholder="प्रभावित किसानों की संख्या" min="0" data-village-code="\${village.villagecode}">
+                            <input type="number" class="form-control affected-farmers-input" placeholder="प्रभावित किसानों की संख्या" min="0" data-village-code="${village.villagecode}">
                         </div>
                     </div>
                 `;
@@ -1347,27 +1213,27 @@
                             </div>
                         </div>
                     </div>
-                    <div class="premium-conditional" id="premiumConditional_\${village.villagecode}">
+                    <div class="premium-conditional" id="premiumConditional_${village.villagecode}">
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label hindi">यदि हाँ तो राशि रुपए में</label>
-                                <input type="number" class="form-control premium-amount-input" placeholder="राशि रुपए में" min="0" step="0.01" data-village-code="\${village.villagecode}">
+                                <input type="number" class="form-control premium-amount-input" placeholder="राशि रुपए में" min="0" step="0.01" data-village-code="${village.villagecode}">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label hindi">किसानों की संख्या</label>
-                                <input type="number" class="form-control premium-farmers-input" placeholder="किसानों की संख्या" min="0" data-village-code="\${village.villagecode}">
+                                <input type="number" class="form-control premium-farmers-input" placeholder="किसानों की संख्या" min="0" data-village-code="${village.villagecode}">
                             </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label hindi">डेबिट की तारीख (यदि अलग-अलग तारीखों में तो अलग एंट्री फील्ड)</label>
-                            <div class="debit-dates-container" data-village-code="\${village.villagecode}">
+                            <div class="debit-dates-container" data-village-code="${village.villagecode}">
                                 <div class="debit-date-group">
                                     <div class="row align-items-end">
                                         <div class="col-md-10">
-                                            <input type="date" class="form-control debit-date-input" data-village-code="\${village.villagecode}">
+                                            <input type="date" class="form-control debit-date-input" data-village-code="${village.villagecode}">
                                         </div>
                                         <div class="col-md-2">
-                                            <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('\${village.villagecode}')">
+                                            <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('${village.villagecode}')">
                                                 <i class="fas fa-plus"></i>
                                             </button>
                                         </div>
@@ -1396,13 +1262,11 @@
             document.getElementById('portalIssuesSection').style.display = 'block';
         }
 
-        // Toggle premium conditional fields
+        // Toggle premium conditional fields - FIXED
         function togglePremiumConditional(villageCode, value) {
             const conditionalDiv = document.getElementById('premiumConditional_' + villageCode);
-            if (value === 'yes') {
-                conditionalDiv.style.display = 'block';
-            } else {
-                conditionalDiv.style.display = 'none';
+            if (conditionalDiv) {
+                conditionalDiv.style.display = value === 'yes' ? 'block' : 'none';
             }
         }
 
@@ -1415,10 +1279,10 @@
             dateGroup.innerHTML = `
                 <div class="row align-items-end">
                     <div class="col-md-8">
-                        <input type="date" class="form-control debit-date-input" data-village-code="\${villageCode}">
+                        <input type="date" class="form-control debit-date-input" data-village-code="${villageCode}">
                     </div>
                     <div class="col-md-2">
-                        <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('\${villageCode}')">
+                        <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('${villageCode}')">
                             <i class="fas fa-plus"></i>
                         </button>
                     </div>
@@ -1535,13 +1399,13 @@
                 }
                 
                 if (!item.is_premium_debited) {
-                    showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम डेबिट की जानकारी (हाँ/नहीं) दें।', 'warning');
+                    showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम डेबिट की जानकारी दें।', 'warning');
                     return false;
                 }
                 
                 if (item.is_premium_debited === 'yes') {
                     if (!item.premium_amount || item.premium_amount <= 0) {
-                        showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम राशि रुपए में दर्ज करें।', 'warning');
+                        showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम राशि दर्ज करें।', 'warning');
                         return false;
                     }
                     
@@ -1730,7 +1594,6 @@
             // Build table HTML
             let tableHTML = '';
             pageData.forEach(item => {
-                const debitDates = item.debit_dates ? JSON.parse(item.debit_dates).join(', ') : '-';
                 const premiumInfo = item.is_premium_debited === 'yes' ? 
                     `हाँ (₹${item.premium_amount}, ${item.premium_farmers_count} किसान)` : 'नहीं';
                 
@@ -1823,7 +1686,7 @@
             }
         }
 
-        // Export User Data to PDF
+        // Export User Data
         function exportUserData(format) {
             if (filteredUserData.length === 0) {
                 showAlert('एक्सपोर्ट के लिए कोई डेटा नहीं मिला।', 'warning');
@@ -1844,7 +1707,7 @@
             
             // Add title
             doc.setFontSize(16);
-            doc.text('Portal Issues Report - ' + currentUser.full_name, 20, 20);
+            doc.text('Portal Issues Report - ' + (currentUser.full_name || currentUser.username), 20, 20);
             doc.setFontSize(12);
             doc.text('District: ' + currentUser.districtName, 20, 30);
             doc.text('Generated on: ' + new Date().toLocaleDateString(), 20, 40);
@@ -1872,7 +1735,7 @@
             });
             
             // Save PDF
-            doc.save('Portal_Issues_' + currentUser.username + '_' + new Date().toISOString().split('T')[0] + '.pdf');
+            doc.save('Portal_Issues_' + (currentUser.username || 'user') + '_' + new Date().toISOString().split('T')[0] + '.pdf');
             showAlert('PDF फाइल डाउनलोड हो गई।', 'success');
         }
 
@@ -1904,7 +1767,7 @@
             XLSX.utils.book_append_sheet(wb, ws, 'Portal Issues');
             
             // Save Excel file
-            XLSX.writeFile(wb, 'Portal_Issues_' + currentUser.username + '_' + new Date().toISOString().split('T')[0] + '.xlsx');
+            XLSX.writeFile(wb, 'Portal_Issues_' + (currentUser.username || 'user') + '_' + new Date().toISOString().split('T')[0] + '.xlsx');
             showAlert('Excel फाइल डाउनलोड हो गई।', 'success');
         }
 
@@ -1941,23 +1804,16 @@
                         *,
                         test_users(full_name, username)
                     `)
-                    .order('created_at', { ascending: false });
+                    .order('created_at', { ascending: false })
+                    .limit(100); // Limit for performance
                 
                 if (error) throw error;
                 
                 adminPortalIssuesData = data || [];
-                filteredAdminData = [...adminPortalIssuesData];
                 
                 console.log('Loaded admin portal issues data:', adminPortalIssuesData.length, 'records');
                 
-                // Populate filters
-                populateAdminFilters();
-                
-                // Generate statistics
-                generateAdminStatistics();
-                
-                // Display paginated data
-                adminCurrentPage = 1;
+                // Display data
                 displayAdminData();
                 
                 if (adminPortalIssuesData.length === 0) {
@@ -1970,195 +1826,42 @@
             }
         }
 
-        // Populate Admin Filters
-        function populateAdminFilters() {
-            // District filter
-            const districtFilter = document.getElementById('adminFilterDistrict');
-            const uniqueDistricts = [...new Set(adminPortalIssuesData.map(item => item.districtname))].sort();
-            
-            districtFilter.innerHTML = '<option value="">All Districts</option>';
-            uniqueDistricts.forEach(district => {
-                const option = document.createElement('option');
-                option.value = district;
-                option.textContent = district;
-                districtFilter.appendChild(option);
-            });
-            
-            // User filter
-            const userFilter = document.getElementById('adminFilterUser');
-            const uniqueUsers = [...new Set(adminPortalIssuesData.map(item => 
-                item.test_users?.full_name || item.test_users?.username || 'Unknown'
-            ))].sort();
-            
-            userFilter.innerHTML = '<option value="">All Users</option>';
-            uniqueUsers.forEach(user => {
-                const option = document.createElement('option');
-                option.value = user;
-                option.textContent = user;
-                userFilter.appendChild(option);
-            });
-        }
-
-        // Generate Admin Statistics
-        function generateAdminStatistics() {
-            const totalEntries = adminPortalIssuesData.length;
-            const uniqueDistricts = new Set(adminPortalIssuesData.map(item => item.districtname)).size;
-            const uniqueVillages = new Set(adminPortalIssuesData.map(item => item.villagecode)).size;
-            const totalAffectedFarmers = adminPortalIssuesData.reduce((sum, item) => sum + (item.affected_farmers_count || 0), 0);
-            const premiumDebitedCount = adminPortalIssuesData.filter(item => item.is_premium_debited === 'yes').length;
-            const totalPremiumAmount = adminPortalIssuesData.reduce((sum, item) => sum + (item.premium_amount || 0), 0);
-            
-            const statsContainer = document.getElementById('adminStatsContainer');
-            statsContainer.innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-number">\${totalEntries}</div>
-                    <div class="stat-label hindi">Total Entries</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">\${uniqueDistricts}</div>
-                    <div class="stat-label hindi">Districts Covered</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">\${uniqueVillages}</div>
-                    <div class="stat-label hindi">Villages Covered</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">\${totalAffectedFarmers}</div>
-                    <div class="stat-label hindi">Total Affected Farmers</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">\${premiumDebitedCount}</div>
-                    <div class="stat-label hindi">Premium Debited Cases</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number">₹\${totalPremiumAmount.toLocaleString()}</div>
-                    <div class="stat-label hindi">Total Premium Amount</div>
-                </div>
-            `;
-        }
-
-        // Display Admin Data with Pagination
+        // Display Admin Data
         function displayAdminData() {
             const tableBody = document.getElementById('adminReportTableBody');
-            
-            // Calculate pagination
-            adminTotalPages = Math.ceil(filteredAdminData.length / adminItemsPerPage);
-            const startIndex = (adminCurrentPage - 1) * adminItemsPerPage;
-            const endIndex = startIndex + adminItemsPerPage;
-            const pageData = filteredAdminData.slice(startIndex, endIndex);
             
             // Clear table
             tableBody.innerHTML = '';
             
-            if (pageData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="18" class="text-center text-muted hindi">कोई डेटा नहीं मिला</td></tr>';
+            if (adminPortalIssuesData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted hindi">कोई डेटा नहीं मिला</td></tr>';
                 return;
             }
             
             // Build table HTML
             let tableHTML = '';
-            pageData.forEach(item => {
-                const debitDates = item.debit_dates ? JSON.parse(item.debit_dates).join(', ') : '-';
+            adminPortalIssuesData.forEach(item => {
                 const userName = item.test_users?.full_name || item.test_users?.username || 'Unknown';
+                const premiumInfo = item.is_premium_debited === 'yes' ? 'हाँ' : 'नहीं';
                 
                 tableHTML += '<tr>' +
-                    '<td><small>' + (item.id ? item.id.substring(0, 8) + '...' : '-') + '</small></td>' +
                     '<td class="hindi"><small>' + userName + '</small></td>' +
-                    '<td>' + (item.year || '-') + '</td>' +
-                    '<td class="hindi">' + (item.season || '-') + '</td>' +
                     '<td class="hindi"><small>' + (item.districtname || '-') + '</small></td>' +
-                    '<td class="hindi"><small>' + (item.level4name || '-') + '</small></td>' +
-                    '<td class="hindi"><small>' + (item.level5name || '-') + '</small></td>' +
                     '<td class="hindi"><small>' + (item.villagename || '-') + '</small></td>' +
-                    '<td>' + (item.villagecode || '-') + '</td>' +
                     '<td><small>' + (item.portal_issue ? item.portal_issue.substring(0, 30) + '...' : '-') + '</small></td>' +
                     '<td class="hindi"><small>' + (item.bank_fi_name || '-') + '</small></td>' +
-                    '<td>' + (item.bank_fi_contact || '-') + '</td>' +
                     '<td>' + (item.affected_farmers_count || 0) + '</td>' +
-                    '<td class="hindi">' + (item.is_premium_debited === 'yes' ? 'हाँ' : 'नहीं') + '</td>' +
-                    '<td>₹' + (item.premium_amount || 0) + '</td>' +
-                    '<td>' + (item.premium_farmers_count || 0) + '</td>' +
-                    '<td><small>' + debitDates + '</small></td>' +
+                    '<td class="hindi">' + premiumInfo + '</td>' +
                     '<td><small>' + new Date(item.created_at).toLocaleDateString('hi-IN') + '</small></td>' +
                     '</tr>';
             });
             
             tableBody.innerHTML = tableHTML;
-            
-            // Update admin pagination
-            updateAdminPagination();
         }
 
-        // Update Admin Pagination
-        function updateAdminPagination() {
-            const paginationContainer = document.getElementById('adminPaginationContainer');
-            paginationContainer.innerHTML = '';
-            
-            if (adminTotalPages <= 1) return;
-            
-            // Previous button
-            const prevItem = document.createElement('li');
-            prevItem.className = 'page-item' + (adminCurrentPage === 1 ? ' disabled' : '');
-            prevItem.innerHTML = '<a class="page-link" href="#" onclick="changeAdminPage(' + (adminCurrentPage - 1) + ')"><i class="fas fa-chevron-left"></i></a>';
-            paginationContainer.appendChild(prevItem);
-            
-            // Page numbers
-            const startPage = Math.max(1, adminCurrentPage - 2);
-            const endPage = Math.min(adminTotalPages, adminCurrentPage + 2);
-            
-            for (let i = startPage; i <= endPage; i++) {
-                const pageItem = document.createElement('li');
-                pageItem.className = 'page-item' + (i === adminCurrentPage ? ' active' : '');
-                pageItem.innerHTML = '<a class="page-link" href="#" onclick="changeAdminPage(' + i + ')">' + i + '</a>';
-                paginationContainer.appendChild(pageItem);
-            }
-            
-            // Next button
-            const nextItem = document.createElement('li');
-            nextItem.className = 'page-item' + (adminCurrentPage === adminTotalPages ? ' disabled' : '');
-            nextItem.innerHTML = '<a class="page-link" href="#" onclick="changeAdminPage(' + (adminCurrentPage + 1) + ')"><i class="fas fa-chevron-right"></i></a>';
-            paginationContainer.appendChild(nextItem);
-            
-            // Add page info
-            const infoItem = document.createElement('li');
-            infoItem.className = 'page-item disabled';
-            infoItem.innerHTML = '<span class="page-link hindi">कुल ' + filteredAdminData.length + ' में से ' + (((adminCurrentPage - 1) * adminItemsPerPage) + 1) + '-' + Math.min(adminCurrentPage * adminItemsPerPage, filteredAdminData.length) + '</span>';
-            paginationContainer.appendChild(infoItem);
-        }
-
-        // Change Admin Page
-        function changeAdminPage(page) {
-            if (page >= 1 && page <= adminTotalPages) {
-                adminCurrentPage = page;
-                displayAdminData();
-            }
-        }
-
-        // Filter Admin Data
-        function filterAdminData() {
-            const districtFilter = document.getElementById('adminFilterDistrict').value;
-            const userFilter = document.getElementById('adminFilterUser').value;
-            
-            filteredAdminData = adminPortalIssuesData.filter(item => {
-                const matchesDistrict = districtFilter === '' || item.districtname === districtFilter;
-                const userName = item.test_users?.full_name || item.test_users?.username || 'Unknown';
-                const matchesUser = userFilter === '' || userName === userFilter;
-                
-                return matchesDistrict && matchesUser;
-            });
-            
-            adminCurrentPage = 1;
-            generateAdminStatistics(); // Regenerate stats for filtered data
-            displayAdminData();
-            
-            if (filteredAdminData.length === 0) {
-                showAlert('फिल्टर के लिए कोई परिणाम नहीं मिला।', 'info');
-            }
-        }
-
-        // Export Admin Data to PDF
+        // Export Admin Data
         function exportAdminData(format) {
-            if (filteredAdminData.length === 0) {
+            if (adminPortalIssuesData.length === 0) {
                 showAlert('एक्सपोर्ट के लिए कोई डेटा नहीं मिला।', 'warning');
                 return;
             }
@@ -2173,42 +1876,34 @@
         // Export Admin Data to PDF
         function exportAdminDataToPDF() {
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape orientation for more columns
+            const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
             
             // Add title
             doc.setFontSize(16);
             doc.text('Portal Issues Complete Report - Admin View', 20, 20);
             doc.setFontSize(12);
             doc.text('Generated on: ' + new Date().toLocaleDateString(), 20, 30);
-            doc.text('Total Records: ' + filteredAdminData.length, 20, 40);
+            doc.text('Total Records: ' + adminPortalIssuesData.length, 20, 40);
             
             // Prepare table data
-            const tableData = filteredAdminData.map(item => [
+            const tableData = adminPortalIssuesData.map(item => [
                 item.test_users?.full_name || item.test_users?.username || 'Unknown',
                 item.districtname || '-',
-                item.level4name || '-',
-                item.level5name || '-',
                 item.villagename || '-',
                 (item.portal_issue || '').substring(0, 25) + '...',
                 item.bank_fi_name || '-',
                 item.affected_farmers_count || 0,
                 item.is_premium_debited === 'yes' ? 'Yes' : 'No',
-                '₹' + (item.premium_amount || 0),
-                item.premium_farmers_count || 0,
                 new Date(item.created_at).toLocaleDateString()
             ]);
             
             // Add table
             doc.autoTable({
-                head: [['User', 'District', 'Tehsil', 'RI', 'Village', 'Issue', 'Bank/FI', 'Affected', 'Premium', 'Amount', 'Farmers', 'Date']],
+                head: [['User', 'District', 'Village', 'Issue', 'Bank/FI', 'Affected', 'Premium', 'Date']],
                 body: tableData,
                 startY: 50,
                 styles: { fontSize: 7 },
-                headStyles: { fillColor: [27, 94, 32] },
-                columnStyles: {
-                    5: { cellWidth: 35 }, // Portal Issue column wider
-                    6: { cellWidth: 25 }  // Bank/FI column wider
-                }
+                headStyles: { fillColor: [27, 94, 32] }
             });
             
             // Save PDF
@@ -2221,7 +1916,7 @@
             const wb = XLSX.utils.book_new();
             
             // Prepare data for Excel
-            const excelData = filteredAdminData.map(item => ({
+            const excelData = adminPortalIssuesData.map(item => ({
                 'ID': item.id,
                 'User': item.test_users?.full_name || item.test_users?.username || 'Unknown',
                 'Year': item.year,
@@ -2229,7 +1924,6 @@
                 'District': item.districtname,
                 'Tehsil': item.level4name,
                 'RI Name': item.level5name,
-                'Level 6 Code': item.level6code,
                 'Village Name': item.villagename,
                 'Village Code': item.villagecode,
                 'Portal Issue': item.portal_issue,
@@ -2259,64 +1953,28 @@
             document.getElementById('dataEntrySection').style.display = 'block';
         }
 
-        // ADDITIONAL ADMIN REPORT FUNCTIONS
-
         // Show Village Coverage Report
         async function showVillageCoverageReport() {
             try {
                 showLoading('Village Coverage Report Loading...');
                 
-                // Get all villages from hierarchy
-                const { data: allVillages, error: villageError } = await supabaseClient
-                    .from('village_hierarchy')
-                    .select('villagecode, villagename, level4name, level5name, districtname');
-                
-                if (villageError) throw villageError;
-                
-                // Get village codes with portal issues data
-                const { data: portalIssuesVillages, error: portalError } = await supabaseClient
+                // Simple coverage calculation
+                const { data: portalIssuesData, error } = await supabaseClient
                     .from('portal_issues_data')
-                    .select('villagecode');
+                    .select('villagecode, villagename, districtname')
+                    .eq('districtname', currentUser.districtName);
                 
-                if (portalError) throw portalError;
+                if (error) throw error;
                 
-                // Count entries per village
-                const villageCounts = {};
-                if (portalIssuesVillages) {
-                    portalIssuesVillages.forEach(item => {
-                        villageCounts[item.villagecode] = (villageCounts[item.villagecode] || 0) + 1;
-                    });
-                }
+                const uniqueVillages = portalIssuesData ? new Set(portalIssuesData.map(item => item.villagecode)).size : 0;
                 
-                // Calculate statistics
-                const totalVillages = allVillages ? allVillages.length : 0;
-                const villagesWithData = Object.keys(villageCounts).length;
-                const villagesWithoutData = totalVillages - villagesWithData;
-                const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithData / totalVillages) * 100) : 0;
-                
-                console.log('Coverage Report:', {
-                    totalVillages,
-                    villagesWithData,
-                    villagesWithoutData,
-                    coveragePercentage
-                });
-                
-                showAlert(`Village Coverage: ${villagesWithData}/${totalVillages} villages (${coveragePercentage}%) have portal issues data.`, 'success');
                 hideLoading();
+                showAlert(`Village Coverage: ${uniqueVillages} villages have portal issues data in ${currentUser.districtName}.`, 'success');
                 
             } catch (error) {
                 console.error('Error generating coverage report:', error);
                 hideLoading();
                 showAlert('Coverage Report Error: ' + error.message, 'danger');
-            }
-        }
-
-        // Show Data Export Modal (Legacy function for compatibility)
-        function showDataExportModal() {
-            if (currentUser.role === 'admin') {
-                showAdminPortalIssuesReport();
-            } else {
-                showUserPortalIssuesData();
             }
         }
 
@@ -2342,16 +2000,12 @@
             // Admin Report Buttons
             const portalIssuesReportBtn = document.getElementById('portalIssuesReportBtn');
             const villageCoverageBtn = document.getElementById('villageCoverageBtn');
-            const dataExportBtn = document.getElementById('dataExportBtn');
             
             if (portalIssuesReportBtn) {
                 portalIssuesReportBtn.addEventListener('click', showAdminPortalIssuesReport);
             }
             if (villageCoverageBtn) {
                 villageCoverageBtn.addEventListener('click', showVillageCoverageReport);
-            }
-            if (dataExportBtn) {
-                dataExportBtn.addEventListener('click', showDataExportModal);
             }
             
             // Search functionality for user data
@@ -2402,38 +2056,9 @@
                 e.preventDefault();
                 showUserPortalIssuesData();
             }
-            
-            // Ctrl + A for admin report (admins only)
-            if (e.ctrlKey && e.key === 'a' && currentUser && currentUser.role === 'admin') {
-                e.preventDefault();
-                showAdminPortalIssuesReport();
-            }
         });
 
-        // Add error boundary
-        window.addEventListener('error', function(e) {
-            console.error('Unhandled error:', e.error);
-            hideLoading();
-            showAlert('एक त्रुटि हुई है। कृपया पेज रिफ्रेश करें।', 'danger');
-        });
-
-        // Add promise rejection handler
-        window.addEventListener('unhandledrejection', function(e) {
-            console.error('Unhandled promise rejection:', e.reason);
-            hideLoading();
-            showAlert('डेटा लोड करने में त्रुटि, कुछ समय बाद कोशिश करें।', 'warning');
-        });
-
-        // Network status monitoring
-        window.addEventListener('online', function() {
-            showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
-        });
-
-        window.addEventListener('offline', function() {
-            showAlert('इंटरनेट कनेक्शन नहीं है।', 'warning');
-        });
-
-        // Console welcome message for Portal Issues System
+        // Console welcome message
         console.log(`
         ╔══════════════════════════════════════════════════════════════╗
         ║                     पोर्टल इश्यू डेटा एंट्री सिस्टम              ║
@@ -2448,66 +2073,16 @@
         ║                                                              ║
         ║  Features:                                                  ║
         ║  • Village-wise Portal Issue Entry                         ║
-        ║  • Bank/FI Contact Details                                  ║
-        ║  • Premium Debit Status & Amount                           ║
-        ║  • Multiple Debit Date Entries                             ║
         ║  • User Data Export (PDF/Excel)                            ║
         ║  • Admin Complete Reports (PDF/Excel)                      ║
-        ║  • Advanced Filtering & Pagination                         ║
-        ║  • Real-time Statistics                                    ║
+        ║  • Real-time Validation                                    ║
         ║                                                              ║
-        ║  User Features:                                             ║
-        ║  • Personal Data View & Export                              ║
-        ║  • Search & Filter Own Data                                 ║
-        ║                                                              ║
-        ║  Admin Features:                                            ║
-        ║  • Complete System Overview                                 ║
-        ║  • All Users Data Access                                    ║
-        ║  • Advanced Reports & Analytics                             ║
-        ║  • Village Coverage Analysis                                ║
-        ║                                                              ║
-        ║  Keyboard Shortcuts:                                        ║
-        ║  • Ctrl + S: Save Data                                      ║
-        ║  • Ctrl + R: Reset Form                                     ║
-        ║  • Ctrl + D: My Entries (Users)                            ║
-        ║  • Ctrl + A: Admin Report (Admins)                         ║
-        ║  • Escape: Deselect All Villages                            ║
-        ║                                                              ║
-        ║  Database Tables:                                           ║
-        ║  • portal_issues_data (Main Data)                          ║
-        ║  • test_users (User Management)                             ║
-        ║  • districts (District Master)                             ║
-        ║  • village_hierarchy (Village Master)                      ║
-        ║                                                              ║
-        ║  For technical support: diagri-cg@cg.gov.in                ║
+        ║  Based on your working Khasra system!                      ║
         ╚══════════════════════════════════════════════════════════════╝
         `);
-
-        // Development helpers (remove in production)
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            window.debugHelpers = {
-                getCurrentUser: () => currentUser,
-                getVillageData: () => villageHierarchyData,
-                getSelectedVillages: () => selectedVillages,
-                getUserPortalIssuesData: () => userPortalIssuesData,
-                getAdminPortalIssuesData: () => adminPortalIssuesData,
-                collectPortalIssuesData: collectPortalIssuesData,
-                resetForm: resetForm,
-                showUserData: showUserPortalIssuesData,
-                showAdminReport: showAdminPortalIssuesReport,
-                exportUserPDF: () => exportUserData('pdf'),
-                exportUserExcel: () => exportUserData('excel'),
-                exportAdminPDF: () => exportAdminData('pdf'),
-                exportAdminExcel: () => exportAdminData('excel'),
-                testSave: () => {
-                    console.log('Test data:', collectPortalIssuesData());
-                }
-            };
-            console.log('🛠️ Debug helpers available in window.debugHelpers');
-        }
     </script>
 </body>
 </html>
 
 
-
+                
