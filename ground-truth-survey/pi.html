@@ -25,9 +25,6 @@
             --light-green: #E8F5E8;
             --light-blue: #E3F2FD;
             --report-blue: #2196F3;
-            --warning-bg: #FFF3CD;
-            --warning-border: #FFEAA7;
-            --warning-text: #856404;
         }
 
         * {
@@ -91,7 +88,6 @@
             transform: translateY(-1px);
         }
 
-        /* Report Dropdown Styles */
         .report-dropdown {
             background-color: var(--report-blue) !important;
             color: var(--text-light) !important;
@@ -104,39 +100,6 @@
             transform: translateY(-1px);
         }
 
-        .report-dropdown-menu {
-            background-color: var(--light-blue);
-            border: 2px solid var(--report-blue);
-            border-radius: 8px;
-            box-shadow: var(--shadow-lg);
-            padding: 10px 0;
-            min-width: 250px;
-        }
-
-        .report-dropdown-item {
-            color: var(--text-dark) !important;
-            padding: 12px 20px;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            border: none;
-            background: none;
-            width: 100%;
-            text-align: left;
-            cursor: pointer;
-        }
-
-        .report-dropdown-item:hover {
-            background-color: var(--report-blue);
-            color: var(--text-light) !important;
-            transform: translateX(5px);
-        }
-
-        .report-dropdown-item i {
-            width: 20px;
-            margin-right: 10px;
-        }
-
-        /* District Entry Button for Users */
         .district-entry-btn {
             background-color: #FF9800 !important;
             color: var(--text-light) !important;
@@ -271,7 +234,6 @@
             accent-color: var(--admin-accent);
         }
 
-        /* Updated Portal Issues Entry Section */
         .portal-issues-section {
             background-color: #F8F9FA;
             border-radius: 8px;
@@ -444,16 +406,6 @@
             border-left: 4px solid #FFC107;
         }
 
-        .loading {
-            opacity: 0.6;
-            pointer-events: none;
-        }
-
-        .spinner-border-sm {
-            width: 1rem;
-            height: 1rem;
-        }
-
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -559,20 +511,15 @@
                                 <a class="nav-link dropdown-toggle report-dropdown hindi" href="#" id="reportDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="fas fa-chart-bar me-1"></i> RPT
                                 </a>
-                                <ul class="dropdown-menu report-dropdown-menu" aria-labelledby="reportDropdown">
+                                <ul class="dropdown-menu" aria-labelledby="reportDropdown">
                                     <li>
-                                        <button class="report-dropdown-item hindi" id="villageCoverageBtn">
+                                        <button class="dropdown-item hindi" id="villageCoverageBtn">
                                             <i class="fas fa-map-marked-alt"></i> Village Report
                                         </button>
                                     </li>
                                     <li>
-                                        <button class="report-dropdown-item hindi" id="dataExportBtn">
+                                        <button class="dropdown-item hindi" id="dataExportBtn">
                                             <i class="fas fa-download"></i> Download Data
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button class="report-dropdown-item hindi" id="districtReportBtn">
-                                            <i class="fas fa-chart-pie"></i> District Report
                                         </button>
                                     </li>
                                 </ul>
@@ -659,7 +606,7 @@
                         </div>
                     </div>
 
-                    <!-- Updated Portal Issues Entry Section -->
+                    <!-- Portal Issues Entry Section -->
                     <div id="portalIssuesSection" class="portal-issues-section" style="display: none;">
                         <!-- Fixed Values Display -->
                         <div class="fixed-values-display">
@@ -737,7 +684,7 @@
 
                     <!-- Pagination -->
                     <nav aria-label="Page navigation">
-                        <ul class="pagination" id="paginationContainer">
+                        <ul class="pagination justify-content-center" id="paginationContainer">
                             <!-- Pagination will be populated here -->
                         </ul>
                     </nav>
@@ -754,1177 +701,1200 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
-    <script>
-// Supabase configuration
-const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
-
-const { createClient } = supabase;
-const supabaseClient = createClient(supabaseUrl, supabaseKey);
-
-// Global variables
-let currentUser = null;
-let villageHierarchyData = [];
-let selectedVillages = [];
-let currentPage = 1;
-let totalPages = 1;
-let itemsPerPage = 5;
-let userPortalIssuesData = [];
-let filteredUserData = [];
-
-// Show loading overlay
-function showLoading(text = 'डेटा लोड हो रहा है...') {
-    document.getElementById('loadingText').textContent = text;
-    document.getElementById('loadingOverlay').style.display = 'flex';
-}
-
-// Hide loading overlay
-function hideLoading() {
-    document.getElementById('loadingOverlay').style.display = 'none';
-}
-
-// Show alert message
-function showAlert(message, type) {
-    const alertBox = document.getElementById('alertBox');
-    alertBox.textContent = message;
-    alertBox.className = 'alert alert-' + type + ' hindi fade-in';
-    alertBox.style.display = 'block';
-    
-    setTimeout(() => {
-        alertBox.style.display = 'none';
-    }, 5000);
-}
-
-// Check authentication and setup UI based on role
-async function checkAuthentication() {
-    try {
-        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+<script>
+        // Supabase configuration
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
-        if (!storedUser) {
-            window.location.href = 'login.html';
-            return;
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        // Global variables
+        let currentUser = null;
+        let villageHierarchyData = [];
+        let selectedVillages = [];
+        let currentPage = 1;
+        let totalPages = 1;
+        let itemsPerPage = 5;
+        let userPortalIssuesData = [];
+        let filteredUserData = [];
+
+        // Show loading overlay
+        function showLoading(text = 'डेटा लोड हो रहा है...') {
+            document.getElementById('loadingText').textContent = text;
+            document.getElementById('loadingOverlay').style.display = 'flex';
         }
-        
-        currentUser = JSON.parse(storedUser);
-        console.log('Current user:', currentUser);
-        
-        // Update UI with user info
-        document.getElementById('userFullName').textContent = currentUser.fullName || currentUser.username || 'उपयोगकर्ता';
-        document.getElementById('userDistrict').textContent = currentUser.districtName || 'N/A';
-        document.getElementById('breadcrumbDistrict').textContent = 'जिला: ' + (currentUser.districtName || 'N/A');
-        
+
+        // Hide loading overlay
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // Show alert message
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.textContent = message;
+            alertBox.className = 'alert alert-' + type + ' hindi fade-in';
+            alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        // Get district name from district_id
+        async function getDistrictName(districtId) {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('districts')
+                    .select('name')
+                    .eq('id', districtId)
+                    .single();
+                
+                if (error) throw error;
+                return data?.name || null;
+            } catch (error) {
+                console.error('Error fetching district name:', error);
+                return null;
+            }
+        }
+
+        // Check authentication and setup UI based on role
+        async function checkAuthentication() {
+            try {
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                
+                if (!storedUser) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+                
+                currentUser = JSON.parse(storedUser);
+                console.log('Current user:', currentUser);
+                
+                // Update UI with user info - FIXED for your table structure
+                document.getElementById('userFullName').textContent = 
+                    currentUser.full_name || currentUser.fullName || currentUser.username || 'उपयोगकर्ता';
+                
+                // Get district name from district_id
+                if (currentUser.district_id) {
+                    const districtName = await getDistrictName(currentUser.district_id);
+                    document.getElementById('userDistrict').textContent = districtName || 'N/A';
+                    document.getElementById('breadcrumbDistrict').textContent = 'जिला: ' + (districtName || 'N/A');
+                    currentUser.districtName = districtName; // Add to currentUser object
+                } else {
+                    document.getElementById('userDistrict').textContent = 'N/A';
+                    document.getElementById('breadcrumbDistrict').textContent = 'जिला: N/A';
+                }
+                
+                // Setup UI based on user role
+                setupUIBasedOnRole();
+                
+                // Load village hierarchy data for user's district
+                if (currentUser.districtName) {
+                    await loadVillageHierarchy();
+                }
+                
+            } catch (error) {
+                console.error('Authentication error:', error);
+                showAlert('प्रमाणीकरण त्रुटि, कृपया पुनः लॉगिन करें।', 'danger');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
+            }
+        }
+
         // Setup UI based on user role
-        setupUIBasedOnRole();
-        
-        // Load village hierarchy data for user's district
-        await loadVillageHierarchy();
-        
-    } catch (error) {
-        console.error('Authentication error:', error);
-        showAlert('प्रमाणीकरण त्रुटि, कृपया पुनः लॉगिन करें।', 'danger');
-        setTimeout(() => {
-            window.location.href = 'login.html';
-        }, 2000);
-    }
-}
-
-// Setup UI based on user role
-function setupUIBasedOnRole() {
-    const adminSection = document.getElementById('adminReportSection');
-    const userSection = document.getElementById('userDistrictSection');
-    
-    if (currentUser.role === 'admin') {
-        // Show admin report dropdown
-        adminSection.style.display = 'block';
-        userSection.style.display = 'none';
-        console.log('Admin user detected - showing report dropdown');
-    } else {
-        // Show user district entry button  
-        adminSection.style.display = 'none';
-        userSection.style.display = 'block';
-        console.log('Regular user detected - showing district entry button');
-    }
-}
-
-// Load village hierarchy data
-async function loadVillageHierarchy() {
-    try {
-        if (!currentUser || !currentUser.districtName) {
-            showAlert('उपयोगकर्ता जिला जानकारी उपलब्ध नहीं है।', 'warning');
-            return;
+        function setupUIBasedOnRole() {
+            const adminSection = document.getElementById('adminReportSection');
+            const userSection = document.getElementById('userDistrictSection');
+            
+            if (currentUser.role === 'admin') {
+                // Show admin report dropdown
+                adminSection.style.display = 'block';
+                userSection.style.display = 'none';
+                console.log('Admin user detected - showing report dropdown');
+            } else {
+                // Show user district entry button  
+                adminSection.style.display = 'none';
+                userSection.style.display = 'block';
+                console.log('Regular user detected - showing district entry button');
+            }
         }
 
-        showAlert('डेटा लोड हो रहा है...', 'info');
-        
-        const { data, error } = await supabaseClient
-            .from('village_hierarchy')
-            .select('*')
-            .eq('districtname', currentUser.districtName)
-            .order('level4name', { ascending: true });
-        
-        if (error) {
-            console.error('Supabase error:', error);
-            throw error;
+        // Load village hierarchy data
+        async function loadVillageHierarchy() {
+            try {
+                if (!currentUser || !currentUser.districtName) {
+                    showAlert('उपयोगकर्ता जिला जानकारी उपलब्ध नहीं है।', 'warning');
+                    return;
+                }
+
+                showAlert('डेटा लोड हो रहा है...', 'info');
+                
+                const { data, error } = await supabaseClient
+                    .from('village_hierarchy')
+                    .select('*')
+                    .eq('districtname', currentUser.districtName)
+                    .order('level4name', { ascending: true });
+                
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
+                
+                villageHierarchyData = data || [];
+                console.log('Loaded village hierarchy data:', villageHierarchyData.length, 'records');
+                
+                if (villageHierarchyData.length === 0) {
+                    showAlert('जिला "' + currentUser.districtName + '" के लिए कोई डेटा नहीं मिला।', 'warning');
+                    return;
+                }
+                
+                // Populate level4 dropdown
+                populateLevel4Dropdown();
+                showAlert('डेटा सफलतापूर्वक लोड हुआ।', 'success');
+                
+            } catch (error) {
+                console.error('Error loading village hierarchy:', error);
+                showAlert('डेटा लोड करने में त्रुटि।', 'danger');
+            }
         }
-        
-        villageHierarchyData = data || [];
-        console.log('Loaded village hierarchy data:', villageHierarchyData.length, 'records');
-        
-        if (villageHierarchyData.length === 0) {
-            showAlert('जिला "' + currentUser.districtName + '" के लिए कोई डेटा नहीं मिला।', 'warning');
-            return;
+
+        // Populate Level 4 dropdown
+        function populateLevel4Dropdown() {
+            const level4Select = document.getElementById('level4Select');
+            
+            // Get unique level4 names
+            const level4Options = [...new Set(villageHierarchyData
+                .map(item => item.level4name)
+                .filter(name => name && name.trim() !== '')
+            )].sort();
+            
+            // Clear existing options except first
+            level4Select.innerHTML = '<option value="">-- स्तर 4 चुनें --</option>';
+            
+            // Add level4 options
+            level4Options.forEach(level4 => {
+                const option = document.createElement('option');
+                option.value = level4;
+                option.textContent = level4;
+                level4Select.appendChild(option);
+            });
+            
+            console.log('Level 4 options loaded:', level4Options.length);
         }
-        
-        // Populate level4 dropdown
-        populateLevel4Dropdown();
-        showAlert('डेटा सफलतापूर्वक लोड हुआ।', 'success');
-        
-    } catch (error) {
-        console.error('Error loading village hierarchy:', error);
-        showAlert('डेटा लोड करने में त्रुटि।', 'danger');
-    }
-}
 
-// Populate Level 4 dropdown
-function populateLevel4Dropdown() {
-    const level4Select = document.getElementById('level4Select');
-    
-    // Get unique level4 names
-    const level4Options = [...new Set(villageHierarchyData
-        .map(item => item.level4name)
-        .filter(name => name && name.trim() !== '')
-    )].sort();
-    
-    // Clear existing options except first
-    level4Select.innerHTML = '<option value="">-- स्तर 4 चुनें --</option>';
-    
-    // Add level4 options
-    level4Options.forEach(level4 => {
-        const option = document.createElement('option');
-        option.value = level4;
-        option.textContent = level4;
-        level4Select.appendChild(option);
-    });
-    
-    console.log('Level 4 options loaded:', level4Options.length);
-}
+        // Handle Level 4 selection
+        function handleLevel4Change() {
+            const level4Select = document.getElementById('level4Select');
+            const level5Select = document.getElementById('level5Select');
+            const selectedLevel4 = level4Select.value;
+            
+            // Update breadcrumb
+            document.getElementById('breadcrumbLevel4').textContent = 'स्तर 4: ' + (selectedLevel4 || '-');
+            document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
+            
+            // Reset level5 and hide villages
+            level5Select.innerHTML = '<option value="">-- स्तर 5 चुनें --</option>';
+            level5Select.disabled = !selectedLevel4;
+            hideVillagesSection();
+            
+            if (!selectedLevel4) return;
+            
+            // Get unique level5 names for selected level4
+            const level5Options = [...new Set(villageHierarchyData
+                .filter(item => item.level4name === selectedLevel4)
+                .map(item => item.level5name)
+                .filter(name => name && name.trim() !== '')
+            )].sort();
+            
+            // Populate level5 dropdown
+            level5Options.forEach(level5 => {
+                const option = document.createElement('option');
+                option.value = level5;
+                option.textContent = level5;
+                level5Select.appendChild(option);
+            });
+            
+            console.log('Level 5 options loaded:', level5Options.length);
+        }
 
-// Handle Level 4 selection
-function handleLevel4Change() {
-    const level4Select = document.getElementById('level4Select');
-    const level5Select = document.getElementById('level5Select');
-    const selectedLevel4 = level4Select.value;
-    
-    // Update breadcrumb
-    document.getElementById('breadcrumbLevel4').textContent = 'स्तर 4: ' + (selectedLevel4 || '-');
-    document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
-    
-    // Reset level5 and hide villages
-    level5Select.innerHTML = '<option value="">-- स्तर 5 चुनें --</option>';
-    level5Select.disabled = !selectedLevel4;
-    hideVillagesSection();
-    
-    if (!selectedLevel4) return;
-    
-    // Get unique level5 names for selected level4
-    const level5Options = [...new Set(villageHierarchyData
-        .filter(item => item.level4name === selectedLevel4)
-        .map(item => item.level5name)
-        .filter(name => name && name.trim() !== '')
-    )].sort();
-    
-    // Populate level5 dropdown
-    level5Options.forEach(level5 => {
-        const option = document.createElement('option');
-        option.value = level5;
-        option.textContent = level5;
-        level5Select.appendChild(option);
-    });
-    
-    console.log('Level 5 options loaded:', level5Options.length);
-}
+        // Handle Level 5 selection
+        function handleLevel5Change() {
+            const level4Select = document.getElementById('level4Select');
+            const level5Select = document.getElementById('level5Select');
+            const selectedLevel4 = level4Select.value;
+            const selectedLevel5 = level5Select.value;
+            
+            // Update breadcrumb
+            document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: ' + (selectedLevel5 || '-');
+            
+            if (!selectedLevel4 || !selectedLevel5) {
+                hideVillagesSection();
+                return;
+            }
+            
+            // Filter villages for selected level4 and level5
+            const villages = villageHierarchyData.filter(item => 
+                item.level4name === selectedLevel4 && 
+                item.level5name === selectedLevel5 &&
+                item.villagename && 
+                item.villagecode
+            );
+            
+            // Remove duplicates based on village code
+            const uniqueVillages = villages.filter((village, index, self) =>
+                index === self.findIndex(v => v.villagecode === village.villagecode)
+            ).sort((a, b) => a.villagename.localeCompare(b.villagename));
+            
+            console.log('Villages loaded:', uniqueVillages.length);
+            
+            // Populate villages table
+            populateVillagesTable(uniqueVillages);
+            showVillagesSection();
+        }
 
-// Handle Level 5 selection
-function handleLevel5Change() {
-    const level4Select = document.getElementById('level4Select');
-    const level5Select = document.getElementById('level5Select');
-    const selectedLevel4 = level4Select.value;
-    const selectedLevel5 = level5Select.value;
-    
-    // Update breadcrumb
-    document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: ' + (selectedLevel5 || '-');
-    
-    if (!selectedLevel4 || !selectedLevel5) {
-        hideVillagesSection();
-        return;
-    }
-    
-    // Filter villages for selected level4 and level5
-    const villages = villageHierarchyData.filter(item => 
-        item.level4name === selectedLevel4 && 
-        item.level5name === selectedLevel5 &&
-        item.villagename && 
-        item.villagecode
-    );
-    
-    // Remove duplicates based on village code
-    const uniqueVillages = villages.filter((village, index, self) =>
-        index === self.findIndex(v => v.villagecode === village.villagecode)
-    ).sort((a, b) => a.villagename.localeCompare(b.villagename));
-    
-    console.log('Villages loaded:', uniqueVillages.length);
-    
-    // Populate villages table
-    populateVillagesTable(uniqueVillages);
-    showVillagesSection();
-}
+        // Populate villages table
+        function populateVillagesTable(villages) {
+            const tableBody = document.getElementById('villagesTableBody');
+            
+            // Clear existing content
+            tableBody.innerHTML = '';
+            
+            if (villages.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="3" class="text-center text-muted hindi">कोई गांव नहीं मिला</td>';
+                tableBody.appendChild(row);
+                return;
+            }
+            
+            // Create rows using DOM methods
+            villages.forEach(village => {
+                const row = document.createElement('tr');
+                
+                // Checkbox cell
+                const checkboxCell = document.createElement('td');
+                checkboxCell.className = 'text-center';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'village-checkbox';
+                checkbox.value = village.villagecode;
+                checkbox.setAttribute('data-village-name', village.villagename);
+                checkbox.setAttribute('data-level4', village.level4name);
+                checkbox.setAttribute('data-level5', village.level5name);
+                checkbox.setAttribute('data-level6', village.level6code || '');
+                checkbox.addEventListener('change', handleVillageSelection);
+                
+                checkboxCell.appendChild(checkbox);
+                
+                // Village name cell
+                const nameCell = document.createElement('td');
+                nameCell.className = 'hindi';
+                nameCell.textContent = village.villagename;
+                
+                // Village code cell
+                const codeCell = document.createElement('td');
+                codeCell.textContent = village.villagecode;
+                
+                // Append cells to row
+                row.appendChild(checkboxCell);
+                row.appendChild(nameCell);
+                row.appendChild(codeCell);
+                
+                // Append row to table body
+                tableBody.appendChild(row);
+            });
+        }
 
-// Populate villages table
-function populateVillagesTable(villages) {
-    const tableBody = document.getElementById('villagesTableBody');
-    
-    // Clear existing content
-    tableBody.innerHTML = '';
-    
-    if (villages.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = '<td colspan="3" class="text-center text-muted hindi">कोई गांव नहीं मिला</td>';
-        tableBody.appendChild(row);
-        return;
-    }
-    
-    // Create rows using DOM methods
-    villages.forEach(village => {
-        const row = document.createElement('tr');
-        
-        // Checkbox cell
-        const checkboxCell = document.createElement('td');
-        checkboxCell.className = 'text-center';
-        
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'village-checkbox';
-        checkbox.value = village.villagecode;
-        checkbox.setAttribute('data-village-name', village.villagename);
-        checkbox.setAttribute('data-level4', village.level4name);
-        checkbox.setAttribute('data-level5', village.level5name);
-        checkbox.setAttribute('data-level6', village.level6code || '');
-        checkbox.addEventListener('change', handleVillageSelection);
-        
-        checkboxCell.appendChild(checkbox);
-        
-        // Village name cell
-        const nameCell = document.createElement('td');
-        nameCell.className = 'hindi';
-        nameCell.textContent = village.villagename;
-        
-        // Village code cell
-        const codeCell = document.createElement('td');
-        codeCell.textContent = village.villagecode;
-        
-        // Append cells to row
-        row.appendChild(checkboxCell);
-        row.appendChild(nameCell);
-        row.appendChild(codeCell);
-        
-        // Append row to table body
-        tableBody.appendChild(row);
-    });
-}
+        // Show villages section
+        function showVillagesSection() {
+            document.getElementById('villagesSection').style.display = 'block';
+        }
 
-// Show villages section
-function showVillagesSection() {
-    document.getElementById('villagesSection').style.display = 'block';
-}
+        // Hide villages section
+        function hideVillagesSection() {
+            document.getElementById('villagesSection').style.display = 'none';
+            document.getElementById('portalIssuesSection').style.display = 'none';
+            document.getElementById('actionButtons').style.display = 'none';
+            selectedVillages = [];
+        }
 
-// Hide villages section
-function hideVillagesSection() {
-    document.getElementById('villagesSection').style.display = 'none';
-    document.getElementById('portalIssuesSection').style.display = 'none';
-    document.getElementById('actionButtons').style.display = 'none';
-    selectedVillages = [];
-}
+        // Handle village selection
+        function handleVillageSelection() {
+            const checkboxes = document.querySelectorAll('.village-checkbox:checked');
+            selectedVillages = [];
+            
+            checkboxes.forEach(checkbox => {
+                selectedVillages.push({
+                    villagecode: checkbox.value,
+                    villagename: checkbox.getAttribute('data-village-name'),
+                    level4name: checkbox.getAttribute('data-level4'),
+                    level5name: checkbox.getAttribute('data-level5'),
+                    level6code: checkbox.getAttribute('data-level6'),
+                    districtname: currentUser.districtName
+                });
+            });
+            
+            console.log('Selected villages:', selectedVillages.length);
+            
+            if (selectedVillages.length > 0) {
+                showPortalIssuesSection();
+                document.getElementById('actionButtons').style.display = 'block';
+            } else {
+                document.getElementById('portalIssuesSection').style.display = 'none';
+                document.getElementById('actionButtons').style.display = 'none';
+            }
+        }
 
-// Handle village selection
-function handleVillageSelection() {
-    const checkboxes = document.querySelectorAll('.village-checkbox:checked');
-    selectedVillages = [];
-    
-    checkboxes.forEach(checkbox => {
-        selectedVillages.push({
-            villagecode: checkbox.value,
-            villagename: checkbox.getAttribute('data-village-name'),
-            level4name: checkbox.getAttribute('data-level4'),
-            level5name: checkbox.getAttribute('data-level5'),
-            level6code: checkbox.getAttribute('data-level6'),
-            districtname: currentUser.districtName
-        });
-    });
-    
-    console.log('Selected villages:', selectedVillages.length);
-    
-    if (selectedVillages.length > 0) {
-        showPortalIssuesSection();
-        document.getElementById('actionButtons').style.display = 'block';
-    } else {
-        document.getElementById('portalIssuesSection').style.display = 'none';
-        document.getElementById('actionButtons').style.display = 'none';
-    }
-}
-
-// Show portal issues entry section
-function showPortalIssuesSection() {
-    const container = document.getElementById('portalIssuesContainer');
-    
-    // Clear existing content
-    container.innerHTML = '';
-    
-    selectedVillages.forEach(village => {
-        const villageCard = document.createElement('div');
-        villageCard.className = 'portal-issues-village-card fade-in';
-        villageCard.setAttribute('data-village-code', village.villagecode);
-        
-        const titleDiv = document.createElement('div');
-        titleDiv.className = 'portal-issues-village-title hindi';
-        titleDiv.innerHTML = '<i class="fas fa-map-marker-alt me-2"></i>' + village.villagename + ' (' + village.villagecode + ')';
-        
-        // Portal Issues Section
-        const portalSection = document.createElement('div');
-        portalSection.className = 'form-section';
-        portalSection.innerHTML = `
-            <h6 class="form-section-title hindi"><i class="fas fa-exclamation-triangle me-2"></i>पोर्टल की समस्या की जानकारी</h6>
-            <div class="row">
-                <div class="col-md-12 mb-3">
-                    <label class="form-label hindi">पोर्टल की वास्तविक समस्या (Red Flag Issue)</label>
-                    <textarea class="form-control portal-issue-input" rows="3" placeholder="पोर्टल में आने वाली तकनीकी समस्या का विवरण दें..." data-village-code="\${village.villagecode}"></textarea>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label hindi">बैंक/FI का नाम</label>
-                    <input type="text" class="form-control bank-name-input" placeholder="बैंक या वित्तीय संस्थान का नाम" data-village-code="\${village.villagecode}">
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label hindi">बैंक/FI का संपर्क नंबर</label>
-                    <input type="tel" class="form-control bank-contact-input" placeholder="संपर्क नंबर" data-village-code="\${village.villagecode}">
-                </div>
-                <div class="col-md-12 mb-3">
-                    <label class="form-label hindi">पोर्टल की तकनीकी समस्या के कारण नामांकन से छूटे हुए ऋणी किसानों की संख्या</label>
-                    <input type="number" class="form-control affected-farmers-input" placeholder="प्रभावित किसानों की संख्या" min="0" data-village-code="\${village.villagecode}">
-                </div>
-            </div>
-        `;
-        
-        // Premium Debit Section
-        const premiumSection = document.createElement('div');
-        premiumSection.className = 'form-section';
-        premiumSection.innerHTML = `
-            <h6 class="form-section-title hindi"><i class="fas fa-credit-card me-2"></i>प्रीमियम डेबिट की जानकारी</h6>
-            <div class="row">
-                <div class="col-md-12 mb-3">
-                    <label class="form-label hindi">क्या बैंक/FI द्वारा प्रीमियम डेबिट किया गया है?</label>
-                    <div class="mt-2">
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input premium-debit-radio" type="radio" name="premiumDebit_${village.villagecode}" value="yes" data-village-code="${village.villagecode}">
-                            <label class="form-check-label hindi">हाँ</label>
+        // Show portal issues entry section
+        function showPortalIssuesSection() {
+            const container = document.getElementById('portalIssuesContainer');
+            
+            // Clear existing content
+            container.innerHTML = '';
+            
+            selectedVillages.forEach(village => {
+                const villageCard = document.createElement('div');
+                villageCard.className = 'portal-issues-village-card fade-in';
+                villageCard.setAttribute('data-village-code', village.villagecode);
+                
+                const titleDiv = document.createElement('div');
+                titleDiv.className = 'portal-issues-village-title hindi';
+                titleDiv.innerHTML = '<i class="fas fa-map-marker-alt me-2"></i>' + village.villagename + ' (' + village.villagecode + ')';
+                
+                // Portal Issues Section
+                const portalSection = document.createElement('div');
+                portalSection.className = 'form-section';
+                portalSection.innerHTML = `
+                    <h6 class="form-section-title hindi"><i class="fas fa-exclamation-triangle me-2"></i>पोर्टल की समस्या की जानकारी</h6>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label hindi">पोर्टल की वास्तविक समस्या (Red Flag Issue)</label>
+                            <textarea class="form-control portal-issue-input" rows="3" placeholder="पोर्टल में आने वाली तकनीकी समस्या का विवरण दें..." data-village-code="\${village.villagecode}"></textarea>
                         </div>
-                        <div class="form-check form-check-inline">
-                            <input class="form-check-input premium-debit-radio" type="radio" name="premiumDebit_${village.villagecode}" value="no" data-village-code="${village.villagecode}">
-                            <label class="form-check-label hindi">नहीं</label>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label hindi">बैंक/FI का नाम</label>
+                            <input type="text" class="form-control bank-name-input" placeholder="बैंक या वित्तीय संस्थान का नाम" data-village-code="\${village.villagecode}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label hindi">बैंक/FI का संपर्क नंबर</label>
+                            <input type="tel" class="form-control bank-contact-input" placeholder="संपर्क नंबर" data-village-code="\${village.villagecode}">
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label hindi">पोर्टल की तकनीकी समस्या के कारण नामांकन से छूटे हुए ऋणी किसानों की संख्या</label>
+                            <input type="number" class="form-control affected-farmers-input" placeholder="प्रभावित किसानों की संख्या" min="0" data-village-code="\${village.villagecode}">
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="premium-conditional" id="premiumConditional_\${village.villagecode}">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label hindi">डेबिट की गई राशि (रुपए में)</label>
-                        <input type="number" class="form-control premium-amount-input" placeholder="राशि रुपए में" min="0" step="0.01" data-village-code="\${village.villagecode}">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label hindi">किसानों की संख्या</label>
-                        <input type="number" class="form-control premium-farmers-input" placeholder="किसानों की संख्या" min="0" data-village-code="\${village.villagecode}">
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label hindi">डेबिट की तारीख (अगर अलग-अलग तारीखों में डेबिट हुआ है तो अलग एंट्री करें)</label>
-                    <div class="debit-dates-container" data-village-code="\${village.villagecode}">
-                        <div class="debit-date-group">
-                            <div class="row align-items-end">
-                                <div class="col-md-10">
-                                    <input type="date" class="form-control debit-date-input" data-village-code="\${village.villagecode}">
+                `;
+                
+                // Premium Debit Section
+                const premiumSection = document.createElement('div');
+                premiumSection.className = 'form-section';
+                premiumSection.innerHTML = `
+                    <h6 class="form-section-title hindi"><i class="fas fa-credit-card me-2"></i>प्रीमियम डेबिट की जानकारी</h6>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label hindi">क्या बैंक/FI द्वारा प्रीमियम डेबिट किया गया है?</label>
+                            <div class="mt-2">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input premium-debit-radio" type="radio" name="premiumDebit_${village.villagecode}" value="yes" data-village-code="${village.villagecode}">
+                                    <label class="form-check-label hindi">हाँ</label>
                                 </div>
-                                <div class="col-md-2">
-                                    <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('\${village.villagecode}')">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input premium-debit-radio" type="radio" name="premiumDebit_${village.villagecode}" value="no" data-village-code="${village.villagecode}">
+                                    <label class="form-check-label hindi">नहीं</label>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
-        `;
-        
-        villageCard.appendChild(titleDiv);
-        villageCard.appendChild(portalSection);
-        villageCard.appendChild(premiumSection);
-        
-        container.appendChild(villageCard);
-        
-        // Add event listeners for premium debit radio buttons
-        const radioButtons = villageCard.querySelectorAll('.premium-debit-radio');
-        radioButtons.forEach(radio => {
-            radio.addEventListener('change', function() {
-                togglePremiumConditional(village.villagecode, this.value);
+                    <div class="premium-conditional" id="premiumConditional_\${village.villagecode}">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">डेबिट की गई राशि (रुपए में)</label>
+                                <input type="number" class="form-control premium-amount-input" placeholder="राशि रुपए में" min="0" step="0.01" data-village-code="\${village.villagecode}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label hindi">किसानों की संख्या</label>
+                                <input type="number" class="form-control premium-farmers-input" placeholder="किसानों की संख्या" min="0" data-village-code="\${village.villagecode}">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label hindi">डेबिट की तारीख (अगर अलग-अलग तारीखों में डेबिट हुआ है तो अलग एंट्री करें)</label>
+                            <div class="debit-dates-container" data-village-code="\${village.villagecode}">
+                                <div class="debit-date-group">
+                                    <div class="row align-items-end">
+                                        <div class="col-md-10">
+                                            <input type="date" class="form-control debit-date-input" data-village-code="\${village.villagecode}">
+                                        </div>
+                                        <div class="col-md-2">
+                                            <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('\${village.villagecode}')">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                villageCard.appendChild(titleDiv);
+                villageCard.appendChild(portalSection);
+                villageCard.appendChild(premiumSection);
+                
+                container.appendChild(villageCard);
+                
+                // Add event listeners for premium debit radio buttons
+                const radioButtons = villageCard.querySelectorAll('.premium-debit-radio');
+                radioButtons.forEach(radio => {
+                    radio.addEventListener('change', function() {
+                        togglePremiumConditional(village.villagecode, this.value);
+                    });
+                });
             });
-        });
-    });
-    
-    document.getElementById('portalIssuesSection').style.display = 'block';
-}
-
-// Toggle premium conditional fields
-function togglePremiumConditional(villageCode, value) {
-    const conditionalDiv = document.getElementById('premiumConditional_' + villageCode);
-    if (value === 'yes') {
-        conditionalDiv.style.display = 'block';
-    } else {
-        conditionalDiv.style.display = 'none';
-    }
-}
-
-// Add debit date field
-function addDebitDate(villageCode) {
-    const container = document.querySelector('[data-village-code="' + villageCode + '"] .debit-dates-container');
-    
-    const dateGroup = document.createElement('div');
-    dateGroup.className = 'debit-date-group fade-in';
-    dateGroup.innerHTML = `
-        <div class="row align-items-end">
-            <div class="col-md-8">
-                <input type="date" class="form-control debit-date-input" data-village-code="\${villageCode}">
-            </div>
-            <div class="col-md-2">
-                <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('\${villageCode}')">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
-            <div class="col-md-2">
-                <button type="button" class="remove-date-btn" title="तारीख हटाएं" onclick="removeDebitDate(this)">
-                    <i class="fas fa-minus"></i>
-                </button>
-            </div>
-        </div>
-    `;
-    
-    container.appendChild(dateGroup);
-}
-
-// Remove debit date field
-function removeDebitDate(button) {
-    const dateGroup = button.closest('.debit-date-group');
-    dateGroup.style.animation = 'fadeOut 0.3s ease-in-out';
-    setTimeout(() => {
-        dateGroup.remove();
-    }, 300);
-}
-
-// Select all villages
-function selectAllVillages() {
-    const checkboxes = document.querySelectorAll('.village-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = true;
-    });
-    handleVillageSelection();
-}
-
-// Deselect all villages
-function deselectAllVillages() {
-    const checkboxes = document.querySelectorAll('.village-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = false;
-    });
-    handleVillageSelection();
-}
-
-// Collect portal issues data
-function collectPortalIssuesData() {
-    const portalIssuesData = [];
-    
-    selectedVillages.forEach(village => {
-        const portalIssue = document.querySelector('.portal-issue-input[data-village-code="' + village.villagecode + '"]').value.trim();
-        const bankName = document.querySelector('.bank-name-input[data-village-code="' + village.villagecode + '"]').value.trim();
-        const bankContact = document.querySelector('.bank-contact-input[data-village-code="' + village.villagecode + '"]').value.trim();
-        const affectedFarmers = document.querySelector('.affected-farmers-input[data-village-code="' + village.villagecode + '"]').value.trim();
-        
-        const premiumDebitRadio = document.querySelector('input[name="premiumDebit_' + village.villagecode + '"]:checked');
-        const isPremiumDebited = premiumDebitRadio ? premiumDebitRadio.value : '';
-        
-        let premiumAmount = '';
-        let premiumFarmers = '';
-        let debitDates = [];
-        
-        if (isPremiumDebited === 'yes') {
-            const amountInput = document.querySelector('.premium-amount-input[data-village-code="' + village.villagecode + '"]');
-            const farmersInput = document.querySelector('.premium-farmers-input[data-village-code="' + village.villagecode + '"]');
             
-            premiumAmount = amountInput ? amountInput.value.trim() : '';
-            premiumFarmers = farmersInput ? farmersInput.value.trim() : '';
+            document.getElementById('portalIssuesSection').style.display = 'block';
+        }
+
+        // Toggle premium conditional fields
+        function togglePremiumConditional(villageCode, value) {
+            const conditionalDiv = document.getElementById('premiumConditional_' + villageCode);
+            if (value === 'yes') {
+                conditionalDiv.style.display = 'block';
+            } else {
+                conditionalDiv.style.display = 'none';
+            }
+        }
+
+        // Add debit date field
+        function addDebitDate(villageCode) {
+            const container = document.querySelector('[data-village-code="' + villageCode + '"] .debit-dates-container');
             
-            const dateInputs = document.querySelectorAll('.debit-date-input[data-village-code="' + village.villagecode + '"]');
-            dateInputs.forEach(input => {
-                if (input.value.trim()) {
-                    debitDates.push(input.value.trim());
+            const dateGroup = document.createElement('div');
+            dateGroup.className = 'debit-date-group fade-in';
+            dateGroup.innerHTML = `
+                <div class="row align-items-end">
+                    <div class="col-md-8">
+                        <input type="date" class="form-control debit-date-input" data-village-code="\${villageCode}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="add-date-btn" title="नई तारीख जोड़ें" onclick="addDebitDate('\${villageCode}')">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="remove-date-btn" title="तारीख हटाएं" onclick="removeDebitDate(this)">
+                            <i class="fas fa-minus"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(dateGroup);
+        }
+
+        // Remove debit date field
+        function removeDebitDate(button) {
+            const dateGroup = button.closest('.debit-date-group');
+            dateGroup.style.animation = 'fadeOut 0.3s ease-in-out';
+            setTimeout(() => {
+                dateGroup.remove();
+            }, 300);
+        }
+
+        // Select all villages
+        function selectAllVillages() {
+            const checkboxes = document.querySelectorAll('.village-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+            });
+            handleVillageSelection();
+        }
+
+        // Deselect all villages
+        function deselectAllVillages() {
+            const checkboxes = document.querySelectorAll('.village-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            handleVillageSelection();
+        }
+
+        // Collect portal issues data
+        function collectPortalIssuesData() {
+            const portalIssuesData = [];
+            
+            selectedVillages.forEach(village => {
+                const portalIssue = document.querySelector('.portal-issue-input[data-village-code="' + village.villagecode + '"]').value.trim();
+                const bankName = document.querySelector('.bank-name-input[data-village-code="' + village.villagecode + '"]').value.trim();
+                const bankContact = document.querySelector('.bank-contact-input[data-village-code="' + village.villagecode + '"]').value.trim();
+                const affectedFarmers = document.querySelector('.affected-farmers-input[data-village-code="' + village.villagecode + '"]').value.trim();
+                
+                const premiumDebitRadio = document.querySelector('input[name="premiumDebit_' + village.villagecode + '"]:checked');
+                const isPremiumDebited = premiumDebitRadio ? premiumDebitRadio.value : '';
+                
+                let premiumAmount = '';
+                let premiumFarmers = '';
+                let debitDates = [];
+                
+                if (isPremiumDebited === 'yes') {
+                    const amountInput = document.querySelector('.premium-amount-input[data-village-code="' + village.villagecode + '"]');
+                    const farmersInput = document.querySelector('.premium-farmers-input[data-village-code="' + village.villagecode + '"]');
+                    
+                    premiumAmount = amountInput ? amountInput.value.trim() : '';
+                    premiumFarmers = farmersInput ? farmersInput.value.trim() : '';
+                    
+                    const dateInputs = document.querySelectorAll('.debit-date-input[data-village-code="' + village.villagecode + '"]');
+                    dateInputs.forEach(input => {
+                        if (input.value.trim()) {
+                            debitDates.push(input.value.trim());
+                        }
+                    });
+                }
+                
+                portalIssuesData.push({
+                    user_id: currentUser.id,
+                    year: 2025,
+                    season: 'खरीफ',
+                    districtname: village.districtname,
+                    level4name: village.level4name,
+                    level5name: village.level5name,
+                    level6code: village.level6code,
+                    villagename: village.villagename,
+                    villagecode: village.villagecode,
+                    portal_issue: portalIssue,
+                    bank_fi_name: bankName,
+                    bank_fi_contact: bankContact,
+                    affected_farmers_count: affectedFarmers ? parseInt(affectedFarmers) : 0,
+                    is_premium_debited: isPremiumDebited,
+                    premium_amount: premiumAmount ? parseFloat(premiumAmount) : 0,
+                    premium_farmers_count: premiumFarmers ? parseInt(premiumFarmers) : 0,
+                    debit_dates: debitDates.length > 0 ? JSON.stringify(debitDates) : null
+                });
+            });
+            
+            return portalIssuesData;
+        }
+
+        // Validate portal issues data
+        function validatePortalIssuesData(data) {
+            if (data.length === 0) {
+                showAlert('कम से कम एक गांव के लिए डेटा दर्ज करें।', 'warning');
+                return false;
+            }
+            
+            for (let item of data) {
+                if (!item.portal_issue) {
+                    showAlert('गांव "' + item.villagename + '" के लिए पोर्टल की समस्या दर्ज करें।', 'warning');
+                    return false;
+                }
+                
+                if (!item.bank_fi_name) {
+                    showAlert('गांव "' + item.villagename + '" के लिए बैंक/FI का नाम दर्ज करें।', 'warning');
+                    return false;
+                }
+                
+                if (!item.is_premium_debited) {
+                    showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम डेबिट की जानकारी दें।', 'warning');
+                    return false;
+                }
+                
+                if (item.is_premium_debited === 'yes') {
+                    if (!item.premium_amount || item.premium_amount <= 0) {
+                        showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम राशि दर्ज करें।', 'warning');
+                        return false;
+                    }
+                    
+                    if (!item.premium_farmers_count || item.premium_farmers_count <= 0) {
+                        showAlert('गांव "' + item.villagename + '" के लिए किसानों की संख्या दर्ज करें।', 'warning');
+                        return false;
+                    }
+                    
+                    if (!item.debit_dates || JSON.parse(item.debit_dates).length === 0) {
+                        showAlert('गांव "' + item.villagename + '" के लिए डेबिट की तारीख दर्ज करें।', 'warning');
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        }
+
+        // Save portal issues data
+        async function savePortalIssuesData() {
+            try {
+                const portalIssuesData = collectPortalIssuesData();
+                
+                if (!validatePortalIssuesData(portalIssuesData)) {
+                    return;
+                }
+                
+                // Show loading state
+                const saveBtn = document.getElementById('saveDataBtn');
+                const originalText = saveBtn.innerHTML;
+                saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">सेव हो रहा है...</span>';
+                saveBtn.disabled = true;
+                
+                console.log('Saving portal issues data:', portalIssuesData);
+                
+                // Insert data
+                const { data, error } = await supabaseClient
+                    .from('portal_issues_data')
+                    .insert(portalIssuesData);
+                
+                if (error) {
+                    console.error('Supabase insert error:', error);
+                    throw error;
+                }
+                
+                showAlert('डेटा सफलतापूर्वक सेव हुआ। कुल ' + portalIssuesData.length + ' एंट्री सेव की गई।', 'success');
+                
+                // Reset form
+                resetForm();
+                
+            } catch (error) {
+                console.error('Error saving portal issues data:', error);
+                showAlert('डेटा सेव करने में त्रुटि: ' + error.message, 'danger');
+            } finally {
+                // Reset button
+                const saveBtn = document.getElementById('saveDataBtn');
+                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> <span class="hindi">डेटा सेव करें</span>';
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Reset form
+        function resetForm() {
+            // Reset dropdowns
+            document.getElementById('level4Select').value = '';
+            document.getElementById('level5Select').value = '';
+            document.getElementById('level5Select').disabled = true;
+            
+            // Reset breadcrumb
+            document.getElementById('breadcrumbLevel4').textContent = 'स्तर 4: -';
+            document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
+            
+            // Hide sections
+            hideVillagesSection();
+            
+            // Clear selected villages
+            selectedVillages = [];
+            
+            console.log('Form reset completed');
+        }
+
+        // Handle logout
+        function handleLogout() {
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                // Clear storage
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                
+                // Redirect to login
+                window.location.href = 'login.html';
+            }
+        }
+
+        // USER DATA FUNCTIONS
+
+        // Show user's portal issues data
+        async function showUserPortalIssuesData() {
+            try {
+                showLoading('आपका डेटा लोड हो रहा है...');
+                
+                // Hide data entry section and show user data section
+                document.getElementById('dataEntrySection').style.display = 'none';
+                document.getElementById('userDataSection').style.display = 'block';
+                
+                // Load user's portal issues data
+                await loadUserPortalIssuesData();
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error showing user data:', error);
+                showAlert('डेटा लोड करने में त्रुटि: ' + error.message, 'danger');
+                hideLoading();
+            }
+        }
+
+        // Load user's portal issues data
+        async function loadUserPortalIssuesData() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('portal_issues_data')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                userPortalIssuesData = data || [];
+                filteredUserData = [...userPortalIssuesData];
+                
+                console.log('Loaded user portal issues data:', userPortalIssuesData.length, 'records');
+                
+                // Populate village filter dropdown
+                populateVillageFilter();
+                
+                // Display paginated data
+                currentPage = 1;
+                displayUserData();
+                
+                if (userPortalIssuesData.length === 0) {
+                    showAlert('अभी तक कोई एंट्री नहीं की गई है।', 'info');
+                }
+                
+            } catch (error) {
+                console.error('Error loading user portal issues data:', error);
+                throw error;
+            }
+        }
+
+        // Populate village filter dropdown
+        function populateVillageFilter() {
+            const filterSelect = document.getElementById('filterVillage');
+            
+            // Get unique villages from user data
+            const uniqueVillages = [...new Set(userPortalIssuesData.map(item => item.villagename))].sort();
+            
+            filterSelect.innerHTML = '<option value="">All Villages</option>';
+            
+            uniqueVillages.forEach(village => {
+                const option = document.createElement('option');
+                option.value = village;
+                option.textContent = village;
+                filterSelect.appendChild(option);
+            });
+        }
+
+        // Display user data with pagination
+        function displayUserData() {
+            const tableBody = document.getElementById('userDataTableBody');
+            
+            // Calculate pagination
+            totalPages = Math.ceil(filteredUserData.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const pageData = filteredUserData.slice(startIndex, endIndex);
+            
+            // Clear table
+            tableBody.innerHTML = '';
+            
+            if (pageData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-muted hindi">कोई डेटा नहीं मिला</td></tr>';
+                return;
+            }
+            
+            // Build table HTML
+            let tableHTML = '';
+            pageData.forEach(item => {
+                const debitDates = item.debit_dates ? JSON.parse(item.debit_dates).join(', ') : '-';
+                const premiumInfo = item.is_premium_debited === 'yes' ? 
+                    `हाँ (₹${item.premium_amount}, ${item.premium_farmers_count} किसान)` : 'नहीं';
+                
+                tableHTML += '<tr>' +
+                    '<td class="hindi">' + (item.districtname || '-') + '</td>' +
+                    '<td class="hindi">' + (item.level4name || '-') + '</td>' +
+                    '<td class="hindi">' + (item.level5name || '-') + '</td>' +
+                    '<td class="hindi">' + (item.villagename || '-') + '</td>' +
+                    '<td><small>' + (item.portal_issue ? item.portal_issue.substring(0, 50) + '...' : '-') + '</small></td>' +
+                    '<td class="hindi">' + (item.bank_fi_name || '-') + '</td>' +
+                    '<td>' + (item.affected_farmers_count || 0) + '</td>' +
+                    '<td><small class="hindi">' + premiumInfo + '</small></td>' +
+                    '<td>' + new Date(item.created_at).toLocaleDateString('hi-IN') + '</td>' +
+                    '</tr>';
+            });
+            
+            tableBody.innerHTML = tableHTML;
+            
+            // Update pagination
+            updatePagination();
+        }
+
+        // Update pagination controls
+        function updatePagination() {
+            const paginationContainer = document.getElementById('paginationContainer');
+            paginationContainer.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevItem = document.createElement('li');
+            prevItem.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+            prevItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage - 1) + ')"><i class="fas fa-chevron-left"></i></a>';
+            paginationContainer.appendChild(prevItem);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageItem = document.createElement('li');
+                pageItem.className = 'page-item' + (i === currentPage ? ' active' : '');
+                pageItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + i + ')">' + i + '</a>';
+                paginationContainer.appendChild(pageItem);
+            }
+            
+            // Next button
+            const nextItem = document.createElement('li');
+            nextItem.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+            nextItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage + 1) + ')"><i class="fas fa-chevron-right"></i></a>';
+            paginationContainer.appendChild(nextItem);
+            
+            // Add page info
+            const infoItem = document.createElement('li');
+            infoItem.className = 'page-item disabled';
+            infoItem.innerHTML = '<span class="page-link hindi">कुल ' + filteredUserData.length + ' में से ' + (((currentPage - 1) * itemsPerPage) + 1) + '-' + Math.min(currentPage * itemsPerPage, filteredUserData.length) + '</span>';
+            paginationContainer.appendChild(infoItem);
+        }
+
+        // Change page
+        function changePage(page) {
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                displayUserData();
+            }
+        }
+
+        // Search user data
+        function searchUserData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const villageFilter = document.getElementById('filterVillage').value;
+            
+            filteredUserData = userPortalIssuesData.filter(item => {
+                const matchesSearch = searchTerm === '' || 
+                    item.villagename.toLowerCase().includes(searchTerm) ||
+                    item.bank_fi_name.toLowerCase().includes(searchTerm) ||
+                    item.portal_issue.toLowerCase().includes(searchTerm) ||
+                    item.villagecode.toLowerCase().includes(searchTerm);
+                
+                const matchesVillage = villageFilter === '' || item.villagename === villageFilter;
+                
+                return matchesSearch && matchesVillage;
+            });
+            
+            currentPage = 1;
+            displayUserData();
+            
+            if (filteredUserData.length === 0) {
+                showAlert('कोई परिणाम नहीं मिला।', 'info');
+            }
+        }
+
+        // Back to data entry
+        function backToDataEntry() {
+            document.getElementById('userDataSection').style.display = 'none';
+            document.getElementById('dataEntrySection').style.display = 'block';
+        }
+
+        // ADMIN REPORT FUNCTIONS
+
+        // Show Village Coverage Report (Updated for Portal Issues)
+        async function showVillageCoverageReport() {
+            try {
+                showLoading('रिपोर्ट तैयार हो रही है...');
+                
+                // Get all villages from hierarchy
+                const { data: allVillages, error: villageError } = await supabaseClient
+                    .from('village_hierarchy')
+                    .select('villagecode, villagename, level4name, level5name, districtname')
+                    .eq('districtname', currentUser.districtName);
+                
+                if (villageError) throw villageError;
+                
+                // Get village codes with portal issues data
+                const { data: portalIssuesVillages, error: portalError } = await supabaseClient
+                    .from('portal_issues_data')
+                    .select('villagecode')
+                    .eq('districtname', currentUser.districtName);
+                
+                if (portalError) throw portalError;
+                
+                // Count entries per village
+                const villageCounts = {};
+                if (portalIssuesVillages) {
+                    portalIssuesVillages.forEach(item => {
+                        villageCounts[item.villagecode] = (villageCounts[item.villagecode] || 0) + 1;
+                    });
+                }
+                
+                // Calculate statistics
+                const totalVillages = allVillages ? allVillages.length : 0;
+                const villagesWithData = Object.keys(villageCounts).length;
+                const villagesWithoutData = totalVillages - villagesWithData;
+                const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithData / totalVillages) * 100) : 0;
+                
+                console.log('Coverage Report:', {
+                    totalVillages,
+                    villagesWithData,
+                    villagesWithoutData,
+                    coveragePercentage
+                });
+                
+                showAlert('कवरेज रिपोर्ट तैयार हो गई।', 'success');
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error generating coverage report:', error);
+                hideLoading();
+                showAlert('रिपोर्ट बनाने में त्रुटि: ' + error.message, 'danger');
+            }
+        }
+
+        // Export Data Function (Updated for Portal Issues)
+        async function exportData(format) {
+            try {
+                showLoading('डेटा डाउनलोड हो रहा है...');
+                
+                // Get all portal issues data for current user's district
+                const { data, error } = await supabaseClient
+                    .from('portal_issues_data')
+                    .select(`
+                        districtname, level4name, level5name, level6code, 
+                        villagename, villagecode, portal_issue, bank_fi_name, 
+                        bank_fi_contact, affected_farmers_count, is_premium_debited, 
+                        premium_amount, premium_farmers_count, debit_dates, 
+                        year, season, created_at,
+                        test_users(full_name, username)
+                    `)
+                    .eq('districtname', currentUser.districtName)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                if (!data || data.length === 0) {
+                    hideLoading();
+                    showAlert('डेटा एक्सपोर्ट के लिए कोई रिकॉर्ड नहीं मिला।', 'warning');
+                    return;
+                }
+                
+                // Prepare data for export
+                const exportData = data.map(item => ({
+                    'जिला': item.districtname,
+                    'स्तर 4': item.level4name,
+                    'स्तर 5': item.level5name,
+                    'स्तर 6 कोड': item.level6code,
+                    'गांव का नाम': item.villagename,
+                    'गांव कोड': item.villagecode,
+                    'पोर्टल की समस्या': item.portal_issue,
+                    'बैंक/FI का नाम': item.bank_fi_name,
+                    'बैंक/FI संपर्क': item.bank_fi_contact,
+                    'प्रभावित किसान': item.affected_farmers_count,
+                    'प्रीमियम डेबिट': item.is_premium_debited === 'yes' ? 'हाँ' : 'नहीं',
+                    'प्रीमियम राशि': item.premium_amount || 0,
+                    'प्रीमियम किसान संख्या': item.premium_farmers_count || 0,
+                    'डेबिट तारीखें': item.debit_dates ? JSON.parse(item.debit_dates).join(', ') : '',
+                    'वर्ष': item.year,
+                    'सीजन': item.season,
+                    'उपयोगकर्ता': item.test_users?.full_name || item.test_users?.username || 'N/A',
+                    'एंट्री तारीख': new Date(item.created_at).toLocaleDateString('hi-IN')
+                }));
+                
+                if (format === 'csv') {
+                    exportToCSV(exportData);
+                } else if (format === 'excel') {
+                    exportToExcel(exportData);
+                }
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                hideLoading();
+                showAlert('डेटा एक्सपोर्ट करने में त्रुटि: ' + error.message, 'danger');
+            }
+        }
+
+        // Export to CSV
+        function exportToCSV(data) {
+            const headers = Object.keys(data[0]);
+            
+            // Create CSV with UTF-8 BOM
+            let csv = '\uFEFF'; // UTF-8 BOM for proper Hindi display
+            csv += headers.join(',') + '\n';
+            
+            data.forEach(row => {
+                const values = headers.map(header => '"' + (row[header] || '').toString().replace(/"/g, '""') + '"');
+                csv += values.join(',') + '\n';
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'पोर्टल_इश्यू_डेटा_' + new Date().toISOString().split('T')[0] + '.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showAlert('CSV फाइल डाउनलोड हो गई।', 'success');
+        }
+
+        // Export to Excel
+        function exportToExcel(data) {
+            const headers = Object.keys(data[0]);
+            
+            // Create tab-separated values with UTF-8 BOM
+            let tsv = '\uFEFF'; // UTF-8 BOM
+            tsv += headers.join('\t') + '\n';
+            
+            data.forEach(row => {
+                const values = headers.map(header => (row[header] || '').toString());
+                tsv += values.join('\t') + '\n';
+            });
+            
+            const blob = new Blob([tsv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'पोर्टल_इश्यू_डेटा_' + new Date().toISOString().split('T')[0] + '.xlsx');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            showAlert('Excel फाइल डाउनलोड हो गई।', 'success');
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Portal Issues Data Entry System - DOM Content Loaded');
+            
+            // Check authentication and setup UI
+            checkAuthentication();
+            
+            // Data Entry Event Listeners
+            document.getElementById('level4Select').addEventListener('change', handleLevel4Change);
+            document.getElementById('level5Select').addEventListener('change', handleLevel5Change);
+            document.getElementById('selectAllBtn').addEventListener('click', selectAllVillages);
+            document.getElementById('deselectAllBtn').addEventListener('click', deselectAllVillages);
+            document.getElementById('saveDataBtn').addEventListener('click', savePortalIssuesData);
+            document.getElementById('resetFormBtn').addEventListener('click', resetForm);
+            document.getElementById('logoutBtn').addEventListener('click', handleLogout);
+            
+            // User District Entry Button
+            document.getElementById('districtEntryBtn').addEventListener('click', showUserPortalIssuesData);
+            
+            // Admin Report Buttons (only if elements exist)
+            const villageCoverageBtn = document.getElementById('villageCoverageBtn');
+            const dataExportBtn = document.getElementById('dataExportBtn');
+            
+            if (villageCoverageBtn) {
+                villageCoverageBtn.addEventListener('click', showVillageCoverageReport);
+            }
+            if (dataExportBtn) {
+                dataExportBtn.addEventListener('click', () => exportData('csv'));
+            }
+            
+            // Search functionality for user data
+            document.getElementById('searchInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchUserData();
                 }
             });
-        }
-        
-        portalIssuesData.push({
-            user_id: currentUser.id,
-            year: 2025,
-            season: 'खरीफ',
-            districtname: village.districtname,
-            level4name: village.level4name,
-            level5name: village.level5name,
-            level6code: village.level6code,
-            villagename: village.villagename,
-            villagecode: village.villagecode,
-            portal_issue: portalIssue,
-            bank_fi_name: bankName,
-            bank_fi_contact: bankContact,
-            affected_farmers_count: affectedFarmers ? parseInt(affectedFarmers) : 0,
-            is_premium_debited: isPremiumDebited,
-            premium_amount: premiumAmount ? parseFloat(premiumAmount) : 0,
-            premium_farmers_count: premiumFarmers ? parseInt(premiumFarmers) : 0,
-            debit_dates: debitDates.length > 0 ? JSON.stringify(debitDates) : null
+            
+            document.getElementById('filterVillage').addEventListener('change', searchUserData);
+            
+            console.log('All event listeners attached for Portal Issues System');
         });
-    });
-    
-    return portalIssuesData;
-}
 
-// Validate portal issues data
-function validatePortalIssuesData(data) {
-    if (data.length === 0) {
-        showAlert('कम से कम एक गांव के लिए डेटा दर्ज करें।', 'warning');
-        return false;
-    }
-    
-    for (let item of data) {
-        if (!item.portal_issue) {
-            showAlert('गांव "' + item.villagename + '" के लिए पोर्टल की समस्या दर्ज करें।', 'warning');
-            return false;
-        }
-        
-        if (!item.bank_fi_name) {
-            showAlert('गांव "' + item.villagename + '" के लिए बैंक/FI का नाम दर्ज करें।', 'warning');
-            return false;
-        }
-        
-        if (!item.is_premium_debited) {
-            showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम डेबिट की जानकारी दें।', 'warning');
-            return false;
-        }
-        
-        if (item.is_premium_debited === 'yes') {
-            if (!item.premium_amount || item.premium_amount <= 0) {
-                showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम राशि दर्ज करें।', 'warning');
-                return false;
+        // Handle page unload
+        window.addEventListener('beforeunload', function(e) {
+            const portalIssuesData = collectPortalIssuesData();
+            if (portalIssuesData.some(item => item.portal_issue || item.bank_fi_name)) {
+                e.preventDefault();
+                e.returnValue = 'आपका डेटा सेव नहीं हुआ है, क्या आप वाकई पेज छोड़ना चाहते हैं?';
+            }
+        });
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + S to save
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                const saveBtn = document.getElementById('saveDataBtn');
+                if (saveBtn && saveBtn.style.display !== 'none' && !saveBtn.disabled) {
+                    savePortalIssuesData();
+                }
             }
             
-            if (!item.premium_farmers_count || item.premium_farmers_count <= 0) {
-                showAlert('गांव "' + item.villagename + '" के लिए किसानों की संख्या दर्ज करें।', 'warning');
-                return false;
+            // Ctrl + R to reset
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                resetForm();
             }
             
-            if (!item.debit_dates || JSON.parse(item.debit_dates).length === 0) {
-                showAlert('गांव "' + item.villagename + '" के लिए डेबिट की तारीख दर्ज करें।', 'warning');
-                return false;
+            // Escape to deselect all
+            if (e.key === 'Escape') {
+                deselectAllVillages();
             }
-        }
-    }
-    
-    return true;
-}
+            
+            // Ctrl + D for district entry (users only)
+            if (e.ctrlKey && e.key === 'd' && currentUser && currentUser.role !== 'admin') {
+                e.preventDefault();
+                showUserPortalIssuesData();
+            }
+        });
 
-// Save portal issues data
-async function savePortalIssuesData() {
-    try {
-        const portalIssuesData = collectPortalIssuesData();
-        
-        if (!validatePortalIssuesData(portalIssuesData)) {
-            return;
-        }
-        
-        // Show loading state
-        const saveBtn = document.getElementById('saveDataBtn');
-        const originalText = saveBtn.innerHTML;
-        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> <span class="hindi">सेव हो रहा है...</span>';
-        saveBtn.disabled = true;
-        
-        console.log('Saving portal issues data:', portalIssuesData);
-        
-        // Insert data (assuming table name is 'portal_issues_data')
-        const { data, error } = await supabaseClient
-            .from('portal_issues_data')
-            .insert(portalIssuesData);
-        
-        if (error) {
-            console.error('Supabase insert error:', error);
-            throw error;
-        }
-        
-        showAlert('डेटा सफलतापूर्वक सेव हुआ। कुल ' + portalIssuesData.length + ' एंट्री सेव की गई।', 'success');
-        
-        // Reset form
-        resetForm();
-        
-    } catch (error) {
-        console.error('Error saving portal issues data:', error);
-        showAlert('डेटा सेव करने में त्रुटि: ' + error.message, 'danger');
-    } finally {
-        // Reset button
-        const saveBtn = document.getElementById('saveDataBtn');
-        saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> <span class="hindi">डेटा सेव करें</span>';
-        saveBtn.disabled = false;
-    }
-}
-
-// Reset form
-function resetForm() {
-    // Reset dropdowns
-    document.getElementById('level4Select').value = '';
-    document.getElementById('level5Select').value = '';
-    document.getElementById('level5Select').disabled = true;
-    
-    // Reset breadcrumb
-    document.getElementById('breadcrumbLevel4').textContent = 'स्तर 4: -';
-    document.getElementById('breadcrumbLevel5').textContent = 'स्तर 5: -';
-    
-    // Hide sections
-    hideVillagesSection();
-    
-    // Clear selected villages
-    selectedVillages = [];
-    
-    console.log('Form reset completed');
-}
-
-// Handle logout
-function handleLogout() {
-    if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-        // Clear storage
-        localStorage.removeItem('user');
-        sessionStorage.removeItem('user');
-        
-        // Redirect to login
-        window.location.href = 'login.html';
-    }
-}
-
-// USER DATA FUNCTIONS
-
-// Show user's portal issues data
-async function showUserPortalIssuesData() {
-    try {
-        showLoading('आपका डेटा लोड हो रहा है...');
-        
-        // Hide data entry section and show user data section
-        document.getElementById('dataEntrySection').style.display = 'none';
-        document.getElementById('userDataSection').style.display = 'block';
-        
-        // Load user's portal issues data
-        await loadUserPortalIssuesData();
-        
-        hideLoading();
-        
-    } catch (error) {
-        console.error('Error showing user data:', error);
-        showAlert('डेटा लोड करने में त्रुटि: ' + error.message, 'danger');
-        hideLoading();
-    }
-}
-
-// Load user's portal issues data
-async function loadUserPortalIssuesData() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('portal_issues_data')
-            .select('*')// Load user's portal issues data
-async function loadUserPortalIssuesData() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('portal_issues_data')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        userPortalIssuesData = data || [];
-        filteredUserData = [...userPortalIssuesData];
-        
-        console.log('Loaded user portal issues data:', userPortalIssuesData.length, 'records');
-        
-        // Populate village filter dropdown
-        populateVillageFilter();
-        
-        // Display paginated data
-        currentPage = 1;
-        displayUserData();
-        
-        if (userPortalIssuesData.length === 0) {
-            showAlert('अभी तक कोई एंट्री नहीं की गई है।', 'info');
-        }
-        
-    } catch (error) {
-        console.error('Error loading user portal issues data:', error);
-        throw error;
-    }
-}
-
-// Populate village filter dropdown
-function populateVillageFilter() {
-    const filterSelect = document.getElementById('filterVillage');
-    
-    // Get unique villages from user data
-    const uniqueVillages = [...new Set(userPortalIssuesData.map(item => item.villagename))].sort();
-    
-    filterSelect.innerHTML = '<option value="">All Villages</option>';
-    
-    uniqueVillages.forEach(village => {
-        const option = document.createElement('option');
-        option.value = village;
-        option.textContent = village;
-        filterSelect.appendChild(option);
-    });
-}
-
-// Display user data with pagination
-function displayUserData() {
-    const tableBody = document.getElementById('userDataTableBody');
-    
-    // Calculate pagination
-    totalPages = Math.ceil(filteredUserData.length / itemsPerPage);
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    const pageData = filteredUserData.slice(startIndex, endIndex);
-    
-    // Clear table
-    tableBody.innerHTML = '';
-    
-    if (pageData.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-muted hindi">कोई डेटा नहीं मिला</td></tr>';
-        return;
-    }
-    
-    // Build table HTML
-    let tableHTML = '';
-    pageData.forEach(item => {
-        const debitDates = item.debit_dates ? JSON.parse(item.debit_dates).join(', ') : '-';
-        const premiumInfo = item.is_premium_debited === 'yes' ? 
-            `हाँ (₹${item.premium_amount}, ${item.premium_farmers_count} किसान)` : 'नहीं';
-        
-        tableHTML += '<tr>' +
-            '<td class="hindi">' + (item.districtname || '-') + '</td>' +
-            '<td class="hindi">' + (item.level4name || '-') + '</td>' +
-            '<td class="hindi">' + (item.level5name || '-') + '</td>' +
-            '<td class="hindi">' + (item.villagename || '-') + '</td>' +
-            '<td><small>' + (item.portal_issue ? item.portal_issue.substring(0, 50) + '...' : '-') + '</small></td>' +
-            '<td class="hindi">' + (item.bank_fi_name || '-') + '</td>' +
-            '<td>' + (item.affected_farmers_count || 0) + '</td>' +
-            '<td><small class="hindi">' + premiumInfo + '</small></td>' +
-            '<td>' + new Date(item.created_at).toLocaleDateString('hi-IN') + '</td>' +
-            '</tr>';
-    });
-    
-    tableBody.innerHTML = tableHTML;
-    
-    // Update pagination
-    updatePagination();
-}
-
-// Update pagination controls
-function updatePagination() {
-    const paginationContainer = document.getElementById('paginationContainer');
-    paginationContainer.innerHTML = '';
-    
-    if (totalPages <= 1) return;
-    
-    // Previous button
-    const prevItem = document.createElement('li');
-    prevItem.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
-    prevItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage - 1) + ')"><i class="fas fa-chevron-left"></i></a>';
-    paginationContainer.appendChild(prevItem);
-    
-    // Page numbers
-    const startPage = Math.max(1, currentPage - 2);
-    const endPage = Math.min(totalPages, currentPage + 2);
-    
-    for (let i = startPage; i <= endPage; i++) {
-        const pageItem = document.createElement('li');
-        pageItem.className = 'page-item' + (i === currentPage ? ' active' : '');
-        pageItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + i + ')">' + i + '</a>';
-        paginationContainer.appendChild(pageItem);
-    }
-    
-    // Next button
-    const nextItem = document.createElement('li');
-    nextItem.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
-    nextItem.innerHTML = '<a class="page-link" href="#" onclick="changePage(' + (currentPage + 1) + ')"><i class="fas fa-chevron-right"></i></a>';
-    paginationContainer.appendChild(nextItem);
-    
-    // Add page info
-    const infoItem = document.createElement('li');
-    infoItem.className = 'page-item disabled';
-    infoItem.innerHTML = '<span class="page-link hindi">कुल ' + filteredUserData.length + ' में से ' + (((currentPage - 1) * itemsPerPage) + 1) + '-' + Math.min(currentPage * itemsPerPage, filteredUserData.length) + '</span>';
-    paginationContainer.appendChild(infoItem);
-}
-
-// Change page
-function changePage(page) {
-    if (page >= 1 && page <= totalPages) {
-        currentPage = page;
-        displayUserData();
-    }
-}
-
-// Search user data
-function searchUserData() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const villageFilter = document.getElementById('filterVillage').value;
-    
-    filteredUserData = userPortalIssuesData.filter(item => {
-        const matchesSearch = searchTerm === '' || 
-            item.villagename.toLowerCase().includes(searchTerm) ||
-            item.bank_fi_name.toLowerCase().includes(searchTerm) ||
-            item.portal_issue.toLowerCase().includes(searchTerm) ||
-            item.villagecode.toLowerCase().includes(searchTerm);
-        
-        const matchesVillage = villageFilter === '' || item.villagename === villageFilter;
-        
-        return matchesSearch && matchesVillage;
-    });
-    
-    currentPage = 1;
-    displayUserData();
-    
-    if (filteredUserData.length === 0) {
-        showAlert('कोई परिणाम नहीं मिला।', 'info');
-    }
-}
-
-// Back to data entry
-function backToDataEntry() {
-    document.getElementById('userDataSection').style.display = 'none';
-    document.getElementById('dataEntrySection').style.display = 'block';
-}
-
-// ADMIN REPORT FUNCTIONS
-
-// Show Village Coverage Report (Updated for Portal Issues)
-async function showVillageCoverageReport() {
-    try {
-        showLoading('रिपोर्ट तैयार हो रही है...');
-        
-        // Get all villages from hierarchy
-        const { data: allVillages, error: villageError } = await supabaseClient
-            .from('village_hierarchy')
-            .select('villagecode, villagename, level4name, level5name, districtname')
-            .eq('districtname', currentUser.districtName);
-        
-        if (villageError) throw villageError;
-        
-        // Get village codes with portal issues data
-        const { data: portalIssuesVillages, error: portalError } = await supabaseClient
-            .from('portal_issues_data')
-            .select('villagecode')
-            .eq('districtname', currentUser.districtName);
-        
-        if (portalError) throw portalError;
-        
-        // Count entries per village
-        const villageCounts = {};
-        if (portalIssuesVillages) {
-            portalIssuesVillages.forEach(item => {
-                villageCounts[item.villagecode] = (villageCounts[item.villagecode] || 0) + 1;
-            });
-        }
-        
-        // Calculate statistics
-        const totalVillages = allVillages ? allVillages.length : 0;
-        const villagesWithData = Object.keys(villageCounts).length;
-        const villagesWithoutData = totalVillages - villagesWithData;
-        const coveragePercentage = totalVillages > 0 ? Math.round((villagesWithData / totalVillages) * 100) : 0;
-        
-        showAlert('कवरेज रिपोर्ट तैयार हो गई।', 'success');
-        hideLoading();
-        
-    } catch (error) {
-        console.error('Error generating coverage report:', error);
-        hideLoading();
-        showAlert('रिपोर्ट बनाने में त्रुटि: ' + error.message, 'danger');
-    }
-}
-
-// Export Data Function (Updated for Portal Issues)
-async function exportData(format) {
-    try {
-        const startDate = document.getElementById('exportStartDate').value;
-        const endDate = document.getElementById('exportEndDate').value;
-        const selectedDistrict = document.getElementById('exportDistrict').value;
-        
-        showLoading('डेटा डाउनलोड हो रहा है...');
-        
-        // Build query
-        let query = supabaseClient
-            .from('portal_issues_data')
-            .select('districtname, level4name, level5name, level6code, villagename, villagecode, portal_issue, bank_fi_name, bank_fi_contact, affected_farmers_count, is_premium_debited, premium_amount, premium_farmers_count, debit_dates, year, season, created_at, test_users(full_name, username)');
-        
-        // Apply filters
-        if (selectedDistrict) {
-            query = query.eq('districtname', selectedDistrict);
-        }
-        
-        if (startDate) {
-            query = query.gte('created_at', startDate + 'T00:00:00');
-        }
-        
-        if (endDate) {
-            query = query.lte('created_at', endDate + 'T23:59:59');
-        }
-        
-        const { data, error } = await query.order('created_at', { ascending: false });
-        
-        if (error) throw error;
-        
-        if (!data || data.length === 0) {
+        // Add error boundary
+        window.addEventListener('error', function(e) {
+            console.error('Unhandled error:', e.error);
             hideLoading();
-            showAlert('चयनित फिल्टर के लिए कोई डेटा नहीं मिला।', 'warning');
-            return;
-        }
-        
-        // Prepare data for export
-        const exportData = data.map(item => ({
-            'जिला': item.districtname,
-            'स्तर 4': item.level4name,
-            'स्तर 5': item.level5name,
-            'स्तर 6 कोड': item.level6code,
-            'गांव का नाम': item.villagename,
-            'गांव कोड': item.villagecode,
-            'पोर्टल की समस्या': item.portal_issue,
-            'बैंक/FI का नाम': item.bank_fi_name,
-            'बैंक/FI संपर्क': item.bank_fi_contact,
-            'प्रभावित किसान': item.affected_farmers_count,
-            'प्रीमियम डेबिट': item.is_premium_debited === 'yes' ? 'हाँ' : 'नहीं',
-            'प्रीमियम राशि': item.premium_amount || 0,
-            'प्रीमियम किसान संख्या': item.premium_farmers_count || 0,
-            'डेबिट तारीखें': item.debit_dates ? JSON.parse(item.debit_dates).join(', ') : '',
-            'वर्ष': item.year,
-            'सीजन': item.season,
-            'उपयोगकर्ता': item.test_users?.full_name || item.test_users?.username || 'N/A',
-            'एंट्री तारीख': new Date(item.created_at).toLocaleDateString('hi-IN')
-        }));
-        
-        if (format === 'csv') {
-            exportToCSV(exportData);
-        } else if (format === 'excel') {
-            exportToExcel(exportData);
-        }
-        
-        hideLoading();
-        
-    } catch (error) {
-        console.error('Error exporting data:', error);
-        hideLoading();
-        showAlert('डेटा एक्सपोर्ट करने में त्रुटि: ' + error.message, 'danger');
-    }
-}
+            showAlert('एक त्रुटि हुई है। कृपया पेज रिफ्रेश करें।', 'danger');
+        });
 
-// Export to CSV
-function exportToCSV(data) {
-    const headers = Object.keys(data[0]);
-    
-    // Create CSV with UTF-8 BOM
-    let csv = '\uFEFF'; // UTF-8 BOM for proper Hindi display
-    csv += headers.join(',') + '\n';
-    
-    data.forEach(row => {
-        const values = headers.map(header => '"' + (row[header] || '') + '"');
-        csv += values.join(',') + '\n';
-    });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'पोर्टल_इश्यू_डेटा_' + new Date().toISOString().split('T')[0] + '.csv');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showAlert('CSV फाइल डाउनलोड हो गई।', 'success');
-}
+        // Add promise rejection handler
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+            hideLoading();
+            showAlert('डेटा लोड करने में त्रुटि, कुछ समय बाद कोशिश करें।', 'warning');
+        });
 
-// Export to Excel
-function exportToExcel(data) {
-    const headers = Object.keys(data[0]);
-    
-    // Create tab-separated values with UTF-8 BOM
-    let tsv = '\uFEFF'; // UTF-8 BOM
-    tsv += headers.join('\t') + '\n';
-    
-    data.forEach(row => {
-        const values = headers.map(header => row[header] || '');
-        tsv += values.join('\t') + '\n';
-    });
-    
-    const blob = new Blob([tsv], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'पोर्टल_इश्यू_डेटा_' + new Date().toISOString().split('T')[0] + '.xlsx');
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    showAlert('Excel फाइल डाउनलोड हो गई।', 'success');
-}
+        // Network status monitoring
+        window.addEventListener('online', function() {
+            showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
+        });
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM Content Loaded');
-    
-    // Check authentication and setup UI
-    checkAuthentication();
-    
-    // Data Entry Event Listeners
-    document.getElementById('level4Select').addEventListener('change', handleLevel4Change);
-    document.getElementById('level5Select').addEventListener('change', handleLevel5Change);
-    document.getElementById('selectAllBtn').addEventListener('click', selectAllVillages);
-    document.getElementById('deselectAllBtn').addEventListener('click', deselectAllVillages);
-    document.getElementById('saveDataBtn').addEventListener('click', savePortalIssuesData);
-    document.getElementById('resetFormBtn').addEventListener('click', resetForm);
-    document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-    
-    // User District Entry Button
-    document.getElementById('districtEntryBtn').addEventListener('click', showUserPortalIssuesData);
-    
-    // Admin Report Buttons (only if elements exist)
-    const villageCoverageBtn = document.getElementById('villageCoverageBtn');
-    const dataExportBtn = document.getElementById('dataExportBtn');
-    const districtReportBtn = document.getElementById('districtReportBtn');
-    
-    if (villageCoverageBtn) {
-        villageCoverageBtn.addEventListener('click', showVillageCoverageReport);
-    }
-    if (dataExportBtn) {
-        dataExportBtn.addEventListener('click', showDataExportModal);
-    }
-    if (districtReportBtn) {
-        districtReportBtn.addEventListener('click', showDistrictReportModal);
-    }
-    
-    // Search functionality for user data
-    document.getElementById('searchInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            searchUserData();
-        }
-    });
-    
-    document.getElementById('filterVillage').addEventListener('change', searchUserData);
-    
-    console.log('All event listeners attached');
-});
+        window.addEventListener('offline', function() {
+            showAlert('इंटरनेट कनेक्शन नहीं है।', 'warning');
+        });
 
-// Handle page unload
-window.addEventListener('beforeunload', function(e) {
-    const portalIssuesData = collectPortalIssuesData();
-    if (portalIssuesData.length > 0) {
-        e.preventDefault();
-        e.returnValue = 'आपका डेटा सेव नहीं हुआ है, क्या आप वाकई पेज छोड़ना चाहते हैं?';
-    }
-});
-
-// Add keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-    // Ctrl + S to save
-    if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        const saveBtn = document.getElementById('saveDataBtn');
-        if (saveBtn && saveBtn.style.display !== 'none' && !saveBtn.disabled) {
-            savePortalIssuesData();
-        }
-    }
-    
-    // Ctrl + R to reset
-    if (e.ctrlKey && e.key === 'r') {
-        e.preventDefault();
-        resetForm();
-    }
-    
-    // Escape to deselect all
-    if (e.key === 'Escape') {
-        deselectAllVillages();
-    }
-    
-    // Ctrl + D for district entry (users only)
-    if (e.ctrlKey && e.key === 'd' && currentUser && currentUser.role !== 'admin') {
-        e.preventDefault();
-        showUserPortalIssuesData();
-    }
-});
-
-// Add error boundary
-window.addEventListener('error', function(e) {
-    console.error('Unhandled error:', e.error);
-    hideLoading();
-    showAlert('एक त्रुटि हुई है। कृपया पेज रिफ्रेश करें।', 'danger');
-});
-
-// Add promise rejection handler
-window.addEventListener('unhandledrejection', function(e) {
-    console.error('Unhandled promise rejection:', e.reason);
-    hideLoading();
-    showAlert('डेटा लोड करने में त्रुटि, कुछ समय बाद कोशिश करें।', 'warning');
-});
-
-// Network status monitoring
-window.addEventListener('online', function() {
-    showAlert('इंटरनेट कनेक्शन बहाल हो गया।', 'success');
-});
-
-window.addEventListener('offline', function() {
-    showAlert('इंटरनेट कनेक्शन नहीं है।', 'warning');
-});
-
-// Console welcome message for Portal Issues System
-console.log(`
-╔══════════════════════════════════════════════════════════════╗
-║                     पोर्टल इश्यू डेटा एंट्री सिस्टम              ║
-║                    Portal Issues Data Entry System           ║
-║                                                              ║
-║  🚨 Portal Technical Issues Tracking                        ║
-║  🏦 Bank/FI Information Management                          ║
-║  👨‍🌾 Affected Farmers Count                                  ║
-║  💰 Premium Debit Information                               ║
-║  📅 Multiple Debit Dates Support                            ║
-║  📊 Year 2025 - Kharif Season                              ║
-║                                                              ║
-║  Key Features:                                              ║
-║  • Village-wise Portal Issue Entry                         ║
-║  • Bank/FI Contact Details                                  ║
-║  • Premium Debit Status & Amount                           ║
-║  • Multiple Debit Date Entries                             ║
-║  • Comprehensive Validation                                 ║
-║                                                              ║
-║  For technical support: diagri-cg@cg.gov.in                ║
-╚══════════════════════════════════════════════════════════════╝
-`);
+        // Console welcome message for Portal Issues System
+        console.log(`
+        ╔══════════════════════════════════════════════════════════════╗
+        ║                     पोर्टल इश्यू डेटा एंट्री सिस्टम              ║
+        ║                    Portal Issues Data Entry System           ║
+        ║                                                              ║
+        ║  🚨 Portal Technical Issues Tracking                        ║
+        ║  🏦 Bank/FI Information Management                          ║
+        ║  👨‍🌾 Affected Farmers Count                                  ║
+        ║  💰 Premium Debit Information                               ║
+        ║  📅 Multiple Debit Dates Support                            ║
+        ║  📊 Year 2025 - Kharif Season                              ║
+        ║                                                              ║
+        ║  Key Features:                                              ║
+        ║  • Village-wise Portal Issue Entry                         ║
+        ║  • Bank/FI Contact Details                                  ║
+        ║  • Premium Debit Status & Amount                           ║
+        ║  • Multiple Debit Date Entries                             ║
+        ║  • Comprehensive Validation                                 ║
+        ║                                                              ║
+        ║  Keyboard Shortcuts:                                        ║
+        ║  • Ctrl + S: Save Data                                      ║
+        ║  • Ctrl + R: Reset Form                                     ║
+        ║  • Ctrl + D: My Entries (Users)                            ║
+        ║  • Escape: Deselect All Villages                            ║
+        ║                                                              ║
+        ║  For technical support: diagri-cg@cg.gov.in                ║
+        ╚══════════════════════════════════════════════════════════════╝
+        `);
     </script>
 </body>
 </html>
 
-            .eq('user_id', currentUser.id)
-            .order('created_
+            
+
