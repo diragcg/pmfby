@@ -1554,11 +1554,9 @@
                     premiumFarmers = farmersInput ? farmersInput.value.trim() : '0';
                     
                     const dateInputs = document.querySelectorAll('.debit-date-input[data-village-code="' + village.villagecode + '"]');
-                    dateInputs.forEach(input => {
-                        if (input.value.trim()) {
-                            debitDates.push(input.value.trim());
-                        }
-                    });
+                    debitDates = Array.from(dateInputs)
+                                    .map(input => input.value.trim())
+                                    .filter(date => date);
                 }
                 
                 portalIssuesData.push({
@@ -1610,16 +1608,16 @@
                 }
                 
                 if (item.is_premium_debited === 'yes') {
-                    if (item.proposed_insured_area_ha === 0) { // NEW FIELD VALIDATION
+                    if (item.proposed_insured_area_ha === 0 || isNaN(item.proposed_insured_area_ha)) { // NEW FIELD VALIDATION
                         showAlert('गांव "' + item.villagename + '" के लिए प्रस्तावित बीमा क्षेत्र (हेक्टेयर में) दर्ज करें।', 'warning');
                         return false;
                     }
-                    if (item.premium_amount === 0) {
+                    if (item.premium_amount === 0 || isNaN(item.premium_amount)) {
                         showAlert('गांव "' + item.villagename + '" के लिए प्रीमियम राशि दर्ज करें।', 'warning');
                         return false;
                     }
                     
-                    if (item.premium_farmers_count === 0) {
+                    if (item.premium_farmers_count === 0 || isNaN(item.premium_farmers_count)) {
                         showAlert('गांव "' + item.villagename + '" के लिए किसानों की संख्या दर्ज करें।', 'warning');
                         return false;
                     }
@@ -1925,7 +1923,7 @@
             doc.text('Portal Issues Report - ' + (currentUser.full_name || currentUser.username), 20, 20);
             doc.setFontSize(12);
             doc.text('District: ' + currentUser.districtName, 20, 30);
-            doc.text('Generated on: ' + new Date().toLocaleDateString(), 20, 40);
+            doc.text('Generated on: ' + new Date().toLocaleDateString('hi-IN'), 20, 40);
             
             // Prepare table data
             const tableData = filteredUserData.map(item => [
@@ -2377,7 +2375,7 @@
                             <td class="hindi">${districtName}</td>
                             <td>${summary.villagesWithData.size}</td>
                             <td>${summary.totalAffectedFarmers}</td>
-                            <td>₹${summary.totalDebitedPremium.toLocaleString()}</td>
+                            <td>₹${summary.totalDebitedPremium.toLocaleString('hi-IN')}</td>
                         `;
                         districtAggregatedMetricsTableBody.appendChild(row);
                     });
