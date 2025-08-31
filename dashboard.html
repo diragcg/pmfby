@@ -606,7 +606,7 @@
                         <div class="form-group">
                             <label for="navOrder">प्रदर्शन क्रम</label>
                             <input type="number" id="navOrder" name="navOrder" value="1" min="1">
-                        </div>
+                        </div
                     </div>
                     <div class="form-group">
                         <label>आइकन चुनें</label>
@@ -1284,7 +1284,7 @@
                 .channel('dashboard_cards_changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'dashboard_cards' }, (payload) => {
                     loadDashboardCards();
-                    showToast('कार्ड अपडेट हो गए', 'info');
+                    showToast('카드 अपडेट हो गए', 'info');
                 })
                 .subscribe();
 
@@ -1292,7 +1292,7 @@
                 .channel('navigation_items_changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'navigation_items' }, (payload) => {
                     loadNavigationItems();
-                    showToast('नेवीगेशन अपडेट हो गया', 'info');
+                    showToast('네वीगेशन अपडेट हो गया', 'info');
                 })
                 .subscribe();
             
@@ -1300,7 +1300,7 @@
                 .channel('navigation_categories_changes')
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'navigation_categories' }, (payload) => {
                     loadNavigationItems();
-                    showToast('नेवीगेशन कैटेगरी अपडेट हो गई', 'info');
+                    showToast('네비गेशन कैटेगरी अपडेट हो गई', 'info');
                 })
                 .subscribe();
 
@@ -2525,7 +2525,7 @@
             }
         }
 
-        async function fetchAndRenderDynamicTableData() {
+        async function fetchAndRenderDynamicTableData(page = dynamicDataViewerCurrentPage) {
             const tableBody = document.getElementById('dataViewerTableBody');
             const tableHead = document.getElementById('dataViewerTableHead');
             const statusDiv = document.getElementById('dataViewerStatus');
@@ -2536,14 +2536,16 @@
             statusDiv.textContent = 'लोड हो रहा है...';
             paginationDiv.innerHTML = '';
 
+            dynamicDataViewerCurrentPage = page; // Update current page
+
             try {
                 let query = supabaseClient.from(currentDynamicViewTableName).select('*', { count: 'exact' });
 
                 if (!isAdmin && currentUser && currentUser.districts) {
                     query = query.eq('district_id', currentUser.districts.id);
-                } else if (isAdmin && currentUser && currentUser.districts) {
-                     // Admins in a specific district might only see their district's data by default
-                     // Uncomment below if an admin should also be restricted by their own district_id
+                } else if (isAdmin && currentUser && currentUser.districts && !document.getElementById('dataViewerShowAllDistricts').checked) {
+                     // If admin is district-bound and 'Show All' is not checked, filter by their district
+                     // This part is commented out in the HTML for now, but if you add a checkbox, it would go here.
                      // query = query.eq('district_id', currentUser.districts.id);
                 }
 
@@ -2587,7 +2589,6 @@
                             td.textContent = row[field.name];
                             tr.appendChild(td);
                         }
-                        // Fetch district name for display
                         let districtName = 'N/A';
                         if (row.district_id) {
                             const district = allDistricts.find(d => d.id === row.district_id);
@@ -2723,7 +2724,7 @@
                 startY: 50,
                 theme: 'plain',
                 styles: {
-                    font: 'Helvetica',
+                    font: 'Helvetica', // Default font, consider adding custom font for Hindi if needed
                     fontSize: 8,
                     cellPadding: 4,
                     textColor: [0, 0, 0],
