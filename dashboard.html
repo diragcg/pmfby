@@ -651,6 +651,13 @@
             </div>
         </div>
     </div>
+    <!-- Update your dropdown in dashboard.html -->
+    <div class="dropdown-content" id="dynamicDropdown">
+        <a href="#" class="dropdown-item" data-page="store">
+            <i class="fas fa-store"></i> STORE
+        </a>
+        <!-- Add other navigation items here -->
+    </div>
 
     <!-- Analytics Dashboard Modal -->
     <div id="analyticsDashboardModal" class="modal">
@@ -1760,6 +1767,38 @@
                 console.error('Error logging admin action:', error);
             }
         }
+        // Add this function to your existing dashboard.html JavaScript
+        function loadPageContent(pageName) {
+            fetch(`pages/${pageName}.html`)
+                .then(response => response.text())
+                .then(content => {
+                    // Replace the main content area
+                    document.querySelector('.main-content').innerHTML = content;
+                    
+                    // Re-initialize store functions if it's the store page
+                    if (pageName === 'store') {
+                        // Load counters for store page
+                        setTimeout(() => {
+                            if (typeof loadEntryCounts === 'function') {
+                                loadEntryCounts();
+                            }
+                        }, 100);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading page:', error);
+                    document.querySelector('.main-content').innerHTML = '<div class="alert alert-danger">Page could not be loaded</div>';
+                });
+        }
+        
+        // Add navigation handler for dropdown
+        document.addEventListener('click', function(e) {
+            if (e.target.getAttribute('data-page')) {
+                e.preventDefault();
+                const pageName = e.target.getAttribute('data-page');
+                loadPageContent(pageName);
+            }
+        });
 
         // Dynamic Form Creator Modals and Functions
         async function openDynamicFormCreatorModal() {
