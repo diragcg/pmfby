@@ -80,7 +80,7 @@
             font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
         }
 
-        /* Navbar - Replicated from dashboard.html, adjusted for user info in line */
+        /* Navbar - Replicated from dashboard.html, adjusted for user info/logout in-line */
         .navbar { 
             background: rgba(52, 58, 64, 0.95); 
             backdrop-filter: blur(10px); 
@@ -103,6 +103,7 @@
             padding: 0; 
             align-items: center; 
             width: 100%; /* Ensure it takes full width for spacing */
+            justify-content: space-between; /* Distribute items evenly */
         }
         .nav-item { 
             position: relative; 
@@ -137,14 +138,14 @@
         }
 
         /* User info styling within Navbar */
-        .nav-menu .user-info-nav {
+        .user-info-nav {
             background: linear-gradient(135deg, #e8f5e8, #f0f8f0); 
             color: #b8860b !important; 
             padding: 8px 15px; /* Slightly smaller padding for in-line */
             border-radius: 12px; 
             box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2); 
             border: 1px solid rgba(184, 134, 11, 0.3); 
-            margin-left: auto; /* Push to the right */
+            /* margin-left: auto; Removed as justify-content: space-between handles it */
             margin-right: 15px; /* Space before logout */
             font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
             font-weight: 600;
@@ -152,10 +153,11 @@
             display: flex;
             align-items: center;
             white-space: nowrap; /* Prevent wrapping */
+            order: 99; /* Push to the end of flex items, before logout */
         }
         
         /* Logout button styling within Navbar */
-        .nav-menu .logout-btn-nav {
+        .logout-btn-nav {
             background-color: #dc3545 !important;
             border-color: #dc3545 !important;
             color: white !important;
@@ -168,8 +170,9 @@
             transition: all 0.2s ease;
             font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
             white-space: nowrap; /* Prevent wrapping */
+            order: 100; /* Ensure it's the last item */
         }
-        .nav-menu .logout-btn-nav:hover {
+        .logout-btn-nav:hover {
             background-color: #c82333 !important;
             border-color: #c82333 !important;
         }
@@ -403,6 +406,7 @@
             .nav-menu {
                 flex-direction: column; /* Stack nav items vertically */
                 align-items: flex-start; /* Align to left */
+                justify-content: flex-start; /* Reset justify for column layout */
             }
             .nav-menu .user-info-nav,
             .nav-menu .logout-btn-nav {
@@ -411,6 +415,7 @@
                 width: 100%; /* Take full width */
                 justify-content: center; /* Center content */
                 margin-top: 10px; /* Space between items */
+                order: initial; /* Reset order for column layout */
             }
             .navbar {
                 margin: 0 10px;
@@ -446,7 +451,9 @@
     <!-- Navigation Bar - Replicated from dashboard.html, with user info/logout in-line -->
     <nav class="navbar navbar-expand-lg navbar-dark">
         <div class="nav-container">
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- The collapse utility is not strictly needed if we are manually placing items, 
+                 but keeping it for responsive behavior if you later integrate a toggler. -->
+            <div class="collapse navbar-collapse show" id="navbarNav"> 
                 <ul class="nav-menu">
                     <li class="nav-item">
                         <a href="dashboard.html" class="nav-link"> <!-- Home button to dashboard -->
@@ -459,7 +466,7 @@
                         </a>
                     </li>
                     <!-- User Info and Logout on the same line, pushed to the right -->
-                    <div class="user-info-nav" id="userInfo">Loading...</div>
+                    <div class="user-info-nav" id="userInfo"></div> <!-- Removed "Loading..." from HTML -->
                     <button class="btn btn-sm logout-btn-nav" onclick="logout()">
                         <i class="fas fa-sign-out-alt me-1"></i> लॉगआउट
                     </button>
@@ -621,13 +628,14 @@
         });
         
         function displayUserInfo() {
-            const user = getCurrentUser();
+            const user = getCurrentUser(); // This function should be defined in js/auth.js
             if (user) {
                 // Update user info in the new navbar location
                 document.getElementById('userInfo').textContent = 
                     `${user.fullName} (${user.districtName})`;
             } else {
-                // Fallback if user is not logged in (redirect to index.html)
+                // If user is not logged in, redirect to index.html
+                // This is crucial for protected pages
                 window.location.href = 'index.html'; 
             }
         }
@@ -635,6 +643,7 @@
         async function loadEntryCounts() {
             try {
                 // Load counts for all modules
+                // getTableCount and supabaseClient should be available from js/config.js
                 const [divisionCount, districtCount, fieldCount, mstcRegCount, mstcSoldCount] = await Promise.all([
                     getTableCount('division_office_vehicles'),
                     getTableCount('district_office_vehicles'), 
