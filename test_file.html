@@ -1,0 +1,1788 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - CGSTATE</title>
+    <meta name="keywords" content="CGSTATE" />
+    <meta name="description" content="CGSTATE" />
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="/css/icons.css" rel="stylesheet" />
+    <link href="/css/font-awesome.min.css" rel="stylesheet">
+    <link href="/css/custom.css" rel="stylesheet" />
+    <link href="/css/dashboard.css" rel="stylesheet">
+    <link href="/css/ranking-dashboard.css" rel="stylesheet">
+    <link href="/css/ampicons.css" rel="stylesheet">
+    <link href="/css/swiper-bundle.min.css" rel="stylesheet" />
+    <link href="/css/slimscrollbar.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script src="/js/highcharts.js"></script>
+    <script src="/js/popper.min.js"></script>
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/common.js"></script>
+    <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/swiper-bundle.min.js"></script>
+    <link href="/css/bootstrap-select.min.css" rel="stylesheet" />
+    <script src="/js/bootstrap-select.min.js"></script>
+    <script>
+        let ajaxCounter = 0;
+        $(document).ajaxSend(function () {
+            ajaxCounter++;
+            $('#loader').removeClass('d-none');
+        });
+        $(document).ajaxComplete(function () {
+            ajaxCounter--;
+            if (ajaxCounter <= 0) {
+                ajaxCounter = 0; // just to be safe, no negative counts
+                $('#loader').addClass('d-none');
+            }
+        });
+    </script>
+    <style>
+        .watermark {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            font-size: 25px;
+            color: #d3d3d3a1;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
+        }
+        .loader-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1050;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Watermark -->
+    <div b-obffn27nce class="watermark" style="top: 30%; left: 30%;">Agriculture - Dept Nodal officer</div>
+    <div b-obffn27nce class="watermark" style="top: 50%; left: 50%;">Agriculture - Dept Nodal officer</div>
+    <div b-obffn27nce class="watermark" style="top: 70%; left: 70%;">Agriculture - Dept Nodal officer</div>
+    <!-- Loader -->
+    <div b-obffn27nce id="loader" class="loader-container d-none">
+        <div b-obffn27nce class="spinner-border text-primary" role="status">
+            <span b-obffn27nce class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <header b-obffn27nce>
+        <nav b-obffn27nce class="navbar navbar-expand-lg z-3 pe-0" aria-label="simple-navbar">
+            <a b-obffn27nce class="navbar-brand" href="javascript:void:(0);">
+
+                <div b-obffn27nce class="govt-logo">
+                    <div b-obffn27nce class="logo-image">
+
+                        <img src="/Images/govt-logo-light1.png" onclick="GoHome();" alt="Government of Chhattisgarh" />
+                    </div>
+                    <div b-obffn27nce>
+                        <h1 b-obffn27nce onclick="GoHome();">
+                            Atal Monitoring Dashboard
+                        </h1>
+                    </div>
+                </div>
+            </a>
+            <div b-obffn27nce class="collapse navbar-collapse">
+
+                <!-- Dynamic Header and Right Side Profile Menu Load -->
+                
+<ul class="navbar-nav ms-auto align-items-center">
+
+        <li class="nav-item mob__hide">
+            <a class="nav-link menu-link" href="/Home/AMDDashboardKPIDataSource" title="Dashboard Record ">
+                Dashboard
+            </a>
+        </li>
+        <li class="nav-item mob__hide">
+            <a class="nav-link menu-link" href="/KPI/DepartmentWiseKPIReport" title="Metadata from KPI">
+                Metadata
+            </a>
+        </li>
+        <li class="nav-item mob__hide">
+            <a class="nav-link menu-link" href="/Report/DQIReport" title="DQI Framework">
+                DQI Framework
+            </a>
+        </li>
+        <li class="nav-item mob__hide">
+            <a class="nav-link menu-link" href="/Home/SchemeRankingDashboard" title="Scheme Ranking">
+                Ranking
+            </a>
+        </li>
+
+    <li class="nav-item mob__hide">
+        <div class="nav-user-info">
+            <div class="d-flex align-items-center">
+                <img src="/Images/user1.png" alt="user">
+                <div class="d-flex align-items-center">
+                    <div class="user-info">
+                        <small>Welcome,</small>
+                            <strong>Agriculture</strong>
+                            <small>
+                                <text>Dept Nodal officer</text>
+                            </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </li>
+
+    <li class="nav-item">
+
+        <a class="nav-link dropdown-toggle h-100 fs-1-2" href="Javascript:void(0);"
+           role="button" id="rightMenuToggle">
+            <i class="ampicon-menu-bar"></i>
+        </a>
+        <div id="rightMenuOverlay" class="right-menu-overlay"></div>
+        <!-- Profile Dropdown Menu -->
+        <div id="rightProfileMenu" class="right-profile-menu d-none bg-white shadow custom-font-1-2">
+            <div class="h-100 p-3">
+                <div class="row align-items-center mb-3 menu-profile-area">
+                    <div class="col-auto">
+                        <div><img src="/Images/user1.png" alt="Avatar" class="avatar"></div>
+                    </div>
+                    <div class="col">
+                        <div class="position-relative lh-sm">
+                            <small>Welcome, </small><br>
+                            <span class="fw-bold">Agriculture</span>
+                        </div>
+                    </div>
+                </div>
+                <ul class="nav-scroll list-unstyled mb-0">
+                </ul>
+            </div>
+            <div class="right-profile-footer border-top p-3">
+                <ul class="list-unstyled mb-0">
+                    <li class="nav-item"><a href="/Home/ChangePassword" class="nav-link"><i class="ampicon-lock-key"></i>Change Password</a></li>
+                    <li class="nav-item"><a href="#" class="nav-link red-focus logout"><i class="ampicon-logout"></i>Logout</a></li>
+                </ul>
+            </div>
+        </div>
+    </li>
+</ul>
+
+                <!-- Dynamic Header and Right Side Profile Menu Load -->
+            </div>
+        </nav>
+    </header>
+
+    <div b-obffn27nce class="logout-modal">
+        <div b-obffn27nce class="logou-container text-center">
+            <div b-obffn27nce class="container">
+                <h3 b-obffn27nce>Do you really want to log out?</h3>
+                <a class="btn btn-mint" href="/Home/SimpleLogout">Yes</a>
+                <a b-obffn27nce class="btn btn-danger nologout">No</a>
+            </div>
+        </div>
+    </div>
+    <div b-obffn27nce class="page-container display-full">
+        <div b-obffn27nce class="mainpanel">
+            <div b-obffn27nce class="section">
+                
+<style>
+    .notes__section {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        font-weight: normal;
+    }
+
+    .new_sec {
+        font-size: 14px;
+        margin-top: 12px;
+    }
+
+    .new_sec span {
+        font-weight: normal;
+        font-size: 13px;
+    }
+</style>
+
+<section class="dashboard-section">
+    <div class="row">
+        <div class="col-md-12">
+            <nav class="d-flex justify-content-between align-items-center top-bar">
+                <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                    <a class="nav-link active" role="tab" href="javascript:;">State Dashboard</a>
+                    <a class="nav-link" role="tab" href="/Home/SchemeDashboardDistWise">Scheme Dashboard</a>
+                    <a class="nav-link" role="tab" href="/Home/DistrictDashboardKPIDatasource">District Dashboard</a>
+                </div>
+
+                <div aria-label="breadcrumb" class="w-xs-100">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="javascript:void(0);"><i class="bi bi-house"></i></a>
+                        </li>
+                        <li class="breadcrumb-item" aria-current="page">Dashboard</li>
+                        <li class="breadcrumb-item active" aria-current="page">State Dashboard</li>
+                    </ol>
+                </div>
+
+            </nav>
+        </div>
+    </div>
+    <div class="cg-state-dashboard">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="row justify-content-between align-items-center">
+                    <div class="col-md-12 col-lg-4 col-xl-3 ms-auto ms-lg-0">
+                        <div class="search-container mt-0 gap-2 mb-3 mob__hide">
+                            <div class="input-group">
+                                <input type="text" class="form-control" onkeyup="SearchMenu(this);"
+                                        placeholder="Search Department...">
+                                <button class="btn btn-outline-secondary button-close-search me-0 lh-1"
+                                        type="button">
+                                    <i class="ampicon-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>                    
+                    <div class="col-md-12 col-lg-12 col-xl-9">
+                        <div class="section-title d-flex flex-column flex-md-row gap-3 justify-content-between align-items-start align-items-xl-center p-0 mt-0 mb-3">
+                            <div class="hindi-font mb-sm-0 order-2 order-md-1">
+
+                                <div class="scheme-name d-flex-start gap-2">
+                                    <div>
+                                        <img src="/Images/govt-logo-light1.png" alt="Goverment of Chhattisgarh" width="45">
+                                    </div>
+                                    <div class="d-flex flex-column justify-content-center">
+                                        <span id="scm-name">योजना</span>
+                                        <p id="deprt-name" class="dept-name mb-0">विभाग</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-lg-flex gap-3 justify-content-sm-end align-items-center order-1 order-md-2">
+                                    <div class="last-updated text-md-end mb-2 mb-lg-0">
+                                        <span class="fw-normal">
+                                            Last updated on:
+                                            <span class="fw-500" id="last-update">01-09-2025 06:03:23 AM</span>
+                                        </span>
+                                            <br />
+                                            <span class="fw-normal">
+                                                Data available till:
+                                                <span class="fw-500">Jul-2025</span>
+                                            </span>
+                                    </div>
+
+                                <div class="d-flex align-items-center justify-content-sm-end justify-content-lg-start gap-2">
+                                    <div class="exportable-buttons d-flex gap-1">
+                                        <button type="button" data-bs-toggle="tooltip" title="Print"
+                                                class="btn btn-outline-primary me-1 px-2" id="printDivBtn">
+                                            <i class="bi bi-printer"></i>
+                                        </button>
+                                    </div>
+                                    <button type="button" class="btn btn-primary-light hide-source-data-btn px-2"
+                                            style="display: none;">
+                                        <i class="bi bi-eye-slash me-1"></i>
+                                        Source
+                                        Data
+                                    </button>
+                                    <button type="button" class="btn btn-primary show-source-data-btn px-2">
+                                        <i class="bi bi-eye me-1"></i>
+                                        Source
+                                        Data
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-12 col-lg-4 col-xl-3 col-xxl-3 pe-0">
+
+                <div>
+                    <div class="section-title department d-flex-between depts-count mt-0 gap-2 p-0">
+                        <div class="d-flex-start gap-2">
+                            <h4>Departments:<span class="figure-counts-no-bg ms-2">1</span></h4>
+                            <span class="text-grey">|</span>
+                            <h4>Schemes:<span class="figure-counts-no-bg ms-2">1</span></h4>
+                        </div>
+                        <a class="btn show-sidebar" href="javascript:;">
+                            <i class="bi bi-list"></i>
+                        </a>
+                    </div>
+                
+                        <div class="flagship-legend ms-3 mob__hide">
+
+                            <div class="row align-items-center mb-2">
+                                <div class="col-6 col-sm-auto">
+                                    <span class="d-flex align-items-center gap-2 px-2">
+                                        <i class="bi bi-circle-fill legend-green small" title="Flagship"></i>Flagship
+                                    </span>
+                                </div>
+                                <div class="col-6 col-sm-auto">
+                                    <span class="d-flex align-items-center gap-2 px-2">
+                                        <i class="bi bi-circle-fill legend-pink small" title="Non-Flagship"></i>Non-Flagship
+                                    </span>
+                                </div>
+                            </div>
+
+
+                        </div>
+                    
+                    </div>
+                   
+                <div class="box-content scheme sidebar">
+                    <a class="close-sidebar" href="javascript:;">
+                        <i class="bi bi-x-lg"></i>
+                    </a>
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="mob__show mt-5">
+                                <div class="search-container mt-0 gap-2 mb-2">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control"
+                                               placeholder="Search Department...">
+                                        <button class="btn btn-outline-secondary button-close-search me-0 lh-1"
+                                                type="button">
+                                            <i class="ampicon-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flagship-legend ms-1 mob__show">
+                                    <div class="row align-items-center mb-2">
+                                        <div class="col-auto">
+                                            <span class="d-flex-start gap-2 px-2">
+                                                <i class="bi bi-circle-fill legend-green small"></i>Flagship
+                                            </span>
+                                        </div>
+                                        <div class="col-auto">
+                                            <span class="d-flex-start gap-2 px-2">
+                                                <i class="bi bi-circle-fill legend-pink small"></i>Non-Flagship
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="scheme-box">
+                                <div id="menu" class="sidebar-menu">
+                                    <ul>
+                                                <li class="sidebar-dropdown active">
+                                                    <a href="javascript:;">
+                                                        <span class="row align-items-center">
+                                                            <span class="col-2 col-md-2 col-lg-auto col-xl-auto col-xxl-auto">
+                                                                <span class="scheme-image">
+                                                                    <img src="/Images/pm-kisan-yojana.png" alt="">
+                                                                </span>
+                                                            </span>
+                                                            <span class="col-8 col-md-10 col-lg-7 col-xl-8 col-xxl-9 ps-2 ps-sm-0 pe-sm-0">
+                                                                <span class="scheme-title hindi-font">
+                                                                    <h5>&#x915;&#x943;&#x937;&#x93F; &#x935;&#x93F;&#x92D;&#x93E;&#x917;</h5>
+                                                                </span>
+                                                            </span>
+                                                        </span>
+                                                        <span class="figure-counts">
+                                                            1
+                                                        </span>
+                                                    </a>
+                                                    <div class="sidebar-submenu hindi-font" style="display: block;">
+                                                        <ul>
+                                                                        <li id="scheme-78" data-deptid="5" data-schemeid="78" onclick="SchemewiseKPIShow(this)" class="active">
+                                                                            <span class="d-none">"Agriculture Department Agriculture Department" </span>
+                                                                            <a href="#" class="flagship">&#x915;&#x943;&#x937;&#x93F; &#x935;&#x93F;&#x92D;&#x93E;&#x917;</a>
+                                                                        </li>
+                                                        </ul>
+
+                                                    </div>
+                                                </li>
+
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+
+            </div>
+
+            <div class="col-md-12 col-lg-8 col-xl-9 col-xxl-9">
+
+                <div class="box-content right-card-details" id="printDiv">
+                    <div class="row">
+                        <div class="col-lg-12 col-xl-12 kpi-content">
+                            <div class="section-title card-bg-green mx-0 sticky-header">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="d-flex-between">
+                                            <div class="w-kpi-30">
+                                                <h5>KPIs: <span>13</span></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="no-record-found d-none">
+                                <div class="text-center">
+                                    <img src="/Images/no-data2.png" alt="no-record">
+                                    <div class="no-record-text mt-4">
+                                        <span>
+                                            उक्त योजना के लिए जिला स्तर का <br>
+                                            डेटा उपलब्ध नहीं है
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="kpi">
+                                <div class="row g-4">
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="20"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="4.52"
+                                                                                          data-kpiid="20"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x935;&#x928; &#x905;&#x927;&#x93F;&#x915;&#x93E;&#x930; &#x92A;&#x91F;&#x94D;&#x91F;&#x93E; &#x927;&#x93E;&#x930;&#x915; &#x915;&#x93F;&#x938;&#x93E;&#x928; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="21"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="95.76"
+                                                                                          data-kpiid="21"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x92D;&#x942;&#x92E;&#x93F; &#x927;&#x93E;&#x930;&#x915; &#x915;&#x93F;&#x938;&#x93E;&#x928; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="22"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="97.76"
+                                                                                          data-kpiid="22"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928; - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="23"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="55.83"
+                                                                                          data-kpiid="23"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x90B;&#x923;&#x940; &#x915;&#x93F;&#x938;&#x93E;&#x928; - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="24"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="44.17"
+                                                                                          data-kpiid="24"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x905;&#x90B;&#x923;&#x940;  &#x915;&#x93F;&#x938;&#x93E;&#x928; - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="25"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="93.25"
+                                                                                          data-kpiid="25"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x947;&#x924;&#x93E; &#x915;&#x93F;&#x938;&#x93E;&#x928; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="26"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="58.22"
+                                                                                          data-kpiid="26"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x947;&#x924;&#x93E; &#x90B;&#x923;&#x940; &#x915;&#x93F;&#x938;&#x93E;&#x928; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="27"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="79.06"
+                                                                                          data-kpiid="27"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="45"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="90.14"
+                                                                                          data-kpiid="45"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="46"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="1.37"
+                                                                                          data-kpiid="46"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x930;&#x92C;&#x940;) (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="47"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="98.63"
+                                                                                          data-kpiid="47"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x916;&#x930;&#x940;&#x92B;&#x93C;) (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="48"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="0.47"
+                                                                                          data-kpiid="48"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x930;&#x92C;&#x940;) (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 kpi-col-outer">
+                                                <div class="card">
+                                                    <div class="card-body">
+                                                        <div class="kpi-box"
+                                                             data-deptid="5"
+                                                             data-kpiid="49"
+                                                             data-schemeid="78"
+                                                             onclick="KPIdataRedirectShow(this)">
+                                                            <div class="row">
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-percentage-progress">
+                                                                        <div class="d-block w-100">
+                                                                            <div class="percentage-wrapper">
+                                                                                <h3 class="kpi-percentage"></h3>
+                                                                            </div>
+                                                                                <progress class="progress-bar"
+                                                                                          data-max="100"
+                                                                                          data-value="99.53"
+                                                                                          data-kpiid="49"></progress>
+
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-12 col-lg-12 col-xl-6">
+                                                                    <div class="kpi-title hindi-font">
+                                                                        <a href="javascript:void(0);" class="stretched-link">
+                                                                            <h5 class="d-flex gap-2">
+&#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x916;&#x930;&#x940;&#x92B;&#x93C;) (%)
+                                                                            </h5>
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                </div>
+
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-xl-6 source-data-col" style="display: none;">
+                            <div class="section-title card-bg-orange mx-0 sticky-header">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="d-flex-between">
+                                            <h5>
+                                                Unique  Data Points:
+                                                    <span>
+                                                        15
+                                                    </span>
+
+                                            </h5>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        
+                            <div class="data-source">
+                                <div class="row g-4">
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>1,26,493</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x935;&#x928; &#x905;&#x927;&#x93F;&#x915;&#x93E;&#x930; &#x92A;&#x91F;&#x94D;&#x91F;&#x93E; &#x927;&#x93E;&#x930;&#x915; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>27,96,930</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>26,78,474</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92D;&#x942;&#x92E;&#x93F; &#x927;&#x93E;&#x930;&#x915; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>27,96,930</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>27,34,271</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928; - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>27,96,930</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>15,26,557</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x90B;&#x923;&#x940; &#x915;&#x93F;&#x938;&#x93E;&#x928;  - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>27,34,271</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928; - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>12,07,714</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x905;&#x90B;&#x923;&#x940;  &#x915;&#x93F;&#x938;&#x93E;&#x928;  - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>27,34,271</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928; - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>25,49,606</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x947;&#x924;&#x93E; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>27,34,271</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92A;&#x902;&#x91C;&#x940;&#x915;&#x943;&#x924; &#x915;&#x93F;&#x938;&#x93E;&#x928; - &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x92F; &#x939;&#x947;&#x924;&#x941;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>14,84,461</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x947;&#x924;&#x93E; &#x90B;&#x923;&#x940; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>25,49,606</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x935;&#x93F;&#x915;&#x94D;&#x930;&#x947;&#x924;&#x93E; &#x915;&#x93F;&#x938;&#x93E;&#x928;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>45,29,622.79</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>57,29,033.38</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x915;&#x943;&#x937;&#x93F; &#x92F;&#x94B;&#x917;&#x94D;&#x92F; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>40,82,893.70</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>45,29,622.79</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>62,242.85</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x930;&#x92C;&#x940;)
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>45,29,622.79</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>44,67,379.91</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x916;&#x930;&#x940;&#x92B;&#x93C;)
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>45,29,622.79</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>19,196.33</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x930;&#x92C;&#x940;)
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>40,82,893.70</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>40,63,697.38</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930; (&#x916;&#x930;&#x940;&#x92B;&#x93C;)
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6 d-flex">
+                                                <div class="card flex-fill">
+                                                    <div class="card-body">
+                                                        <div class="data-source-box">
+                                                            <div class="data-source-title">
+                                                                        <h3>40,82,893.70</h3>
+                                                                <h5 class="hindi-font">
+                                                                    &#x927;&#x93E;&#x928; &#x92C;&#x94B;&#x92F;&#x93E; &#x917;&#x92F;&#x93E; &#x915;&#x94D;&#x937;&#x947;&#x924;&#x94D;&#x930;
+                                                                </h5>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                    <div style="display:none" class="section-title card-bg-orange mb-4 mx-0 sticky-header">
+                                        <div class="row">
+                                            <div class="col-md-12">
+                                                <div class="d-flex-between">
+                                                    <h5>Source Data: <span>0</span></h5>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="printArea" style="display: none;"></div>
+            </div>
+            <!-- Hidden fields or span to hold session and IP info -->
+            <span id="sessionUserName" data-username="Agriculture"></span>
+            <span id="userIpAddress" data-ip="172.27.4.76"></span>
+        </div>
+    </div>
+</section>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    $('#loader').removeClass('d-none');
+    $(document).ready(function () {
+
+        var schemeName = $(".sidebar-submenu li.active a").text().trim();
+        var deptName = $(".sidebar-dropdown.active .scheme-title h5").text().trim();
+        var $activeItem = $(".sidebar-submenu li.active");
+
+
+        if ($activeItem.length > 0) {
+            document.querySelector('.scheme-box').scrollTop = 0; // Reset scroll before scrollIntoView
+            $activeItem[0].scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }
+
+        // Set the values dynamically
+        $("#scm-name").text(schemeName);
+        $("#deprt-name").text(deptName);
+
+        // FUNCTION TO SET PROGRESS BAR VALUE AND PERCENTAGE TEXT
+        function setProgress(progressElement) {
+            var kpiId = parseInt(progressElement.attr('data-kpiid'));
+           // var kpiId = parseInt(progressElement.attr('data-kpiid'));
+
+            var progressValue = parseFloat(progressElement.attr('data-value'));
+
+            var progressMax = parseFloat(progressElement.attr('data-max'));
+            var percentageElement = progressElement.closest('.d-block').find('.kpi-percentage');
+            var percentage = (progressValue / progressMax) * 100;
+            //KPI wise  percentage show
+            //var percentageText = percentage % 1 === 0 ? percentage.toFixed(0) : percentage.toFixed(2);
+
+            var percentageText = percentage.toFixed(2);
+            if (kpiId == 275 || kpiId == 279 || kpiId == 314) {
+                percentageElement.text(percentageText);
+            }
+            else {
+                percentageElement.text(percentageText + '%');
+            }
+
+
+            progressElement.attr('value', progressValue).attr('max', progressMax);
+            // SchemewiseKPIShow(76);
+        }
+
+        // Initialize progress bars using data attributes
+        $('.progress-bar').each(function () {
+            setProgress($(this));
+        });
+
+        // Example to update data-value dynamically and refresh progress bar
+        function updateProgress(progressElement, newValue) {
+
+            progressElement.attr('data-value', newValue);
+            setProgress(progressElement);
+        }
+        // Initial state setup
+        $(".hide-source-data-btn, .source-data-col").hide();
+        $(".kpi-content").addClass("col-lg-12 col-xl-12").removeClass("col-lg-6 col-xl-6");
+        $(".kpi-col-outer").addClass("col-lg-6").removeClass("col-lg-12");
+        $(".search-kpi-column").addClass("w-kpi-20").removeClass("w-kpi-30");
+
+        // Toggle function to handle show/hide Source Data and layout changes
+        function toggleSourceData() {
+            $(".source-data-col, .hide-source-data-btn").toggle();
+            $(".show-source-data-btn").toggle();
+            $(".kpi-content").toggleClass("col-lg-6 col-xl-6 col-lg-12 col-xl-12");
+            $(".kpi-col-outer").toggleClass("col-lg-6 col-lg-12");
+            $(".search-kpi-column").toggleClass("w-kpi-20 w-kpi-30");
+
+            // After layout change, recalculate card heights
+            setTimeout(equalizeCardHeights, 100); // Adding a delay to allow DOM updates
+        }
+
+        // Function to equalize the heights of all cards inside .right-card-details
+        function equalizeCardHeights() {
+            // Reset heights to auto before recalculating
+            $(".right-card-details .card").css("height", "auto");
+
+            // Iterate over each row inside .right-card-details to adjust card heights
+            $(".right-card-details .row").each(function () {
+                let maxHeight = 0;
+
+                // Find the tallest card in this row
+                $(this).find(".card").each(function () {
+                    let thisHeight = $(this).outerHeight();
+                    if (thisHeight > maxHeight) {
+                        maxHeight = thisHeight;
+                    }
+                });
+
+                // Set all cards in this row to the max height
+                $(this).find(".card").css("height", maxHeight + "px");
+            });
+        }
+
+        // Bind toggle functionality to show/hide buttons
+        $(".show-source-data-btn, .hide-source-data-btn").click(function () {
+            toggleSourceData();  // Call the toggle function when the button is clicked
+        });
+
+        // Call the equalizeCardHeights on page load
+        equalizeCardHeights();
+
+        // Recalculate card heights on window resize
+        $(window).resize(equalizeCardHeights);
+        setTimeout(function () { $('#loader').addClass('d-none'); },1000)
+
+
+        //FOR TOGGLING SHOW DATA SOURCE DIV AND BUTTON - ENDS
+    });
+
+
+    function SearchMenu(searchinput) {
+        var searchText = $(searchinput).val().toLowerCase();
+        if (searchText === '') {
+            // If the search box is empty, show all items
+            $('#menu li').show();
+        } else {
+            // Otherwise, filter the menu based on the search text
+            $('#menu li').each(function () {
+                var itemText = $(this).text().toLowerCase();
+
+                // Check if any of these fields match the search text
+                var match = itemText.includes(searchText)
+
+                // Show or hide the item based on the match
+                $(this).toggle(match);
+            });
+        }
+    }
+    // Changes for New Enhancement
+    async function SchemewiseKPIShow(schemeBox) {
+        var DepartmentId = schemeBox.getAttribute('data-deptid');
+        var SchemeID = schemeBox.getAttribute('data-schemeid');
+        var DistrictId = '34193';
+
+        const queryParams = {
+            DeptId: DepartmentId.toString(),
+            SchemeId: SchemeID.toString(),
+            DistrictId: DistrictId.toString()
+        };
+
+        let encryptedRef = '';
+        try {
+            const encryptResult = await encryptQueryParams(queryParams);
+            encryptedRef = encodeURIComponent(encryptResult.data);
+        } catch (err) {
+            console.error('Encryption failed:', err);
+            return;
+        }
+
+        window.location.href = `/Home/AMDDashboardKPIDataSource?ref=${encryptedRef}`;
+    }
+
+
+    async function KPIdataRedirectShow(kpiboxx) {
+        var kpiId = kpiboxx.getAttribute('data-kpiid');
+        var DepartmentId = kpiboxx.getAttribute('data-deptid');
+        var SchemeID = kpiboxx.getAttribute('data-schemeid');
+        var ServiceId = $("#ddlService").val();
+        const queryParams = {
+            DeptId: DepartmentId.toString(),
+            SchemeId: SchemeID.toString(),
+            KPIId: kpiId.toString()
+        };
+        if (SchemeID !== '60') {
+            queryParams.ServiceId = (ServiceId ?? '0').toString();
+        }
+        let encryptedRef = '';
+        try {
+            const encryptResult = await encryptQueryParams(queryParams);
+            encryptedRef = encodeURIComponent(encryptResult.data);
+        } catch (err) {
+            console.error('Encryption failed:', err);
+            return;
+        }
+
+        // Redirect based on SchemeID
+        if (SchemeID === '60') {
+            window.location.href = `/Home/SchemeDashboardLevelDataBind?ref=${encryptedRef}`;
+        } else {
+            window.location.href = `/Home/SchemeDashboardDistWise?ref=${encryptedRef}`;
+        }
+    }
+
+
+    if ('78' == '234' && '0' == '0') {
+        ServiceWiseKPIShow();
+    }
+
+     //Added for Service wise Kpi data bind
+    async function ServiceWiseKPIShow() {
+        var DepartmentId = '5';
+        var SchemeID = '78';
+        var ServiceId = $("#ddlService").val();
+
+        const queryParams = {
+            DeptId: DepartmentId.toString(),
+            SchemeId: SchemeID.toString(),
+            ServiceId: ServiceId.toString()
+        };
+
+        let encryptedRef = '';
+        try {
+            const encryptResult = await encryptQueryParams(queryParams);
+            encryptedRef = encodeURIComponent(encryptResult.data);
+        } catch (err) {
+            console.error('Encryption failed:', err);
+            return;
+        }
+
+        window.location.href = `/Home/AMDDashboardKPIDataSource?ref=${encryptedRef}`;
+    }
+
+
+    //FOR PRINTING THE DIV
+    $("#printDivBtn").on("click", async function () {
+        var year = '2025';
+        var month = '9';
+        var deptId = '5';
+
+        const queryParams = {
+            Year: year.toString(),
+            Month: month.toString(),
+            DeptId: deptId.toString()
+        };
+
+        let encryptedRef = '';
+        try {
+            const encryptResult = await encryptQueryParams(queryParams);
+            encryptedRef = encodeURIComponent(encryptResult.data);
+        } catch (err) {
+            console.error('Encryption failed:', err);
+            return;
+        }
+
+        var url = `/Home/PrintStateDashboardDept?ref=${encryptedRef}`;
+        window.open(url, '_blank', 'width=1100,height=800');
+    });
+
+</script>
+
+            </div>
+
+        </div>
+    </div>
+    <script src="/js/bootstrap-datepicker.min.js"></script>
+    <script src="/js/slimscrollbar.min.js"></script>
+    <script src="/js/custom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.9-1/crypto-js.js"></script>
+    <link href="/css/buttons.dataTables.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <!-- FixedColumns 4.3.0 -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedcolumns/4.3.0/css/fixedColumns.dataTables.min.css">
+    <script src="https://cdn.datatables.net/fixedcolumns/4.3.0/js/dataTables.fixedColumns.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <script src="/js/encyption.js"></script>
+    <script src="/js/dataTables.buttons.js"></script>
+    <script>
+        window.onload = function () {
+            // Get the current URL
+            let url = window.location.href;
+            let urlParams = new URLSearchParams(window.location.search);
+            // Get the KPIId value from the URL
+            let kpiId = urlParams.get("KPIId");
+        };
+
+
+
+        function GoHome() {
+            location.href = "/Home/RedirectRolebase";
+        }
+
+
+        $(document).ready(function () {
+            //FOR RIGHT MENU TOGGLE - STARTS
+            $('#rightMenuToggle').on('click', function () {
+                const $menu = $('#rightProfileMenu');
+                const $overlay = $('#rightMenuOverlay');
+
+                if ($menu.hasClass('show-menu')) {
+                    $menu.removeClass('show-menu');
+                    $overlay.removeClass('show-overlay');
+                    $('body').removeClass('no-scroll');
+                    $('body').removeClass('menu-open');
+                } else {
+                    $menu.removeClass('d-none').addClass('show-menu');
+                    $overlay.addClass('show-overlay');
+                    $('body').addClass('no-scroll');
+                    $('body').addClass('menu-open');
+                }
+            });
+
+            $('#rightMenuOverlay').on('click', function () {
+                $('#rightProfileMenu').removeClass('show-menu');
+                $('#rightMenuOverlay').removeClass('show-overlay');
+                $('body').removeClass('no-scroll');
+                $('body').removeClass('menu-open');
+            });
+            //FOR RIGHT MENU TOGGLE - ENDS
+
+             // For CMO Session kept alive and refresh after 15 minutes
+          var userNameCMO = 'AGRINO';
+         if (userNameCMO === "CMO") {
+             console.log("Auto-refresh scheduled for CMO every 15 minutes.");
+             // Refresh page every 15 minutes (15 * 60 * 1000 milliseconds)
+             setInterval(function () {
+                 console.log("Page is auto-refreshing now...");
+                 location.reload();
+             }, 15 * 60 * 1000);
+
+             // Keep the session alive by pinging the server every 5 minutes
+             setInterval(function () {
+                 fetch('/Home/KeepSessionAlive', {
+                     method: 'POST'
+                 })
+                 .then(response => {
+                     if (response.ok) {
+                         console.log("Session kept alive.");
+                     } else {
+                         console.log("Failed to keep session alive.");
+                     }
+                 })
+                 .catch(error => console.log("Error pinging session:", error));
+             }, 5 * 60 * 1000); // 5 minutes interval
+         }
+
+        })
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const currentPath = window.location.pathname.toLowerCase();
+            const fullUrl = window.location.href.toLowerCase();
+
+            // Define special keywords that point to Dashboard
+            const dashboardKeywords = [
+                "amddashboardkpidatasource",
+                "districtdashboardkpidatasource",
+                "schemedashboarddistwise"
+            ];
+
+            // Check for special dashboard routes
+            if (dashboardKeywords.some(keyword => fullUrl.includes(keyword))) {
+                document.querySelectorAll(".navbar-nav li.nav-item").forEach(function (li) {
+                    const link = li.querySelector("a.nav-link");
+                    if (link && link.textContent.trim().toLowerCase() === "dashboard") {
+                        li.classList.add("active");
+                    }
+                });
+            } else {
+                // General logic for matching current URL
+                document.querySelectorAll(".navbar-nav li.nav-item a.nav-link").forEach(function (link) {
+                    const linkPath = link.getAttribute("href")?.toLowerCase();
+                    if (linkPath && currentPath.includes(linkPath)) {
+                        link.closest("li.nav-item").classList.add("active");
+                    }
+                });
+            }
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const currentPath = window.location.pathname.toLowerCase();
+            const fullUrl = window.location.href.toLowerCase();
+            // Keywords to check for Dashboard menu
+            const dashboardKeywords = [
+                "amddashboardkpidatasource",
+                "districtdashboardkpidatasource",
+                "schemedashboarddistwise"
+            ];
+
+            const metadataKeywords = [
+                "departmentwisekpireport",
+                "detailedschemewise",
+                "detailedkpiwise"
+            ];
+            if (fullUrl.includes("ranking")) {
+                document.querySelectorAll(".navbar-nav li.nav-item").forEach(function (li) {
+                    const link = li.querySelector("a.nav-link");
+                    if (link && link.textContent.trim().toLowerCase().includes("ranking")) {
+                        li.classList.add("active");
+                    }
+                });
+            }
+            else if (metadataKeywords.some(keyword => currentPath.includes(keyword))) {
+                document.querySelectorAll(".navbar-nav li.nav-item").forEach(function (li) {
+                    const link = li.querySelector("a.nav-link");
+                    if (link && link.textContent.trim().toLowerCase().includes("metadata")) {
+                        li.classList.add("active");
+                    }
+                });
+            }
+            else if (dashboardKeywords.some(keyword => fullUrl.includes(keyword))) {
+                document.querySelectorAll(".navbar-nav li.nav-item").forEach(function (li) {
+                    const link = li.querySelector("a.nav-link");
+                    if (link && link.textContent.trim().toLowerCase() === "dashboard") {
+                        li.classList.add("active");
+                    }
+                });
+            }
+            // Default matching logic
+            else {
+                document.querySelectorAll(".navbar-nav li.nav-item a.nav-link").forEach(function (link) {
+                    const linkPath = link.getAttribute("href")?.toLowerCase();
+                    if (linkPath && currentPath.includes(linkPath)) {
+                        link.closest("li.nav-item").classList.add("active");
+                    }
+                });
+            }
+        });
+    </script>
+
+
+    <script>
+        async function encryptQueryParams(paramsObj) {
+            const response = await fetch('/Home/EncryptActionQuery', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paramsObj)
+            });
+
+            if (!response.ok) {
+                throw new Error('Encryption API failed');
+            }
+
+            return await response.json(); // returns { data: encryptedString }
+        }
+
+    </script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-V5KP4LFF2G"></script>
+    <script>window.dataLayer = window.dataLayer || []; function gtag() { dataLayer.push(arguments); } gtag('js', new Date()); gtag('config', 'G-V5KP4LFF2G');</script>
+    
+
+
+</body>
+
+</html>
