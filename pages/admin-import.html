@@ -1,0 +1,129 @@
+<!-- pages/admin-import.html -->
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>फसल डेटा आयात - राज्य स्तरीय</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="admin-import-container">
+        <div class="import-header">
+            <h1><i class="fas fa-upload"></i> फसल डेटा आयात सिस्टम</h1>
+            <p>राज्य स्तरीय एक्सेल फाइल अपलोड</p>
+        </div>
+
+        <div class="import-form">
+            <div class="form-section">
+                <h3>आयात विवरण</h3>
+                <div class="form-group">
+                    <label>सीजन चुनें:</label>
+                    <select id="seasonSelect" required>
+                        <option value="">-- सीजन चुनें --</option>
+                        <option value="Kharif">खरीफ</option>
+                        <option value="Rabi">रबी</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>वर्ष:</label>
+                    <input type="number" id="yearInput" min="2020" max="2030" value="2024" required>
+                </div>
+                <div class="form-group">
+                    <label>बैच नाम:</label>
+                    <input type="text" id="batchName" placeholder="उदा: खरीफ_2024_प्रारंभिक_आयात" required>
+                </div>
+            </div>
+
+            <div class="file-upload-section">
+                <h3>एक्सेल फाइल अपलोड</h3>
+                <div class="file-drop-zone" id="fileDropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>एक्सेल फाइल यहाँ ड्रैग करें या क्लिक करके चुनें</p>
+                    <input type="file" id="excelFile" accept=".xlsx,.xls" hidden>
+                    <button type="button" onclick="document.getElementById('excelFile').click()">
+                        फाइल चुनें
+                    </button>
+                </div>
+                <div class="file-info" id="fileInfo" style="display: none;">
+                    <p><strong>चयनित फाइल:</strong> <span id="fileName"></span></p>
+                    <p><strong>आकार:</strong> <span id="fileSize"></span></p>
+                </div>
+            </div>
+
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <h3>डेटा पूर्वावलोकन</h3>
+                <div class="preview-stats">
+                    <div class="stat-card">
+                        <span class="stat-number" id="totalRows">0</span>
+                        <span class="stat-label">कुल रिकॉर्ड</span>
+                    </div>
+                    <div class="stat-card valid">
+                        <span class="stat-number" id="validRows">0</span>
+                        <span class="stat-label">मान्य रिकॉर्ड</span>
+                    </div>
+                    <div class="stat-card invalid">
+                        <span class="stat-number" id="invalidRows">0</span>
+                        <span class="stat-label">अमान्य रिकॉर्ड</span>
+                    </div>
+                </div>
+                
+                <div class="preview-table-container">
+                    <table id="previewTable" class="preview-table">
+                        <thead id="previewTableHead"></thead>
+                        <tbody id="previewTableBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="validation-errors" id="validationErrors" style="display: none;">
+                    <h4><i class="fas fa-exclamation-triangle"></i> सत्यापन त्रुटियां</h4>
+                    <div class="error-list" id="errorList"></div>
+                </div>
+            </div>
+
+            <div class="import-actions">
+                <button type="button" id="validateBtn" onclick="validateData()" disabled>
+                    <i class="fas fa-check-circle"></i> डेटा सत्यापित करें
+                </button>
+                <button type="button" id="importBtn" onclick="importData()" disabled>
+                    <i class="fas fa-database"></i> डेटाबेस में आयात करें
+                </button>
+                <button type="button" id="downloadErrorsBtn" onclick="downloadErrors()" style="display: none;">
+                    <i class="fas fa-download"></i> त्रुटि रिपोर्ट डाउनलोड करें
+                </button>
+            </div>
+
+            <div class="import-progress" id="importProgress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <p class="progress-text" id="progressText">आयात प्रगति में...</p>
+            </div>
+        </div>
+
+        <div class="import-history">
+            <h3>आयात इतिहास</h3>
+            <div class="history-table-container">
+                <table class="history-table" id="historyTable">
+                    <thead>
+                        <tr>
+                            <th>बैच नाम</th>
+                            <th>सीजन</th>
+                            <th>वर्ष</th>
+                            <th>कुल रिकॉर्ड</th>
+                            <th>मान्य</th>
+                            <th>अमान्य</th>
+                            <th>आयात दिनांक</th>
+                            <th>स्थिति</th>
+                            <th>कार्य</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
