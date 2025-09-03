@@ -86,24 +86,26 @@
             backdrop-filter: blur(5px);
         }
 
-        .user-name {
+        .user-name, .user-district, .user-role {
             display: block;
+            font-size: 12px;
+            margin: 2px 0;
+        }
+
+        .user-name {
             font-weight: 600;
             color: #2c3e50;
             font-size: 14px;
         }
 
         .user-district {
-            display: block;
-            font-size: 12px;
             color: #6c757d;
         }
 
         .user-role {
-            display: block;
-            font-size: 11px;
             color: #007bff;
             font-weight: 500;
+            font-size: 11px;
         }
 
         .logout-btn {
@@ -193,36 +195,12 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
 
-        .stat-item.edited {
-            border-left-color: #28a745;
-        }
-
-        .stat-item.pending {
-            border-left-color: #ffc107;
-        }
-
-        .stat-item.total {
-            border-left-color: #6f42c1;
-        }
-
         .stat-number {
             font-size: 32px;
             font-weight: bold;
             color: #007bff;
             display: block;
             margin-bottom: 5px;
-        }
-
-        .stat-item.edited .stat-number {
-            color: #28a745;
-        }
-
-        .stat-item.pending .stat-number {
-            color: #ffc107;
-        }
-
-        .stat-item.total .stat-number {
-            color: #6f42c1;
         }
 
         .stat-label {
@@ -275,21 +253,6 @@
             overflow: hidden;
         }
 
-        .nav-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transition: left 0.5s;
-        }
-
-        .nav-card:hover::before {
-            left: 100%;
-        }
-
         .nav-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.2);
@@ -319,31 +282,6 @@
             font-size: 14px;
             color: #6c757d;
             line-height: 1.5;
-        }
-
-        /* Role-specific styling */
-        .admin-card {
-            border-left: 4px solid #28a745;
-        }
-
-        .admin-card .nav-icon {
-            color: #28a745;
-        }
-
-        .admin-card:hover {
-            border-color: #28a745;
-        }
-
-        .district-card {
-            border-left: 4px solid #007bff;
-        }
-
-        .district-card .nav-icon {
-            color: #007bff;
-        }
-
-        .district-card:hover {
-            border-color: #007bff;
         }
 
         /* Loading States */
@@ -407,28 +345,9 @@
             .welcome-section h1 {
                 font-size: 22px;
             }
-
-            .nav-card {
-                padding: 20px;
-            }
-
-            .nav-icon {
-                font-size: 40px;
-            }
         }
 
-        @media (max-width: 480px) {
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .user-section {
-                flex-direction: column;
-                gap: 10px;
-            }
-        }
-
-        /* Animation for page load */
+        /* Animation */
         .fade-in {
             animation: fadeIn 0.5s ease-in;
         }
@@ -436,23 +355,6 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Notification badge */
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #dc3545;
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
         }
     </style>
 </head>
@@ -468,15 +370,9 @@
         </div>
         <div class="user-section">
             <div class="user-info">
-                <span class="user-name" id="userFullName">
-                    <i class="fas fa-user"></i> लोड हो रहा है...
-                </span>
-                <span class="user-district" id="userDistrict">
-                    <i class="fas fa-map-marker-alt"></i> <span class="loading"></span>
-                </span>
-                <span class="user-role" id="userRole">
-                    <i class="fas fa-id-badge"></i> <span class="loading"></span>
-                </span>
+                <span class="user-name" id="userFullName">लोड हो रहा है...</span>
+                <span class="user-district" id="userDistrict">लोड हो रहा है...</span>
+                <span class="user-role" id="userRole">लोड हो रहा है...</span>
             </div>
             <button class="logout-btn" onclick="logout()" title="लॉगआउट करें">
                 <i class="fas fa-sign-out-alt"></i>
@@ -502,40 +398,32 @@
                 <i class="fas fa-chart-bar"></i> सांख्यिकी डैशबोर्ड
             </h2>
             <div class="stats-grid" id="statsGrid">
-                <div class="stat-item total">
+                <div class="stat-item">
                     <div class="stat-icon">
                         <i class="fas fa-list-alt"></i>
                     </div>
-                    <span class="stat-number" id="totalNotifications">
-                        <span class="loading"></span>
-                    </span>
+                    <span class="stat-number" id="totalNotifications">0</span>
                     <span class="stat-label">कुल सूचनाएं</span>
                 </div>
-                <div class="stat-item edited">
+                <div class="stat-item">
                     <div class="stat-icon">
                         <i class="fas fa-edit"></i>
                     </div>
-                    <span class="stat-number" id="editedNotifications">
-                        <span class="loading"></span>
-                    </span>
+                    <span class="stat-number" id="editedNotifications">0</span>
                     <span class="stat-label">संपादित सूचनाएं</span>
                 </div>
-                <div class="stat-item pending">
+                <div class="stat-item">
                     <div class="stat-icon">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                    <span class="stat-number" id="pendingValidation">
-                        <span class="loading"></span>
-                    </span>
+                    <span class="stat-number" id="pendingValidation">0</span>
                     <span class="stat-label">सत्यापन बाकी</span>
                 </div>
                 <div class="stat-item">
                     <div class="stat-icon">
                         <i class="fas fa-map-marked-alt"></i>
                     </div>
-                    <span class="stat-number" id="totalVillages">
-                        <span class="loading"></span>
-                    </span>
+                    <span class="stat-number" id="totalVillages">0</span>
                     <span class="stat-label">कुल गांव</span>
                 </div>
             </div>
@@ -547,7 +435,7 @@
                 <i class="fas fa-compass"></i> मुख्य कार्य क्षेत्र
             </h2>
             <div class="nav-grid" id="navigationGrid">
-                <!-- Dynamic content based on user role -->
+                <!-- Dynamic content -->
             </div>
         </div>
     </main>
@@ -562,73 +450,6 @@
         let currentUser = null;
         let userRole = null;
 
-        // Authentication check
-        function checkAuth() {
-            const userId = sessionStorage.getItem('userId');
-            const loginTime = sessionStorage.getItem('loginTime');
-            
-            if (!userId) {
-                showError('आपका सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।');
-                setTimeout(() => {
-                    window.location.href = 'header.html';
-                }, 2000);
-                return false;
-            }
-
-            // Check if session is expired (24 hours)
-            if (loginTime) {
-                const loginDate = new Date(loginTime);
-                const now = new Date();
-                const hoursDiff = (now - loginDate) / (1000 * 60 * 60);
-                
-                if (hoursDiff > 24) {
-                    showError('आपका सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।');
-                    logout();
-                    return false;
-                }
-            }
-            
-            return true;
-        }
-
-        // Load user information
-        function loadUserInfo() {
-            try {
-                currentUser = {
-                    id: sessionStorage.getItem('userId'),
-                    username: sessionStorage.getItem('username'),
-                    fullName: sessionStorage.getItem('fullName'),
-                    role: sessionStorage.getItem('role'),
-                    districtId: sessionStorage.getItem('districtId'),
-                    districtName: sessionStorage.getItem('districtName')
-                };
-
-                userRole = currentUser.role;
-
-                // Update UI elements
-                document.getElementById('userFullName').innerHTML = 
-                    `<i class="fas fa-user"></i> ${currentUser.fullName || 'अज्ञात उपयोगकर्ता'}`;
-                
-                document.getElementById('userDistrict').innerHTML = 
-                    `<i class="fas fa-map-marker-alt"></i> ${currentUser.districtName || 'जिला निर्दिष्ट नहीं'}`;
-                
-                document.getElementById('userRole').innerHTML = 
-                    `<i class="fas fa-id-badge"></i> ${getRoleDisplayName(currentUser.role)}`;
-
-                // Update welcome message
-                const welcomeMessage = document.getElementById('welcomeMessage');
-                if (currentUser.role === 'state_admin') {
-                    welcomeMessage.textContent = 'राज्य स्तरीय डेटा प्रबंधन के लिए नीचे दिए गए विकल्प चुनें';
-                } else {
-                    welcomeMessage.textContent = `${currentUser.districtName} जिले के लिए उपलब्ध विकल्प`;
-                }
-
-            } catch (error) {
-                console.error('Error loading user info:', error);
-                showError('उपयोगकर्ता जानकारी लोड करने में त्रुटि');
-            }
-        }
-
         // Get role display name in Hindi
         function getRoleDisplayName(role) {
             const roleNames = {
@@ -638,6 +459,71 @@
                 'ri_user': 'राजस्व निरीक्षक'
             };
             return roleNames[role] || role;
+        }
+
+        // Authentication check
+        function checkAuth() {
+            const userId = sessionStorage.getItem('userId');
+            if (!userId) {
+                showError('आपका सत्र समाप्त हो गया है। कृपया पुनः लॉगिन करें।');
+                setTimeout(() => {
+                    window.location.href = 'header.html';
+                }, 2000);
+                return false;
+            }
+            return true;
+        }
+
+        // Load user information - FIXED VERSION
+        function loadUserInfo() {
+            try {
+                const userId = sessionStorage.getItem('userId');
+                const username = sessionStorage.getItem('username');
+                const fullName = sessionStorage.getItem('fullName');
+                const role = sessionStorage.getItem('role');
+                const districtId = sessionStorage.getItem('districtId');
+                const districtName = sessionStorage.getItem('districtName');
+
+                console.log('Loading user info:', { userId, username, fullName, role, districtName });
+
+                if (!userId || !username) {
+                    throw new Error('Required user data not found in session');
+                }
+
+                currentUser = {
+                    id: userId,
+                    username: username,
+                    fullName: fullName || username,
+                    role: role || 'user',
+                    districtId: districtId,
+                    districtName: districtName
+                };
+
+                userRole = currentUser.role;
+
+                // Update UI elements
+                document.getElementById('userFullName').innerHTML = `<i class="fas fa-user"></i> ${currentUser.fullName}`;
+                document.getElementById('userDistrict').innerHTML = `<i class="fas fa-map-marker-alt"></i> ${currentUser.districtName || 'जिला निर्दिष्ट नहीं'}`;
+                document.getElementById('userRole').innerHTML = `<i class="fas fa-id-badge"></i> ${getRoleDisplayName(currentUser.role)}`;
+
+                // Update welcome message
+                const welcomeMessage = document.getElementById('welcomeMessage');
+                if (currentUser.role === 'state_admin') {
+                    welcomeMessage.textContent = `नमस्कार ${currentUser.fullName}, राज्य स्तरीय डेटा प्रबंधन के लिए नीचे दिए गए विकल्प चुनें`;
+                } else if (currentUser.districtName) {
+                    welcomeMessage.textContent = `नमस्कार ${currentUser.fullName}, ${currentUser.districtName} जिले के लिए उपलब्ध विकल्प`;
+                } else {
+                    welcomeMessage.textContent = `नमस्कार ${currentUser.fullName}, कृपया नीचे दिए गए विकल्पों में से चुनें`;
+                }
+
+            } catch (error) {
+                console.error('Error loading user info:', error);
+                showError('उपयोगकर्ता जानकारी लोड करने में त्रुटि');
+                
+                document.getElementById('userFullName').innerHTML = '<i class="fas fa-user"></i> त्रुटि';
+                document.getElementById('userDistrict').innerHTML = '<i class="fas fa-map-marker-alt"></i> --';
+                document.getElementById('userRole').innerHTML = '<i class="fas fa-id-badge"></i> --';
+            }
         }
 
         // Load navigation based on role
@@ -651,33 +537,19 @@
                         href: 'pages/import-data.html',
                         icon: 'fas fa-upload',
                         title: 'डेटा आयात',
-                        description: 'एक्सेल फाइल से फसल डेटा आयात करें और सत्यापित करें',
-                        class: 'admin-card',
-                        badge: null
+                        description: 'एक्सेल फाइल से फसल डेटा आयात करें'
                     },
                     {
                         href: 'pages/import-history.html',
                         icon: 'fas fa-history',
                         title: 'आयात इतिहास',
-                        description: 'पिछले आयात की विस्तृत जानकारी और रिपोर्ट्स देखें',
-                        class: 'admin-card',
-                        badge: null
+                        description: 'पिछले आयात की जानकारी देखें'
                     },
                     {
-                        href: 'pages/system-reports.html',
+                        href: 'pages/reports.html',
                         icon: 'fas fa-chart-line',
-                        title: 'सिस्टम रिपोर्ट्स',
-                        description: 'राज्य स्तरीय विश्लेषण और डेटा रिपोर्ट्स',
-                        class: 'admin-card',
-                        badge: null
-                    },
-                    {
-                        href: 'pages/user-management.html',
-                        icon: 'fas fa-users-cog',
-                        title: 'उपयोगकर्ता प्रबंधन',
-                        description: 'जिला उपयोगकर्ताओं का प्रबंधन और अनुमतियां',
-                        class: 'admin-card',
-                        badge: null
+                        title: 'रिपोर्ट्स',
+                        description: 'राज्य स्तरीय रिपोर्ट्स और विश्लेषण'
                     }
                 ];
             } else if (userRole === 'district_user') {
@@ -686,45 +558,30 @@
                         href: 'pages/notifications.html',
                         icon: 'fas fa-list-alt',
                         title: 'फसल सूचनाएं',
-                        description: 'अपने जिले की सभी फसल सूचनाओं की सूची देखें और प्रबंधित करें',
-                        class: 'district-card',
-                        badge: 'totalNotifications'
+                        description: 'अपने जिले की सभी फसल सूचनाएं देखें'
                     },
                     {
                         href: 'pages/validation.html',
                         icon: 'fas fa-check-circle',
                         title: 'डेटा सत्यापन',
-                        description: 'फसल डेटा की जांच, सुधार और सत्यापन करें',
-                        class: 'district-card',
-                        badge: 'pendingValidation'
+                        description: 'फसल डेटा की जांच और सुधार करें'
                     },
                     {
                         href: 'pages/reports.html',
                         icon: 'fas fa-download',
-                        title: 'रिपोर्ट्स और एक्सेल',
-                        description: 'विभिन्न रिपोर्ट्स देखें और एक्सेल फॉर्मेट में डाउनलोड करें',
-                        class: 'district-card',
-                        badge: null
-                    },
-                    {
-                        href: 'pages/analytics.html',
-                        icon: 'fas fa-chart-pie',
-                        title: 'डेटा विश्लेषण',
-                        description: 'फसल डेटा का विस्तृत विश्लेषण और ट्रेंड देखें',
-                        class: 'district-card',
-                        badge: null
+                        title: 'एक्सेल डाउनलोड',
+                        description: 'डेटा को एक्सेल फॉर्मेट में डाउनलोड करें'
                     }
                 ];
             }
 
             navigationGrid.innerHTML = navItems.map(item => `
-                <a href="${item.href}" class="nav-card ${item.class}">
+                <a href="${item.href}" class="nav-card">
                     <div class="nav-icon">
-                        <i class="\${item.icon}"></i>
-                        \${item.badge ? `<span class="notification-badge" id="badge-${item.badge}">0</span>` : ''}
+                        <i class="${item.icon}"></i>
                     </div>
-                    <h3>\${item.title}</h3>
-                    <p>\${item.description}</p>
+                    <h3>${item.title}</h3>
+                    <p>${item.description}</p>
                 </a>
             `).join('');
         }
@@ -732,46 +589,30 @@
         // Load statistics
         async function loadStats() {
             try {
-                const districtId = currentUser.districtId;
+                const districtId = currentUser?.districtId;
 
                 if (userRole === 'district_user' && districtId) {
-                    // Load district-specific stats
                     const { data, error } = await supabaseClient
                         .from('crop_notifications')
-                        .select('id, hierarchy_edited, crop_edited, has_validation_errors, current_village_name, current_village_code')
+                        .select('id, hierarchy_edited, crop_edited, has_validation_errors, current_village_code')
                         .eq('current_district_id', districtId);
 
-                    if (error) {
-                        console.error('Stats loading error:', error);
-                        throw error;
-                    }
+                    if (error) throw error;
 
                     const totalNotifications = data.length;
                     const editedNotifications = data.filter(item => item.hierarchy_edited || item.crop_edited).length;
                     const pendingValidation = data.filter(item => item.has_validation_errors).length;
                     const uniqueVillages = new Set(data.map(item => item.current_village_code)).size;
 
-                    // Update stats display
                     document.getElementById('totalNotifications').textContent = totalNotifications;
                     document.getElementById('editedNotifications').textContent = editedNotifications;
                     document.getElementById('pendingValidation').textContent = pendingValidation;
                     document.getElementById('totalVillages').textContent = uniqueVillages;
 
-                    // Update badges
-                    const totalBadge = document.getElementById('badge-totalNotifications');
-                    const pendingBadge = document.getElementById('badge-pendingValidation');
-                    
-                    if (totalBadge) totalBadge.textContent = totalNotifications;
-                    if (pendingBadge && pendingValidation > 0) {
-                        pendingBadge.textContent = pendingValidation;
-                        pendingBadge.style.display = 'flex';
-                    }
-
                 } else if (userRole === 'state_admin') {
-                    // Load state-level stats
                     const { data, error } = await supabaseClient
                         .from('crop_notifications')
-                        .select('id, current_district_id, season, notification_year, has_validation_errors, hierarchy_edited, crop_edited');
+                        .select('id, current_district_id, has_validation_errors, hierarchy_edited, crop_edited');
 
                     if (error) throw error;
 
@@ -783,19 +624,11 @@
                     document.getElementById('totalNotifications').textContent = totalNotifications;
                     document.getElementById('editedNotifications').textContent = editedNotifications;
                     document.getElementById('pendingValidation').textContent = pendingValidation;
-                    document.getElementById('totalVillages').textContent = uniqueDistricts + ' जिले';
-                    
-                    // Update stat label for admin
-                    document.querySelector('#totalVillages').nextElementSibling.textContent = 'सक्रिय जिले';
+                    document.getElementById('totalVillages').textContent = uniqueDistricts;
                 }
-
-                showSuccess('डैशबोर्ड सफलतापूर्वक लोड हो गया');
 
             } catch (error) {
                 console.error('Error loading stats:', error);
-                showError('सांख्यिकी लोड करने में त्रुटि: ' + (error.message || 'अज्ञात त्रुटि'));
-                
-                // Set default values on error
                 document.getElementById('totalNotifications').textContent = '--';
                 document.getElementById('editedNotifications').textContent = '--';
                 document.getElementById('pendingValidation').textContent = '--';
@@ -803,74 +636,14 @@
             }
         }
 
-        // Update user activity
-        async function updateActivity() {
-            try {
-                if (currentUser && currentUser.id) {
-                    await supabaseClient
-                        .from('test_users')
-                        .update({ 
-                            last_activity: new Date().toISOString(),
-                            is_online: true
-                        })
-                        .eq('id', currentUser.id);
-                }
-            } catch (error) {
-                console.error('Error updating activity:', error);
-            }
-        }
-
-        // Logout function
-        window.logout = async function() {
-            try {
-                showSuccess('लॉगआउट हो रहा है...');
-                
-                if (currentUser && currentUser.id) {
-                    // Update online status in database
-                    await supabaseClient
-                        .from('test_users')
-                        .update({
-                            is_online: false,
-                            last_activity: new Date().toISOString()
-                        })
-                        .eq('id', currentUser.id);
-                }
-                
-                // Clear session storage
-                sessionStorage.clear();
-                
-                // Clear any cached data
-                currentUser = null;
-                userRole = null;
-                
-                // Show logout success message
-                showSuccess('सफलतापूर्वक लॉगआउट हो गए');
-                
-                // Redirect to login page after a short delay
-                setTimeout(() => {
-                    window.location.href = 'header.html';
-                }, 1500);
-                
-            } catch (error) {
-                console.error('Logout error:', error);
-                // Even if there's an error updating the database, still logout locally
-                sessionStorage.clear();
-                window.location.href = 'header.html';
-            }
-        };
-
         // Show success message
         function showSuccess(message) {
             const messageContainer = document.getElementById('messageContainer');
             const successDiv = document.createElement('div');
             successDiv.className = 'success-message fade-in';
-            successDiv.innerHTML = `
-                <i class="fas fa-check-circle"></i>
-                ${message}
-            `;
+            successDiv.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
             messageContainer.appendChild(successDiv);
             
-            // Auto remove after 3 seconds
             setTimeout(() => {
                 if (successDiv.parentNode) {
                     successDiv.remove();
@@ -883,13 +656,9 @@
             const messageContainer = document.getElementById('messageContainer');
             const errorDiv = document.createElement('div');
             errorDiv.className = 'error-message fade-in';
-            errorDiv.innerHTML = `
-                <i class="fas fa-exclamation-triangle"></i>
-                ${message}
-            `;
+            errorDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${message}`;
             messageContainer.appendChild(errorDiv);
             
-            // Auto remove after 5 seconds
             setTimeout(() => {
                 if (errorDiv.parentNode) {
                     errorDiv.remove();
@@ -897,164 +666,55 @@
             }, 5000);
         }
 
-        // Refresh dashboard data
-        async function refreshDashboard() {
+        // Logout function
+        window.logout = async function() {
             try {
-                showSuccess('डेटा रीफ्रेश हो रहा है...');
-                await loadStats();
-                await updateActivity();
-            } catch (error) {
-                console.error('Error refreshing dashboard:', error);
-                showError('डेटा रीफ्रेश करने में त्रुटि');
-            }
-        }
-
-        // Handle page visibility change
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden && checkAuth()) {
-                // Page became visible, refresh data
-                refreshDashboard();
-            }
-        });
-
-        // Handle online/offline status
-        window.addEventListener('online', function() {
-            showSuccess('इंटरनेट कनेक्शन बहाल हो गया');
-            refreshDashboard();
-        });
-
-        window.addEventListener('offline', function() {
-            showError('इंटरनेट कनेक्शन नहीं है। कुछ सुविधाएं उपलब्ध नहीं हो सकती हैं।');
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', function(event) {
-            // Ctrl+R or F5 - Refresh dashboard
-            if ((event.ctrlKey && event.key === 'r') || event.key === 'F5') {
-                event.preventDefault();
-                refreshDashboard();
-            }
-            
-            // Ctrl+L - Logout
-            if (event.ctrlKey && event.key === 'l') {
-                event.preventDefault();
-                if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-                    logout();
+                showSuccess('लॉगआउट हो रहा है...');
+                
+                if (currentUser && currentUser.id) {
+                    await supabaseClient
+                        .from('test_users')
+                        .update({
+                            is_online: false,
+                            last_activity: new Date().toISOString()
+                        })
+                        .eq('id', currentUser.id);
                 }
+                
+                sessionStorage.clear();
+                currentUser = null;
+                userRole = null;
+                
+                setTimeout(() => {
+                    window.location.href = 'header.html';
+                }, 1500);
+                
+            } catch (error) {
+                console.error('Logout error:', error);
+                sessionStorage.clear();
+                window.location.href = 'header.html';
             }
-        });
+        };
 
-        // Auto-refresh dashboard every 5 minutes
-        setInterval(() => {
-            if (checkAuth() && !document.hidden) {
-                updateActivity();
-            }
-        }, 5 * 60 * 1000);
-
-        // Auto-refresh stats every 30 seconds
-        setInterval(() => {
-            if (checkAuth() && !document.hidden) {
-                loadStats();
-            }
-        }, 30 * 1000);
-
-        // Initialize dashboard on page load
+        // Initialize dashboard
         document.addEventListener('DOMContentLoaded', async function() {
             try {
-                // Check authentication first
                 if (!checkAuth()) {
-                    return; // Will redirect to login
+                    return;
                 }
 
-                // Load user information
                 loadUserInfo();
-                
-                // Load navigation based on role
                 loadNavigation();
-                
-                // Load statistics
                 await loadStats();
                 
-                // Update user activity
-                await updateActivity();
-                
-                // Add fade-in animation to all elements
-                const elements = document.querySelectorAll('.fade-in');
-                elements.forEach((element, index) => {
-                    setTimeout(() => {
-                        element.style.opacity = '1';
-                        element.style.transform = 'translateY(0)';
-                    }, index * 100);
-                });
-
                 console.log('Dashboard initialized successfully');
                 
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
-                showError('डैशबोर्ड लोड करने में त्रुटि: ' + (error.message || 'अज्ञात त्रुटि'));
+                showError('डैशबोर्ड लोड करने में त्रुटि');
             }
         });
-
-        // Handle beforeunload event
-        window.addEventListener('beforeunload', async function(event) {
-            // Update last activity before page unload
-            if (currentUser && currentUser.id) {
-                try {
-                    await supabaseClient
-                        .from('test_users')
-                        .update({ 
-                            last_activity: new Date().toISOString()
-                        })
-                        .eq('id', currentUser.id);
-                } catch (error) {
-                    console.error('Error updating activity on unload:', error);
-                }
-            }
-        });
-
-        // Global error handler
-        window.addEventListener('error', function(event) {
-            console.error('Global error:', event.error);
-            showError('एक अप्रत्याशित त्रुटि हुई। कृपया पेज रीफ्रेश करें।');
-        });
-
-        // Handle unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error('Unhandled promise rejection:', event.reason);
-            showError('डेटा लोड करने में त्रुटि। कृपया पुनः प्रयास करें।');
-        });
-
-        // Expose functions for debugging (only in development)
-        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-            window.debugDashboard = {
-                currentUser,
-                userRole,
-                refreshDashboard,
-                loadStats,
-                checkAuth
-            };
-        }
-
-        // Console welcome message
-        console.log(`
-        ╔══════════════════════════════════════════════════════════════╗
-        ║                संचालनालय कृषि छत्तीसगढ़                      ║
-        ║              Crop Notification Dashboard                     ║
-        ║                                                              ║
-        ║  🌾 User: ${currentUser?.fullName || 'Loading...'}           ║
-        ║  🏛️  Role: ${getRoleDisplayName(userRole) || 'Loading...'}   ║
-        ║  📍 District: ${currentUser?.districtName || 'Loading...'}   ║
-        ║                                                              ║
-        ║  ⌨️  Shortcuts:                                              ║
-        ║  Ctrl+R - Refresh Dashboard                                 ║
-        ║  Ctrl+L - Logout                                            ║
-        ║                                                              ║
-        ║  🔄 Auto-refresh: Every 5 minutes                           ║
-        ║  📊 Stats refresh: Every 30 seconds                         ║
-        ╚══════════════════════════════════════════════════════════════╝
-        `);
 
     </script>
 </body>
 </html>
-
