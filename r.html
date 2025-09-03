@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>डैशबोर्ड - संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .dashboard-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .cg-logo {
+            height: 50px;
+            width: auto;
+        }
+
+        .logo-text h1 {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 3px;
+        }
+
+        .logo-text p {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .user-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            display: block;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .user-district {
+            display: block;
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .welcome-section h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .welcome-section p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        /* Navigation Cards */
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .nav-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            border: 2px solid transparent;
+        }
+
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            border-color: #007bff;
+        }
+
+        .nav-icon {
+            font-size: 48px;
+            color: #007bff;
+            margin-bottom: 15px;
+        }
+
+        .nav-card h3 {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .nav-card p {
+            font-size: 14px;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .nav-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+
+            .main-content {
+                padding: 20px 15px;
+            }
+
+            .welcome-section h1 {
+                font-size: 22px;
+            }
+        }
+
+        /* Role-specific styling */
+        .admin-card {
+            border-left: 4px solid #28a745;
+        }
+
+        .district-card {
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="dashboard-header">
+        <div class="logo-section">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+            <div class="logo-text">
+                <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                <p>Directorate of Agriculture, Chhattisgarh</p>
+            </div>
+        </div>
+        <div class="user-section">
+            <div class="user-info">
+                <span class="user-name" id="userFullName">लोड हो रहा है...</span>
+                <span class="user-district" id="userDistrict"></span>
+            </div>
+            <button class="logout-btn" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i>
+                लॉगआउट
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1>फसल सूचना प्रबंधन सिस्टम में आपका स्वागत है</h1>
+            <p>कृपया नीचे दिए गए विकल्पों में से चुनें</p>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="nav-grid" id="navigationGrid">
+            <!-- Dynamic content based on user role -->
+        </div>
+
+        <!-- Stats Section -->
+        <div class="stats-section" id="statsSection">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #2c3e50;">
+                <i class="fas fa-chart-bar"></i> सांख्यिकी
+            </h2>
+            <div class="stats-grid" id="statsGrid">
+                <!-- Dynamic stats -->
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { supabaseClient } from './supabase-config.js';
+
+        // Check authentication
+        function checkAuth() {
+            const userId = sessionStorage.getItem('userId');
+            if (!userId) {
+                window.location.href = 'header.html';
+                return false;
+            }
+            return true;
+        }
+
+        // Load user info
+        function loadUserInfo() {
+            const fullName = sessionStorage.getItem('fullName');
+            const districtName = sessionStorage.getItem('districtName');
+            const role = sessionStorage.getItem('role');
+
+            document.getElementById('userFullName').textContent = fullName || 'उपयोगकर्ता';
+            document.getElementById('userDistrict').textContent = districtName || '';
+        }
+
+        // Load navigation based on role
+        function loadNavigation() {
+            const role = sessionStorage.getItem('role');
+            const navigationGrid = document.getElementById('navigationGrid');
+
+            let navItems = [];
+
+            if (role === 'state_admin') {
+                navItems = [
+                    {
+                        href: 'pages/import-data.html',
+                        icon: 'fas fa-upload',
+                        title: 'डेटा आयात',
+                        description: 'एक्सेल फाइल से फसल डेटा आयात करें',
+                        class: 'admin-card'
+                    },
+                    {
+                        href: 'pages/import-history.html',
+                        icon: 'fas fa-history',
+                        title: 'आयात इतिहास',
+                        description: 'पिछले आयात की जानकारी देखें',
+                        class: 'admin-card'
+                    },
+                    {
+                        href: 'pages/reports.html',
+                        icon: 'fas fa-chart-line',
+                        title: 'रिपोर्ट्स',
+                        description: 'विस्तृत रिपोर्ट्स और विश्लेषण',
+                        class: 'admin-card'
+                    }
+                ];
+            } else if (role === 'district_user') {
+                navItems = [
+                    {
+                        href: 'pages/notifications.html',
+                        icon: 'fas fa-list-alt',
+                        title: 'फसल सूचनाएं',
+                        description: 'अपने जिले की सभी फसल सूचनाएं देखें',
+                        class: 'district-card'
+                    },
+                    {
+                        href: 'pages/validation.html',
+                        icon: 'fas fa-check-circle',
+                        title: 'डेटा सत्यापन',
+                        description: 'फसल डेटा की जांच और सुधार करें',
+                        class: 'district-card'
+                    },
+                    {
+                        href: 'pages/reports.html',
+                        icon: 'fas fa-download',
+                        title: 'एक्सेल डाउनलोड',
+                        description: 'डेटा को एक्सेल फॉर्मेट में डाउनलोड करें',
+                        class: 'district-card'
+                    }
+                ];
+            }
+
+            navigationGrid.innerHTML = navItems.map(item => `
+                <a href="${item.href}" class="nav-card ${item.class}">
+                    <div class="nav-icon">
+                        <i class="${item.icon}"></i>
+                    </div>
+                    <h3>${item.title}</h3>
+                    <p>${item.description}</p>
+                </a>
+            `).join('');
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const role = sessionStorage.getItem('role');
+                const districtId = sessionStorage.getItem('districtId');
+                const statsGrid = document.getElementById('statsGrid');
+
+                if (role === 'district_user') {
+                    // Load district-specific stats
+                    const { data, error } = await supabaseClient
+                        .from('crop_notifications')
+                        .select('id, hierarchy_edited, crop_edited, has_validation_errors, current_village_name')
+                        .eq('current_district_id', districtId);
+
+                    if (error) throw error;
+
+                    const totalNotifications = data.length;
+                    const editedNotifications = data.filter(item => item.hierarchy_edited || item.crop_edited).length;
+                    const pendingValidation = data.filter(item => item.has_validation_errors).length;
+                    const uniqueVillages = new Set(data.map(item => item.current_village_name)).size;
+
+                    statsGrid.innerHTML = `
+                        <div class="stat-item">
+                            <span class="stat-number">${totalNotifications}</span>
+                            <span class="stat-label">कुल सूचनाएं</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${editedNotifications}</span>
+                            <span class="stat-label">संपादित सूचनाएं</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${pendingValidation}</span>
+                            <span class="stat-label">सत्यापन बाकी</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${uniqueVillages}</span>
+                            <span class="stat-label">कुल गांव</span>
+                        </div>
+                    `;
+                } else if (role === 'state_admin') {
+                    // Load state-level stats
+                    const { data, error } = await supabaseClient
+                        .from('crop_notifications')
+                        .select('id, current_district_id, season, notification_year');
+
+                    if (error) throw error;
+
+                    const totalNotifications = data.length;
+                    const uniqueDistricts = new Set(data.map(item => item.current_district_id)).size;
+                    const kharifCount = data.filter(item => item.season === 'Kharif').length;
+                    const rabiCount = data.filter(item => item.season === 'Rabi').length;
+
+                    statsGrid.innerHTML = `
+                        <div class="stat-item">
+                            <span class="stat-number">${totalNotifications}</span>
+                            <span class="stat-label">कुल सूचनाएं</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${uniqueDistricts}</span>
+                            <span class="stat-label">सक्रिय जिले</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${kharifCount}</span>
+                            <span class="stat-label">खरीफ सूचनाएं</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">${rabiCount}</span>
+                            <span class="stat-label">रबी सूचनाएं</span>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-item">
+                        <span class="stat-number">--</span>
+                        <span class="stat-label">डेटा लोड नहीं हो सका</span>
+                    </div>
+                `;
+            }
+        }
+
+        // Logout function
+        window.logout = async function() {
+            const userId = sessionStorage.getItem('userId');
+            
+            if (userId) {
+                try {
+                    await supabaseClient
+                        .from('test_users')
+                        .update({
+                            is_online: false,
+                            last_activity: new Date().toISOString()
+                        })
+                        .eq('id', userId);
+                } catch (error) {
+                    console.error('Error updating logout status:', error);
+                }
+            }
+            
+            sessionStorage.clear();
+            window.location.href = 'header.html';
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkAuth()) {
+                loadUserInfo();
+                loadNavigation();
+                loadStats();
+            }
+        });
+    </script>
+</body>
+</html>
