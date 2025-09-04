@@ -1,9 +1,18 @@
+You are absolutely correct! My apologies again for the misunderstanding and for not fully integrating your critical requirements in the previous attempt. I've listened carefully to your feedback this time.
+You want the exact visual look from the image, but with these crucial functional and textual changes:
+
+Left Section Title: "अटल मॉनिटरिंग पोर्टल" will be "संचालनालय कृषि छत्तीसगढ़"
+Welcome Text: "Welcome to Atal Monitoring Dashboard" will be "Welcome to Login"
+Bottom Links: "Go to Website" and "Go to Portal" will be removed.
+Dynamic District Selection: The district dropdown will be visible and functional, dynamically loaded from Supabase, and correctly used in your login algorithm to match the user's district_id.
+
+Here is the updated login.html file incorporating all these specific changes, while maintaining the visual style and your numerical CAPTCHA/login algorithm:
 <!DOCTYPE html>
 <html lang="hi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>लॉगिन - अटल मॉनिटरिंग डैशबोर्ड</title>
+    <title>लॉगिन - संचालनालय कृषि छत्तीसगढ़</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
@@ -247,26 +256,6 @@
             cursor: not-allowed;
         }
 
-        /* Bottom Links */
-        .bottom-links {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
-            font-size: 14px;
-            font-family: 'Arial', sans-serif;
-        }
-
-        .bottom-links a {
-            color: var(--primary-blue);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-
-        .bottom-links a:hover {
-            color: var(--dark-blue);
-            text-decoration: underline;
-        }
-
         /* Error/Success Messages */
         .error-message {
             color: #C62828;
@@ -357,14 +346,14 @@
         <div class="login-left-section">
             <div class="login-left-content">
                 <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
-                <h1>अटल मॉनिटरिंग पोर्टल</h1>
+                <h1>संचालनालय कृषि छत्तीसगढ़</h1> <!-- Updated title -->
                 <p>Government of Chhattisgarh</p>
             </div>
         </div>
 
         <!-- Right Section: Login Form -->
         <div class="login-right-section">
-            <p class="welcome-text">Welcome to Atal Monitoring Dashboard</p>
+            <p class="welcome-text">Welcome to Login</p> <!-- Updated welcome text -->
             <h2>Login with your Credentials</h2>
             
             <form id="loginForm">
@@ -390,8 +379,8 @@
                     </div>
                 </div>
 
-                <!-- District selection (retained from your previous code) -->
-                <div class="form-group" style="display: none;"> <!-- Hidden as per image, but kept for functionality -->
+                <!-- District selection - NOW VISIBLE AND FUNCTIONAL -->
+                <div class="form-group">
                     <label for="district">
                         <i class="fas fa-map-marker-alt"></i> जिला
                     </label>
@@ -407,10 +396,7 @@
                 <div id="errorMessage" class="error-message"></div>
                 <div id="successMessage" class="success-message"></div>
 
-                <div class="bottom-links">
-                    <a href="javascript:void(0);">Go to Website</a>
-                    <a href="javascript:void(0);">Go to Portal</a>
-                </div>
+                <!-- Removed bottom-links section -->
             </form>
         </div>
     </div>
@@ -458,7 +444,7 @@
                 const districtSelect = document.getElementById('district');
                 
                 const { data, error } = await supabaseClient
-                    .from('districts')
+                    .from('districts') // Assuming your districts table is named 'districts'
                     .select('id, name')
                     .order('name', { ascending: true });
                     
@@ -503,9 +489,8 @@
             drawCaptcha(); // Refresh CAPTCHA on reset
         }
 
+        // No separate CAPTCHA modal in this design, CAPTCHA is inline.
         window.closeCaptchaModal = function() {
-            // No separate CAPTCHA modal in this design, CAPTCHA is inline.
-            // This function might be called by old logic, so we'll just ensure CAPTCHA is refreshed.
             document.getElementById('captchaInput').value = '';
             document.getElementById('errorMessage').style.display = 'none'; // Use main error message
             document.getElementById('loginBtn').innerHTML = 'Login';
@@ -564,13 +549,11 @@
             tempLoginData = {
                 username: document.getElementById('username').value.trim(),
                 password: document.getElementById('password').value,
-                // districtId is hidden, so we might need a default or derive it if necessary
-                // For now, let's assume a default or remove it if not used in login logic
-                districtId: 'default-district-id', // Placeholder or remove if not strictly needed
+                districtId: document.getElementById('district').value, // Now directly from visible dropdown
             };
 
-            // Validate form data
-            if (!tempLoginData.username || !tempLoginData.password || !document.getElementById('captchaInput').value.trim()) {
+            // Validate form data including the visible district and CAPTCHA input
+            if (!tempLoginData.username || !tempLoginData.password || !tempLoginData.districtId || !document.getElementById('captchaInput').value.trim()) {
                 showError('कृपया सभी आवश्यक फील्ड भरें');
                 return;
             }
@@ -602,7 +585,7 @@
                 const hashedPassword = await hashPassword(password);
                 
                 const { data, error } = await supabaseClient
-                    .from('test_users')
+                    .from('test_users') // Assuming your user table is named 'test_users'
                     .select(`
                         id, username, password_hash, full_name, role, is_active, district_id,
                         districts (
@@ -621,8 +604,8 @@
                     throw new Error('अमान्य यूजरनेम या पासवर्ड');
                 }
 
-                // District check (if districtId is critical, ensure it's handled)
-                if (data.district_id && data.district_id !== districtId && districtId !== 'default-district-id') {
+                // District verification using the selected dropdown value
+                if (data.district_id && data.district_id !== districtId) {
                     throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
                 }
 
@@ -681,7 +664,7 @@
                 return;
             }
             drawCaptcha();
-            loadDistricts(); // Load districts even if hidden, in case it's used by algo
+            loadDistricts(); // Load districts when the page loads
         });
 
         // Make functions globally available
@@ -698,19 +681,17 @@
         ║  🎨 Warli Art Background Visible                            ║
         ║  🔢 Your Numerical CAPTCHA Logic Retained                   ║
         ║  🔒 Your Supabase Login Algorithm Integrated                ║
+        ║  ✔️ District Selection VISIBLE & FUNCTIONAL                 ║
+        ║  ✔️ Text & Link Changes Applied                             ║
         ║  📱 Fully Responsive Design                                 ║
         ║  🚀 Redirects to: dashboard.html                            ║
         ║                                                              ║
         ║  Visual & Functional Details:                                ║
-        ║  ✅ Central login card layout matched                       ║
-        ║  ✅ Warli art background (raw.githubusercontent.com)        ║
-        ║  ✅ Login form fields, labels, buttons matched              ║
-        ║  ✅ "Welcome..." orange text, "Login..." dark text matched  ║
-        ║  ✅ CAPTCHA display styled like image (shows numerical)     ║
-        ║  ✅ Refresh icon for CAPTCHA matched                        ║
-        ║  ✅ Bottom links "Go to Website/Portal" matched             ║
+        ║  ✅ Left title: "संचालनालय कृषि छत्तीसगढ़"                   ║
+        ║  ✅ Welcome text: "Welcome to Login"                        ║
+        ║  ✅ Bottom links "Go to Website/Portal" REMOVED             ║
+        ║  ✅ District dropdown is now VISIBLE and functional         ║
         ║  ✅ All existing JS login/captcha logic preserved           ║
-        ║  ✅ District select kept hidden as per image, but active    ║
         ╚══════════════════════════════════════════════════════════════╝
         `);
     </script>
