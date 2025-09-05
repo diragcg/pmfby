@@ -1,7 +1,10 @@
+// pmfby/js/error-handler.js
+
 class ErrorHandler {
     constructor() {
         this.errorLog = [];
         this.maxLogSize = 100;
+        this.currentRetryFunction = null; // To store retry function for modal
         this.init();
     }
 
@@ -22,6 +25,7 @@ class ErrorHandler {
                 column: event.colno,
                 stack: event.error?.stack
             });
+            event.preventDefault(); // Prevent default browser error handling
         });
     }
 
@@ -70,7 +74,7 @@ class ErrorHandler {
                             <button class="error-modal-close">&times;</button>
                         </div>
                         <div class="error-modal-body">
-                            <div class="error-message"></div>
+                            <div class="error-message-display"></div>
                             <div class="error-details" style="display: none;">
                                 <h4>Technical Details:</h4>
                                 <pre class="error-stack"></pre>
@@ -172,7 +176,7 @@ class ErrorHandler {
                 padding: 20px;
             }
             
-            .error-message {
+            .error-message-display { /* Renamed to avoid conflict with existing .error-message */
                 font-size: 16px;
                 margin-bottom: 15px;
                 color: #333;
@@ -344,33 +348,36 @@ class ErrorHandler {
 
     setupErrorModalEvents() {
         const modal = document.getElementById('error-modal');
+        if (!modal) return;
         const closeBtn = modal.querySelector('.error-modal-close');
         const retryBtn = modal.querySelector('.btn-retry');
         const detailsBtn = modal.querySelector('.btn-details');
         const reportBtn = modal.querySelector('.btn-report');
         const detailsDiv = modal.querySelector('.error-details');
 
-        closeBtn.addEventListener('click', () => this.hideErrorModal());
+        closeBtn?.addEventListener('click', () => this.hideErrorModal());
         
-        retryBtn.addEventListener('click', () => {
+        retryBtn?.addEventListener('click', () => {
             this.hideErrorModal();
             if (this.currentRetryFunction) {
                 this.currentRetryFunction();
             }
         });
 
-        detailsBtn.addEventListener('click', () => {
-            const isVisible = detailsDiv.style.display !== 'none';
-            detailsDiv.style.display = isVisible ? 'none' : 'block';
-            detailsBtn.textContent = isVisible ? 'Show Details' : 'Hide Details';
+        detailsBtn?.addEventListener('click', () => {
+            if (detailsDiv) {
+                const isVisible = detailsDiv.style.display !== 'none';
+                detailsDiv.style.display = isVisible ? 'none' : 'block';
+                if (detailsBtn) detailsBtn.textContent = isVisible ? 'Show Details' : 'Hide Details';
+            }
         });
 
-        reportBtn.addEventListener('click', () => {
+        reportBtn?.addEventListener('click', () => {
             this.reportError();
         });
 
         // Close on backdrop click
-        modal.querySelector('.error-modal-backdrop').addEventListener('click', (e) => {
+        modal.querySelector('.error-modal-backdrop')?.addEventListener('click', (e) => {
             if (e.target === e.currentTarget) {
                 this.hideErrorModal();
             }
@@ -450,6 +457,8 @@ class ErrorHandler {
     // Show toast notification
     showToast(type, title, message, duration = 5000) {
         const container = document.getElementById('toast-container');
+        if (!container) return; // Ensure container exists
+        
         const toast = document.createElement('div');
         
         const icons = {
@@ -471,7 +480,7 @@ class ErrorHandler {
         `;
 
         // Add event listeners
-        toast.querySelector('.toast-close').addEventListener('click', () => {
+        toast.querySelector('.toast-close')?.addEventListener('click', () => {
             this.removeToast(toast);
         });
 
@@ -499,11 +508,12 @@ class ErrorHandler {
     // Show error modal
     showErrorModal(error, context = {}) {
         const modal = document.getElementById('error-modal');
-        const messageDiv = modal.querySelector('.error-message');
+        if (!modal) return;
+        const messageDiv = modal.querySelector('.error-message-display'); // Corrected selector
         const stackDiv = modal.querySelector('.error-stack');
 
-        messageDiv.textContent = error.message || 'An unexpected error occurred';
-        stackDiv.textContent = error.stack || 'No stack trace available';
+        if (messageDiv) messageDiv.textContent = error.message || 'An unexpected error occurred';
+        if (stackDiv) stackDiv.textContent = error.stack || 'No stack trace available';
 
         // Store retry function if provided
         this.currentRetryFunction = context.retryFunction;
@@ -514,14 +524,15 @@ class ErrorHandler {
 
     hideErrorModal() {
         const modal = document.getElementById('error-modal');
+        if (!modal) return;
         modal.style.display = 'none';
         document.body.style.overflow = '';
         
         // Reset details visibility
         const detailsDiv = modal.querySelector('.error-details');
         const detailsBtn = modal.querySelector('.btn-details');
-        detailsDiv.style.display = 'none';
-        detailsBtn.textContent = 'Show Details';
+        if (detailsDiv) detailsDiv.style.display = 'none';
+        if (detailsBtn) detailsBtn.textContent = 'Show Details';
     }
 
     // Report error to server (optional)
@@ -557,6 +568,8 @@ class ErrorHandler {
     // Form validation with user-friendly messages
     validateForm(formElement, showToast = true) {
         const errors = [];
+        if (!formElement) return { isValid: true, errors: [] }; // No form to validate
+
         const requiredFields = formElement.querySelectorAll('[required]');
 
         requiredFields.forEach(field => {
@@ -611,6 +624,27 @@ class ErrorHandler {
     showInfo(title, message) {
         return this.showToast('info', title, message);
     }
+    
+    // NEW: Directly exposed showError for login.js
+    showError(message) {
+        const errorDiv = document.getElementById('errorMessage'); // Assuming login page has this
+        if (errorDiv) {
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            this.showToast('error', 'Error', message); // Also show as toast
+        }
+    }
+
+    // NEW: Directly exposed showSuccess for login.js
+    showSuccess(message) {
+        const successDiv = document.getElementById('successMessage'); // Assuming login page has this
+        if (successDiv) {
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            this.showToast('success', 'Success', message); // Also show as toast
+        }
+    }
+
 
     // Get error logs for debugging
     getErrorLogs() {
