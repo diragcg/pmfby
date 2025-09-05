@@ -14,7 +14,8 @@ class SecureDatabase {
         const allowedTables = [
             'test_users', 'districts', 'schemes', 'input_types', 
             'trade_names', 'units', 'viksit_krishi_report', 
-            'navigation_items', 'navigation_categories'
+            'navigation_items', 'navigation_categories', 'dashboard_cards',
+            'card_clicks', 'admin_logs', 'form_definitions' // Added dashboard_cards, card_clicks, admin_logs, form_definitions
         ];
 
         if (!allowedTables.includes(tableName)) {
@@ -29,7 +30,12 @@ class SecureDatabase {
     validateUUID(uuid, fieldName = 'ID') {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
         
-        if (!uuidRegex.test(uuid)) {
+        if (uuid === null || uuid === undefined || uuid === '') {
+            // Allow null/empty for optional UUIDs, but validate if present
+            return true;
+        }
+
+        if (typeof uuid !== 'string' || !uuidRegex.test(uuid)) {
             throw new Error(`Invalid ${fieldName} format`);
         }
         
@@ -40,7 +46,7 @@ class SecureDatabase {
     validateDate(dateString, fieldName = 'date') {
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         
-        if (!dateRegex.test(dateString)) {
+        if (!dateString || typeof dateString !== 'string' || !dateRegex.test(dateString)) {
             throw new Error(`Invalid ${fieldName} format. Use YYYY-MM-DD`);
         }
 
@@ -70,8 +76,10 @@ class SecureDatabase {
     // Secure SELECT operations
     async secureSelect(tableName, options = {}) {
         try {
-            // Require authentication
-            authManager.requireAuth();
+            // Require authentication for data access (unless explicitly public)
+            if (!options.isPublic) {
+                authManager.requireAuth();
+            }
 
             // Build secure query
             let query = this.buildSecureQuery(tableName);
@@ -87,7 +95,7 @@ class SecureDatabase {
             if (options.filters) {
                 for (const [column, value] of Object.entries(options.filters)) {
                     // Sanitize column name (prevent injection)
-                    const safeColumn = column.replace(/[^a-zA-Z0-9_]/g, '');
+                    const safeColumn = column.replace(/[^a-zA-Z0-9_.]/g, ''); // Allow dot for relations
                     
                     if (typeof value === 'string') {
                         // Sanitize string values
@@ -99,6 +107,8 @@ class SecureDatabase {
                         query = query.eq(safeColumn, value);
                     } else if (typeof value === 'boolean') {
                         query = query.eq(safeColumn, value);
+                    } else if (value === null) { // Allow filtering by null
+                        query = query.is(safeColumn, null);
                     }
                 }
             }
@@ -114,6 +124,11 @@ class SecureDatabase {
             if (options.limit) {
                 this.validateNumber(options.limit, 'limit', 1, 1000);
                 query = query.limit(options.limit);
+            }
+            
+            // Apply single
+            if (options.single) {
+                query = query.single();
             }
 
             // Execute query
@@ -135,7 +150,6 @@ class SecureDatabase {
     // Secure INSERT operations
     async secureInsert(tableName, data) {
         try {
-            // Require authentication
             authManager.requireAuth();
 
             // Sanitize all input data
@@ -154,7 +168,7 @@ class SecureDatabase {
 
             // Execute secure insert
             const query = this.buildSecureQuery(tableName);
-            const { data: result, error } = await query.insert([finalData]).select();
+            const { data: result, error } = await query.insert([finalData]).select().single(); // Select single to get inserted row
 
             if (error) {
                 console.error('Database insert error:', error);
@@ -165,7 +179,7 @@ class SecureDatabase {
             this.clearCacheByTable(tableName);
 
             console.log('✅ Secure insert successful:', tableName);
-            return result[0];
+            return result; // Return the single inserted row
 
         } catch (error) {
             console.error('Secure insert error:', error);
@@ -176,11 +190,17 @@ class SecureDatabase {
     // Secure UPDATE operations
     async secureUpdate(tableName, id, data) {
         try {
-            // Require authentication
             authManager.requireAuth();
 
-            // Validate ID
-            this.validateUUID(id, 'Record ID');
+            // Validate ID (assuming it's a UUID or integer based on your table)
+            if (typeof id === 'string') {
+                this.validateUUID(id, 'Record ID');
+            } else if (typeof id === 'number') {
+                this.validateNumber(id, 'Record ID', 1); // Assuming IDs are positive integers
+            } else {
+                throw new Error('Invalid ID type for update');
+            }
+            
 
             // Sanitize update data
             const sanitizedData = SecurityUtils.sanitizeFormData(data);
@@ -198,7 +218,7 @@ class SecureDatabase {
             const { data: result, error } = await query
                 .update(finalData)
                 .eq('id', id)
-                .select();
+                .select().single();
 
             if (error) {
                 console.error('Database update error:', error);
@@ -209,10 +229,105 @@ class SecureDatabase {
             this.clearCacheByTable(tableName);
 
             console.log('✅ Secure update successful:', tableName, id);
-            return result[0];
+            return result;
 
         } catch (error) {
             console.error('Secure update error:', error);
+            throw error;
+        }
+    }
+    
+    // NEW: Secure UPSERT operation for reordering
+    async secureUpsert(tableName, data, onConflictColumn = 'id') {
+        try {
+            authManager.requireAuth();
+
+            // Ensure data is an array of objects
+            if (!Array.isArray(data)) {
+                data = [data];
+            }
+
+            const sanitizedDataArray = data.map(item => SecurityUtils.sanitizeFormData(item));
+            
+            // Execute secure upsert
+            const query = this.buildSecureQuery(tableName);
+            const { data: result, error } = await query
+                .upsert(sanitizedDataArray, { onConflict: onConflictColumn, ignoreDuplicates: false })
+                .select(); // Select all updated rows
+
+            if (error) {
+                console.error('Database upsert error:', error);
+                throw new Error(`Upsert failed: ${error.message}`);
+            }
+
+            // Clear related cache
+            this.clearCacheByTable(tableName);
+
+            console.log('✅ Secure upsert successful:', tableName);
+            return result;
+
+        } catch (error) {
+            console.error('Secure upsert error:', error);
+            throw error;
+        }
+    }
+
+    // NEW: Secure DELETE operation
+    async secureDelete(tableName, id) {
+        try {
+            authManager.requireAuth();
+
+            // Validate ID
+            if (typeof id === 'string') {
+                this.validateUUID(id, 'Record ID');
+            } else if (typeof id === 'number') {
+                this.validateNumber(id, 'Record ID', 1);
+            } else {
+                throw new Error('Invalid ID type for delete');
+            }
+
+            const { error } = await this.buildSecureQuery(tableName)
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error('Database delete error:', error);
+                throw new Error(`Delete failed: ${error.message}`);
+            }
+
+            this.clearCacheByTable(tableName);
+            console.log('✅ Secure delete successful:', tableName, id);
+            return true;
+
+        } catch (error) {
+            console.error('Secure delete error:', error);
+            throw error;
+        }
+    }
+    
+    // NEW: Secure RPC call for executing SQL scripts (e.g., DDL)
+    async executeSqlScript(sqlText) {
+        try {
+            authManager.requireAuth();
+            
+            // Basic sanitization/validation for SQL text (critical!)
+            if (!sqlText || typeof sqlText !== 'string') {
+                throw new Error('Invalid SQL script provided.');
+            }
+            // Further checks can be added, e.g., disallowing 'DROP TABLE' directly
+            // For now, rely on Supabase RPC function permissions.
+            
+            const { data, error } = await supabaseClient.rpc('execute_sql_script', { sql_text: sqlText });
+            
+            if (error) {
+                console.error('RPC execute_sql_script error:', error);
+                throw new Error(`SQL script execution failed: ${error.message}`);
+            }
+            
+            return data;
+            
+        } catch (error) {
+            console.error('Secure RPC call error:', error);
             throw error;
         }
     }
@@ -226,7 +341,24 @@ class SecureDatabase {
             case 'test_users':
                 this.validateUserData(data);
                 break;
+            case 'dashboard_cards':
+                this.validateDashboardCardData(data);
+                break;
+            case 'navigation_items':
+                this.validateNavigationItemData(data);
+                break;
+            case 'card_clicks':
+                this.validateCardClickData(data);
+                break;
+            case 'admin_logs':
+                this.validateAdminLogData(data);
+                break;
+            case 'form_definitions':
+                this.validateFormDefinitionData(data);
+                break;
             // Add more table validations as needed
+            default:
+                console.warn(`No specific validation for table: ${tableName}`);
         }
     }
 
@@ -246,7 +378,9 @@ class SecureDatabase {
         const numericFields = [
             'total_camps_organized', 'total_farmers_participated',
             'male_farmers', 'female_farmers', 'public_reps_count',
-            'cash_subsidy_amount'
+            'cash_subsidy_amount', 'officers_dist_admin', 'officers_departmental',
+            'officers_allied_dept', 'officers_kvk', 'officers_igkv_scient_prof',
+            'total_officers_present', 'publicity_material_distributed'
         ];
 
         numericFields.forEach(field => {
@@ -277,6 +411,28 @@ class SecureDatabase {
 
         this.validateNumber(input.total_amount, `Dynamic input ${index + 1} total amount`, 0);
         this.validateNumber(input.subsidy_amount, `Dynamic input ${index + 1} subsidy amount`, 0);
+
+        // Validate input_details based on input_type
+        if (input.input_details) {
+            switch (input.input_type) {
+                case 'Seed':
+                    if (!input.input_details.crop_name) throw new Error(`Dynamic input ${index + 1}: Crop name is required for Seed`);
+                    if (!input.input_details.variety) throw new Error(`Dynamic input ${index + 1}: Variety is required for Seed`);
+                    this.validateNumber(input.input_details.quantity, `Dynamic input ${index + 1} seed quantity`, 0);
+                    break;
+                case 'Insecticide/Pesticide':
+                case 'Fertilizer':
+                case 'Biofertilizer':
+                    if (!input.input_details.trade_name) throw new Error(`Dynamic input ${index + 1}: Trade name is required for Chemical`);
+                    this.validateNumber(input.input_details.quantity, `Dynamic input ${index + 1} chemical quantity`, 0);
+                    this.validateUUID(input.input_details.unit_id, `Dynamic input ${index + 1} unit ID`);
+                    break;
+                case 'Farm Tool or Equipment':
+                    if (!input.input_details.equipment_name) throw new Error(`Dynamic input ${index + 1}: Equipment name is required for Farm Tool`);
+                    this.validateNumber(input.input_details.quantity, `Dynamic input ${index + 1} equipment quantity`, 0);
+                    break;
+            }
+        }
     }
 
     // Validate user data
@@ -295,7 +451,65 @@ class SecureDatabase {
         if (data.role && !allowedRoles.includes(data.role)) {
             throw new Error('Invalid user role');
         }
+        this.validateUUID(data.district_id, 'District ID');
     }
+
+    // Validate Dashboard Card Data
+    validateDashboardCardData(data) {
+        if (!data.title_hi) throw new Error('Card title (Hindi) is required');
+        if (!data.title_en) throw new Error('Card title (English) is required');
+        if (!data.target_url) throw new Error('Card URL is required');
+        if (!data.icon_class) throw new Error('Card icon is required');
+        this.validateNumber(data.display_order, 'Display order', 1);
+        this.validateUUID(data.created_by, 'Created By User ID');
+    }
+
+    // Validate Navigation Item Data
+    validateNavigationItemData(data) {
+        if (!data.name_hi) throw new Error('Navigation name (Hindi) is required');
+        if (!data.name_en) throw new Error('Navigation name (English) is required');
+        if (!data.url) throw new Error('Navigation URL is required');
+        if (!data.icon_class) throw new Error('Navigation icon is required');
+        this.validateNumber(data.category_id, 'Category ID', 1);
+        this.validateNumber(data.display_order, 'Display order', 1);
+        this.validateUUID(data.created_by, 'Created By User ID');
+        this.validateUUID(data.parent_id, 'Parent ID'); // Parent ID can be null
+    }
+
+    // Validate Card Click Data
+    validateCardClickData(data) {
+        if (!data.card_id) throw new Error('Card ID is required for click log');
+        if (!data.user_id) throw new Error('User ID is required for click log');
+        // ip_address is often captured server-side, but can be validated if passed
+        this.validateUUID(data.user_id, 'User ID');
+        this.validateNumber(data.card_id, 'Card ID', 1);
+    }
+
+    // Validate Admin Log Data
+    validateAdminLogData(data) {
+        if (!data.admin_id) throw new Error('Admin ID is required for admin log');
+        if (!data.action_type) throw new Error('Action type is required for admin log');
+        if (!data.description) throw new Error('Description is required for admin log');
+        this.validateUUID(data.admin_id, 'Admin ID');
+    }
+    
+    // Validate Form Definition Data
+    validateFormDefinitionData(data) {
+        if (!data.table_name) throw new Error('Table name is required for form definition');
+        if (!data.label) throw new Error('Label is required for form definition');
+        if (!data.fields || !Array.isArray(data.fields)) throw new Error('Fields array is required for form definition');
+        this.validateUUID(data.created_by, 'Created By User ID');
+        this.validateNumber(data.navigation_item_id, 'Navigation Item ID');
+        this.validateNumber(data.parent_dashboard_card_id, 'Parent Dashboard Card ID');
+        this.validateUUID(data.district_id, 'District ID');
+        
+        data.fields.forEach((field, index) => {
+            if (!field.name) throw new Error(`Field ${index + 1}: Name is required`);
+            if (!field.label) throw new Error(`Field ${index + 1}: Label is required`);
+            if (!field.type) throw new Error(`Field ${index + 1}: Type is required`);
+        });
+    }
+
 
     // Secure data fetching with caching
     async getWithCache(tableName, cacheKey, options = {}) {
@@ -349,7 +563,8 @@ class SecureDatabase {
         return this.getWithCache('districts', 'districts_list', {
             select: 'id, name',
             filters: { is_active: true },
-            orderBy: 'name'
+            orderBy: 'name',
+            isPublic: true // Districts can be public for login page
         });
     }
 
@@ -368,6 +583,22 @@ class SecureDatabase {
             orderBy: 'type_name_hi'
         });
     }
+    
+    async getTradeNames() {
+        return this.getWithCache('trade_names', 'trade_names_list', {
+            select: 'id, trade_name_hi, trade_name_en, input_type_id',
+            filters: { is_active: true },
+            orderBy: 'trade_name_hi'
+        });
+    }
+    
+    async getUnits() {
+        return this.getWithCache('units', 'units_list', {
+            select: 'id, unit_name_hi, unit_name_en, unit_type',
+            filters: { is_active: true },
+            orderBy: 'unit_name_hi'
+        });
+    }
 
     async submitReport(reportData) {
         console.log('📝 Submitting secure report...');
@@ -381,18 +612,19 @@ class SecureDatabase {
                 districts (name)
             `,
             orderBy: 'report_date',
-            ascending: false
+            ascending: false,
+            filters: {}
         };
 
         // Add secure filters
         if (filters.district_id) {
             this.validateUUID(filters.district_id, 'District ID');
-            options.filters = { ...options.filters, district_id: filters.district_id };
+            options.filters.district_id = filters.district_id;
         }
 
         if (filters.report_date) {
             this.validateDate(filters.report_date, 'Report date');
-            options.filters = { ...options.filters, report_date: filters.report_date };
+            options.filters.report_date = filters.report_date;
         }
 
         return this.secureSelect('viksit_krishi_report', options);
