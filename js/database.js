@@ -562,12 +562,11 @@ class SecureDatabase {
     async getDistricts() {
         return this.getWithCache('districts', 'districts_list', {
             select: 'id, name',
-            filters: { is_active: true },
+            // REMOVED: filters: { is_active: true }, // Removed this line
             orderBy: 'name',
             isPublic: true // Districts can be public for login page
         });
     }
-
     async getSchemes() {
         return this.getWithCache('schemes', 'schemes_list', {
             select: 'id, scheme_name',
