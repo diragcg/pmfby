@@ -166,6 +166,12 @@
         }
         
         /* Dynamic Input Section Styling */
+        .dynamic-input-entries-container {
+            max-height: 400px; /* Fixed height for scrolling */
+            overflow-y: auto;
+            padding-right: 15px; /* Space for scrollbar */
+            margin-bottom: 20px;
+        }
         .dynamic-input-entry {
             border: 1px dashed #28a745; /* Green dashed border */
             border-radius: 10px;
@@ -457,15 +463,15 @@
                 <!-- Section 3: Input Distribution -->
                 <h4 class="form-section-title">इनपुट, नकद सब्सिडी और उपकरण</h4>
                 <div class="form-group">
-                    <label for="cashSubsidyAmount">नकद सब्सिडी राशि (भारतीय रुपये)</label>
+                    <label for="cashSubsidyAmountTotal">नकद सब्सिडी राशि (भारतीय रुपये)</label>
                     <div class="input-group">
                         <span class="input-group-text">₹</span>
-                        <input type="number" id="cashSubsidyAmount" name="cashSubsidyAmount" min="0" step="0.01" value="0.00" required>
+                        <input type="number" id="cashSubsidyAmountTotal" name="cashSubsidyAmountTotal" min="0" step="0.01" value="0.00" disabled>
                     </div>
                 </div>
 
                 <!-- Dynamic Input Entries Container -->
-                <div id="dynamicInputEntriesContainer">
+                <div id="dynamicInputEntriesContainer" class="dynamic-input-entries-container">
                     <!-- Dynamic input entry forms will be appended here -->
                 </div>
                 <button type="button" id="addMoreInputBtn" class="add-more-btn"><i class="fas fa-plus"></i> और इनपुट/उपकरण जोड़ें</button>
@@ -532,6 +538,7 @@
                     <div class="form-group">
                         <label>इकाई <span style="color: red;">*</span></label>
                         <select class="unit-select">
+                            <option value="">इकाई चुनें</option>
                             <option value="ml">मिलीलीटर</option>
                             <option value="L">लीटर</option>
                             <option value="mg">मिलीग्राम</option>
@@ -687,7 +694,7 @@
         async function fetchSchemes() {
             try {
                 const { data, error } = await supabaseClient
-                    .from('schemes') // Assuming your schemes table is named 'Schemes'
+                    .from('schemes') // Corrected table name to lowercase 'schemes'
                     .select('id, scheme_name')
                     .eq('is_active', true)
                     .order('scheme_name', { ascending: true });
@@ -983,6 +990,15 @@
             toggleHeadedChairQuestion(); // Initial check on load
         }
 
+        function calculateTotalCashSubsidy() {
+            let totalSubsidy = 0;
+            document.querySelectorAll('.dynamic-input-entry .subsidy-amount').forEach(input => {
+                totalSubsidy += parseFloat(input.value) || 0;
+            });
+            document.getElementById('cashSubsidyAmountTotal').value = totalSubsidy.toFixed(2);
+            validateForm();
+        }
+
         function validateForm() {
             const form = document.getElementById('dailyReportForm');
             const requiredInputs = form.querySelectorAll('input[required], select[required], textarea[required]');
@@ -994,7 +1010,6 @@
                         allFieldsFilled = false;
                     }
                 } else if (input.type === 'radio') {
-                    // For radio buttons, check if at least one in the group is checked
                     const radioGroup = form.querySelectorAll(`input[name="${input.name}"]`);
                     if (!Array.from(radioGroup).some(radio => radio.checked)) {
                         allFieldsFilled = false;
@@ -1009,9 +1024,6 @@
                 const schemeSelect = entry.querySelector('.scheme-select');
                 const inputTypeSelect = entry.querySelector('.input-type-select');
                 
-                // Check if the dynamic entry itself is considered 'required' (e.g., if at least one entry is mandatory)
-                // For now, we assume if an entry exists, its required fields must be filled.
-
                 if (schemeSelect && schemeSelect.value.trim() === '') allFieldsFilled = false;
                 if (inputTypeSelect && inputTypeSelect.value.trim() === '') allFieldsFilled = false;
 
@@ -1036,6 +1048,14 @@
         }
 
         // --- Dynamic Input Section Functions ---
+        const unitOptionsMap = {
+            'Seed': [{ value: 'kg', text: 'किलोग्राम' }],
+            'Insecticide/Pesticide': [{ value: '', text: 'इकाई चुनें' }, { value: 'ml', text: 'मिलीलीटर' }, { value: 'L', text: 'लीटर' }, { value: 'mg', text: 'मिलीग्राम' }, { value: 'kg', text: 'किलोग्राम' }, { value: 'gram', text: 'ग्राम' }],
+            'Fertilizer': [{ value: '', text: 'इकाई चुनें' }, { value: 'ml', text: 'मिलीलीटर' }, { value: 'L', text: 'लीटर' }, { value: 'mg', text: 'मिलीग्राम' }, { value: 'kg', text: 'किलोग्राम' }, { value: 'gram', text: 'ग्राम' }],
+            'Biofertilizer': [{ value: '', text: 'इकाई चुनें' }, { value: 'ml', text: 'मिलीलीटर' }, { value: 'L', text: 'लीटर' }, { value: 'mg', text: 'मिलीग्राम' }, { value: 'kg', text: 'किलोग्राम' }, { value: 'gram', text: 'ग्राम' }],
+            'Farm Tool or Equipment': [{ value: 'number', text: 'संख्या' }]
+        };
+
         function populateSchemeSelect(selectElement) {
             selectElement.innerHTML = '<option value="">योजना चुनें</option>';
             allSchemes.forEach(scheme => {
@@ -1044,6 +1064,23 @@
                 option.textContent = scheme.scheme_name;
                 selectElement.appendChild(option);
             });
+        }
+
+        function populateUnitSelect(unitSelectElement, selectedType) {
+            unitSelectElement.innerHTML = '';
+            const options = unitOptionsMap[selectedType] || [];
+            options.forEach(optionData => {
+                const option = document.createElement('option');
+                option.value = optionData.value;
+                option.textContent = optionData.text;
+                unitSelectElement.appendChild(option);
+            });
+            // Set required attribute based on whether a selection is needed
+            if (options.length > 1 && selectedType !== 'Seed' && selectedType !== 'Farm Tool or Equipment') {
+                unitSelectElement.setAttribute('required', 'true');
+            } else {
+                unitSelectElement.removeAttribute('required');
+            }
         }
 
         function updateDynamicInputFields(entryDiv, selectedType) {
@@ -1056,12 +1093,19 @@
             });
 
             let targetFields = null;
+            const unitSelect = entryDiv.querySelector('.unit-select');
+
             if (selectedType === 'Seed') {
                 targetFields = entryDiv.querySelector('.seed-fields');
+                populateUnitSelect(unitSelect, selectedType); // Populate unit select
+                unitSelect.value = 'kg'; // Auto-select kg
             } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(selectedType)) {
                 targetFields = entryDiv.querySelector('.chemical-fields');
+                populateUnitSelect(unitSelect, selectedType); // Populate unit select
             } else if (selectedType === 'Farm Tool or Equipment') {
                 targetFields = entryDiv.querySelector('.farm-tool-fields');
+                populateUnitSelect(unitSelect, selectedType); // Populate unit select
+                unitSelect.value = 'number'; // Auto-select number
             }
 
             if (targetFields) {
@@ -1070,7 +1114,15 @@
                     input.setAttribute('required', 'true');
                 });
             }
+            // Ensure unit select is required if it has multiple options and is part of chemical/fertilizer types
+            if (unitSelect && unitSelect.options.length > 1 && ['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(selectedType)) {
+                unitSelect.setAttribute('required', 'true');
+            } else if (unitSelect) {
+                unitSelect.removeAttribute('required');
+            }
+
             validateForm();
+            calculateTotalCashSubsidy(); // Recalculate total cash subsidy
         }
 
         function addDynamicInputEntry() {
@@ -1086,17 +1138,32 @@
             const inputTypeSelect = entryDiv.querySelector('.input-type-select');
             inputTypeSelect.addEventListener('change', () => updateDynamicInputFields(entryDiv, inputTypeSelect.value));
             
+            // Set up event listeners for inputs within the new entry for validation and auto-sum
+            entryDiv.querySelectorAll('input, select, textarea').forEach(element => {
+                element.addEventListener('input', () => {
+                    validateForm();
+                    if (element.classList.contains('subsidy-amount')) {
+                        calculateTotalCashSubsidy(); // Recalculate if a subsidy amount changes
+                    }
+                });
+                element.addEventListener('change', () => {
+                    validateForm();
+                    if (element.classList.contains('subsidy-amount')) {
+                        calculateTotalCashSubsidy(); // Recalculate if a subsidy amount changes
+                    }
+                });
+            });
+
             entryDiv.querySelector('.remove-entry-btn').addEventListener('click', () => {
                 entryDiv.remove();
                 validateForm(); // Re-validate after removing an entry
+                calculateTotalCashSubsidy(); // Recalculate after removing an entry
             });
 
-            // Add event listeners for new fields for validation
-            entryDiv.querySelectorAll('input, select, textarea').forEach(element => {
-                element.addEventListener('input', validateForm);
-                element.addEventListener('change', validateForm);
-            });
+            // Initial setup for the new entry
+            updateDynamicInputFields(entryDiv, inputTypeSelect.value); // Set up initial conditional fields
             validateForm(); // Re-validate after adding new entry
+            calculateTotalCashSubsidy(); // Recalculate after adding new entry
         }
         // --- End Dynamic Input Section Functions ---
 
@@ -1175,7 +1242,7 @@
                 officers_igkv_scient_prof: parseInt(document.getElementById('igkvCount').value) || 0,
                 total_officers_present: parseInt(document.getElementById('totalOfficers').value) || 0,
                 publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount').value) || 0,
-                cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmount').value) || 0.00,
+                cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmountTotal').value) || 0.00, // Now auto-calculated
                 dynamic_inputs: dynamicInputsData, 
                 created_by: currentUser.id
             };
@@ -1190,10 +1257,10 @@
                 const submittedDate = new Date(formData.report_date).toLocaleDateString('hi-IN', { year: 'numeric', month: 'long', day: 'numeric' });
                 showMessage(formMessage, 'success', `दैनिक रिपोर्ट सफलतापूर्वक सबमिट की गई! दिनांक: ${submittedDate}`);
                 showToast('रिपोर्ट सबमिट की गई', 'success');
-                event.target.reset();
-                // Clear dynamic inputs and add one default
+                event.target.reset(); // Clear the form
+                // Re-initialize dynamic input entries
                 document.getElementById('dynamicInputEntriesContainer').innerHTML = '';
-                addDynamicInputEntry();
+                addDynamicInputEntry(); // Add one default entry
                 setupOfficerTotalCalculation();
                 setupFarmerTotalCalculation();
                 setupConditionalFields(); // Reset conditional fields visibility
