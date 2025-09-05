@@ -22,7 +22,7 @@ class AuthManager {
             
         } catch (error) {
             console.error('Auth initialization error:', error);
-            this.redirectToLogin();
+            // Don't auto-redirect during initialization
         }
     }
 
@@ -49,20 +49,29 @@ class AuthManager {
                     console.log('✅ Valid session found for:', this.currentUser.email);
                     return true;
                 } else {
-                    console.log('⏰ Session expired, logging out...');
-                    await this.logout();
+                    console.log('⏰ Session expired, clearing...');
+                    await this.clearExpiredSession();
                 }
             } else {
                 console.log('❌ No valid session found');
-                this.redirectToLogin();
             }
             
         } catch (error) {
             console.error('Session check error:', error);
-            this.redirectToLogin();
         }
         
         return false;
+    }
+
+    // Clear expired session without redirect
+    async clearExpiredSession() {
+        try {
+            await supabaseClient.auth.signOut();
+            this.currentUser = null;
+            this.isAuthenticated = false;
+        } catch (error) {
+            console.error('Error clearing expired session:', error);
+        }
     }
 
     // Load user profile from your database
@@ -214,7 +223,7 @@ class AuthManager {
             if (event === 'SIGNED_OUT') {
                 this.currentUser = null;
                 this.isAuthenticated = false;
-                this.redirectToLogin();
+                // Don't auto-redirect on sign out event
             } else if (event === 'SIGNED_IN' && session) {
                 this.currentUser = session.user;
                 this.isAuthenticated = true;
@@ -279,7 +288,6 @@ class AuthManager {
     requireAuth() {
         if (!this.isAuthenticated || !this.currentUser) {
             console.warn('🚫 Authentication required');
-            this.redirectToLogin();
             throw new Error('Authentication required');
         }
         return true;
@@ -294,16 +302,54 @@ class AuthManager {
     clearUserData() {
         // Clear any cached data
         localStorage.removeItem('userData');
-        sessionStorage.clear();
+        sessionStorage.removeItem('redirectCount');
+        
+        // Clear any auto-saved form data
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('autosave_')) {
+                localStorage.removeItem(key);
+            }
+        });
     }
 
-    // Redirect to login page
+    // FIXED: Better redirect logic to prevent loops
     redirectToLogin() {
-        // Replace with your actual login page
-        if (window.location.pathname !== '/login.html' && window.location.pathname !== '/header.html') {
-            console.log('🔄 Redirecting to login...');
-            window.location.href = 'header.html';
+        const currentPath = window.location.pathname;
+        const currentPage = currentPath.split('/').pop() || 'index.html';
+        
+        // Pages that don't need authentication
+        const publicPages = ['header.html', 'login.html', 'index.html', 'signup.html'];
+        
+        // Don't redirect if already on a public page
+        if (publicPages.includes(currentPage)) {
+            console.log('Already on public page:', currentPage);
+            return;
         }
+        
+        // Don't redirect if user is actually authenticated
+        if (this.isAuthenticated && this.currentUser) {
+            console.log('User is authenticated, no redirect needed');
+            return;
+        }
+        
+        // Check for redirect loops
+        const redirectCount = parseInt(sessionStorage.getItem('redirectCount') || '0');
+        if (redirectCount > 3) {
+            console.error('🚨 Redirect loop detected, stopping redirects');
+            sessionStorage.removeItem('redirectCount');
+            alert('Authentication error detected. Please clear your browser cache and try again.');
+            return;
+        }
+        
+        // Increment redirect counter
+        sessionStorage.setItem('redirectCount', (redirectCount + 1).toString());
+        
+        console.log('🔄 Redirecting to login...', { currentPage, redirectCount: redirectCount + 1 });
+        
+        // Add delay to prevent rapid redirects
+        setTimeout(() => {
+            window.location.href = 'header.html';
+        }, 1000);
     }
 
     // Get current user info
@@ -314,6 +360,46 @@ class AuthManager {
     // Check if user is authenticated
     isUserAuthenticated() {
         return this.isAuthenticated;
+    }
+
+    // New method: Check authentication without redirect
+    async verifyAuthentication() {
+        try {
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            
+            if (error) {
+                console.error('Session verification error:', error);
+                return false;
+            }
+            
+            if (!session || !session.user) {
+                console.log('No valid session during verification');
+                return false;
+            }
+            
+            // Check if session is expired
+            const now = new Date().getTime();
+            const expiresAt = new Date(session.expires_at).getTime();
+            
+            if (now >= expiresAt) {
+                console.log('Session expired during verification');
+                await this.clearExpiredSession();
+                return false;
+            }
+            
+            // Update local state if needed
+            if (!this.isAuthenticated) {
+                this.currentUser = session.user;
+                this.isAuthenticated = true;
+                await this.loadUserProfile();
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('Authentication verification failed:', error);
+            return false;
+        }
     }
 }
 
