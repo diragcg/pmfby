@@ -156,6 +156,11 @@ async function proceedWithLogin() {
         if (users.district_id && users.district_id !== districtId) { 
             throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
+        
+        // --- CRUCIAL CHECK: Ensure email is present before calling signInWithPassword ---
+        if (!users.email || users.email.trim() === '') {
+            throw new Error('लॉगिन के लिए यूजर का ईमेल एड्रेस उपलब्ध नहीं है। कृपया एडमिन से संपर्क करें।');
+        }
 
         // --- STEP 2: Authenticate with Supabase's built-in auth using the fetched email ---
         // Now that `test_users` has an 'email' column, we can use it directly.
@@ -183,7 +188,6 @@ async function proceedWithLogin() {
         });
 
         // --- STEP 5: Store user data and redirect ---
-        // Store user data in sessionStorage for immediate use
         sessionStorage.setItem('userId', users.id);
         sessionStorage.setItem('username', users.username);
         sessionStorage.setItem('fullName', users.full_name);
