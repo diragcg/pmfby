@@ -13,7 +13,7 @@ class PerformanceManager {
     init() {
         this.setupLazyLoading();
         this.setupVirtualScrolling();
-        this.preloadCriticalData();
+        // REMOVED: this.preloadCriticalData(); - Don't preload before auth
     }
 
     // LOADING STATES MANAGEMENT
@@ -241,7 +241,7 @@ class PerformanceManager {
         return `<div class="virtual-item">${JSON.stringify(item)}</div>`;
     }
 
-    // PRELOAD CRITICAL DATA
+    // PRELOAD CRITICAL DATA (Only call after authentication)
     async preloadCriticalData() {
         console.log('⚡ Preloading critical data...');
         
@@ -273,13 +273,15 @@ class PerformanceManager {
 
     // SMART FORM VALIDATION (Debounced)
     setupSmartValidation(formElement) {
+        if (!formElement) return;
+        
         const inputs = formElement.querySelectorAll('input, select, textarea');
         
         inputs.forEach(input => {
             input.addEventListener('input', () => {
                 this.debounce(() => {
                     this.validateField(input);
-                }, 300, `validate_${input.id}`);
+                }, 300, `validate_${input.id || input.name || Math.random()}`);
             });
 
             // Immediate validation on blur
@@ -322,6 +324,8 @@ class PerformanceManager {
 
     // AUTO-CALCULATION WITH BATCHING
     setupAutoCalculation(formElement) {
+        if (!formElement) return;
+        
         const calculationInputs = formElement.querySelectorAll('[data-calculate]');
         
         calculationInputs.forEach(input => {
@@ -354,17 +358,28 @@ class PerformanceManager {
     performCalculation(target, operations) {
         switch (target) {
             case 'totalFarmers':
-                const male = parseInt(document.getElementById('maleFarmers').value) || 0;
-                const female = parseInt(document.getElementById('femaleFarmers').value) || 0;
-                document.getElementById('totalFarmers').value = male + female;
+                const maleInput = document.getElementById('maleFarmers');
+                const femaleInput = document.getElementById('femaleFarmers');
+                const totalInput = document.getElementById('totalFarmers');
+                
+                if (maleInput && femaleInput && totalInput) {
+                    const male = parseInt(maleInput.value) || 0;
+                    const female = parseInt(femaleInput.value) || 0;
+                    totalInput.value = male + female;
+                }
                 break;
                 
             case 'totalOfficers':
                 const officers = ['distAdminCount', 'deptOfficersCount', 'alliedDeptCount', 'kvkCount', 'igkvCount'];
                 const total = officers.reduce((sum, id) => {
-                    return sum + (parseInt(document.getElementById(id)?.value) || 0);
+                    const element = document.getElementById(id);
+                    return sum + (parseInt(element?.value) || 0);
                 }, 0);
-                document.getElementById('totalOfficers').value = total;
+                
+                const totalOfficersInput = document.getElementById('totalOfficers');
+                if (totalOfficersInput) {
+                    totalOfficersInput.value = total;
+                }
                 break;
                 
             case 'cashSubsidy':
@@ -372,7 +387,11 @@ class PerformanceManager {
                 document.querySelectorAll('.subsidy-amount').forEach(input => {
                     totalSubsidy += parseFloat(input.value) || 0;
                 });
-                document.getElementById('cashSubsidyAmountTotal').value = totalSubsidy.toFixed(2);
+                
+                const cashSubsidyInput = document.getElementById('cashSubsidyAmountTotal');
+                if (cashSubsidyInput) {
+                    cashSubsidyInput.value = totalSubsidy.toFixed(2);
+                }
                 break;
         }
     }
