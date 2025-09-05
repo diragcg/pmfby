@@ -1,3 +1,4 @@
+
 import { supabaseClient } from './config.js';
 import { SecurityUtils } from './security.js';
 import { authManager } from './auth.js';
@@ -15,7 +16,7 @@ class SecureDatabase {
             'test_users', 'districts', 'schemes', 'input_types', 
             'trade_names', 'units', 'viksit_krishi_report', 
             'navigation_items', 'navigation_categories', 'dashboard_cards',
-            'card_clicks', 'admin_logs', 'form_definitions' // Added dashboard_cards, card_clicks, admin_logs, form_definitions
+            'card_clicks', 'admin_logs', 'form_definitions'
         ];
 
         if (!allowedTables.includes(tableName)) {
@@ -76,10 +77,12 @@ class SecureDatabase {
     // Secure SELECT operations
     async secureSelect(tableName, options = {}) {
         try {
-            // Require authentication for data access (unless explicitly public)
+            // --- FIX START ---
+            // Require authentication for data access UNLESS explicitly marked as public
             if (!options.isPublic) {
                 authManager.requireAuth();
             }
+            // --- FIX END ---
 
             // Build secure query
             let query = this.buildSecureQuery(tableName);
@@ -237,7 +240,7 @@ class SecureDatabase {
         }
     }
     
-    // NEW: Secure UPSERT operation for reordering
+    // Secure UPSERT operation for reordering
     async secureUpsert(tableName, data, onConflictColumn = 'id') {
         try {
             authManager.requireAuth();
@@ -272,7 +275,7 @@ class SecureDatabase {
         }
     }
 
-    // NEW: Secure DELETE operation
+    // Secure DELETE operation
     async secureDelete(tableName, id) {
         try {
             authManager.requireAuth();
@@ -305,7 +308,7 @@ class SecureDatabase {
         }
     }
     
-    // NEW: Secure RPC call for executing SQL scripts (e.g., DDL)
+    // Secure RPC call for executing SQL scripts (e.g., DDL)
     async executeSqlScript(sqlText) {
         try {
             authManager.requireAuth();
@@ -314,8 +317,6 @@ class SecureDatabase {
             if (!sqlText || typeof sqlText !== 'string') {
                 throw new Error('Invalid SQL script provided.');
             }
-            // Further checks can be added, e.g., disallowing 'DROP TABLE' directly
-            // For now, rely on Supabase RPC function permissions.
             
             const { data, error } = await supabaseClient.rpc('execute_sql_script', { sql_text: sqlText });
             
@@ -356,7 +357,6 @@ class SecureDatabase {
             case 'form_definitions':
                 this.validateFormDefinitionData(data);
                 break;
-            // Add more table validations as needed
             default:
                 console.warn(`No specific validation for table: ${tableName}`);
         }
@@ -364,17 +364,11 @@ class SecureDatabase {
 
     // Validate report data
     validateReportData(data) {
-        // Required fields
         if (!data.district_id) throw new Error('District ID is required');
         if (!data.report_date) throw new Error('Report date is required');
-
-        // Validate UUID fields
         this.validateUUID(data.district_id, 'District ID');
-
-        // Validate date fields
         this.validateDate(data.report_date, 'Report date');
 
-        // Validate numeric fields
         const numericFields = [
             'total_camps_organized', 'total_farmers_participated',
             'male_farmers', 'female_farmers', 'public_reps_count',
@@ -382,14 +376,12 @@ class SecureDatabase {
             'officers_allied_dept', 'officers_kvk', 'officers_igkv_scient_prof',
             'total_officers_present', 'publicity_material_distributed'
         ];
-
         numericFields.forEach(field => {
             if (data[field] !== undefined) {
                 this.validateNumber(data[field], field, 0);
             }
         });
 
-        // Validate dynamic inputs array
         if (data.dynamic_inputs && Array.isArray(data.dynamic_inputs)) {
             data.dynamic_inputs.forEach((input, index) => {
                 this.validateDynamicInput(input, index);
@@ -402,17 +394,13 @@ class SecureDatabase {
         if (!input.scheme_id) {
             throw new Error(`Dynamic input ${index + 1}: Scheme ID is required`);
         }
-
         this.validateUUID(input.scheme_id, `Dynamic input ${index + 1} scheme ID`);
-
         if (!input.input_type) {
             throw new Error(`Dynamic input ${index + 1}: Input type is required`);
         }
-
         this.validateNumber(input.total_amount, `Dynamic input ${index + 1} total amount`, 0);
         this.validateNumber(input.subsidy_amount, `Dynamic input ${index + 1} subsidy amount`, 0);
 
-        // Validate input_details based on input_type
         if (input.input_details) {
             switch (input.input_type) {
                 case 'Seed':
@@ -439,14 +427,10 @@ class SecureDatabase {
     validateUserData(data) {
         if (!data.username) throw new Error('Username is required');
         if (!data.email) throw new Error('Email is required');
-
-        // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(data.email)) {
             throw new Error('Invalid email format');
         }
-
-        // Validate role
         const allowedRoles = ['admin', 'user'];
         if (data.role && !allowedRoles.includes(data.role)) {
             throw new Error('Invalid user role');
@@ -473,14 +457,13 @@ class SecureDatabase {
         this.validateNumber(data.category_id, 'Category ID', 1);
         this.validateNumber(data.display_order, 'Display order', 1);
         this.validateUUID(data.created_by, 'Created By User ID');
-        this.validateUUID(data.parent_id, 'Parent ID'); // Parent ID can be null
+        this.validateUUID(data.parent_id, 'Parent ID');
     }
 
     // Validate Card Click Data
     validateCardClickData(data) {
         if (!data.card_id) throw new Error('Card ID is required for click log');
         if (!data.user_id) throw new Error('User ID is required for click log');
-        // ip_address is often captured server-side, but can be validated if passed
         this.validateUUID(data.user_id, 'User ID');
         this.validateNumber(data.card_id, 'Card ID', 1);
     }
@@ -509,7 +492,6 @@ class SecureDatabase {
             if (!field.type) throw new Error(`Field ${index + 1}: Type is required`);
         });
     }
-
 
     // Secure data fetching with caching
     async getWithCache(tableName, cacheKey, options = {}) {
@@ -562,11 +544,12 @@ class SecureDatabase {
     async getDistricts() {
         return this.getWithCache('districts', 'districts_list', {
             select: 'id, name',
-            // REMOVED: filters: { is_active: true }, // Removed this line
+            // is_active filter removed as column doesn't exist
             orderBy: 'name',
             isPublic: true // Districts can be public for login page
         });
     }
+
     async getSchemes() {
         return this.getWithCache('schemes', 'schemes_list', {
             select: 'id, scheme_name',
