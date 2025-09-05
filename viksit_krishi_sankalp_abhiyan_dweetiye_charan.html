@@ -100,8 +100,8 @@
             filter: invert(1); /* Make calendar icon white */
         }
         .page-subtitle-date #rptButton {
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.5);
+            background: #007bff; /* Blue background */
+            border: 1px solid #0056b3;
             color: white;
             padding: 5px 10px;
             border-radius: 5px;
@@ -109,9 +109,17 @@
             transition: all 0.3s;
             font-size: 14px;
             font-family: 'Mangal', sans-serif;
+            margin-left: 10px; /* Space from date input */
         }
         .page-subtitle-date #rptButton:hover {
-            background: rgba(255,255,255,0.4);
+            background: #0056b3;
+        }
+        .page-subtitle-date #displayedDate {
+            background: #FFD700; /* Bright Yellow background */
+            color: #2c3e50; /* Dark text for contrast */
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: 600;
         }
 
         .content-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); border-radius: 15px; padding: 35px 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); border: 1px solid rgba(255, 255, 255, 0.3); }
@@ -260,6 +268,68 @@
         }
         .radio-option:hover span {
             background: #C2E0B2; /* Slightly darker pistachio on hover */
+        }
+
+        /* Trade Name Datalist + Add Button */
+        .trade-name-input-group {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .trade-name-input-group input {
+            flex-grow: 1;
+            border-right: none; /* Integrate with button */
+            border-radius: 8px 0 0 8px;
+        }
+        .trade-name-input-group .admin-add-btn {
+            background: #28a745; /* Green add button */
+            color: white;
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            padding: 12px 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .trade-name-input-group .admin-add-btn:hover {
+            background: #218838;
+        }
+
+        /* Modal for adding new Trade Name */
+        .add-trade-name-modal-content {
+            background: rgba(255, 255, 255, 0.98); backdrop-filter: blur(10px);
+            position: relative; margin: 10% auto; padding: 0; border-radius: 15px;
+            width: 90%; max-width: 500px; box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+            animation: modalSlideIn 0.4s ease-out;
+        }
+        .add-trade-name-modal-content .modal-header {
+            background: #007bff; color: white; border-radius: 15px 15px 0 0;
+        }
+        .add-trade-name-modal-content .modal-header h2 {
+            color: white;
+        }
+        .add-trade-name-modal-content .modal-body {
+            background: #f8f9fa; color: #2c3e50; border-radius: 0 0 15px 15px;
+        }
+        .add-trade-name-modal-content .form-group label {
+            color: #2c3e50;
+        }
+        .add-trade-name-modal-content input, .add-trade-name-modal-content select {
+            background: white;
+            color: #2c3e50;
+        }
+        .add-trade-name-modal-content input::placeholder {
+            color: #6c757d;
+        }
+        .add-trade-name-modal-content .profile-submit-btn {
+            background: #28a745;
+        }
+        .add-trade-name-modal-content .profile-submit-btn:hover {
+            background: #218838;
         }
 
 
@@ -497,11 +567,6 @@
                     <label>इनपुट का प्रकार <span style="color: red;">*</span></label>
                     <select class="input-type-select" required>
                         <option value="">प्रकार चुनें</option>
-                        <option value="Seed">बीज</option>
-                        <option value="Insecticide/Pesticide">कीटनाशक/खरपतवारनाशक</option>
-                        <option value="Fertilizer">उर्वरक</option>
-                        <option value="Biofertilizer">जैव-उर्वरक</option>
-                        <option value="Farm Tool or Equipment">कृषि उपकरण/औजार</option>
                     </select>
                 </div>
             </div>
@@ -529,7 +594,11 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>व्यापारिक नाम <span style="color: red;">*</span></label>
-                        <input type="text" class="trade-name" placeholder="फर्टिस, बायो-जाइम, आदि">
+                        <div class="trade-name-input-group">
+                            <input type="text" class="trade-name" list="tradeNameDatalist" placeholder="व्यापारिक नाम चुनें या नया दर्ज करें">
+                            <datalist id="tradeNameDatalist"></datalist>
+                            <button type="button" class="admin-add-btn add-trade-name-btn" title="नया व्यापारिक नाम जोड़ें" style="display:none;"><i class="fas fa-plus"></i></button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>मात्रा <span style="color: red;">*</span></label>
@@ -538,12 +607,7 @@
                     <div class="form-group">
                         <label>इकाई <span style="color: red;">*</span></label>
                         <select class="unit-select">
-                            <option value="">इकाई चुनें</option>
-                            <option value="ml">मिलीलीटर</option>
-                            <option value="L">लीटर</option>
-                            <option value="mg">मिलीग्राम</option>
-                            <option value="kg">किलोग्राम</option>
-                            <option value="gram">ग्राम</option>
+                            <!-- Populated dynamically -->
                         </select>
                     </div>
                 </div>
@@ -582,6 +646,38 @@
         </div>
     </template>
 
+    <!-- Modal for Adding New Trade Name (Admin Only) -->
+    <div id="addTradeNameModal" class="modal">
+        <div class="add-trade-name-modal-content">
+            <div class="modal-header">
+                <h2>नया व्यापारिक नाम जोड़ें</h2>
+                <span class="close" id="closeAddTradeNameModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addTradeNameForm">
+                    <div class="form-group">
+                        <label for="newTradeName">व्यापारिक नाम (हिंदी) <span style="color: red;">*</span></label>
+                        <input type="text" id="newTradeName" name="newTradeName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newTradeNameEn">Trade Name (English) <span style="color: red;">*</span></label>
+                        <input type="text" id="newTradeNameEn" name="newTradeNameEn" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tradeNameInputType">संबंधित इनपुट का प्रकार <span style="color: red;">*</span></label>
+                        <select id="tradeNameInputType" name="tradeNameInputType" required>
+                            <!-- Populated dynamically by JS -->
+                        </select>
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="addTradeNameSubmitBtn">
+                        <i class="fas fa-plus"></i> व्यापारिक नाम जोड़ें
+                    </button>
+                    <div id="addTradeNameMessage" class="form-message" style="display:none;"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
 
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script type="module">
@@ -591,6 +687,9 @@
         let currentUser = null;
         let allDistricts = [];
         let allSchemes = []; // To store scheme names from Supabase
+        let allUnits = []; // To store unit names from Supabase
+        let allInputTypes = []; // New: To store input types from Supabase
+        let allTradeNames = []; // New: To store trade names from Supabase
 
         window.addEventListener('load', function() {
             setTimeout(() => {
@@ -601,14 +700,17 @@
         document.addEventListener('DOMContentLoaded', async function() {
             await loadUserData();
             await fetchDistricts();
-            await fetchSchemes(); // Fetch schemes for dynamic input section
-            await loadNavigationItems(); // Load top navbar navigation
+            await fetchSchemes();
+            await fetchUnits();
+            await fetchInputTypes(); // New: Fetch input types
+            await fetchTradeNames(); // New: Fetch trade names
+            await loadNavigationItems();
             setupEventListeners();
             setupAccessibility();
-            setupReportDateSelector(); // Setup date picker and display
+            setupReportDateSelector();
             setupOfficerTotalCalculation();
-            setupFarmerTotalCalculation(); // Setup farmer total calculation
-            setupConditionalFields(); // Setup conditional field visibility
+            setupFarmerTotalCalculation();
+            setupConditionalFields();
             addDynamicInputEntry(); // Add initial dynamic input entry
             validateForm(); // Initial form validation check
         });
@@ -705,6 +807,67 @@
             } catch (error) {
                 console.error('Error fetching schemes:', error);
                 showToast('योजनाएं लोड करने में त्रुटि', 'error');
+            }
+        }
+
+        async function fetchUnits() { // New function to fetch units
+            try {
+                const { data, error } = await supabaseClient
+                    .from('units') // Assuming your units table is named 'units'
+                    .select('id, unit_name_hi, unit_name_en, unit_type')
+                    .eq('is_active', true)
+                    .order('unit_name_hi', { ascending: true });
+
+                if (error) throw error;
+                allUnits = data;
+
+            } catch (error) {
+                console.error('Error fetching units:', error);
+                showToast('इकाइयां लोड करने में त्रुटि', 'error');
+            }
+        }
+
+        async function fetchInputTypes() { // New function to fetch input types
+            try {
+                const { data, error } = await supabaseClient
+                    .from('input_types') // Assuming your input_types table
+                    .select('id, type_name_hi, type_name_en, unit_category_types') // unit_category_types is an array of text
+                    .eq('is_active', true)
+                    .order('type_name_hi', { ascending: true });
+
+                if (error) throw error;
+                allInputTypes = data;
+
+                // Populate input type dropdowns in templates
+                document.querySelectorAll('.input-type-select').forEach(select => {
+                    populateInputTypeSelect(select);
+                });
+
+            } catch (error) {
+                console.error('Error fetching input types:', error);
+                showToast('इनपुट प्रकार लोड करने में त्रुटि', 'error');
+            }
+        }
+
+        async function fetchTradeNames() { // New function to fetch trade names
+            try {
+                const { data, error } = await supabaseClient
+                    .from('trade_names') // Assuming your trade_names table
+                    .select('id, trade_name_hi, trade_name_en, input_type_id')
+                    .eq('is_active', true)
+                    .order('trade_name_hi', { ascending: true });
+
+                if (error) throw error;
+                allTradeNames = data;
+
+                // Populate all datalists
+                document.querySelectorAll('.trade-name-datalist').forEach(datalist => {
+                    populateTradeNameDatalist(datalist);
+                });
+
+            } catch (error) {
+                console.error('Error fetching trade names:', error);
+                showToast('व्यापारिक नाम लोड करने में त्रुटि', 'error');
             }
         }
 
@@ -866,12 +1029,14 @@
             document.getElementById('dailyReportForm').addEventListener('submit', handleFormSubmission);
 
             // Rpt Button functionality
-            document.getElementById('rptButton').addEventListener('click', () => {
-                showToast('रिपोर्ट प्रिंटिंग या जनरेशन फ़ंक्शन यहाँ लागू होगा।', 'info');
-            });
+            document.getElementById('rptButton').addEventListener('click', generateAndPrintReport); // Rpt button calls print function
 
             // Add more dynamic input button
             document.getElementById('addMoreInputBtn').addEventListener('click', addDynamicInputEntry);
+
+            // Admin add trade name modal
+            document.getElementById('closeAddTradeNameModal').addEventListener('click', closeAddTradeNameModal);
+            document.getElementById('addTradeNameForm').addEventListener('submit', handleAddTradeName);
         }
 
         function setupReportDateSelector() {
@@ -1048,13 +1213,18 @@
         }
 
         // --- Dynamic Input Section Functions ---
-        const unitOptionsMap = {
-            'Seed': [{ value: 'kg', text: 'किलोग्राम' }],
-            'Insecticide/Pesticide': [{ value: '', text: 'इकाई चुनें' }, { value: 'ml', text: 'मिलीलीटर' }, { value: 'L', text: 'लीटर' }, { value: 'mg', text: 'मिलीग्राम' }, { value: 'kg', text: 'किलोग्राम' }, { value: 'gram', text: 'ग्राम' }],
-            'Fertilizer': [{ value: '', text: 'इकाई चुनें' }, { value: 'ml', text: 'मिलीलीटर' }, { value: 'L', text: 'लीटर' }, { value: 'mg', text: 'मिलीग्राम' }, { value: 'kg', text: 'किलोग्राम' }, { value: 'gram', text: 'ग्राम' }],
-            'Biofertilizer': [{ value: '', text: 'इकाई चुनें' }, { value: 'ml', text: 'मिलीलीटर' }, { value: 'L', text: 'लीटर' }, { value: 'mg', text: 'मिलीग्राम' }, { value: 'kg', text: 'किलोग्राम' }, { value: 'gram', text: 'ग्राम' }],
-            'Farm Tool or Equipment': [{ value: 'number', text: 'संख्या' }]
-        };
+        // Unit filtering map based on unit_type from fetched input_types
+        const unitTypeMap = {}; // Will be populated from allInputTypes
+
+        function populateInputTypeSelect(selectElement) {
+            selectElement.innerHTML = '<option value="">प्रकार चुनें</option>';
+            allInputTypes.forEach(inputType => {
+                const option = document.createElement('option');
+                option.value = inputType.type_name_en; // Use English name as value for internal logic
+                option.textContent = inputType.type_name_hi;
+                selectElement.appendChild(option);
+            });
+        }
 
         function populateSchemeSelect(selectElement) {
             selectElement.innerHTML = '<option value="">योजना चुनें</option>';
@@ -1067,20 +1237,43 @@
         }
 
         function populateUnitSelect(unitSelectElement, selectedType) {
-            unitSelectElement.innerHTML = '';
-            const options = unitOptionsMap[selectedType] || [];
-            options.forEach(optionData => {
-                const option = document.createElement('option');
-                option.value = optionData.value;
-                option.textContent = optionData.text;
-                unitSelectElement.appendChild(option);
-            });
-            // Set required attribute based on whether a selection is needed
-            if (options.length > 1 && selectedType !== 'Seed' && selectedType !== 'Farm Tool or Equipment') {
+            unitSelectElement.innerHTML = '<option value="">इकाई चुनें</option>'; // Default option
+            const inputType = allInputTypes.find(type => type.type_name_en === selectedType);
+            const allowedUnitTypes = inputType ? inputType.unit_category_types : []; // Array of unit_type strings
+
+            allUnits.filter(unit => allowedUnitTypes.includes(unit.unit_type))
+                    .forEach(unit => {
+                        const option = document.createElement('option');
+                        option.value = unit.id; // Store unit ID
+                        option.textContent = unit.unit_name_hi;
+                        unitSelectElement.appendChild(option);
+                    });
+            
+            // Auto-select specific units if only one is relevant or for fixed types
+            if (selectedType === 'Seed') {
+                const kgUnit = allUnits.find(unit => unit.unit_name_en === 'kg');
+                if (kgUnit) unitSelectElement.value = kgUnit.id;
+            } else if (selectedType === 'Farm Tool or Equipment') {
+                const numberUnit = allUnits.find(unit => unit.unit_name_en === 'number');
+                if (numberUnit) unitSelectElement.value = numberUnit.id;
+            }
+
+            // Set required based on if a selection is needed (i.e., multiple options)
+            if (unitSelectElement.options.length > 1 && selectedType !== 'Seed' && selectedType !== 'Farm Tool or Equipment') {
                 unitSelectElement.setAttribute('required', 'true');
             } else {
                 unitSelectElement.removeAttribute('required');
             }
+        }
+
+        function populateTradeNameDatalist(datalistElement, inputTypeId) {
+            datalistElement.innerHTML = '';
+            allTradeNames.filter(tradeName => tradeName.input_type_id == inputTypeId)
+                         .forEach(tradeName => {
+                             const option = document.createElement('option');
+                             option.value = tradeName.trade_name_hi;
+                             datalistElement.appendChild(option);
+                         });
         }
 
         function updateDynamicInputFields(entryDiv, selectedType) {
@@ -1094,18 +1287,25 @@
 
             let targetFields = null;
             const unitSelect = entryDiv.querySelector('.unit-select');
+            const tradeNameInputGroup = entryDiv.querySelector('.trade-name-input-group');
+            const addTradeNameBtn = entryDiv.querySelector('.add-trade-name-btn');
+            const tradeNameDatalist = entryDiv.querySelector('.trade-name-datalist');
+            const inputTypeId = allInputTypes.find(type => type.type_name_en === selectedType)?.id;
+
+            if (tradeNameInputGroup) { // Hide trade name specific elements initially
+                tradeNameInputGroup.style.display = 'none';
+                if (addTradeNameBtn) addTradeNameBtn.style.display = 'none';
+            }
 
             if (selectedType === 'Seed') {
                 targetFields = entryDiv.querySelector('.seed-fields');
-                populateUnitSelect(unitSelect, selectedType); // Populate unit select
-                unitSelect.value = 'kg'; // Auto-select kg
             } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(selectedType)) {
                 targetFields = entryDiv.querySelector('.chemical-fields');
-                populateUnitSelect(unitSelect, selectedType); // Populate unit select
+                if (tradeNameInputGroup) tradeNameInputGroup.style.display = 'flex';
+                if (isAdmin && addTradeNameBtn) addTradeNameBtn.style.display = 'flex';
+                if (tradeNameDatalist) populateTradeNameDatalist(tradeNameDatalist, inputTypeId);
             } else if (selectedType === 'Farm Tool or Equipment') {
                 targetFields = entryDiv.querySelector('.farm-tool-fields');
-                populateUnitSelect(unitSelect, selectedType); // Populate unit select
-                unitSelect.value = 'number'; // Auto-select number
             }
 
             if (targetFields) {
@@ -1114,12 +1314,9 @@
                     input.setAttribute('required', 'true');
                 });
             }
-            // Ensure unit select is required if it has multiple options and is part of chemical/fertilizer types
-            if (unitSelect && unitSelect.options.length > 1 && ['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(selectedType)) {
-                unitSelect.setAttribute('required', 'true');
-            } else if (unitSelect) {
-                unitSelect.removeAttribute('required');
-            }
+            
+            // Populate and manage unit select
+            populateUnitSelect(unitSelect, selectedType);
 
             validateForm();
             calculateTotalCashSubsidy(); // Recalculate total cash subsidy
@@ -1136,6 +1333,7 @@
             populateSchemeSelect(schemeSelect); // Populate schemes for the new entry
 
             const inputTypeSelect = entryDiv.querySelector('.input-type-select');
+            populateInputTypeSelect(inputTypeSelect); // Populate input types for new entry
             inputTypeSelect.addEventListener('change', () => updateDynamicInputFields(entryDiv, inputTypeSelect.value));
             
             // Set up event listeners for inputs within the new entry for validation and auto-sum
@@ -1151,6 +1349,10 @@
                     if (element.classList.contains('subsidy-amount')) {
                         calculateTotalCashSubsidy(); // Recalculate if a subsidy amount changes
                     }
+                    if (element.classList.contains('input-type-select')) {
+                        // When input type changes, re-validate to ensure new required fields are checked
+                        validateForm();
+                    }
                 });
             });
 
@@ -1160,12 +1362,297 @@
                 calculateTotalCashSubsidy(); // Recalculate after removing an entry
             });
 
+            // Admin add trade name button for this specific entry
+            const addTradeNameBtn = entryDiv.querySelector('.add-trade-name-btn');
+            if (addTradeNameBtn) {
+                if (isAdmin) {
+                    addTradeNameBtn.style.display = 'flex';
+                    addTradeNameBtn.addEventListener('click', () => openAddTradeNameModal(inputTypeSelect.value));
+                } else {
+                    addTradeNameBtn.style.display = 'none';
+                }
+            }
+
             // Initial setup for the new entry
             updateDynamicInputFields(entryDiv, inputTypeSelect.value); // Set up initial conditional fields
             validateForm(); // Re-validate after adding new entry
             calculateTotalCashSubsidy(); // Recalculate after adding new entry
         }
         // --- End Dynamic Input Section Functions ---
+
+        // --- Admin Add Trade Name Modal Functions ---
+        function openAddTradeNameModal(selectedInputType) {
+            document.getElementById('addTradeNameModal').style.display = 'block';
+            document.getElementById('newTradeName').value = '';
+            document.getElementById('newTradeNameEn').value = '';
+            document.getElementById('addTradeNameMessage').style.display = 'none';
+
+            const inputTypeSelect = document.getElementById('tradeNameInputType');
+            inputTypeSelect.innerHTML = '<option value="">प्रकार चुनें</option>';
+            allInputTypes.filter(type => ['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(type.type_name_en))
+                         .forEach(type => {
+                             const option = document.createElement('option');
+                             option.value = type.id;
+                             option.textContent = type.type_name_hi;
+                             inputTypeSelect.appendChild(option);
+                         });
+            
+            // Pre-select the input type from the dynamic entry if applicable
+            const inputTypeId = allInputTypes.find(type => type.type_name_en === selectedInputType)?.id;
+            if (inputTypeId) {
+                inputTypeSelect.value = inputTypeId;
+            }
+            document.getElementById('newTradeName').focus();
+        }
+
+        function closeAddTradeNameModal() {
+            document.getElementById('addTradeNameModal').style.display = 'none';
+        }
+
+        async function handleAddTradeName(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('addTradeNameSubmitBtn');
+            const messageDiv = document.getElementById('addTradeNameMessage');
+            messageDiv.style.display = 'none';
+
+            const newTradeNameHi = document.getElementById('newTradeName').value.trim();
+            const newTradeNameEn = document.getElementById('newTradeNameEn').value.trim();
+            const inputTypeId = document.getElementById('tradeNameInputType').value;
+
+            if (!newTradeNameHi || !newTradeNameEn || !inputTypeId) {
+                messageDiv.className = 'form-message error';
+                messageDiv.textContent = 'कृपया सभी आवश्यक फ़ील्ड भरें।';
+                messageDiv.style.display = 'block';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> जोड़ा जा रहा है...';
+
+            try {
+                const { data, error } = await supabaseClient
+                    .from('trade_names')
+                    .insert([{
+                        trade_name_hi: newTradeNameHi,
+                        trade_name_en: newTradeNameEn,
+                        input_type_id: inputTypeId,
+                        is_active: true
+                    }]);
+
+                if (error) throw error;
+
+                messageDiv.className = 'form-message success';
+                messageDiv.textContent = `व्यापारिक नाम "${newTradeNameHi}" सफलतापूर्वक जोड़ा गया!`;
+                messageDiv.style.display = 'block';
+                showToast('नया व्यापारिक नाम जोड़ा गया', 'success');
+
+                await fetchTradeNames(); // Reload trade names for all datalists
+                document.getElementById('addTradeNameForm').reset();
+                setTimeout(closeAddTradeNameModal, 1500);
+
+            } catch (error) {
+                console.error('Error adding trade name:', error);
+                messageDiv.className = 'form-message error';
+                messageDiv.textContent = 'व्यापारिक नाम जोड़ने में त्रुटि: ' + error.message;
+                messageDiv.style.display = 'block';
+                showToast('व्यापारिक नाम जोड़ने में त्रुटि', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-plus"></i> व्यापारिक नाम जोड़ें';
+            }
+        }
+        // --- End Admin Add Trade Name Modal Functions ---
+
+
+        // --- Report Generation Functions ---
+        function generateAndPrintReport() {
+            const formData = collectFormDataForReport(); // Collect all current form data
+            const reportWindow = window.open('', '_blank');
+
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            const reportDateFormatted = today.toLocaleDateString('hi-IN', options);
+
+            let reportContent = `
+                <html>
+                <head>
+                    <title>दैनिक प्रतिवेदन: ${reportDateFormatted}</title>
+                    <style>
+                        body { font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; margin: 20px; color: #333; }
+                        h1, h2, h3 { color: #0056b3; border-bottom: 1px solid #eee; padding-bottom: 5px; margin-top: 20px; }
+                        h1 { text-align: center; color: #28a745; }
+                        h2 { text-align: center; font-size: 1.2em; }
+                        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+                        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        th { background-color: #f2f2f2; }
+                        .section-title { font-weight: bold; margin-top: 15px; margin-bottom: 5px; color: #0056b3; }
+                        .value { font-weight: normal; }
+                        .note { margin-top: 20px; font-style: italic; color: #666; }
+                        .rupee-symbol { font-family: 'Times New Roman', serif; } /* Specific font for Rupee symbol */
+                    </style>
+                </head>
+                <body>
+                    <h1>विकसित कृषि संकल्प अभियान द्वितीय चरण</h1>
+                    <h2>दैनिक प्रतिवेदन दिनांक: ${reportDateFormatted}</h2>
+                    <hr>
+
+                    <h3>मूलभूत जानकारी</h3>
+                    <table>
+                        <tr><th>जिले का नाम</th><td>${formData.district_name || ''}</td></tr>
+                        <tr><th>आयोजित शिविरों की कुल संख्या</th><td>${formData.total_camps_organized || 0}</td></tr>
+                    </table>
+
+                    <h3>उपस्थिति विवरण</h3>
+                    <table>
+                        <tr><th>कुल किसान</th><td>${formData.total_farmers_participated || 0}</td></tr>
+                        <tr><th>पुरुष किसान</th><td>${formData.male_farmers || 0}</td></tr>
+                        <tr><th>महिला किसान</th><td>${formData.female_farmers || 0}</td></tr>
+                        <tr><th>उपस्थित जनप्रतिनिधियों की संख्या</th><td>${formData.public_reps_count || 0}</td></tr>
+                        ${formData.public_reps_count > 0 ? `
+                            <tr><th>क्या विधायक, सांसद, मंत्री ने अध्यक्षता की?</th><td>${formData.headed_chair_by_rep ? 'हाँ' : 'नहीं'}</td></tr>
+                            ${formData.headed_chair_by_rep && formData.public_reps_names ? `
+                                <tr><th>जनप्रतिनिधियों के नाम</th><td>${formData.public_reps_names.replace(/\n/g, '<br>')}</td></tr>
+                            ` : ''}
+                        ` : ''}
+                    </table>
+
+                    <h4>उपस्थित अधिकारी</h4>
+                    <table>
+                        <tr><th>जिला प्रशासन</th><td>${formData.officers_dist_admin || 0}</td></tr>
+                        <tr><th>विभागीय</th><td>${formData.officers_departmental || 0}</td></tr>
+                        <tr><th>संबद्ध विभाग</th><td>${formData.officers_allied_dept || 0}</td></tr>
+                        <tr><th>केवीके</th><td>${formData.officers_kvk || 0}</td></tr>
+                        <tr><th>आईजीकेवी वैज्ञानिक और पेशेवर</th><td>${formData.officers_igkv_scient_prof || 0}</td></tr>
+                        <tr><th>कुल अधिकारी</th><td>${formData.total_officers_present || 0}</td></tr>
+                    </table>
+
+                    <h3>सामग्री वितरण</h3>
+                    <table>
+                        <tr><th>वितरित प्रचार सामग्री की संख्या</th><td>${formData.publicity_material_distributed || 0}</td></tr>
+                    </table>
+
+                    <h3>इनपुट, नकद सब्सिडी और उपकरण</h3>
+                    <table>
+                        <tr><th>नकद सब्सिडी राशि</th><td><span class="rupee-symbol">₹</span> ${formData.cash_subsidy_amount.toFixed(2) || '0.00'}</td></tr>
+                    </table>
+                    
+                    ${formData.dynamic_inputs && formData.dynamic_inputs.length > 0 ? `
+                        <h4>विभिन्न इनपुट और उपकरण</h4>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>योजना</th>
+                                    <th>प्रकार</th>
+                                    <th>विवरण</th>
+                                    <th>मात्रा/संख्या</th>
+                                    <th>इकाई</th>
+                                    <th>कुल राशि</th>
+                                    <th>सब्सिडी राशि</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${formData.dynamic_inputs.map(input => `
+                                    <tr>
+                                        <td>${input.scheme_name || ''}</td>
+                                        <td>${input.input_type || ''}</td>
+                                        <td>
+                                            ${input.input_type === 'Seed' ? 
+                                                `फसल: ${input.input_details.crop_name || ''}<br>किस्म: ${input.input_details.variety || ''}` :
+                                            ['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(input.input_type) ?
+                                                `व्यापारिक नाम: ${input.input_details.trade_name || ''}` :
+                                            input.input_type === 'Farm Tool or Equipment' ?
+                                                `उपकरण: ${input.input_details.equipment_name || ''}` : ''
+                                            }
+                                        </td>
+                                        <td>${input.input_details.quantity || '0'}</td>
+                                        <td>${input.input_details.unit_name || ''}</td>
+                                        <td><span class="rupee-symbol">₹</span> ${input.total_amount.toFixed(2) || '0.00'}</td>
+                                        <td><span class="rupee-symbol">₹</span> ${input.subsidy_amount.toFixed(2) || '0.00'}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : ''}
+
+                    <div class="note">यह रिपोर्ट ${new Date().toLocaleString('hi-IN')} को उत्पन्न की गई थी।</div>
+                </body>
+                </html>
+            `;
+
+            reportWindow.document.write(reportContent);
+            reportWindow.document.close();
+            reportWindow.focus();
+            reportWindow.print();
+        }
+
+        function collectFormDataForReport() {
+            const form = document.getElementById('dailyReportForm');
+            const formData = {
+                report_date: document.getElementById('reportDate').value,
+                district_id: document.getElementById('districtSelect').value,
+                district_name: document.getElementById('districtSelect').options[document.getElementById('districtSelect').selectedIndex].textContent,
+                total_camps_organized: parseInt(document.getElementById('totalCamps').value) || 0,
+                total_farmers_participated: parseInt(document.getElementById('totalFarmers').value) || 0,
+                male_farmers: parseInt(document.getElementById('maleFarmers').value) || 0,
+                female_farmers: parseInt(document.getElementById('femaleFarmers').value) || 0,
+                public_reps_count: parseInt(document.getElementById('publicRepsCount').value) || 0,
+                headed_chair_by_rep: document.querySelector('input[name="headedChair"]:checked') ? document.querySelector('input[name="headedChair"]:checked').value === 'yes' : false,
+                public_reps_names: document.getElementById('publicRepsNames').value.trim(),
+                officers_dist_admin: parseInt(document.getElementById('distAdminCount').value) || 0,
+                officers_departmental: parseInt(document.getElementById('deptOfficersCount').value) || 0,
+                officers_allied_dept: parseInt(document.getElementById('alliedDeptCount').value) || 0,
+                officers_kvk: parseInt(document.getElementById('kvkCount').value) || 0,
+                officers_igkv_scient_prof: parseInt(document.getElementById('igkvCount').value) || 0,
+                total_officers_present: parseInt(document.getElementById('totalOfficers').value) || 0,
+                publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount').value) || 0,
+                cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmountTotal').value) || 0.00,
+                dynamic_inputs: []
+            };
+
+            document.querySelectorAll('.dynamic-input-entry').forEach(entry => {
+                const inputType = entry.querySelector('.input-type-select').value;
+                const schemeId = entry.querySelector('.scheme-select').value;
+                const schemeName = entry.querySelector('.scheme-select').options[entry.querySelector('.scheme-select').selectedIndex].textContent;
+                const unitId = entry.querySelector('.unit-select') ? entry.querySelector('.unit-select').value : null;
+                const unitName = entry.querySelector('.unit-select') && unitId ? entry.querySelector('.unit-select').options[entry.querySelector('.unit-select').selectedIndex].textContent : null;
+
+                let specificInputDetails = {};
+                if (inputType === 'Seed') {
+                    specificInputDetails = {
+                        crop_name: entry.querySelector('.crop-name').value.trim(),
+                        variety: entry.querySelector('.variety').value.trim(),
+                        quantity: parseFloat(entry.querySelector('.quantity').value) || 0,
+                        unit_id: unitId,
+                        unit_name: unitName
+                    };
+                } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
+                    specificInputDetails = {
+                        trade_name: entry.querySelector('.trade-name').value.trim(),
+                        quantity: parseFloat(entry.querySelector('.quantity').value) || 0,
+                        unit_id: unitId,
+                        unit_name: unitName
+                    };
+                } else if (inputType === 'Farm Tool or Equipment') {
+                    specificInputDetails = {
+                        equipment_name: entry.querySelector('.equipment-name').value.trim(),
+                        quantity: parseInt(entry.querySelector('.quantity').value) || 0,
+                        unit_id: unitId,
+                        unit_name: unitName
+                    };
+                }
+
+                formData.dynamic_inputs.push({
+                    scheme_id: schemeId,
+                    scheme_name: schemeName,
+                    input_type: inputType,
+                    input_details: specificInputDetails,
+                    total_amount: parseFloat(entry.querySelector('.total-amount').value) || 0.00,
+                    subsidy_amount: parseFloat(entry.querySelector('.subsidy-amount').value) || 0.00
+                });
+            });
+
+            return formData;
+        }
 
         async function handleFormSubmission(event) {
             event.preventDefault();
@@ -1192,6 +1679,8 @@
                 const inputType = entry.querySelector('.input-type-select').value;
                 const schemeId = entry.querySelector('.scheme-select').value;
                 const schemeName = entry.querySelector('.scheme-select').options[entry.querySelector('.scheme-select').selectedIndex].textContent;
+                const unitId = entry.querySelector('.unit-select') ? entry.querySelector('.unit-select').value : null;
+                const unitName = entry.querySelector('.unit-select') && unitId ? entry.querySelector('.unit-select').options[entry.querySelector('.unit-select').selectedIndex].textContent : null;
 
                 let specificInputDetails = {}; 
                 if (inputType === 'Seed') {
@@ -1199,19 +1688,22 @@
                         crop_name: entry.querySelector('.crop-name').value.trim(),
                         variety: entry.querySelector('.variety').value.trim(),
                         quantity: parseFloat(entry.querySelector('.quantity').value) || 0,
-                        unit: 'kg'
+                        unit_id: unitId,
+                        unit_name: unitName
                     };
                 } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
                     specificInputDetails = {
                         trade_name: entry.querySelector('.trade-name').value.trim(),
                         quantity: parseFloat(entry.querySelector('.quantity').value) || 0,
-                        unit: entry.querySelector('.unit-select').value
+                        unit_id: unitId,
+                        unit_name: unitName
                     };
                 } else if (inputType === 'Farm Tool or Equipment') {
                     specificInputDetails = {
                         equipment_name: entry.querySelector('.equipment-name').value.trim(),
                         quantity: parseInt(entry.querySelector('.quantity').value) || 0,
-                        unit: 'number' 
+                        unit_id: unitId,
+                        unit_name: unitName
                     };
                 }
 
@@ -1242,7 +1734,7 @@
                 officers_igkv_scient_prof: parseInt(document.getElementById('igkvCount').value) || 0,
                 total_officers_present: parseInt(document.getElementById('totalOfficers').value) || 0,
                 publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount').value) || 0,
-                cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmountTotal').value) || 0.00, // Now auto-calculated
+                cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmountTotal').value) || 0.00, 
                 dynamic_inputs: dynamicInputsData, 
                 created_by: currentUser.id
             };
