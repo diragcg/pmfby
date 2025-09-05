@@ -1308,38 +1308,45 @@
                     select: 'id, display_order',
                     orderBy: 'display_order'
                 });
-
+        
                 const draggedCard = cards.find(c => c.id === parseInt(draggedId));
                 const targetCard = cards.find(c => c.id === parseInt(targetId));
-
+        
                 if (!draggedCard || !targetCard) return;
-
-                // Perform the reordering logic and update display_order
+        
+                // Perform the reordering logic to get the new order of all cards
                 const newCardsOrder = [...cards];
                 const draggedIndex = newCardsOrder.findIndex(c => c.id === parseInt(draggedId));
                 const targetIndex = newCardsOrder.findIndex(c => c.id === parseInt(targetId));
-
+        
+                // Remove the dragged card from its original position
                 const [removed] = newCardsOrder.splice(draggedIndex, 1);
+                // Insert it into the new position
                 newCardsOrder.splice(targetIndex, 0, removed);
-
-                // Update display_order for all cards
+        
+                // Prepare the updates array with new display_order for ALL affected cards
                 const updates = newCardsOrder.map((card, index) => ({
                     id: card.id,
-                    display_order: index + 1
+                    display_order: index + 1, // Assign new sequential order
+                    updated_at: new Date().toISOString() // Add updated timestamp
                 }));
-
-                await secureDB.secureUpdate('dashboard_cards', updates[0].id, updates[0]); // Update first one
-                await secureDB.secureUpdate('dashboard_cards', updates[1].id, updates[1]); // Update second one
-                // You might need to update all if there are many changes, or use upsert if available
-                
+        
+                // FIXED: Use secureDB.secureUpsert to update multiple records in one go
+                // This is the correct way to handle reordering efficiently and safely
+                await secureDB.secureUpsert('dashboard_cards', updates, 'id'); // 'id' is the conflict column
+        
                 logAdminAction('CARD_ORDER_UPDATED', `Reordered card (ID: ${draggedId}) with (ID: ${targetId})`);
                 errorHandler.showToast('success', 'कार्ड क्रम बदल दिया गया', 'कार्ड का क्रम सफलतापूर्वक बदल दिया गया');
-
+        
+                // Reload dashboard cards to reflect the new order visually
+                loadDashboardCards(); 
+        
             } catch (error) {
                 console.error('Error reordering cards:', error);
                 errorHandler.showToast('error', 'कार्ड क्रम बदलने में त्रुटि', error.message);
             }
         }
+
 
         function setupEventListeners() {
             if (isAdmin) {
