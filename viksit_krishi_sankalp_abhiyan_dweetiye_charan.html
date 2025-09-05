@@ -366,6 +366,8 @@
             </div>
 
             <form id="dailyReportForm">
+                <!-- Section 1: Basic Information -->
+                <h4 class="form-section-title">मूलभूत जानकारी</h4>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="districtSelect">जिले का नाम <span style="color: red;">*</span></label>
@@ -377,7 +379,8 @@
                     </div>
                 </div>
 
-                <h4 class="form-section-title">किसानों की भागीदारी</h4>
+                <!-- Section 2: Attendance -->
+                <h4 class="form-section-title">उपस्थिति विवरण</h4>
                 <div class="form-row">
                     <div class="form-group">
                         <label for="maleFarmers">पुरुष किसान</label>
@@ -393,7 +396,6 @@
                     </div>
                 </div>
 
-                <h4 class="form-section-title">जनप्रतिनिधि विवरण</h4>
                 <div class="form-group">
                     <label for="publicRepsCount">उपस्थित जनप्रतिनिधियों की संख्या</label>
                     <input type="number" id="publicRepsCount" name="publicRepsCount" min="0" value="0" required>
@@ -452,6 +454,7 @@
                     <input type="number" id="publicityMaterialCount" name="publicityMaterialCount" min="0" value="0" required>
                 </div>
 
+                <!-- Section 3: Input Distribution -->
                 <h4 class="form-section-title">इनपुट, नकद सब्सिडी और उपकरण</h4>
                 <div class="form-group">
                     <label for="cashSubsidyAmount">नकद सब्सिडी राशि (भारतीय रुपये)</label>
@@ -1006,6 +1009,9 @@
                 const schemeSelect = entry.querySelector('.scheme-select');
                 const inputTypeSelect = entry.querySelector('.input-type-select');
                 
+                // Check if the dynamic entry itself is considered 'required' (e.g., if at least one entry is mandatory)
+                // For now, we assume if an entry exists, its required fields must be filled.
+
                 if (schemeSelect && schemeSelect.value.trim() === '') allFieldsFilled = false;
                 if (inputTypeSelect && inputTypeSelect.value.trim() === '') allFieldsFilled = false;
 
@@ -1017,6 +1023,7 @@
                 } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(selectedType)) {
                     if (entry.querySelector('.trade-name').value.trim() === '') allFieldsFilled = false;
                     if (entry.querySelector('.quantity').value === '' || isNaN(entry.querySelector('.quantity').value) || parseFloat(entry.querySelector('.quantity').value) < 0) allFieldsFilled = false;
+                    if (entry.querySelector('.unit-select').value.trim() === '') allFieldsFilled = false; // Unit is now required
                 } else if (selectedType === 'Farm Tool or Equipment') {
                     if (entry.querySelector('.equipment-name').value.trim() === '') allFieldsFilled = false;
                     if (entry.querySelector('.quantity').value === '' || isNaN(entry.querySelector('.quantity').value) || parseInt(entry.querySelector('.quantity').value) < 0) allFieldsFilled = false;
@@ -1119,7 +1126,7 @@
                 const schemeId = entry.querySelector('.scheme-select').value;
                 const schemeName = entry.querySelector('.scheme-select').options[entry.querySelector('.scheme-select').selectedIndex].textContent;
 
-                let specificInputDetails = {}; // Changed from specificInputData to specificInputDetails
+                let specificInputDetails = {}; 
                 if (inputType === 'Seed') {
                     specificInputDetails = {
                         crop_name: entry.querySelector('.crop-name').value.trim(),
@@ -1137,7 +1144,7 @@
                     specificInputDetails = {
                         equipment_name: entry.querySelector('.equipment-name').value.trim(),
                         quantity: parseInt(entry.querySelector('.quantity').value) || 0,
-                        unit: 'number' // Or any suitable default unit for tools
+                        unit: 'number' 
                     };
                 }
 
@@ -1145,7 +1152,7 @@
                     scheme_id: schemeId,
                     scheme_name: schemeName,
                     input_type: inputType,
-                    input_details: specificInputDetails, // Storing specific details
+                    input_details: specificInputDetails, 
                     total_amount: parseFloat(entry.querySelector('.total-amount').value) || 0.00,
                     subsidy_amount: parseFloat(entry.querySelector('.subsidy-amount').value) || 0.00
                 });
@@ -1159,7 +1166,7 @@
                 male_farmers: parseInt(document.getElementById('maleFarmers').value) || 0,
                 female_farmers: parseInt(document.getElementById('femaleFarmers').value) || 0,
                 public_reps_count: parseInt(document.getElementById('publicRepsCount').value) || 0,
-                headed_chair_by_rep: document.querySelector('input[name="headedChair"]:checked') ? document.querySelector('input[name="headedChair"]:checked').value === 'yes' : false, // New field
+                headed_chair_by_rep: document.querySelector('input[name="headedChair"]:checked') ? document.querySelector('input[name="headedChair"]:checked').value === 'yes' : false, 
                 public_reps_names: document.getElementById('publicRepsNames').value.trim(),
                 officers_dist_admin: parseInt(document.getElementById('distAdminCount').value) || 0,
                 officers_departmental: parseInt(document.getElementById('deptOfficersCount').value) || 0,
@@ -1169,12 +1176,11 @@
                 total_officers_present: parseInt(document.getElementById('totalOfficers').value) || 0,
                 publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount').value) || 0,
                 cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmount').value) || 0.00,
-                dynamic_inputs: dynamicInputsData, // Store all dynamic inputs as a JSON array
+                dynamic_inputs: dynamicInputsData, 
                 created_by: currentUser.id
             };
 
             try {
-                // Assuming a table named 'viksit_krishi_report' in your Supabase
                 const { data, error } = await supabaseClient
                     .from('viksit_krishi_report')
                     .insert([formData]);
@@ -1184,8 +1190,8 @@
                 const submittedDate = new Date(formData.report_date).toLocaleDateString('hi-IN', { year: 'numeric', month: 'long', day: 'numeric' });
                 showMessage(formMessage, 'success', `दैनिक रिपोर्ट सफलतापूर्वक सबमिट की गई! दिनांक: ${submittedDate}`);
                 showToast('रिपोर्ट सबमिट की गई', 'success');
-                event.target.reset(); // Clear the form
-                // Re-initialize dynamic input entries
+                event.target.reset();
+                // Clear dynamic inputs and add one default
                 document.getElementById('dynamicInputEntriesContainer').innerHTML = '';
                 addDynamicInputEntry();
                 setupOfficerTotalCalculation();
