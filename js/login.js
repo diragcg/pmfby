@@ -1,6 +1,3 @@
-// pmfby/js/login.js
-
-// Import all secure modules
 import { supabaseClient } from './config.js'; // Assuming config.js is in pmfby/js/
 import { SecurityUtils } from './security.js'; // Assuming security.js is in pmfby/js/
 import { authManager } from './auth.js';     // Assuming auth.js is in pmfby/js/
@@ -40,8 +37,7 @@ async function loadDistricts() {
         const districtSelect = document.getElementById('district');
         if (!districtSelect) return;
         
-        // Use secureDB to fetch districts, allowing public access for login page
-        // secureDB.getDistricts() is configured with isPublic: true
+        // Use secureDB to fetch districts, configured with isPublic: true
         const districts = await secureDB.getDistricts(); 
         
         // Clear existing options except the first one
@@ -131,8 +127,7 @@ async function proceedWithLogin() {
         
         const hashedPassword = await hashPassword(password);
         
-        // Use secureDB for user authentication via a select query
-        // isPublic: true is added here to bypass the auth check during login
+        // --- STEP 1: Custom user verification (isPublic: true to bypass auth check) ---
         const users = await secureDB.secureSelect('test_users', {
             select: `
                 id, username, email, password_hash, full_name, role, is_active, district_id,
@@ -142,10 +137,10 @@ async function proceedWithLogin() {
             `,
             filters: { username: username, is_active: true },
             single: true, // Expect a single user
-            isPublic: true // <--- CRUCIAL: Allow this select to bypass auth check
+            isPublic: true // CRUCIAL: Allow this initial select to bypass auth check
         });
 
-        if (!users) { // secureSelect returns null if no data
+        if (!users) { 
             throw new Error('अमान्य यूजरनेम या पासवर्ड');
         }
 
@@ -153,21 +148,11 @@ async function proceedWithLogin() {
             throw new Error('अमान्य यूजरनेम या पासवर्ड');
         }
 
-        // District verification using the selected dropdown value
-         if (users.district_id && users.district_id !== districtId) {
-                    throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
+        if (users.district_id && users.district_id !== districtId) { // Correct comparison for UUIDs
+            throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
-        // Update user status in your database
-        await secureDB.secureUpdate('test_users', users.id, {
-            last_login: new Date().toISOString(),
-            is_online: true,
-            last_activity: new Date().toISOString()
-        });
 
-        // --- CRUCIAL STEP: Authenticate with Supabase's built-in auth ---
-        // This is the missing piece! Your custom login verified the user,
-        // but Supabase's auth system wasn't told about it.
-        // We use the 'email' from the fetched user data, not the 'username'
+        // --- STEP 2: Establish Supabase session (This is what makes authManager work) ---
         const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
             email: users.email, // Use the user's actual email from the database
             password: password // Use the raw password here for Supabase auth
@@ -177,12 +162,24 @@ async function proceedWithLogin() {
             console.error("Supabase auth.signInWithPassword error:", authError);
             throw new Error("लॉगिन में आंतरिक त्रुटि: " + authError.message);
         }
-        // --- END CRUCIAL STEP ---
+        
+        // --- STEP 3: IMMEDIATELY UPDATE authManager's internal state ---
+        // This is the critical change to prevent "Authentication required" for subsequent secureDB calls.
+        // We force authManager to re-check its session and update its isAuthenticated and currentUser flags.
+        await authManager.checkExistingSession(); 
+        
+        // After this point, authManager.isAuthenticated should be TRUE and authManager.currentUser should be set.
+        // Any subsequent secureDB calls should now pass the requireAuth() check.
 
-        // Now authManager can pick up the session
-        await authManager.checkExistingSession(); // This will populate authManager.currentUser
+        // --- STEP 4: Perform authenticated database updates ---
+        // Now secureDB.secureUpdate should work because authManager is updated.
+        await secureDB.secureUpdate('test_users', users.id, {
+            last_login: new Date().toISOString(),
+            is_online: true,
+            last_activity: new Date().toISOString()
+        });
 
-        // Store user data in sessionStorage for immediate use
+        // --- STEP 5: Store user data and redirect ---
         sessionStorage.setItem('userId', users.id);
         sessionStorage.setItem('username', users.username);
         sessionStorage.setItem('fullName', users.full_name);
@@ -190,20 +187,18 @@ async function proceedWithLogin() {
         sessionStorage.setItem('districtId', users.district_id);
         sessionStorage.setItem('districtName', users.districts ? users.districts.name : 'Unknown District');
 
-        // Set authVerified flag for smooth transition to dashboard
         sessionStorage.setItem('authVerified', 'true');
         sessionStorage.setItem('authTimestamp', Date.now().toString());
 
-        errorHandler.showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...'); // Use errorHandler.showSuccess
+        errorHandler.showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
 
-        // Redirect to dashboard after 1.5 seconds
         setTimeout(() => {
             window.location.href = 'dashboard.html';
         }, 1500);
 
     } catch (error) {
         console.error('Login error:', error);
-        errorHandler.showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।'); // Use errorHandler.showError
+        errorHandler.showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।');
         
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
@@ -211,19 +206,17 @@ async function proceedWithLogin() {
             loginBtn.disabled = false;
         }
         
-        drawCaptcha(); // Refresh CAPTCHA on login failure
+        drawCaptcha(); 
         const captchaInput = document.getElementById('captchaInput');
-        if (captchaInput) captchaInput.value = ''; // Clear CAPTCHA input
+        if (captchaInput) captchaInput.value = ''; 
         tempLoginData = {};
     }
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
-    // Clear any redirect counters from previous sessions
     sessionStorage.removeItem('redirectCount');
 
-    // Check if already logged in via Supabase session
     const { data: { session }, error } = await supabaseClient.auth.getSession();
     if (session && session.user && session.user.id) {
         console.log('User already logged in via Supabase session, redirecting to dashboard.');
@@ -232,14 +225,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 
     drawCaptcha();
-    loadDistricts(); // Load districts when the page loads
+    loadDistricts(); 
 });
 
 // Expose functions to window scope if needed (e.g., for inline event handlers, though generally avoided)
 window.drawCaptcha = drawCaptcha;
 window.proceedWithLogin = proceedWithLogin;
 
-// Console welcome message (optional, can be removed)
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                संचालनालय कृषि छत्तीसगढ़                      ║
