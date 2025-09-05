@@ -1308,45 +1308,43 @@
                     select: 'id, display_order',
                     orderBy: 'display_order'
                 });
-        
+
                 const draggedCard = cards.find(c => c.id === parseInt(draggedId));
                 const targetCard = cards.find(c => c.id === parseInt(targetId));
-        
+
                 if (!draggedCard || !targetCard) return;
-        
+
                 // Perform the reordering logic to get the new order of all cards
                 const newCardsOrder = [...cards];
                 const draggedIndex = newCardsOrder.findIndex(c => c.id === parseInt(draggedId));
                 const targetIndex = newCardsOrder.findIndex(c => c.id === parseInt(targetId));
-        
+
                 // Remove the dragged card from its original position
                 const [removed] = newCardsOrder.splice(draggedIndex, 1);
                 // Insert it into the new position
                 newCardsOrder.splice(targetIndex, 0, removed);
-        
+
                 // Prepare the updates array with new display_order for ALL affected cards
                 const updates = newCardsOrder.map((card, index) => ({
                     id: card.id,
                     display_order: index + 1, // Assign new sequential order
                     updated_at: new Date().toISOString() // Add updated timestamp
                 }));
-        
-                // FIXED: Use secureDB.secureUpsert to update multiple records in one go
-                // This is the correct way to handle reordering efficiently and safely
+
+                // Use secureDB.secureUpsert to update multiple records in one go
                 await secureDB.secureUpsert('dashboard_cards', updates, 'id'); // 'id' is the conflict column
-        
+
                 logAdminAction('CARD_ORDER_UPDATED', `Reordered card (ID: ${draggedId}) with (ID: ${targetId})`);
                 errorHandler.showToast('success', 'कार्ड क्रम बदल दिया गया', 'कार्ड का क्रम सफलतापूर्वक बदल दिया गया');
-        
+
                 // Reload dashboard cards to reflect the new order visually
                 loadDashboardCards(); 
-        
+
             } catch (error) {
                 console.error('Error reordering cards:', error);
                 errorHandler.showToast('error', 'कार्ड क्रम बदलने में त्रुटि', error.message);
             }
         }
-
 
         function setupEventListeners() {
             if (isAdmin) {
@@ -1702,7 +1700,7 @@
             }
 
             try {
-                await secureDB.secureUpdate('test_users', userId, { is_active: !currentStatus });
+                await secureDB.secureUpdate('test_users', userId, { is_active: !currentStatus, updated_at: new Date().toISOString() });
 
                 const action = currentStatus ? 'USER_DEACTIVATED' : 'USER_ACTIVATED';
                 const description = `User (ID: ${userId}) was ${currentStatus ? 'deactivated' : 'activated'}.`;
@@ -1766,9 +1764,9 @@
 
                 // Top Cards by Clicks
                 const topCards = await secureDB.secureSelect('card_clicks', {
-                    select: 'card_id, dashboard_cards(title_hi)',
-                    orderBy: 'card_id', // Group by card_id to count
-                    ascending: false
+                    select: 'card_id, dashboard_cards(title_hi)'
+                    // Order by card_id is not for count, need to process clientside or use RPC
+                    // For now, fetch all and count clientside
                 });
 
                 const topCardsTableBody = document.getElementById('topCardsTableBody');
@@ -1776,14 +1774,16 @@
                 topCardsTableBody.innerHTML = '';
                 
                 const cardClickCounts = {};
-                topCards.forEach(click => {
-                    const cardTitle = click.dashboard_cards ? click.dashboard_cards.title_hi : 'Unknown Card';
-                    cardClickCounts[cardTitle] = (cardClickCounts[cardTitle] || 0) + 1;
-                });
+                if (topCards) {
+                    topCards.forEach(click => {
+                        const cardTitle = click.dashboard_cards ? click.dashboard_cards.title_hi : 'Unknown Card';
+                        cardClickCounts[cardTitle] = (cardClickCounts[cardTitle] || 0) + 1;
+                    });
+                }
 
                 const sortedTopCards = Object.entries(cardClickCounts).sort(([,a], [,b]) => b - a);
 
-                sortedTopCards.forEach(([title, count]) => {
+                sortedTopCards.slice(0, 5).forEach(([title, count]) => { // Show top 5
                     const row = topCardsTableBody.insertRow();
                     row.innerHTML = `<td>${title}</td><td>${count}</td>`;
                 });
@@ -1799,10 +1799,12 @@
                 const adminActivityTableBody = document.getElementById('adminActivityTableBody');
                 if (!adminActivityTableBody) return;
                 adminActivityTableBody.innerHTML = '';
-                adminLogs.forEach(log => {
-                    const row = adminActivityTableBody.insertRow();
-                    row.innerHTML = `<td>${log.action_type}</td><td>${log.description}</td><td>${new Date(log.logged_at).toLocaleString('hi-IN')}</td>`;
-                });
+                if (adminLogs) {
+                    adminLogs.forEach(log => {
+                        const row = adminActivityTableBody.insertRow();
+                        row.innerHTML = `<td>${log.action_type}</td><td>${log.description}</td><td>${new Date(log.logged_at).toLocaleString('hi-IN')}</td>`;
+                    });
+                }
 
             } catch (error) {
                 console.error('Error loading analytics data:', error);
@@ -1813,7 +1815,13 @@
         // Logging Functions
         async function logCardClick(cardId) {
             try {
-                await secureDB.secureInsert('card_clicks', { card_id: cardId, user_id: currentUser.id, ip_address: '0.0.0.0' });
+                // Ensure currentUser is available and has an ID
+                const currentUserId = authManager.getCurrentUser()?.id;
+                if (!currentUserId) {
+                    console.warn('Cannot log card click: User not identified.');
+                    return;
+                }
+                await secureDB.secureInsert('card_clicks', { card_id: cardId, user_id: currentUserId, ip_address: '0.0.0.0' });
             } catch (error) {
                 console.error('Error logging card click:', error);
                 errorHandler.handleError(error, { context: 'card_click_logging' });
@@ -1821,14 +1829,14 @@
         }
 
         async function logAdminAction(actionType, description, targetEntityId = null) {
-            if (!isAdmin || !currentUser) return;
+            if (!isAdmin || !currentUser) return; // Only log if admin and user is set
 
             try {
                 await secureDB.secureInsert('admin_logs', {
                     admin_id: currentUser.id,
                     action_type: actionType,
                     description: description,
-                    target_entity_id: targetEntityId ? String(targetEntityId) : null
+                    target_entity_id: targetEntityId ? String(targetEntityId) : null // Ensure string for UUID if column type is text
                 });
             } catch (error) {
                 console.error('Error logging admin action:', error);
@@ -2211,9 +2219,10 @@
             const formParentDashboardCardId = document.getElementById('formParentDashboardCard')?.value;
             const dynamicFormMessages = document.getElementById('dynamicFormMessages');
 
+
             if (!excelFile) {
                 if (dynamicFormMessages) {
-                    dynamicFormMessages.textContent = 'कृपया Excel फ़ाइल अपलोड करें।';
+                    dynamicFormMessages.textContent = 'कृपया Excel फ़ाइल अपलोड करें';
                     dynamicFormMessages.style.display = 'block';
                     dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 }
@@ -2221,7 +2230,7 @@
             }
             if (!formNavParentItemId) {
                 if (dynamicFormMessages) {
-                    dynamicFormMessages.textContent = 'कृपया नेवीगेशन सेक्शन चुनें।';
+                    dynamicFormMessages.textContent = 'कृपया नेवीगेशन सेक्शन चुनें';
                     dynamicFormMessages.style.display = 'block';
                     dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 }
@@ -2229,7 +2238,7 @@
             }
             if (!formParentDashboardCardId) {
                 if (dynamicFormMessages) {
-                    dynamicFormMessages.textContent = 'कृपया मैप करने के लिए डैशबोर्ड कार्ड चुनें।';
+                    dynamicFormMessages.textContent = 'कृपया मैप करने के लिए डैशबोर्ड कार्ड चुनें';
                     dynamicFormMessages.style.display = 'block';
                     dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
                 }
@@ -2525,8 +2534,11 @@
                 }
 
                 // Assuming you have a bootstrap.Modal instance or similar
-                const viewModal = new bootstrap.Modal(document.getElementById('viewModal')); // Ensure Bootstrap is loaded
-                viewModal.show();
+                // You'll need to ensure Bootstrap's JS is loaded for this to work
+                // For now, let's just make it visible if Bootstrap is not used.
+                const viewModalElement = document.getElementById('viewModal');
+                if (viewModalElement) viewModalElement.style.display = 'block';
+
 
             } catch (error) {
                 console.error('Error viewing dynamic form definition:', error);
@@ -2568,7 +2580,7 @@
 
             } catch (error) {
                 console.error('Error deleting dynamic form:', error);
-                errorHandler.showToast('error', 'डायनेमिक फॉर्म हटाने में त्रुटि', error.message);
+                errorHandler.showToast('error', 'डायनेमिक फॉर्म हटाने में त्रुटि: ' + (error.message || JSON.stringify(error)), 'error');
                 // Consider logging a failed deletion attempt here too
             }
         }
@@ -2610,13 +2622,16 @@
         async function handleAddCard(e) {
             e.preventDefault();
             const submitBtn = document.getElementById('addCardSubmitBtn');
-            const formData = new FormData(e.target);
+            const titleHi = document.getElementById('cardTitleHi')?.value;
+            const titleEn = document.getElementById('cardTitleEn')?.value;
+            const url = document.getElementById('cardUrl')?.value;
+            const cardDescHi = document.getElementById('cardDescHi')?.value;
+            const cardDescEn = document.getElementById('cardDescEn')?.value;
+            const cardCategory = document.getElementById('cardCategory')?.value;
+            const displayOrder = parseInt(document.getElementById('displayOrder')?.value || '1');
+            const selectedIcon = document.getElementById('selectedIcon')?.value;
             
-            const titleHi = formData.get('cardTitleHi');
-            const titleEn = formData.get('cardTitleEn');
-            const url = formData.get('cardUrl');
-            
-            if (!titleHi || !titleEn || !url) {
+            if (!titleHi || !titleEn || !url || !selectedIcon) {
                 showAddCardError('कृपया सभी आवश्यक फील्ड भरें');
                 return;
             }
@@ -2630,12 +2645,12 @@
                 const cardData = {
                     title_hi: titleHi,
                     title_en: titleEn,
-                    description_hi: formData.get('cardDescHi') || '',
-                    description_en: formData.get('cardDescEn') || '',
+                    description_hi: cardDescHi || '',
+                    description_en: cardDescEn || '',
                     target_url: url,
-                    icon_class: formData.get('selectedIcon') || 'fas fa-cube',
-                    category: formData.get('cardCategory') || 'general',
-                    display_order: parseInt(formData.get('displayOrder')) || 1,
+                    icon_class: selectedIcon || 'fas fa-cube',
+                    category: cardCategory || 'general',
+                    display_order: displayOrder,
                     created_by: currentUser.id,
                     is_active: true
                 };
@@ -2669,8 +2684,13 @@
             const titleHi = document.getElementById('editCardTitleHi')?.value;
             const titleEn = document.getElementById('editCardTitleEn')?.value;
             const url = document.getElementById('editCardUrl')?.value;
+            const cardDescHi = document.getElementById('editCardDescHi')?.value;
+            const cardDescEn = document.getElementById('editCardDescEn')?.value;
+            const editSelectedIcon = document.getElementById('editSelectedIcon')?.value;
+            const editCardCategory = document.getElementById('editCardCategory')?.value;
+            const editDisplayOrder = parseInt(document.getElementById('editDisplayOrder')?.value || '1');
             
-            if (!cardId || !titleHi || !titleEn || !url) {
+            if (!cardId || !titleHi || !titleEn || !url || !editSelectedIcon) {
                 showEditCardError('कृपया सभी आवश्यक फील्ड भरें');
                 return;
             }
@@ -2684,12 +2704,12 @@
                 const updateData = {
                     title_hi: titleHi,
                     title_en: titleEn,
-                    description_hi: document.getElementById('editCardDescHi')?.value || '',
-                    description_en: document.getElementById('editCardDescEn')?.value || '',
+                    description_hi: cardDescHi || '',
+                    description_en: cardDescEn || '',
                     target_url: url,
-                    icon_class: document.getElementById('editSelectedIcon')?.value || 'fas fa-cube',
-                    category: document.getElementById('editCardCategory')?.value || 'general',
-                    display_order: parseInt(document.getElementById('editDisplayOrder')?.value) || 1,
+                    icon_class: editSelectedIcon || 'fas fa-cube',
+                    category: editCardCategory || 'general',
+                    display_order: editDisplayOrder,
                     updated_at: new Date().toISOString()
                 };
 
@@ -2921,12 +2941,13 @@
             
             const updates = items.map((item, index) => ({
                 id: parseInt(item.dataset.navItemId || '0'), // Ensure ID is integer
-                display_order: index + 1
+                display_order: index + 1, // Assign new sequential order
+                updated_at: new Date().toISOString() // Add updated timestamp
             }));
 
             try {
-                // Use upsert to update multiple records efficiently
-                await secureDB.secureUpsert('navigation_items', updates); 
+                // Use secureUpsert to update multiple records efficiently
+                await secureDB.secureUpsert('navigation_items', updates, 'id'); 
 
                 logAdminAction('NAV_ORDER_UPDATED', 'Navigation item order updated');
                 errorHandler.showToast('success', 'नेवीगेशन क्रम अपडेट किया गया', 'नेवीगेशन का क्रम सफलतापूर्वक अपडेट किया गया');
