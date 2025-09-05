@@ -132,7 +132,7 @@ async function proceedWithLogin() {
         const hashedPassword = await hashPassword(password);
         
         // Use secureDB for user authentication via a select query
-        // isPublic: true is not needed here as we are doing a custom verification
+        // isPublic: true is added here to bypass the auth check during login
         const users = await secureDB.secureSelect('test_users', {
             select: `
                 id, username, email, password_hash, full_name, role, is_active, district_id,
@@ -141,7 +141,8 @@ async function proceedWithLogin() {
                 )
             `,
             filters: { username: username, is_active: true },
-            single: true // Expect a single user
+            single: true, // Expect a single user
+            isPublic: true // <--- CRUCIAL: Allow this select to bypass auth check
         });
 
         if (!users) { // secureSelect returns null if no data
