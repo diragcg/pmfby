@@ -1,3 +1,4 @@
+// pmfby/js/login.js
 
 // Import all secure modules
 import { supabaseClient } from './config.js'; // Assuming config.js is in pmfby/js/
@@ -130,6 +131,7 @@ async function proceedWithLogin() {
         const hashedPassword = await hashPassword(password);
         
         // --- STEP 1: Custom user verification (isPublic: true to bypass auth check) ---
+        // Fetch user data including the 'email' column from your custom table
         const users = await secureDB.secureSelect('test_users', {
             select: `
                 id, username, email, password_hash, full_name, role, is_active, district_id,
@@ -137,7 +139,7 @@ async function proceedWithLogin() {
                     id, name
                 )
             `,
-            filters: { username: username, is_active: true },
+            filters: { username: username, is_active: true }, // Filter by username
             single: true, // Expect a single user
             isPublic: true // CRUCIAL: Allow this initial select to bypass auth check
         });
@@ -150,64 +152,30 @@ async function proceedWithLogin() {
             throw new Error('अमान्य यूजरनेम या पासवर्ड');
         }
 
-        if (users.district_id && users.district_id !== districtId) { // Correct comparison for UUIDs
+        // District verification using the selected dropdown value (string comparison for UUIDs)
+        if (users.district_id && users.district_id !== districtId) { 
             throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
 
-        // --- STEP 2: Custom Supabase Session Creation (Bypassing email/phone requirement) ---
-        // Instead of signInWithPassword, we create a session directly.
-        // This requires a JWT token. You could generate this on a secure backend
-        // or for simplicity, we'll create a dummy one for the client,
-        // but the security of this token is critical.
-        // For a truly secure system, this JWT should be issued by a backend server
-        // after it verifies the username/password.
+        // --- STEP 2: Authenticate with Supabase's built-in auth using the fetched email ---
+        // Now that `test_users` has an 'email' column, we can use it directly.
+        // This will establish a proper Supabase session and return valid JWTs.
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: users.email, // Use the actual email from the database
+            password: password  // Use the raw password here for Supabase auth
+        });
 
-        // For now, we'll create a dummy session object to satisfy Supabase's internal state.
-        // THIS IS A TEMPORARY WORKAROUND FOR CLIENT-SIDE ONLY AUTH WITH CUSTOM USER TABLE.
-        // IN PRODUCTION, YOU MUST USE A SECURE BACKEND TO ISSUE JWT TOKENS.
-        const dummyAccessToken = "dummy_access_token_from_custom_auth"; // This token won't be valid for RLS
-        const dummyRefreshToken = "dummy_refresh_token_from_custom_auth"; // This token won't be valid for RLS
-        const expiresIn = 3600; // 1 hour
-        const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
-
-        const session = {
-            access_token: dummyAccessToken,
-            refresh_token: dummyRefreshToken,
-            expires_in: expiresIn,
-            token_type: 'bearer',
-            user: {
-                id: users.id, // Use the actual user ID from your custom table
-                email: users.email || `${users.username}@custom.auth`, // Use actual email or a dummy one
-                user_metadata: {
-                    full_name: users.full_name,
-                    username: users.username,
-                    role: users.role,
-                    district_id: users.district_id
-                },
-                app_metadata: {
-                    provider: 'custom'
-                },
-                aud: 'authenticated',
-                created_at: new Date().toISOString(),
-                confirmed_at: new Date().toISOString(),
-                last_sign_in_at: new Date().toISOString(),
-                role: users.role, // Important for RLS if you're using auth.role()
-            },
-            expires_at: now + expiresIn,
-        };
-
-        const { error: setSessionError } = await supabaseClient.auth.setSession(session);
-
-        if (setSessionError) {
-            console.error("Supabase auth.setSession error:", setSessionError);
-            throw new Error("लॉगिन में आंतरिक त्रुटि (सेशन): " + setSessionError.message);
+        if (authError) {
+            console.error("Supabase auth.signInWithPassword error:", authError);
+            throw new Error("लॉगिन में आंतरिक त्रुटि: " + authError.message);
         }
-        // --- END CUSTOM SESSION CREATION ---
-
+        
         // --- STEP 3: IMMEDIATELY UPDATE authManager's internal state ---
+        // authManager.checkExistingSession() will now find the valid Supabase session
         await authManager.checkExistingSession(); 
         
-        // --- STEP 4: Perform authenticated database updates ---
+        // --- STEP 4: Perform authenticated database updates (now authManager is ready) ---
+        // This will now pass the authManager.requireAuth() check
         await secureDB.secureUpdate('test_users', users.id, {
             last_login: new Date().toISOString(),
             is_online: true,
@@ -215,6 +183,7 @@ async function proceedWithLogin() {
         });
 
         // --- STEP 5: Store user data and redirect ---
+        // Store user data in sessionStorage for immediate use
         sessionStorage.setItem('userId', users.id);
         sessionStorage.setItem('username', users.username);
         sessionStorage.setItem('fullName', users.full_name);
