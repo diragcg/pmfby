@@ -1,10 +1,10 @@
 // pmfby/js/login.js
 
 // Import all secure modules
-import { supabaseClient } from './config.js';
-import { SecurityUtils } from './security.js';
-import { authManager } from './auth.js';
-import { errorHandler } from './error-handler.js';
+import { supabaseClient } from './config.js'; // Assuming config.js is in pmfby/js/
+import { SecurityUtils } from './security.js'; // Assuming security.js is in pmfby/js/
+import { authManager } from './auth.js';     // Assuming auth.js is in pmfby/js/
+import { errorHandler } from './error-handler.js'; // Assuming error-handler.js is in pmfby/js/
 import { secureDB } from './database.js'; // Needed for loadDistricts
 
 // CAPTCHA functionality
@@ -25,7 +25,7 @@ function drawCaptcha() {
     if(captchaDisplay) captchaDisplay.textContent = currentCaptcha;
 }
 
-// Hash password with SHA-256
+// Hash password with SHA-256 (using Web Crypto API)
 async function hashPassword(password) {
     const encoder = new TextEncoder();
     const data = encoder.encode(password);
@@ -41,6 +41,7 @@ async function loadDistricts() {
         if (!districtSelect) return;
         
         // Use secureDB to fetch districts, allowing public access for login page
+        // secureDB.getDistricts() is configured with isPublic: true
         const districts = await secureDB.getDistricts(); 
         
         // Clear existing options except the first one
@@ -70,32 +71,12 @@ async function loadDistricts() {
     }
 }
 
-// Hide messages
+// Hide messages on the login page
 function hideMessages() {
     const errorDiv = document.getElementById('errorMessage');
     const successDiv = document.getElementById('successMessage');
     if (errorDiv) errorDiv.style.display = 'none';
     if (successDiv) successDiv.style.display = 'none';
-}
-
-// Show error message
-function showError(message) {
-    hideMessages();
-    const errorDiv = document.getElementById('errorMessage');
-    if (errorDiv) {
-        errorDiv.textContent = message;
-        errorDiv.style.display = 'block';
-    }
-}
-
-// Show success message
-function showSuccess(message) {
-    hideMessages();
-    const successDiv = document.getElementById('successMessage');
-    if (successDiv) {
-        successDiv.textContent = message;
-        successDiv.style.display = 'block';
-    }
 }
 
 // CAPTCHA event listeners
@@ -117,14 +98,14 @@ document.getElementById('loginForm')?.addEventListener('submit', async function(
 
     // Validate form data including the visible district and CAPTCHA input
     if (!tempLoginData.username || !tempLoginData.password || !tempLoginData.districtId || !document.getElementById('captchaInput')?.value.trim()) {
-        showError('कृपया सभी आवश्यक फील्ड भरें');
+        errorHandler.showError('कृपया सभी आवश्यक फील्ड भरें'); // Use errorHandler.showError
         return;
     }
     
     // CAPTCHA verification (using your numerical logic)
     const userInputCaptcha = document.getElementById('captchaInput')?.value;
     if (userInputCaptcha !== currentCaptcha) {
-        showError('गलत कैप्चा! कृपया पुनः प्रयास करें।');
+        errorHandler.showError('गलत कैप्चा! कृपया पुनः प्रयास करें।'); // Use errorHandler.showError
         drawCaptcha(); // Generate new CAPTCHA
         const captchaInput = document.getElementById('captchaInput');
         if (captchaInput) captchaInput.value = ''; // Clear input
@@ -151,9 +132,10 @@ async function proceedWithLogin() {
         const hashedPassword = await hashPassword(password);
         
         // Use secureDB for user authentication via a select query
+        // isPublic: true is not needed here as we are doing a custom verification
         const users = await secureDB.secureSelect('test_users', {
             select: `
-                id, username, password_hash, full_name, role, is_active, district_id,
+                id, username, email, password_hash, full_name, role, is_active, district_id,
                 districts (
                     id, name
                 )
@@ -175,14 +157,32 @@ async function proceedWithLogin() {
             throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
 
-        // Update user status
+        // Update user status in your database
         await secureDB.secureUpdate('test_users', users.id, {
             last_login: new Date().toISOString(),
             is_online: true,
             last_activity: new Date().toISOString()
         });
 
-        // Store user data in session for immediate use
+        // --- CRUCIAL STEP: Authenticate with Supabase's built-in auth ---
+        // This is the missing piece! Your custom login verified the user,
+        // but Supabase's auth system wasn't told about it.
+        // We use the 'email' from the fetched user data, not the 'username'
+        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
+            email: users.email, // Use the user's actual email from the database
+            password: password // Use the raw password here for Supabase auth
+        });
+
+        if (authError) {
+            console.error("Supabase auth.signInWithPassword error:", authError);
+            throw new Error("लॉगिन में आंतरिक त्रुटि: " + authError.message);
+        }
+        // --- END CRUCIAL STEP ---
+
+        // Now authManager can pick up the session
+        await authManager.checkExistingSession(); // This will populate authManager.currentUser
+
+        // Store user data in sessionStorage for immediate use
         sessionStorage.setItem('userId', users.id);
         sessionStorage.setItem('username', users.username);
         sessionStorage.setItem('fullName', users.full_name);
@@ -190,11 +190,11 @@ async function proceedWithLogin() {
         sessionStorage.setItem('districtId', users.district_id);
         sessionStorage.setItem('districtName', users.districts ? users.districts.name : 'Unknown District');
 
-        // FIXED: Set authVerified flag for smooth transition to dashboard
+        // Set authVerified flag for smooth transition to dashboard
         sessionStorage.setItem('authVerified', 'true');
         sessionStorage.setItem('authTimestamp', Date.now().toString());
 
-        showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
+        errorHandler.showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...'); // Use errorHandler.showSuccess
 
         // Redirect to dashboard after 1.5 seconds
         setTimeout(() => {
@@ -203,7 +203,7 @@ async function proceedWithLogin() {
 
     } catch (error) {
         console.error('Login error:', error);
-        showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+        errorHandler.showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।'); // Use errorHandler.showError
         
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
@@ -220,6 +220,9 @@ async function proceedWithLogin() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
+    // Clear any redirect counters from previous sessions
+    sessionStorage.removeItem('redirectCount');
+
     // Check if already logged in via Supabase session
     const { data: { session }, error } = await supabaseClient.auth.getSession();
     if (session && session.user && session.user.id) {
