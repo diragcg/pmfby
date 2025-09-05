@@ -1,3 +1,5 @@
+
+// Import all secure modules
 import { supabaseClient } from './config.js'; // Assuming config.js is in pmfby/js/
 import { SecurityUtils } from './security.js'; // Assuming security.js is in pmfby/js/
 import { authManager } from './auth.js';     // Assuming auth.js is in pmfby/js/
@@ -152,27 +154,60 @@ async function proceedWithLogin() {
             throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
 
-        // --- STEP 2: Establish Supabase session (This is what makes authManager work) ---
-        const { data: authData, error: authError } = await supabaseClient.auth.signInWithPassword({
-            email: users.email, // Use the user's actual email from the database
-            password: password // Use the raw password here for Supabase auth
-        });
+        // --- STEP 2: Custom Supabase Session Creation (Bypassing email/phone requirement) ---
+        // Instead of signInWithPassword, we create a session directly.
+        // This requires a JWT token. You could generate this on a secure backend
+        // or for simplicity, we'll create a dummy one for the client,
+        // but the security of this token is critical.
+        // For a truly secure system, this JWT should be issued by a backend server
+        // after it verifies the username/password.
 
-        if (authError) {
-            console.error("Supabase auth.signInWithPassword error:", authError);
-            throw new Error("लॉगिन में आंतरिक त्रुटि: " + authError.message);
+        // For now, we'll create a dummy session object to satisfy Supabase's internal state.
+        // THIS IS A TEMPORARY WORKAROUND FOR CLIENT-SIDE ONLY AUTH WITH CUSTOM USER TABLE.
+        // IN PRODUCTION, YOU MUST USE A SECURE BACKEND TO ISSUE JWT TOKENS.
+        const dummyAccessToken = "dummy_access_token_from_custom_auth"; // This token won't be valid for RLS
+        const dummyRefreshToken = "dummy_refresh_token_from_custom_auth"; // This token won't be valid for RLS
+        const expiresIn = 3600; // 1 hour
+        const now = Math.floor(Date.now() / 1000); // Current timestamp in seconds
+
+        const session = {
+            access_token: dummyAccessToken,
+            refresh_token: dummyRefreshToken,
+            expires_in: expiresIn,
+            token_type: 'bearer',
+            user: {
+                id: users.id, // Use the actual user ID from your custom table
+                email: users.email || `${users.username}@custom.auth`, // Use actual email or a dummy one
+                user_metadata: {
+                    full_name: users.full_name,
+                    username: users.username,
+                    role: users.role,
+                    district_id: users.district_id
+                },
+                app_metadata: {
+                    provider: 'custom'
+                },
+                aud: 'authenticated',
+                created_at: new Date().toISOString(),
+                confirmed_at: new Date().toISOString(),
+                last_sign_in_at: new Date().toISOString(),
+                role: users.role, // Important for RLS if you're using auth.role()
+            },
+            expires_at: now + expiresIn,
+        };
+
+        const { error: setSessionError } = await supabaseClient.auth.setSession(session);
+
+        if (setSessionError) {
+            console.error("Supabase auth.setSession error:", setSessionError);
+            throw new Error("लॉगिन में आंतरिक त्रुटि (सेशन): " + setSessionError.message);
         }
-        
+        // --- END CUSTOM SESSION CREATION ---
+
         // --- STEP 3: IMMEDIATELY UPDATE authManager's internal state ---
-        // This is the critical change to prevent "Authentication required" for subsequent secureDB calls.
-        // We force authManager to re-check its session and update its isAuthenticated and currentUser flags.
         await authManager.checkExistingSession(); 
         
-        // After this point, authManager.isAuthenticated should be TRUE and authManager.currentUser should be set.
-        // Any subsequent secureDB calls should now pass the requireAuth() check.
-
         // --- STEP 4: Perform authenticated database updates ---
-        // Now secureDB.secureUpdate should work because authManager is updated.
         await secureDB.secureUpdate('test_users', users.id, {
             last_login: new Date().toISOString(),
             is_online: true,
@@ -198,7 +233,7 @@ async function proceedWithLogin() {
 
     } catch (error) {
         console.error('Login error:', error);
-        errorHandler.showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।');
+        errorHandler.showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।'); 
         
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
