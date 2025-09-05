@@ -870,54 +870,155 @@
         </div>
     </template>
 
-    <!-- Main Application Script -->
-    <script type="module">
-        // Import all secure modules
-        import { supabaseClient } from './js/config.js';
-        import { SecurityUtils } from './js/security.js';
-        import { authManager } from './js/auth.js';
-        import { secureDB } from './js/database.js';
-        import { performanceManager } from './js/performance.js';
-        import { errorHandler } from './js/error-handler.js';
+<script type="module">
+    // Import all secure modules
+    import { supabaseClient } from './js/config.js';
+    import { SecurityUtils } from './js/security.js';
+    import { authManager } from './js/auth.js';
+    import { secureDB } from './js/database.js';
+    import { performanceManager } from './js/performance.js';
+    import { errorHandler } from './js/error-handler.js';
 
-        // Application state
-        let allDistricts = [];
-        let allSchemes = [];
-        let allInputTypes = [];
-        let allTradeNames = [];
-        let allUnits = [];
+    // Application state
+    let allDistricts = [];
+    let allSchemes = [];
+    let allInputTypes = [];
+    let allTradeNames = [];
+    let allUnits = [];
 
-        // Initialize application
-        document.addEventListener('DOMContentLoaded', async function() {
-            try {
-                // Show initial loading
-                performanceManager.showLoading('main-content', 'Initializing application...');
-
-                // Check authentication
-                const isAuthenticated = await authManager.checkExistingSession();
-                if (!isAuthenticated) {
-                    errorHandler.showToast('error', 'Authentication Required', 'Please login to access this page');
-                    return;
-                }
-
-                // Initialize all components
-                await initializeApplication();
-
-                // Hide page loading
+    // FIXED: Better authentication check without auto-redirect
+    async function checkAuthenticationStatus() {
+        try {
+            console.log('🔐 Verifying authentication status...');
+            
+            // Use the new verifyAuthentication method that doesn't auto-redirect
+            const isAuthenticated = await authManager.verifyAuthentication();
+            
+            if (!isAuthenticated) {
+                console.log('❌ User not authenticated');
+                
+                // Show user-friendly message
                 document.getElementById('pageLoading').style.display = 'none';
-                performanceManager.hideLoading('main-content');
-
-                errorHandler.showSuccess('Ready', 'Application loaded successfully');
-
-            } catch (error) {
-                console.error('Application initialization error:', error);
-                errorHandler.handleError(error, { context: 'application_initialization' });
-                document.getElementById('pageLoading').style.display = 'none';
+                
+                // Create authentication required message
+                const authMessage = document.createElement('div');
+                authMessage.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: white;
+                    padding: 40px;
+                    border-radius: 15px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    text-align: center;
+                    z-index: 10000;
+                    max-width: 400px;
+                    width: 90%;
+                `;
+                
+                authMessage.innerHTML = `
+                    <div style="margin-bottom: 20px;">
+                        <i class="fas fa-lock" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
+                        <h3 style="color: #333; margin-bottom: 10px;">प्रमाणीकरण आवश्यक</h3>
+                        <p style="color: #666; margin-bottom: 20px;">इस पेज को एक्सेस करने के लिए कृपया लॉगिन करें</p>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button id="loginBtn" style="
+                            background: #007bff; 
+                            color: white; 
+                            border: none; 
+                            padding: 12px 24px; 
+                            border-radius: 8px; 
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">
+                            <i class="fas fa-sign-in-alt"></i> लॉगिन करें
+                        </button>
+                        <button id="goBackBtn" style="
+                            background: #6c757d; 
+                            color: white; 
+                            border: none; 
+                            padding: 12px 24px; 
+                            border-radius: 8px; 
+                            cursor: pointer;
+                            font-size: 14px;
+                        ">
+                            <i class="fas fa-arrow-left"></i> वापस जाएं
+                        </button>
+                    </div>
+                `;
+                
+                document.body.appendChild(authMessage);
+                
+                // Add event listeners
+                document.getElementById('loginBtn').addEventListener('click', () => {
+                    window.location.href = 'header.html';
+                });
+                
+                document.getElementById('goBackBtn').addEventListener('click', () => {
+                    if (document.referrer) {
+                        window.history.back();
+                    } else {
+                        window.location.href = 'dashboard.html';
+                    }
+                });
+                
+                return false;
             }
-        });
+            
+            console.log('✅ User authenticated successfully');
+            return true;
+            
+        } catch (error) {
+            console.error('Authentication check failed:', error);
+            errorHandler.handleError(error, { context: 'authentication_check' });
+            return false;
+        }
+    }
 
-        // Initialize all application components
-        async function initializeApplication() {
+    // Initialize application
+    document.addEventListener('DOMContentLoaded', async function() {
+        try {
+            console.log('🚀 Starting Viksit Krishi app initialization...');
+            
+            // Clear any redirect counters from previous sessions
+            sessionStorage.removeItem('redirectCount');
+            
+            // Check authentication first
+            const isAuthenticated = await checkAuthenticationStatus();
+            
+            if (!isAuthenticated) {
+                // Authentication message is already shown
+                return;
+            }
+
+            // User is authenticated, proceed with app initialization
+            console.log('🎉 Authentication successful, initializing application...');
+            
+            // Show loading
+            performanceManager.showLoading('main-content', 'Initializing application...');
+
+            // Initialize all components
+            await initializeApplication();
+
+            // Hide page loading
+            document.getElementById('pageLoading').style.display = 'none';
+            performanceManager.hideLoading('main-content');
+
+            errorHandler.showSuccess('Ready', 'Application loaded successfully');
+
+        } catch (error) {
+            console.error('Application initialization error:', error);
+            errorHandler.handleError(error, { context: 'application_initialization' });
+            document.getElementById('pageLoading').style.display = 'none';
+            performanceManager.hideLoading('main-content');
+        }
+    });
+
+    // Initialize all application components
+    async function initializeApplication() {
+        try {
             // Setup performance optimizations
             const form = document.getElementById('dailyReportForm');
             if (form) {
@@ -938,977 +1039,639 @@
             setupAutoSave();
 
             console.log('✅ Application initialized successfully');
-        }
-
-        // Load all application data
-        async function loadApplicationData() {
-            try {
-                performanceManager.showLoading('main-content', 'Loading application data...');
-
-                // Load data in parallel for better performance
-                const loadData = async () => {
-                    const [districts, schemes, inputTypes, tradeNames, units] = await Promise.all([
-                        secureDB.getDistricts(),
-                        secureDB.getSchemes(),
-                        secureDB.getInputTypes(),
-                        secureDB.getTradeNames(),
-                        secureDB.getUnits()
-                    ]);
-                    
-                    return { districts, schemes, inputTypes, tradeNames, units };
-                };
-
-                const data = await errorHandler.withErrorHandling(loadData, {
-                    operation: 'load application data',
-                    retryFunction: loadApplicationData
-                });
-
-                // Store data globally
-                allDistricts = data.districts;
-                allSchemes = data.schemes;
-                allInputTypes = data.inputTypes;
-                allTradeNames = data.tradeNames;
-                allUnits = data.units;
-
-                // Populate UI
-                populateDistricts();
-                setupDateSelector();
-                addInitialDynamicInput();
-
-                console.log('✅ Application data loaded successfully');
-
-            } catch (error) {
-                errorHandler.handleNetworkError(error, 'load application data');
-            } finally {
-                performanceManager.hideLoading('main-content');
-            }
-        }
-
-        // Populate districts dropdown
-        function populateDistricts() {
-            const districtSelect = document.getElementById('districtSelect');
-            const fragment = document.createDocumentFragment();
             
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'जिले का नाम चुनें';
-            fragment.appendChild(defaultOption);
+        } catch (error) {
+            console.error('Application initialization failed:', error);
+            throw error;
+        }
+    }
 
-            allDistricts.forEach(district => {
-                const option = document.createElement('option');
-                option.value = district.id;
-                option.textContent = district.name;
-                fragment.appendChild(option);
+    // Load all application data
+    async function loadApplicationData() {
+        try {
+            performanceManager.showLoading('main-content', 'Loading application data...');
+
+            // Load data in parallel for better performance
+            const loadData = async () => {
+                const [districts, schemes, inputTypes, tradeNames, units] = await Promise.all([
+                    secureDB.getDistricts(),
+                    secureDB.getSchemes(),
+                    secureDB.getInputTypes(),
+                    secureDB.getTradeNames(),
+                    secureDB.getUnits()
+                ]);
+                
+                return { districts, schemes, inputTypes, tradeNames, units };
+            };
+
+            const data = await errorHandler.withErrorHandling(loadData, {
+                operation: 'load application data',
+                retryFunction: loadApplicationData
             });
 
-            districtSelect.appendChild(fragment);
+            // Store data globally
+            allDistricts = data.districts;
+            allSchemes = data.schemes;
+            allInputTypes = data.inputTypes;
+            allTradeNames = data.tradeNames;
+            allUnits = data.units;
 
-            // Pre-select user's district if available
-            const currentUser = authManager.getCurrentUser();
-            if (currentUser?.profile?.districts?.id) {
-                districtSelect.value = currentUser.profile.districts.id;
-            }
+            // Populate UI
+            populateDistricts();
+            setupDateSelector();
+            addInitialDynamicInput();
+
+            console.log('✅ Application data loaded successfully');
+
+        } catch (error) {
+            errorHandler.handleNetworkError(error, 'load application data');
+            throw error;
+        } finally {
+            performanceManager.hideLoading('main-content');
         }
+    }
 
-        // Setup date selector
-        function setupDateSelector() {
-            const reportDateInput = document.getElementById('reportDate');
-            const displayedDateSpan = document.getElementById('displayedDate');
+    // Populate districts dropdown
+    function populateDistricts() {
+        const districtSelect = document.getElementById('districtSelect');
+        if (!districtSelect) return;
+        
+        const fragment = document.createDocumentFragment();
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'जिले का नाम चुनें';
+        fragment.appendChild(defaultOption);
 
-            const today = new Date();
-            const yyyy = today.getFullYear();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const todayISO = `${yyyy}-${mm}-${dd}`;
+        allDistricts.forEach(district => {
+            const option = document.createElement('option');
+            option.value = district.id;
+            option.textContent = district.name;
+            fragment.appendChild(option);
+        });
 
-            // Set default date to today and restrict future dates
-            reportDateInput.value = todayISO;
-            reportDateInput.setAttribute('max', todayISO);
-            reportDateInput.setAttribute('min', '2025-01-01');
-            
-            // Display date in DDMMYYYY format initially
-            displayedDateSpan.textContent = `${dd}${mm}${yyyy}`;
+        districtSelect.appendChild(fragment);
 
-            reportDateInput.addEventListener('change', function() {
-                const selectedDate = new Date(this.value);
-                const displayDd = String(selectedDate.getDate()).padStart(2, '0');
-                const displayMm = String(selectedDate.getMonth() + 1).padStart(2, '0');
-                const displayYyyy = selectedDate.getFullYear();
-                displayedDateSpan.textContent = `${displayDd}${displayMm}${displayYyyy}`;
-            });
+        // Pre-select user's district if available
+        const currentUser = authManager.getCurrentUser();
+        if (currentUser?.profile?.districts?.id) {
+            districtSelect.value = currentUser.profile.districts.id;
         }
+    }
 
-        // Setup all event listeners
-        function setupEventListeners() {
-            // Navigation dropdown
-            const sectionsToggle = document.getElementById('sectionsDropdownToggle');
-            if (sectionsToggle) {
-                sectionsToggle.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const dropdown = document.getElementById('dynamicDropdown');
+    // Setup date selector
+    function setupDateSelector() {
+        const reportDateInput = document.getElementById('reportDate');
+        const displayedDateSpan = document.getElementById('displayedDate');
+        
+        if (!reportDateInput || !displayedDateSpan) return;
+
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayISO = `${yyyy}-${mm}-${dd}`;
+
+        // Set default date to today and restrict future dates
+        reportDateInput.value = todayISO;
+        reportDateInput.setAttribute('max', todayISO);
+        reportDateInput.setAttribute('min', '2025-01-01');
+        
+        // Display date in DDMMYYYY format initially
+        displayedDateSpan.textContent = `${dd}${mm}${yyyy}`;
+
+        reportDateInput.addEventListener('change', function() {
+            const selectedDate = new Date(this.value);
+            const displayDd = String(selectedDate.getDate()).padStart(2, '0');
+            const displayMm = String(selectedDate.getMonth() + 1).padStart(2, '0');
+            const displayYyyy = selectedDate.getFullYear();
+            displayedDateSpan.textContent = `${displayDd}${displayMm}${displayYyyy}`;
+        });
+    }
+
+    // Setup all event listeners
+    function setupEventListeners() {
+        // Navigation dropdown
+        const sectionsToggle = document.getElementById('sectionsDropdownToggle');
+        if (sectionsToggle) {
+            sectionsToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                const dropdown = document.getElementById('dynamicDropdown');
+                if (dropdown) {
                     dropdown.classList.toggle('show');
-                });
-            }
-
-            // Profile and logout links
-            document.getElementById('profileLink')?.addEventListener('click', (e) => {
-                e.preventDefault();
-                errorHandler.showInfo('Profile', 'Profile settings will be implemented here');
-            });
-
-            document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
-                e.preventDefault();
-                if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-                    await authManager.logout();
                 }
             });
+        }
 
-            // Admin buttons
-            if (authManager.getCurrentUser()?.profile?.role === 'admin') {
-                setupAdminButtons();
+        // Profile and logout links
+        document.getElementById('profileLink')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            errorHandler.showInfo('Profile', 'Profile settings will be implemented here');
+        });
+
+        document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                await authManager.logout();
             }
+        });
 
-            // Form submission
-            const form = document.getElementById('dailyReportForm');
-            if (form) {
-                form.addEventListener('submit', handleSecureFormSubmission);
-            }
+        // Admin buttons
+        if (authManager.getCurrentUser()?.profile?.role === 'admin') {
+            setupAdminButtons();
+        }
 
-            // Add more input button
-            document.getElementById('addMoreInputBtn')?.addEventListener('click', addDynamicInputEntry);
+        // Form submission
+        const form = document.getElementById('dailyReportForm');
+        if (form) {
+            form.addEventListener('submit', handleSecureFormSubmission);
+        }
 
-            // Report generation button
-            document.getElementById('rptButton')?.addEventListener('click', generateReport);
+        // Add more input button
+        document.getElementById('addMoreInputBtn')?.addEventListener('click', addDynamicInputEntry);
 
-            // Close dropdowns when clicking outside
-            window.addEventListener('click', function(e) {
-                if (!e.target.matches('#sectionsDropdownToggle')) {
-                    const dropdown = document.getElementById('dynamicDropdown');
+        // Report generation button
+        document.getElementById('rptButton')?.addEventListener('click', generateReport);
+
+        // Close dropdowns when clicking outside
+        window.addEventListener('click', function(e) {
+            if (!e.target.matches('#sectionsDropdownToggle')) {
+                const dropdown = document.getElementById('dynamicDropdown');
+                if (dropdown) {
                     dropdown.classList.remove('show');
                 }
-            });
-        }
-
-        // Setup admin buttons
-        function setupAdminButtons() {
-            const adminToolbar = document.getElementById('adminToolbar');
-            if (adminToolbar) {
-                adminToolbar.classList.add('show');
             }
+        });
+    }
 
-            // Admin button event listeners
-            document.getElementById('addCardBtn')?.addEventListener('click', () => {
-                errorHandler.showInfo('Admin', 'Add card functionality will be implemented');
-            });
-
-            document.getElementById('manageNavBtn')?.addEventListener('click', () => {
-                errorHandler.showInfo('Admin', 'Navigation management will be implemented');
-            });
-
-            document.getElementById('toggleEditMode')?.addEventListener('click', () => {
-                errorHandler.showInfo('Admin', 'Edit mode will be implemented');
-            });
-
-            document.getElementById('userManagementBtn')?.addEventListener('click', () => {
-                errorHandler.showInfo('Admin', 'User management will be implemented');
-            });
-
-            document.getElementById('analyticsDashboardBtn')?.addEventListener('click', () => {
-                errorHandler.showInfo('Admin', 'Analytics dashboard will be implemented');
-            });
+    // Setup admin buttons
+    function setupAdminButtons() {
+        const adminToolbar = document.getElementById('adminToolbar');
+        if (adminToolbar) {
+            adminToolbar.classList.add('show');
         }
 
-        // Setup form functionality
-        function setupFormFunctionality() {
-            // Conditional fields for public representatives
-            const publicRepsCountInput = document.getElementById('publicRepsCount');
-            const headedChairQuestionGroup = document.getElementById('headedChairQuestionGroup');
-            const publicRepsNamesGroup = document.getElementById('publicRepsNamesGroup');
-            const yesHeadedChairRadio = document.getElementById('yesHeadedChair');
-            const noHeadedChairRadio = document.getElementById('noHeadedChair');
+        // Admin button event listeners
+        document.getElementById('addCardBtn')?.addEventListener('click', () => {
+            errorHandler.showInfo('Admin', 'Add card functionality will be implemented');
+        });
 
+        document.getElementById('manageNavBtn')?.addEventListener('click', () => {
+            errorHandler.showInfo('Admin', 'Navigation management will be implemented');
+        });
+
+        document.getElementById('toggleEditMode')?.addEventListener('click', () => {
+            errorHandler.showInfo('Admin', 'Edit mode will be implemented');
+        });
+
+        document.getElementById('userManagementBtn')?.addEventListener('click', () => {
+            errorHandler.showInfo('Admin', 'User management will be implemented');
+        });
+
+        document.getElementById('analyticsDashboardBtn')?.addEventListener('click', () => {
+            errorHandler.showInfo('Admin', 'Analytics dashboard will be implemented');
+        });
+    }
+
+    // Setup form functionality
+    function setupFormFunctionality() {
+        // Conditional fields for public representatives
+        const publicRepsCountInput = document.getElementById('publicRepsCount');
+        const headedChairQuestionGroup = document.getElementById('headedChairQuestionGroup');
+        const publicRepsNamesGroup = document.getElementById('publicRepsNamesGroup');
+        const yesHeadedChairRadio = document.getElementById('yesHeadedChair');
+        const noHeadedChairRadio = document.getElementById('noHeadedChair');
+
+        if (publicRepsCountInput) {
             publicRepsCountInput.addEventListener('input', function() {
                 const count = parseInt(this.value) || 0;
                 if (count > 0) {
-                    headedChairQuestionGroup.style.display = 'block';
+                    if (headedChairQuestionGroup) headedChairQuestionGroup.style.display = 'block';
                 } else {
-                    headedChairQuestionGroup.style.display = 'none';
-                    publicRepsNamesGroup.style.display = 'none';
-                    yesHeadedChairRadio.checked = false;
-                    noHeadedChairRadio.checked = false;
+                    if (headedChairQuestionGroup) headedChairQuestionGroup.style.display = 'none';
+                    if (publicRepsNamesGroup) publicRepsNamesGroup.style.display = 'none';
+                    if (yesHeadedChairRadio) yesHeadedChairRadio.checked = false;
+                    if (noHeadedChairRadio) noHeadedChairRadio.checked = false;
                 }
             });
+        }
 
+        if (yesHeadedChairRadio) {
             yesHeadedChairRadio.addEventListener('change', function() {
-                if (this.checked) {
+                if (this.checked && publicRepsNamesGroup) {
                     publicRepsNamesGroup.style.display = 'block';
                 }
             });
+        }
 
+        if (noHeadedChairRadio) {
             noHeadedChairRadio.addEventListener('change', function() {
-                if (this.checked) {
+                if (this.checked && publicRepsNamesGroup) {
                     publicRepsNamesGroup.style.display = 'none';
                 }
             });
         }
+    }
 
-        // Add initial dynamic input entry
-        function addInitialDynamicInput() {
-            addDynamicInputEntry();
-        }
+    // Add initial dynamic input entry
+    function addInitialDynamicInput() {
+        addDynamicInputEntry();
+    }
 
-        // Add dynamic input entry
-        function addDynamicInputEntry() {
-            const template = document.getElementById('dynamicInputTemplate');
-            const clone = template.content.cloneNode(true);
-            const entryDiv = clone.querySelector('.dynamic-input-entry');
-            const container = document.getElementById('dynamicInputEntriesContainer');
-            
-            container.appendChild(clone);
+    // Add dynamic input entry
+    function addDynamicInputEntry() {
+        const template = document.getElementById('dynamicInputTemplate');
+        const container = document.getElementById('dynamicInputEntriesContainer');
+        
+        if (!template || !container) return;
+        
+        const clone = template.content.cloneNode(true);
+        const entryDiv = clone.querySelector('.dynamic-input-entry');
+        
+        container.appendChild(clone);
 
-            // Populate dropdowns
-            populateSchemeSelect(entryDiv.querySelector('.scheme-select'));
-            populateInputTypeSelect(entryDiv.querySelector('.input-type-select'));
+        // Populate dropdowns
+        populateSchemeSelect(entryDiv.querySelector('.scheme-select'));
+        populateInputTypeSelect(entryDiv.querySelector('.input-type-select'));
 
-            // Setup event listeners for this entry
-            setupDynamicInputEvents(entryDiv);
-        }
+        // Setup event listeners for this entry
+        setupDynamicInputEvents(entryDiv);
+    }
 
-        // Populate scheme select
-        function populateSchemeSelect(selectElement) {
-            const fragment = document.createDocumentFragment();
-            
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'योजना चुनें';
-            fragment.appendChild(defaultOption);
+    // Populate scheme select
+    function populateSchemeSelect(selectElement) {
+        if (!selectElement) return;
+        
+        const fragment = document.createDocumentFragment();
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'योजना चुनें';
+        fragment.appendChild(defaultOption);
 
-            allSchemes.forEach(scheme => {
-                const option = document.createElement('option');
-                option.value = scheme.id;
-                option.textContent = scheme.scheme_name;
-                fragment.appendChild(option);
-            });
+        allSchemes.forEach(scheme => {
+            const option = document.createElement('option');
+            option.value = scheme.id;
+            option.textContent = scheme.scheme_name;
+            fragment.appendChild(option);
+        });
 
-            selectElement.appendChild(fragment);
-        }
+        selectElement.appendChild(fragment);
+    }
 
-        // Populate input type select
-        function populateInputTypeSelect(selectElement) {
-            const fragment = document.createDocumentFragment();
-            
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'प्रकार चुनें';
-            fragment.appendChild(defaultOption);
+    // Populate input type select
+    function populateInputTypeSelect(selectElement) {
+        if (!selectElement) return;
+        
+        const fragment = document.createDocumentFragment();
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'प्रकार चुनें';
+        fragment.appendChild(defaultOption);
 
-            allInputTypes.forEach(inputType => {
-                const option = document.createElement('option');
-                option.value = inputType.type_name_en;
-                option.textContent = inputType.type_name_hi;
-                fragment.appendChild(option);
-            });
+        allInputTypes.forEach(inputType => {
+            const option = document.createElement('option');
+            option.value = inputType.type_name_en;
+            option.textContent = inputType.type_name_hi;
+            fragment.appendChild(option);
+        });
 
-            selectElement.appendChild(fragment);
-        }
+        selectElement.appendChild(fragment);
+    }
 
-        // Populate unit select based on input type
-        function populateUnitSelect(unitSelectElement, inputType) {
-            const fragment = document.createDocumentFragment();
-            
-            const defaultOption = document.createElement('option');
-            defaultOption.value = '';
-            defaultOption.textContent = 'इकाई चुनें';
-            fragment.appendChild(defaultOption);
+    // Setup events for dynamic input entry
+    function setupDynamicInputEvents(entryDiv) {
+        if (!entryDiv) return;
+        
+        const inputTypeSelect = entryDiv.querySelector('.input-type-select');
+        const removeBtn = entryDiv.querySelector('.remove-entry-btn');
 
-            // Filter units based on input type
-            const inputTypeData = allInputTypes.find(type => type.type_name_en === inputType);
-            const allowedUnitTypes = inputTypeData?.unit_category_types || [];
-
-            const filteredUnits = allUnits.filter(unit => 
-                allowedUnitTypes.includes(unit.unit_type)
-            );
-
-            filteredUnits.forEach(unit => {
-                const option = document.createElement('option');
-                option.value = unit.id;
-                option.textContent = unit.unit_name_hi;
-                fragment.appendChild(option);
-            });
-
-            unitSelectElement.innerHTML = '';
-            unitSelectElement.appendChild(fragment);
-        }
-
-        // Setup events for dynamic input entry
-        function setupDynamicInputEvents(entryDiv) {
-            const inputTypeSelect = entryDiv.querySelector('.input-type-select');
-            const removeBtn = entryDiv.querySelector('.remove-entry-btn');
-
-            // Input type change event
+        // Input type change event
+        if (inputTypeSelect) {
             inputTypeSelect.addEventListener('change', function() {
                 updateConditionalFields(entryDiv, this.value);
             });
+        }
 
-            // Remove entry event
+        // Remove entry event
+        if (removeBtn) {
             removeBtn.addEventListener('click', function() {
                 entryDiv.remove();
                 calculateTotalSubsidy();
             });
+        }
 
-            // Setup validation for all inputs in this entry
-            const inputs = entryDiv.querySelectorAll('input, select, textarea');
-            inputs.forEach(input => {
-                input.addEventListener('input', () => {
-                    performanceManager.debounce(() => {
-                        validateField(input);
-                        if (input.classList.contains('subsidy-amount')) {
-                            calculateTotalSubsidy();
-                        }
-                    }, 300, `validate_${input.className}_\${Date.now()}`);
-                });
-
-                input.addEventListener('blur', () => {
+        // Setup validation for all inputs in this entry
+        const inputs = entryDiv.querySelectorAll('input, select, textarea');
+        inputs.forEach(input => {
+            input.addEventListener('input', () => {
+                performanceManager.debounce(() => {
                     validateField(input);
-                });
-            });
-        }
-
-        // Update conditional fields based on input type
-        function updateConditionalFields(entryDiv, inputType) {
-            // Hide all conditional fields
-            entryDiv.querySelectorAll('.conditional-fields').forEach(fieldGroup => {
-                fieldGroup.style.display = 'none';
-                fieldGroup.querySelectorAll('input, select').forEach(input => {
-                    input.removeAttribute('required');
-                    input.value = '';
-                });
+                    if (input.classList.contains('subsidy-amount')) {
+                        calculateTotalSubsidy();
+                    }
+                }, 300, `validate_${input.className}_${Date.now()}`);
             });
 
-            let targetFields = null;
+            input.addEventListener('blur', () => {
+                validateField(input);
+            });
+        });
+    }
 
-            if (inputType === 'Seed') {
-                targetFields = entryDiv.querySelector('.seed-fields');
-            } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
-                targetFields = entryDiv.querySelector('.chemical-fields');
-                // Populate unit select for chemicals
-                const unitSelect = entryDiv.querySelector('.unit-select');
+    // Update conditional fields based on input type
+    function updateConditionalFields(entryDiv, inputType) {
+        if (!entryDiv) return;
+        
+        // Hide all conditional fields
+        entryDiv.querySelectorAll('.conditional-fields').forEach(fieldGroup => {
+            fieldGroup.style.display = 'none';
+            fieldGroup.querySelectorAll('input, select').forEach(input => {
+                input.removeAttribute('required');
+                input.value = '';
+            });
+        });
+
+        let targetFields = null;
+
+        if (inputType === 'Seed') {
+            targetFields = entryDiv.querySelector('.seed-fields');
+        } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
+            targetFields = entryDiv.querySelector('.chemical-fields');
+            // Populate unit select for chemicals
+            const unitSelect = entryDiv.querySelector('.unit-select');
+            if (unitSelect) {
                 populateUnitSelect(unitSelect, inputType);
-            } else if (inputType === 'Farm Tool or Equipment') {
-                targetFields = entryDiv.querySelector('.farm-tool-fields');
             }
-
-            if (targetFields) {
-                targetFields.style.display = 'block';
-                targetFields.querySelectorAll('input, select').forEach(input => {
-                    input.setAttribute('required', 'true');
-                });
-            }
+        } else if (inputType === 'Farm Tool or Equipment') {
+            targetFields = entryDiv.querySelector('.farm-tool-fields');
         }
 
-        // Validate individual field
-        function validateField(input) {
-            const value = input.value;
-            const fieldName = input.dataset.label || input.placeholder || input.name || 'Field';
-
-            // Remove previous styling
-            input.classList.remove('error', 'valid');
-
-            let isValid = true;
-
-            if (input.hasAttribute('required') && !value.trim()) {
-                isValid = false;
-            } else if (input.type === 'number') {
-                const num = Number(value);
-                if (isNaN(num) || num < 0) {
-                    isValid = false;
-                }
-            } else if (input.type === 'email') {
-                if (value && !SecurityUtils.validateField(value, 'email', fieldName).length === 0) {
-                    isValid = false;
-                }
-            }
-
-            // Apply styling
-            input.classList.add(isValid ? 'valid' : 'error');
-
-            return isValid;
-        }
-
-        // Calculate total subsidy amount
-        function calculateTotalSubsidy() {
-            let total = 0;
-            document.querySelectorAll('.subsidy-amount').forEach(input => {
-                total += parseFloat(input.value) || 0;
+        if (targetFields) {
+            targetFields.style.display = 'block';
+            targetFields.querySelectorAll('input, select').forEach(input => {
+                input.setAttribute('required', 'true');
             });
-            document.getElementById('cashSubsidyAmountTotal').value = total.toFixed(2);
+        }
+    }
+
+    // Populate unit select based on input type
+    function populateUnitSelect(unitSelectElement, inputType) {
+        if (!unitSelectElement) return;
+        
+        const fragment = document.createDocumentFragment();
+        
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'इकाई चुनें';
+        fragment.appendChild(defaultOption);
+
+        // Filter units based on input type
+        const inputTypeData = allInputTypes.find(type => type.type_name_en === inputType);
+        const allowedUnitTypes = inputTypeData?.unit_category_types || [];
+
+        const filteredUnits = allUnits.filter(unit => 
+            allowedUnitTypes.includes(unit.unit_type)
+        );
+
+        filteredUnits.forEach(unit => {
+            const option = document.createElement('option');
+            option.value = unit.id;
+            option.textContent = unit.unit_name_hi;
+            fragment.appendChild(option);
+        });
+
+        unitSelectElement.innerHTML = '';
+        unitSelectElement.appendChild(fragment);
+    }
+
+    // Validate individual field
+    function validateField(input) {
+        if (!input) return true;
+        
+        const value = input.value;
+        const fieldName = input.dataset.label || input.placeholder || input.name || 'Field';
+
+        // Remove previous styling
+        input.classList.remove('error', 'valid');
+
+        let isValid = true;
+
+        if (input.hasAttribute('required') && !value.trim()) {
+            isValid = false;
+        } else if (input.type === 'number') {
+            const num = Number(value);
+            if (isNaN(num) || num < 0) {
+                isValid = false;
+            }
+        } else if (input.type === 'email') {
+            if (value && !SecurityUtils.validateField(value, 'email', fieldName).length === 0) {
+                isValid = false;
+            }
         }
 
-        // Collect form data securely
-        function collectSecureFormData() {
-            const rawData = {
-                district_id: document.getElementById('districtSelect').value,
-                report_date: document.getElementById('reportDate').value,
-                total_camps_organized: parseInt(document.getElementById('totalCamps').value) || 0,
-                total_farmers_participated: parseInt(document.getElementById('totalFarmers').value) || 0,
-                male_farmers: parseInt(document.getElementById('maleFarmers').value) || 0,
-                female_farmers: parseInt(document.getElementById('femaleFarmers').value) || 0,
-                public_reps_count: parseInt(document.getElementById('publicRepsCount').value) || 0,
-                headed_chair_by_rep: document.querySelector('input[name="headedChair"]:checked')?.value === 'yes',
-                public_reps_names: document.getElementById('publicRepsNames').value.trim(),
-                officers_dist_admin: parseInt(document.getElementById('distAdminCount').value) || 0,
-                officers_departmental: parseInt(document.getElementById('deptOfficersCount').value) || 0,
-                officers_allied_dept: parseInt(document.getElementById('alliedDeptCount').value) || 0,
-                officers_kvk: parseInt(document.getElementById('kvkCount').value) || 0,
-                officers_igkv_scient_prof: parseInt(document.getElementById('igkvCount').value) || 0,
-                total_officers_present: parseInt(document.getElementById('totalOfficers').value) || 0,
-                publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount').value) || 0,
-                cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmountTotal').value) || 0,
-                dynamic_inputs: []
+        // Apply styling
+        input.classList.add(isValid ? 'valid' : 'error');
+
+        return isValid;
+    }
+
+    // Calculate total subsidy amount
+    function calculateTotalSubsidy() {
+        let total = 0;
+        document.querySelectorAll('.subsidy-amount').forEach(input => {
+            total += parseFloat(input.value) || 0;
+        });
+        
+        const totalElement = document.getElementById('cashSubsidyAmountTotal');
+        if (totalElement) {
+            totalElement.value = total.toFixed(2);
+        }
+    }
+
+    // Collect form data securely
+    function collectSecureFormData() {
+        const rawData = {
+            district_id: document.getElementById('districtSelect')?.value || '',
+            report_date: document.getElementById('reportDate')?.value || '',
+            total_camps_organized: parseInt(document.getElementById('totalCamps')?.value) || 0,
+            total_farmers_participated: parseInt(document.getElementById('totalFarmers')?.value) || 0,
+            male_farmers: parseInt(document.getElementById('maleFarmers')?.value) || 0,
+            female_farmers: parseInt(document.getElementById('femaleFarmers')?.value) || 0,
+            public_reps_count: parseInt(document.getElementById('publicRepsCount')?.value) || 0,
+            headed_chair_by_rep: document.querySelector('input[name="headedChair"]:checked')?.value === 'yes',
+            public_reps_names: document.getElementById('publicRepsNames')?.value.trim() || '',
+            officers_dist_admin: parseInt(document.getElementById('distAdminCount')?.value) || 0,
+            officers_departmental: parseInt(document.getElementById('deptOfficersCount')?.value) || 0,
+            officers_allied_dept: parseInt(document.getElementById('alliedDeptCount')?.value) || 0,
+            officers_kvk: parseInt(document.getElementById('kvkCount')?.value) || 0,
+            officers_igkv_scient_prof: parseInt(document.getElementById('igkvCount')?.value) || 0,
+            total_officers_present: parseInt(document.getElementById('totalOfficers')?.value) || 0,
+            publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount')?.value) || 0,
+            cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmountTotal')?.value) || 0,
+            dynamic_inputs: []
+        };
+
+        // Collect dynamic inputs
+        document.querySelectorAll('.dynamic-input-entry').forEach(entry => {
+            const inputType = entry.querySelector('.input-type-select')?.value;
+            const schemeId = entry.querySelector('.scheme-select')?.value;
+            
+            if (!inputType || !schemeId) return;
+
+            const dynamicInput = {
+                scheme_id: schemeId,
+                input_type: inputType,
+                total_amount: parseFloat(entry.querySelector('.total-amount')?.value) || 0,
+                subsidy_amount: parseFloat(entry.querySelector('.subsidy-amount')?.value) || 0,
+                input_details: {}
             };
 
-            // Collect dynamic inputs
-            document.querySelectorAll('.dynamic-input-entry').forEach(entry => {
-                const inputType = entry.querySelector('.input-type-select').value;
-                const schemeId = entry.querySelector('.scheme-select').value;
-                
-                if (!inputType || !schemeId) return;
-
-                const dynamicInput = {
-                    scheme_id: schemeId,
-                    input_type: inputType,
-                    total_amount: parseFloat(entry.querySelector('.total-amount').value) || 0,
-                    subsidy_amount: parseFloat(entry.querySelector('.subsidy-amount').value) || 0,
-                    input_details: {}
+            // Collect type-specific details
+            if (inputType === 'Seed') {
+                dynamicInput.input_details = {
+                    crop_name: entry.querySelector('.crop-name')?.value.trim() || '',
+                    variety: entry.querySelector('.variety')?.value.trim() || '',
+                    quantity: parseFloat(entry.querySelector('.quantity')?.value) || 0
                 };
+            } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
+                const unitSelect = entry.querySelector('.unit-select');
+                dynamicInput.input_details = {
+                    trade_name: entry.querySelector('.trade-name')?.value.trim() || '',
+                    quantity: parseFloat(entry.querySelector('.quantity')?.value) || 0,
+                    unit_id: unitSelect?.value || '',
+                    unit_name: unitSelect?.options[unitSelect.selectedIndex]?.textContent || ''
+                };
+            } else if (inputType === 'Farm Tool or Equipment') {
+                dynamicInput.input_details = {
+                    equipment_name: entry.querySelector('.equipment-name')?.value.trim() || '',
+                    quantity: parseInt(entry.querySelector('.quantity')?.value) || 0
+                };
+            }
 
-                // Collect type-specific details
-                if (inputType === 'Seed') {
-                    dynamicInput.input_details = {
-                        crop_name: entry.querySelector('.crop-name').value.trim(),
-                        variety: entry.querySelector('.variety').value.trim(),
-                        quantity: parseFloat(entry.querySelector('.quantity').value) || 0
-                    };
-                } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
-                    const unitSelect = entry.querySelector('.unit-select');
-                    dynamicInput.input_details = {
-                        trade_name: entry.querySelector('.trade-name').value.trim(),
-                        quantity: parseFloat(entry.querySelector('.quantity').value) || 0,
-                        unit_id: unitSelect.value,
-                        unit_name: unitSelect.options[unitSelect.selectedIndex]?.textContent || ''
-                    };
-                } else if (inputType === 'Farm Tool or Equipment') {
-                    dynamicInput.input_details = {
-                        equipment_name: entry.querySelector('.equipment-name').value.trim(),
-                        quantity: parseInt(entry.querySelector('.quantity').value) || 0
-                    };
-                }
+            rawData.dynamic_inputs.push(dynamicInput);
+        });
 
-                rawData.dynamic_inputs.push(dynamicInput);
-            });
+        return rawData;
+    }
 
-            return rawData;
-        }
+    // Handle secure form submission
+    async function handleSecureFormSubmission(event) {
+        event.preventDefault();
+        
+        try {
+            // Validate form first
+            const validation = errorHandler.validateForm(event.target);
+            if (!validation.isValid) {
+                return; // Error toast already shown by validateForm
+            }
 
-        // Handle secure form submission
-        async function handleSecureFormSubmission(event) {
-            event.preventDefault();
-            
-            try {
-                // Validate form first
-                const validation = errorHandler.validateForm(event.target);
-                if (!validation.isValid) {
-                    return; // Error toast already shown by validateForm
-                }
-
-                // Show loading states
-                const submitBtn = document.getElementById('submitReportBtn');
+            // Show loading states
+            const submitBtn = document.getElementById('submitReportBtn');
+            if (submitBtn) {
                 const originalText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> सबमिट हो रहा है...';
+            }
 
-                performanceManager.showLoading('dailyReportForm', 'रिपोर्ट सबमिट की जा रही है...');
+            performanceManager.showLoading('dailyReportForm', 'रिपोर्ट सबमिट की जा रही है...');
 
-                // Collect and sanitize form data
-                const formData = collectSecureFormData();
-                console.log('📝 Submitting form data:', formData);
+            // Collect and sanitize form data
+            const formData = collectSecureFormData();
+            console.log('📝 Submitting form data:', formData);
 
-                // Submit with error handling wrapper
-                const result = await errorHandler.withErrorHandling(
-                    async () => await secureDB.submitReport(formData),
-                    { 
-                        operation: 'submit report',
-                        retryFunction: () => handleSecureFormSubmission(event)
-                    }
-                );
+            // Submit with error handling wrapper
+            const result = await errorHandler.withErrorHandling(
+                async () => await secureDB.submitReport(formData),
+                { 
+                    operation: 'submit report',
+                    retryFunction: () => handleSecureFormSubmission(event)
+                }
+            );
 
-                // Success notification
-                errorHandler.showSuccess('सफल!', 'रिपोर्ट सफलतापूर्वक सबमिट की गई');
-                
-                // Reset form
-                event.target.reset();
-                
-                // Clear dynamic inputs and add fresh one
-                document.getElementById('dynamicInputEntriesContainer').innerHTML = '';
+            // Success notification
+            errorHandler.showSuccess('सफल!', 'रिपोर्ट सफलतापूर्वक सबमिट की गई');
+            
+            // Reset form
+            event.target.reset();
+            
+            // Clear dynamic inputs and add fresh one
+            const container = document.getElementById('dynamicInputEntriesContainer');
+            if (container) {
+                container.innerHTML = '';
                 addInitialDynamicInput();
-                
-                // Reset date to today
-                setupDateSelector();
-                
-                // Clear auto-saved data
-                localStorage.removeItem('autosave_dailyReportForm');
+            }
+            
+            // Reset date to today
+            setupDateSelector();
+            
+            // Clear auto-saved data
+            localStorage.removeItem('autosave_dailyReportForm');
 
-                console.log('✅ Report submitted successfully:', result);
+            console.log('✅ Report submitted successfully:', result);
 
-            } catch (error) {
-                console.error('❌ Form submission failed:', error.message);
-                
-            } finally {
-                // Reset button state
-                const submitBtn = document.getElementById('submitReportBtn');
+        } catch (error) {
+            console.error('❌ Form submission failed:', error.message);
+            
+        } finally {
+            // Reset button state
+            const submitBtn = document.getElementById('submitReportBtn');
+            if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> रिपोर्ट सबमिट करें';
-                
-                performanceManager.hideLoading('dailyReportForm');
             }
+            
+            performanceManager.hideLoading('dailyReportForm');
         }
+    }
 
-        // Generate and print report
-        async function generateReport() {
-            try {
-                const reportDate = document.getElementById('reportDate').value;
-                if (!reportDate) {
-                    errorHandler.showWarning('तारीख आवश्यक', 'कृपया रिपोर्ट के लिए दिनांक चुनें');
-                    return;
-                }
-
-                performanceManager.showLoading('main-content', 'रिपोर्ट तैयार की जा रही है...');
-
-                // Fetch reports for the selected date
-                const reports = await errorHandler.withErrorHandling(
-                    async () => await secureDB.getReports({ report_date: reportDate }),
-                    { operation: 'fetch reports for printing' }
-                );
-
-                if (reports.length === 0) {
-                    errorHandler.showWarning('कोई डेटा नहीं', 'इस दिनांक के लिए कोई रिपोर्ट उपलब्ध नहीं है');
-                    return;
-                }
-
-                // Generate report content
-                const reportContent = generateReportHTML(reports, reportDate);
-                
-                // Open in new window for printing
-                const reportWindow = window.open('', '_blank');
-                reportWindow.document.write(reportContent);
-                reportWindow.document.close();
-                reportWindow.focus();
-                
-                // Auto-print after a short delay
-                setTimeout(() => {
-                    reportWindow.print();
-                }, 500);
-
-                errorHandler.showSuccess('रिपोर्ट तैयार', 'रिपोर्ट प्रिंट के लिए तैयार है');
-
-            } catch (error) {
-                errorHandler.handleNetworkError(error, 'generate report');
-            } finally {
-                performanceManager.hideLoading('main-content');
+    // Generate and print report
+    async function generateReport() {
+        try {
+            const reportDate = document.getElementById('reportDate')?.value;
+            if (!reportDate) {
+                errorHandler.showWarning('तारीख आवश्यक', 'कृपया रिपोर्ट के लिए दिनांक चुनें');
+                return;
             }
+
+            performanceManager.showLoading('main-content', 'रिपोर्ट तैयार की जा रही है...');
+
+            // For now, show a simple message
+            errorHandler.showInfo('रिपोर्ट', 'रिपोर्ट जेनरेशन फीचर जल्द ही उपलब्ध होगा');
+
+        } catch (error) {
+            errorHandler.handleNetworkError(error, 'generate report');
+        } finally {
+            performanceManager.hideLoading('main-content');
         }
+    }
 
-        // Generate HTML content for report
-        function generateReportHTML(reports, reportDate) {
-            const reportDateFormatted = new Date(reportDate).toLocaleDateString('hi-IN', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
+    // Auto-save functionality (simplified for now)
+    function setupAutoSave() {
+        console.log('📝 Auto-save functionality initialized');
+        // Auto-save implementation will be added later
+    }
 
-            // Calculate totals
-            let totals = {
-                camps: 0,
-                farmers: 0,
-                maleFarmers: 0,
-                femaleFarmers: 0,
-                publicReps: 0,
-                officers: 0,
-                publicityMaterial: 0,
-                cashSubsidy: 0
-            };
+    // Window cleanup
+    window.addEventListener('beforeunload', () => {
+        performanceManager.cleanup();
+    });
 
-            reports.forEach(report => {
-                totals.camps += report.total_camps_organized || 0;
-                totals.farmers += report.total_farmers_participated || 0;
-                totals.maleFarmers += report.male_farmers || 0;
-                totals.femaleFarmers += report.female_farmers || 0;
-                totals.publicReps += report.public_reps_count || 0;
-                totals.officers += report.total_officers_present || 0;
-                totals.publicityMaterial += report.publicity_material_distributed || 0;
-                totals.cashSubsidy += report.cash_subsidy_amount || 0;
-            });
+    // Global error handling for the application
+    window.addEventListener('error', (event) => {
+        errorHandler.handleError({
+            type: 'JavaScript Error',
+            message: event.message,
+            filename: event.filename,
+            line: event.lineno,
+            column: event.colno,
+            stack: event.error?.stack
+        }, { context: 'global_error_handler' });
+    });
 
-            return `
-                <!DOCTYPE html>
-                <html lang="hi">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>दैनिक प्रतिवेदन: ${reportDateFormatted}</title>
-                    <style>
-                        body { 
-                            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-                            margin: 20px; 
-                            color: #333; 
-                            line-height: 1.6;
-                        }
-                        h1, h2, h3 { color: #0056b3; margin-top: 20px; }
-                        h1 { text-align: center; color: #28a745; border-bottom: 3px solid #28a745; padding-bottom: 10px; }
-                        h2 { text-align: center; font-size: 1.2em; margin-bottom: 30px; }
-                        table { 
-                            width: 100%; 
-                            border-collapse: collapse; 
-                            margin: 20px 0; 
-                            font-size: 14px;
-                        }
-                        th, td { 
-                            border: 1px solid #ddd; 
-                            padding: 12px 8px; 
-                            text-align: left; 
-                        }
-                        th { 
-                            background: #f8f9fa; 
-                            font-weight: 600; 
-                            color: #495057;
-                        }
-                        .summary-table th { background: #e3f2fd; }
-                        .district-header { 
-                            background: #e8f5e9; 
-                            font-weight: 600; 
-                            color: #2e7d32;
-                        }
-                        .total-row { 
-                            background: #fff3cd; 
-                            font-weight: 600; 
-                            color: #856404;
-                        }
-                        .rupee { font-family: 'Times New Roman', serif; }
-                        .page-break { page-break-before: always; }
-                        .report-footer { 
-                            margin-top: 40px; 
-                            text-align: center; 
-                            font-style: italic; 
-                            color: #666; 
-                            border-top: 1px solid #eee; 
-                            padding-top: 20px;
-                        }
-                        @media print {
-                            body { margin: 15px; }
-                            .page-break { page-break-before: always; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <h1>विकसित कृषि संकल्प अभियान द्वितीय चरण</h1>
-                    <h2>दैनिक प्रतिवेदन दिनांक: ${reportDateFormatted}</h2>
-                    
-                    <h3>राज्य-स्तरीय सारांश</h3>
-                    <table class="summary-table">
-                        <tr>
-                            <th>विवरण</th>
-                            <th>कुल संख्या</th>
-                        </tr>
-                        <tr>
-                            <td>आयोजित शिविरों की कुल संख्या</td>
-                            <td>${totals.camps}</td>
-                        </tr>
-                        <tr>
-                            <td>कुल किसान</td>
-                            <td>${totals.farmers}</td>
-                        </tr>
-                        <tr>
-                            <td>पुरुष किसान</td>
-                            <td>${totals.maleFarmers}</td>
-                        </tr>
-                        <tr>
-                            <td>महिला किसान</td>
-                            <td>${totals.femaleFarmers}</td>
-                        </tr>
-                        <tr>
-                            <td>उपस्थित जनप्रतिनिधियों की कुल संख्या</td>
-                            <td>${totals.publicReps}</td>
-                        </tr>
-                        <tr>
-                            <td>कुल अधिकारी उपस्थित</td>
-                            <td>${totals.officers}</td>
-                        </tr>
-                        <tr>
-                            <td>वितरित प्रचार सामग्री</td>
-                            <td>${totals.publicityMaterial}</td>
-                        </tr>
-                        <tr class="total-row">
-                            <td>नकद सब्सिडी की कुल राशि</td>
-                            <td><span class="rupee">₹</span> ${totals.cashSubsidy.toFixed(2)}</td>
-                        </tr>
-                    </table>
-
-                    <div class="page-break"></div>
-                    <h3>जिलेवार विस्तृत रिपोर्ट</h3>
-                    
-                    ${reports.map(report => `
-                        <h4 class="district-header">जिला: ${report.districts?.name || 'अज्ञात जिला'}</h4>
-                        <table>
-                            <tr>
-                                <th>विवरण</th>
-                                <th>संख्या/राशि</th>
-                            </tr>
-                            <tr>
-                                <td>आयोजित शिविर</td>
-                                <td>${report.total_camps_organized || 0}</td>
-                            </tr>
-                            <tr>
-                                <td>कुल किसान</td>
-                                <td>${report.total_farmers_participated || 0}</td>
-                            </tr>
-                            <tr>
-                                <td>पुरुष किसान</td>
-                                <td>${report.male_farmers || 0}</td>
-                            </tr>
-                            <tr>
-                                <td>महिला किसान</td>
-                                <td>${report.female_farmers || 0}</td>
-                            </tr>
-                            <tr>
-                                <td>जनप्रतिनिधि</td>
-                                <td>${report.public_reps_count || 0}</td>
-                            </tr>
-                            <tr>
-                                <td>कुल अधिकारी</td>
-                                <td>${report.total_officers_present || 0}</td>
-                            </tr>
-                            <tr>
-                                <td>प्रचार सामग्री</td>
-                                <td>${report.publicity_material_distributed || 0}</td>
-                            </tr>
-                            <tr>
-                                <td>नकद सब्सिडी</td>
-                                <td><span class="rupee">₹</span> ${(report.cash_subsidy_amount || 0).toFixed(2)}</td>
-                            </tr>
-                        </table>
-                        
-                        ${report.dynamic_inputs && report.dynamic_inputs.length > 0 ? `
-                            <h5>इनपुट और उपकरण विवरण</h5>
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>प्रकार</th>
-                                        <th>विवरण</th>
-                                        <th>मात्रा</th>
-                                        <th>कुल राशि</th>
-                                        <th>सब्सिडी</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${report.dynamic_inputs.map(input => `
-                                        <tr>
-                                            <td>${input.input_type}</td>
-                                            <td>
-                                                ${input.input_type === 'Seed' ? 
-                                                    `फसल: ${input.input_details.crop_name}<br>किस्म: ${input.input_details.variety}` :
-                                                ['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(input.input_type) ?
-                                                    `व्यापारिक नाम: ${input.input_details.trade_name}` :
-                                                input.input_type === 'Farm Tool or Equipment' ?
-                                                    `उपकरण: ${input.input_details.equipment_name}` : ''
-                                                }
-                                            </td>
-                                            <td>${input.input_details.quantity || 0} ${input.input_details.unit_name || ''}</td>
-                                            <td><span class="rupee">₹</span> ${(input.total_amount || 0).toFixed(2)}</td>
-                                            <td><span class="rupee">₹</span> ${(input.subsidy_amount || 0).toFixed(2)}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
-                        ` : ''}
-                        <hr style="margin: 30px 0;">
-                    `).join('')}
-
-                    <div class="report-footer">
-                        <p>यह रिपोर्ट ${new Date().toLocaleString('hi-IN')} को तैयार की गई</p>
-                        <p>संचालनालय कृषि छत्तीसगढ़ - विकसित कृषि संकल्प अभियान द्वितीय चरण</p>
-                    </div>
-                </body>
-                </html>
-            `;
-        }
-
-        // Auto-save functionality
-        function setupAutoSave() {
-            const form = document.getElementById('dailyReportForm');
-            if (!form) return;
-
-            let autoSaveTimer;
-            const AUTOSAVE_INTERVAL = 30000; // 30 seconds
-
-            // Load saved data on page load
-            loadAutoSavedData();
-
-            // Start auto-save timer
-            function startAutoSave() {
-                autoSaveTimer = setInterval(() => {
-                    saveFormData();
-                }, AUTOSAVE_INTERVAL);
-            }
-
-            // Save form data to localStorage
-            function saveFormData() {
-                try {
-                    const formData = new FormData(form);
-                    const data = {};
-                    
-                    for (let [key, value] of formData.entries()) {
-                        data[key] = value;
-                    }
-
-                    // Also save dynamic inputs
-                    const dynamicInputs = [];
-                    document.querySelectorAll('.dynamic-input-entry').forEach(entry => {
-                        const inputData = {};
-                        entry.querySelectorAll('input, select, textarea').forEach(field => {
-                            if (field.name || field.className) {
-                                inputData[field.className || field.name] = field.value;
-                            }
-                        });
-                        dynamicInputs.push(inputData);
-                    });
-
-                    data.dynamicInputs = dynamicInputs;
-
-                    localStorage.setItem('autosave_dailyReportForm', JSON.stringify({
-                        data,
-                        timestamp: Date.now()
-                    }));
-
-                    // Show subtle save indicator
-                    showAutoSaveIndicator();
-
-                } catch (error) {
-                    console.error('Auto-save failed:', error);
-                }
-            }
-
-            // Load auto-saved data
-            function loadAutoSavedData() {
-                try {
-                    const saved = localStorage.getItem('autosave_dailyReportForm');
-                    if (!saved) return;
-
-                    const { data, timestamp } = JSON.parse(saved);
-                    
-                    // Only load if saved within last 24 hours
-                    if (Date.now() - timestamp > 24 * 60 * 60 * 1000) {
-                        localStorage.removeItem('autosave_dailyReportForm');
-                        return;
-                    }
-
-                    // Ask user if they want to restore
-                    if (confirm('पिछले बदलाव मिले हैं। क्या आप इन्हें पुनर्स्थापित करना चाहते हैं?')) {
-                        Object.entries(data).forEach(([key, value]) => {
-                            if (key !== 'dynamicInputs') {
-                                const field = form.querySelector(`[name="${key}"]`);
-                                if (field) {
-                                    field.value = value;
-                                }
-                            }
-                        });
-
-                        errorHandler.showInfo('पुनर्स्थापित', 'पिछले बदलाव पुनर्स्थापित कर दिए गए हैं');
-                    }
-
-                } catch (error) {
-                    console.error('Failed to load auto-saved data:', error);
-                }
-            }
-
-            // Show auto-save indicator
-            function showAutoSaveIndicator() {
-                let indicator = document.getElementById('autosave-indicator');
-                if (!indicator) {
-                    indicator = document.createElement('div');
-                    indicator.id = 'autosave-indicator';
-                    indicator.style.cssText = `
-                        position: fixed;
-                        bottom: 20px;
-                        right: 20px;
-                        background: #28a745;
-                        color: white;
-                        padding: 8px 12px;
-                        border-radius: 20px;
-                        font-size: 12px;
-                        z-index: 1000;
-                        opacity: 0;
-                        transition: opacity 0.3s;
-                        font-family: 'Mangal', sans-serif;
-                    `;
-                    indicator.innerHTML = '💾 सेव किया गया';
-                    document.body.appendChild(indicator);
-                }
-
-                // Show and hide indicator
-                indicator.style.opacity = '1';
-                setTimeout(() => {
-                    indicator.style.opacity = '0';
-                }, 2000);
-            }
-
-            // Setup form change listeners
-            form.addEventListener('input', () => {
-                // Reset timer on user input
-                if (autoSaveTimer) {
-                    clearInterval(autoSaveTimer);
-                    startAutoSave();
-                }
-            });
-
-            // Save before page unload
-            window.addEventListener('beforeunload', () => {
-                saveFormData();
-            });
-
-            // Start auto-save
-            startAutoSave();
-        }
-
-        // Window cleanup
-        window.addEventListener('beforeunload', () => {
-            performanceManager.cleanup();
-        });
-
-        // Global error handling for the application
-        window.addEventListener('error', (event) => {
-            errorHandler.handleError({
-                type: 'JavaScript Error',
-                message: event.message,
-                filename: event.filename,
-                line: event.lineno,
-                column: event.colno,
-                stack: event.error?.stack
-            }, { context: 'global_error_handler' });
-        });
-
-        // Expose some functions globally for debugging
-        window.debugApp = {
-            authManager,
-            secureDB,
-            performanceManager,
-            errorHandler,
-            collectSecureFormData,
-            allDistricts,
-            allSchemes,
-            allInputTypes
-        };
-
-        console.log('🚀 Viksit Krishi Sankalp Abhiyan application initialized successfully');
-    </script>
+    console.log('🚀 Viksit Krishi Sankalp Abhiyan script loaded');
+</script>
 </body>
 </html>
 
