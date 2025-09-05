@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>विकसित कृषि संकल्प अभियान द्वितीय चरण - संचलनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- IMPORTANT: Make sure your existing CSS files (e.g., custom.css, dashboard.css, etc.) are linked here -->
+    <!-- For example: -->
+    <!-- <link rel="stylesheet" href="path/to/your/custom.css"> -->
+    <!-- <link rel="stylesheet" href="path/to/your/dashboard.css"> -->
+    <!-- <link rel="stylesheet" href="path/to/your/swiper-bundle.min.css"> -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script type="module" src="./supabase-config.js"></script>
+    <style>
+        /* General & Layout */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; background: url('https://github.com/diragcg/pmfby/blob/main/images/Gemini_Generated_Image_eowpoueowpoueowp.png?raw=true') no-repeat center center fixed; background-size: cover; min-height: 100vh; position: relative; }
+        body::before { content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.3); z-index: -1; }
+        .page-loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 255, 255, 0.9); display: flex; justify-content: center; align-items: center; z-index: 10000; backdrop-filter: blur(5px); }
+        .page-loading .spinner { width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; animation: spin 1s linear infinite; }
+        .page-loading .loading-text { margin-left: 15px; font-size: 18px; color: #007bff; font-weight: 600; }
+
+        /* Admin Toolbar (Optional for content pages, but kept for consistency) */
+        .admin-toolbar { background: linear-gradient(135deg, #dc3545, #c82333); color: white; padding: 10px 20px; margin: 10px 20px 0 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); display: none; align-items: center; gap: 15px; backdrop-filter: blur(10px); }
+        .admin-toolbar.show { display: flex; }
+        .admin-toolbar h3 { font-size: 16px; font-weight: 600; margin-right: auto; }
+        .admin-btn { background: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.3); color: white; padding: 8px 15px; border-radius: 8px; cursor: pointer; transition: all 0.3s; font-size: 14px; display: flex; align-items: center; gap: 5px; }
+        .admin-btn:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+
+        /* Header */
+        header { 
+            background: transparent linear-gradient(275deg, #206B9E 0%, #003B63 100%) 0% 0% no-repeat padding-box;
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.03), 0 3px 1px -2px rgba(0, 0, 0, 0.05), 0 1px 5px 0 rgba(0, 0, 0, 0.1);
+            min-height: 65px;
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+        header .header-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; width: 100%; }
+        .logo-section { display: flex; align-items: center; gap: 15px; }
+        .cg-logo { height: 50px; width: auto; margin-right: 10px; }
+        .logo-text h1 { font-size: 1.4rem; font-weight: 600; color: #fff; margin-bottom: 5px; font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; }
+        .logo-text p { font-size: 0.8rem; color: #fff; opacity: 0.8; font-weight: 400; font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; }
+        .user-section { display: flex; align-items: center; gap: 15px; }
+        .user-info { 
+            background: linear-gradient(135deg, #e8f5e8, #f0f8f0); 
+            color: #b8860b; 
+            padding: 8px 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2); 
+            transition: all 0.3s ease; 
+            border: 1px solid rgba(184, 134, 11, 0.3); 
+            min-width: 150px;
+        }
+        .user-info:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(184, 134, 11, 0.3); }
+        .user-display { font-weight: 600; font-size: 13px; color: #b8860b; text-shadow: 1px 1px 2px rgba(0,0,0,0.1); text-align: center; }
+
+        /* Navigation (for Sidebar) */
+        .page-container {
+            -webkit-transition: all 0.5s ease-in-out;
+            -moz-transition: all 0.5s ease-in-out;
+            -ms-transition: all 0.5s ease-in-out;
+            -o-transition: all 0.5s ease-in-out;
+            transition: all 0.5s ease-in-out;
+            position: relative;
+            margin-top: 65px;
+            display: flex;
+            min-height: calc(100vh - 65px);
+        }
+        .sidemenu {
+            position: fixed;
+            top: 65px;
+            bottom: 0;
+            left: 0;
+            width: 260px;
+            background: url("https://github.com/diragcg/pmfby/blob/main/images/warli-art-transparent.png?raw=true") bottom no-repeat, #fff;
+            background-size: 300px;
+            background-origin: content-box;
+            border-top-right-radius: 15px;
+            border-bottom-right-radius: 15px;
+            box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.03), 0 3px 8px 0px rgba(0, 0, 0, 0.05), 0 1px 12px 0 rgba(0, 0, 0, 0.1);
+            padding: 0;
+            z-index: 9;
+            overflow-y: auto;
+            -webkit-transition: all 0.5s ease-in-out;
+            -moz-transition: all 0.5s ease-in-out;
+            -ms-transition: all 0.5s ease-in-out;
+            -o-transition: all 0.5s ease-in-out;
+            transition: all 0.5s ease-in-out;
+        }
+        .mainpanel {
+            flex-grow: 1;
+            margin-left: 260px;
+            padding: 1rem;
+            background: #f9f9f9;
+            -webkit-transition: all 0.5s ease-in-out;
+            -moz-transition: all 0.5s ease-in-out;
+            -ms-transition: all 0.5s ease-in-out;
+            -o-transition: all 0.5s ease-in-out;
+            transition: all 0.5s ease-in-out;
+        }
+
+        /* User Profile in Sidebar */
+        .sidemenu .user-profile {
+            color: #252525;
+            border-bottom: 1px solid #ededed;
+            padding: 1rem;
+            display: block;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        .sidemenu .user-profile a.dropdown-toggle {
+            display: block;
+            background: transparent;
+        }
+        .sidemenu .user-profile a.dropdown-toggle img {
+            height: 60px;
+            margin: auto;
+            display: block;
+            vertical-align: top;
+        }
+        .sidemenu .user-profile a.dropdown-toggle span {
+            display: inline-block;
+            color: #525252;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .sidemenu .user-profile a.dropdown-toggle span small {
+            display: block;
+            font-size: .875rem;
+            font-weight: 400;
+        }
+
+        /* Sidebar Navigation Menu */
+        .sidemenu .navbar { padding: 0; }
+        .sidemenu .navbar .navbar-nav { flex-direction: column; }
+        .sidemenu .navbar .navbar-nav .nav-item .nav-link {
+            padding: 0.6rem 1rem;
+            border-radius: 0;
+            font-weight: 600;
+            color: #767575;
+            border-right: 3px solid #fff;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .sidemenu .navbar .navbar-nav .nav-item .nav-link i { margin-right: 0; font-size: 1.1rem; }
+        .sidemenu .navbar .navbar-nav .nav-item.active .nav-link { background: #d5dce6; }
+        .sidemenu .navbar .navbar-nav .nav-item .dropdown-menu {
+            background: linear-gradient(to bottom, #E6F1F9 50%, rgba(255, 255, 255, 0) 100%);
+            margin: 0;
+            padding: 0;
+            border-radius: 10px;
+            border: 0;
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            position: static;
+            display: block;
+            transition: all 0.3s ease-in-out;
+        }
+        .sidemenu .navbar .navbar-nav .nav-item .dropdown-menu.show { height: auto; opacity: 1; }
+        .sidemenu .navbar .navbar-nav .nav-item .dropdown-menu .dropdown-item {
+            padding: 0.5rem 1rem 0.5rem 3rem;
+            font-weight: inherit;
+            border-radius: 7px;
+            position: relative;
+            font-size: .9rem;
+            white-space: normal;
+        }
+        .sidemenu .navbar .navbar-nav .nav-item .dropdown-menu .dropdown-item:before {
+            content: '\eaa6';
+            font-family: icons;
+            font-size: 60%;
+            left: 19px;
+            top: 14px;
+            position: absolute;
+        }
+        .sidemenu .navbar .navbar-nav .nav-item.dropdown .nav-link.dropdown-toggle:after {
+            content: '\ea9d';
+            font-family: icons;
+            position: absolute;
+            right: 15px;
+            font-size: 1rem;
+        }
+        .sidemenu .navbar .navbar-nav .nav-item.dropdown.show .nav-link.dropdown-toggle:after {
+            content: '\ea9f';
+        }
+
+        /* Main Content & Form Specific Styles */
+        .main-content { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(8px); margin: 0; border-radius: 15px; padding: 30px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .page-title-content { 
+            font-size: 24px; font-weight: 700; color: #2c3e50; margin-bottom: 5px; text-align: center; font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
+        }
+        .page-subtitle-date {
+            font-size: 18px; color: #6c757d; margin-bottom: 20px; text-align: center; font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
+        }
+        .content-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); border-radius: 15px; padding: 35px 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.12); border: 1px solid rgba(255, 255, 255, 0.3); }
+        
+        /* Form Styling */
+        .form-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0056b3;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(0, 86, 179, 0.2);
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #2c3e50; font-weight: 500; font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; font-size: 14px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px; border: 2px solid rgba(0, 0, 0, 0.1); border-radius: 8px; font-size: 14px; font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; background: rgba(255, 255, 255, 0.9); color: #2c3e50; transition: all 0.3s; }
+        .form-group input::placeholder, .form-group textarea::placeholder { color: rgba(0, 0, 0, 0.5); }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #037af1; box-shadow: 0 0 0 3px rgba(3, 122, 241, 0.2); background: #fff; }
+        .profile-submit-btn { width: 100%; background: #037af1; color: white; padding: 12px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; margin-top: 10px; }
+        .profile-submit-btn:hover { background: #0056b3; transform: translateY(-2px); }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+        .form-message { padding: 10px; border-radius: 6px; margin-top: 15px; font-size: 14px; display: none; }
+        .form-message.success { background: rgba(40, 167, 69, 0.2); color: #51cf66; border: 1px solid rgba(40, 167, 69, 0.3); }
+        .form-message.error { background: rgba(220, 53, 69, 0.2); color: #ff6b6b; border: 1px solid rgba(220, 53, 69, 0.3); }
+
+
+        /* Animations & Media Queries */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 991px) {
+            .sidemenu {
+                left: -260px;
+                box-shadow: none;
+                z-index: 100;
+            }
+            .mainpanel {
+                margin-left: 0;
+            }
+            .page-container.display-full .sidemenu {
+                left: 0;
+                width: 100%;
+                border-radius: 0;
+            }
+            .page-container.display-full .mainpanel {
+                margin-left: 0;
+            }
+            header {
+                padding: 0 10px;
+            }
+            .logo-text h1 { font-size: 1.2rem; }
+            .logo-text p { font-size: 0.7rem; }
+            .user-info { min-width: unset; padding: 6px 8px; }
+            .user-display { font-size: 12px; }
+            .form-row { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 768px) {
+            .admin-toolbar { margin: 10px 10px 0 10px; flex-direction: column; gap: 10px; }
+            .header-container { flex-direction: column; gap: 15px; text-align: center; }
+            .main-content { margin: 10px; padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="pageLoading" class="page-loading">
+        <div class="spinner"></div>
+        <div class="loading-text">लोड हो रहा है...</div>
+    </div>
+
+    <!-- Admin Toolbar -->
+    <div id="adminToolbar" class="admin-toolbar">
+        <h3><i class="fas fa-shield-alt"></i> एडमिन कंट्रोल पैनल</h3>
+        <button class="admin-btn" id="addCardBtn"><i class="fas fa-plus"></i> नया कार्ड जोड़ें</button>
+        <button class="admin-btn" id="manageNavBtn"><i class="fas fa-bars"></i> नेवीगेशन प्रबंधन</button>
+        <button class="admin-btn" id="toggleEditMode"><i class="fas fa-edit"></i> एडिट मोड</button>
+        <button class="admin-btn" id="userManagementBtn"><i class="fas fa-users"></i> उपयोगकर्ता प्रबंधन</button>
+        <button class="admin-btn" id="analyticsDashboardBtn"><i class="fas fa-chart-pie"></i> एनालिटिक्स</button>
+        <button class="admin-btn" id="createDynamicFormBtn"><i class="fas fa-file-excel"></i> डायनेमिक फॉर्म</button>
+        <button class="admin-btn" id="manageDynamicFormsBtn"><i class="fas fa-list-alt"></i> फॉर्म प्रबंधित करें</button>
+    </div>
+
+    <!-- Fixed Header -->
+    <header>
+        <div class="header-container">
+            <div class="logo-section">
+                <button class="navbar-toggler d-lg-none" type="button" id="sidebarToggle">
+                    <span class="fas fa-bars text-white"></span>
+                </button>
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                <div class="logo-text">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>Directorate of Agriculture, Chhattisgarh</p>
+                </div>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="user-display" id="user-display">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Page Container -->
+    <div class="page-container" id="pageContainer">
+        <!-- Sidebar Menu -->
+        <nav class="sidemenu" id="sidemenu">
+            <div class="user-profile">
+                <a href="#" class="dropdown-toggle">
+                    <img src="https://via.placeholder.com/60" alt="User" class="img-fluid rounded-circle">
+                    <span id="sidebar-user-display">Loading...</span>
+                </a>
+            </div>
+
+            <div class="navbar">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a href="dashboard.html" class="nav-link">
+                            <i class="fas fa-home"></i> होम
+                        </a>
+                    </li>
+                    <li class="nav-item dropdown" id="sidebarNavDropdown">
+                        <a href="#" class="nav-link dropdown-toggle" id="sectionsDropdownToggle" role="button" aria-expanded="false">
+                            <i class="fas fa-th-large"></i> सेक्शन
+                        </a>
+                        <div class="dropdown-menu" id="dynamicDropdown">
+                            <!-- Dynamic items will be loaded here by JS -->
+                            <a href="dynamic_data_entry.html" class="dropdown-item">
+                                <i class="fas fa-file-alt"></i> डायनेमिक फॉर्म
+                            </a>
+                            <a href="viksit_krishi_sankalp_abhiyan_dweetiye_charan.html" class="dropdown-item active">
+                                <i class="fas fa-seedling"></i> विकसित कृषि संकल्प अभियान (द्वितीय चरण)
+                            </a>
+                            <a href="#" class="dropdown-item">
+                                <i class="fas fa-chart-bar"></i> रिपोर्ट
+                            </a>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link" id="profileLink-sidebar">
+                            <i class="fas fa-user"></i> प्रोफाइल
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link logout-link" id="logoutLink-sidebar">
+                            <i class="fas fa-sign-out-alt"></i> लॉगआउट
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <!-- Main Content Panel for Data Entry Form -->
+        <div class="mainpanel" id="mainpanel">
+            <main class="main-content" id="main-content">
+                <h2 class="page-title-content">विकसित कृषि संकल्प अभियान द्वितीय चरण</h2>
+                <p class="page-subtitle-date">दैनिक प्रतिवेदन दिनांक: <span id="currentDate"></span></p>
+
+                <div class="content-card">
+                    <form id="dailyReportForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="districtSelect">जिले का नाम <span style="color: red;">*</span></label>
+                                <select id="districtSelect" name="districtId" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="totalCamps">आयोजित शिविरों की कुल संख्या</label>
+                                <input type="number" id="totalCamps" name="totalCamps" min="0" value="0">
+                            </div>
+                        </div>
+
+                        <h4 class="form-section-title">किसानों की भागीदारी</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="totalFarmers">कुल किसान</label>
+                                <input type="number" id="totalFarmers" name="totalFarmers" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="maleFarmers">पुरुष किसान</label>
+                                <input type="number" id="maleFarmers" name="maleFarmers" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="femaleFarmers">महिला किसान</label>
+                                <input type="number" id="femaleFarmers" name="femaleFarmers" min="0" value="0">
+                            </div>
+                        </div>
+
+                        <h4 class="form-section-title">जनप्रतिनिधि विवरण</h4>
+                        <div class="form-group">
+                            <label for="publicRepsCount">उपस्थित जनप्रतिनिधियों की संख्या</label>
+                            <input type="number" id="publicRepsCount" name="publicRepsCount" min="0" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="publicRepsNames">जनप्रतिनिधियों के नाम (प्रत्येक नाम नई पंक्ति में)</label>
+                            <textarea id="publicRepsNames" name="publicRepsNames" rows="4" placeholder="माननीय विधायक, माननीय सांसद, आदि"></textarea>
+                        </div>
+
+                        <h4 class="form-section-title">उपस्थित अधिकारी</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="distAdminCount">जिला प्रशासन</label>
+                                <input type="number" id="distAdminCount" name="distAdminCount" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="deptOfficersCount">विभागीय</label>
+                                <input type="number" id="deptOfficersCount" name="deptOfficersCount" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="alliedDeptCount">संबद्ध विभाग</label>
+                                <input type="number" id="alliedDeptCount" name="alliedDeptCount" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="kvkCount">केवीके</label>
+                                <input type="number" id="kvkCount" name="kvkCount" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="igkvCount">आईजीकेवी वैज्ञानिक और पेशेवर</label>
+                                <input type="number" id="igkvCount" name="igkvCount" min="0" value="0">
+                            </div>
+                            <div class="form-group">
+                                <label for="totalOfficers">कुल अधिकारी</label>
+                                <input type="number" id="totalOfficers" name="totalOfficers" min="0" value="0" disabled> <!-- Can be auto-calculated -->
+                            </div>
+                        </div>
+
+                        <h4 class="form-section-title">सामग्री वितरण</h4>
+                        <div class="form-group">
+                            <label for="publicityMaterialCount">वितरित प्रचार सामग्री की संख्या</label>
+                            <input type="number" id="publicityMaterialCount" name="publicityMaterialCount" min="0" value="0">
+                        </div>
+
+                        <h4 class="form-section-title">इनपुट, नकद सब्सिडी और उपकरण</h4>
+                        <div class="form-group">
+                            <label for="cashSubsidyAmount">नकद सब्सिडी राशि (USD)</label>
+                            <input type="number" id="cashSubsidyAmount" name="cashSubsidyAmount" min="0" step="0.01" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="implementNames">उपकरण/औजारों के नाम (प्रत्येक नई पंक्ति में)</label>
+                            <textarea id="implementNames" name="implementNames" rows="3" placeholder="जैसे: ट्रैक्टर, सीड ड्रिल"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="implementScheme">किस योजना के तहत</label>
+                                <input type="text" id="implementScheme" name="implementScheme" placeholder="जैसे: प्रधानमंत्री कृषि सिंचाई योजना">
+                            </div>
+                            <div class="form-group">
+                                <label for="totalImplementAmount">कुल राशि (USD)</label>
+                                <input type="number" id="totalImplementAmount" name="totalImplementAmount" min="0" step="0.01" value="0.00">
+                            </div>
+                            <div class="form-group">
+                                <label for="subsidyImplementAmount">सब्सिडी राशि (USD)</label>
+                                <input type="number" id="subsidyImplementAmount" name="subsidyImplementAmount" min="0" step="0.01" value="0.00">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="profile-submit-btn" id="submitReportBtn">
+                            <i class="fas fa-paper-plane"></i> रिपोर्ट सबमिट करें
+                        </button>
+                        <div id="formMessage" class="form-message" style="display:none;"></div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script type="module">
+        import { supabaseClient } from './supabase-config.js';
+
+        let isAdmin = false;
+        let currentUser = null;
+        let allNavParentItems = [];
+        let allDistricts = [];
+
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.getElementById('pageLoading').style.display = 'none';
+            }, 500);
+        });
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadUserData();
+            await fetchDistricts();
+            await fetchNavParentItems();
+            await loadNavigationItems(); // Load sidebar navigation
+            setupEventListeners();
+            setupAccessibility();
+            updateSidebarUserProfile(); // Update sidebar profile
+            displayCurrentDate();
+            setupOfficerTotalCalculation();
+        });
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            toast.style.cssText = `position: fixed; top: 20px; right: 20px; padding: 15px 20px; border-radius: 8px; color: white; font-weight: 500; z-index: 10001; transform: translateX(400px); transition: transform 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.2); max-width: 350px; background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};`;
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.transform = 'translateX(0)'; }, 100);
+            setTimeout(() => {
+                toast.style.transform = 'translateX(400px)';
+                setTimeout(() => { if (document.body.contains(toast)) document.body.removeChild(toast); }, 300);
+            }, 3000);
+        }
+
+        async function loadUserData() {
+            try {
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                if (!userId) {
+                    window.location.href = 'header.html';
+                    return;
+                }
+
+                const { data: user, error } = await supabaseClient
+                    .from('test_users')
+                    .select('id, full_name, role, username, districts (id, name)')
+                    .eq('id', userId)
+                    .single();
+
+                if (error || !user) {
+                    document.getElementById('user-display').textContent = 'Unknown User';
+                    return;
+                }
+
+                currentUser = user;
+                const displayName = user.full_name || user.username;
+                const districtName = user.districts ? user.districts.name : 'Unknown District';
+                document.getElementById('user-display').textContent = displayName + ' - ' + districtName;
+                document.getElementById('sidebar-user-display').textContent = displayName;
+
+                isAdmin = user.role === 'admin';
+                if (isAdmin) {
+                    document.getElementById('adminToolbar').style.display = 'flex';
+                }
+
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                document.getElementById('user-display').textContent = 'Error Loading';
+            }
+        }
+
+        function updateSidebarUserProfile() {
+            if (currentUser) {
+                const displayName = currentUser.full_name || currentUser.username;
+                document.getElementById('sidebar-user-display').textContent = displayName;
+            }
+        }
+
+        async function fetchDistricts() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('districts')
+                    .select('id, name')
+                    .order('name', { ascending: true });
+
+                if (error) throw error;
+                allDistricts = data;
+
+                const districtSelect = document.getElementById('districtSelect');
+                if (districtSelect) {
+                    districtSelect.innerHTML = '<option value="">जिले का नाम चुनें</option>';
+                    allDistricts.forEach(district => {
+                        const option = document.createElement('option');
+                        option.value = district.id;
+                        option.textContent = district.name;
+                        districtSelect.appendChild(option);
+                    });
+                    // Pre-select user's district if available
+                    if (currentUser && currentUser.districts) {
+                        districtSelect.value = currentUser.districts.id;
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error fetching districts:', error);
+                showToast('जिलों को लोड करने में त्रुटि', 'error');
+            }
+        }
+
+        async function fetchNavParentItems() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('navigation_items')
+                    .select('id, name_hi')
+                    .is('parent_id', null)
+                    .eq('is_active', true)
+                    .order('display_order', { ascending: true });
+
+                if (error) throw error;
+                allNavParentItems = data;
+
+            } catch (error) {
+                console.error('Error fetching parent navigation items:', error);
+                showToast('नेवीगेशन सेक्शन लोड करने में त्रुटि', 'error');
+            }
+        }
+
+        async function loadNavigationItems() {
+            try {
+                const { data: navItems, error: itemError } = await supabaseClient
+                    .from('navigation_items')
+                    .select('*, navigation_categories(name_hi, name_en)')
+                    .eq('is_active', true)
+                    .order('parent_id, display_order', { ascending: true });
+
+                if (itemError) throw itemError;
+
+                const navMenuContainer = document.querySelector('.sidemenu .navbar-nav');
+                navMenuContainer.innerHTML = '';
+
+                const groupedNavItems = navItems.reduce((acc, item) => {
+                    const parentId = item.parent_id === null ? 'top-level' : item.parent_id;
+                    if (!acc[parentId]) acc[parentId] = [];
+                    acc[parentId].push(item);
+                    return acc;
+                }, {});
+
+                const topLevelItems = groupedNavItems['top-level'] || [];
+                topLevelItems.sort((a, b) => a.display_order - b.display_order);
+
+                const homeItem = document.createElement('li');
+                homeItem.className = 'nav-item';
+                homeItem.innerHTML = `
+                    <a href="dashboard.html" class="nav-link">
+                        <i class="fas fa-home"></i> होम
+                    </a>
+                `;
+                navMenuContainer.appendChild(homeItem);
+
+                topLevelItems.forEach(parentItem => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'nav-item';
+                    const children = groupedNavItems[parentItem.id] || [];
+
+                    if (children.length > 0) {
+                        listItem.classList.add('dropdown');
+                        listItem.innerHTML = `
+                            <a href="#" class="nav-link dropdown-toggle" id="navItem_${parentItem.id}" role="button" aria-expanded="false">
+                                <i class="${parentItem.icon_class}"></i> ${parentItem.name_hi}
+                            </a>
+                            <div class="dropdown-menu" aria-labelledby="navItem_${parentItem.id}">
+                                <!-- Children will go here -->
+                            </div>
+                        `;
+                        const dropdownMenu = listItem.querySelector('.dropdown-menu');
+                        children.sort((a, b) => a.display_order - b.display_order);
+                        children.forEach(child => {
+                            const childLink = document.createElement('a');
+                            childLink.href = child.url;
+                            childLink.className = 'dropdown-item';
+                            if (child.is_external) childLink.target = '_blank';
+                            childLink.innerHTML = `<i class="${child.icon_class}"></i> ${child.name_hi}`;
+                            dropdownMenu.appendChild(childLink);
+                        });
+
+                        listItem.querySelector('.dropdown-toggle').addEventListener('click', function(e) {
+                            e.preventDefault();
+                            navMenuContainer.querySelectorAll('.nav-item.dropdown').forEach(otherItem => {
+                                if (otherItem !== listItem && otherItem.classList.contains('show')) {
+                                    otherItem.classList.remove('show');
+                                    otherItem.querySelector('.dropdown-menu').classList.remove('show');
+                                    otherItem.querySelector('.dropdown-toggle').setAttribute('aria-expanded', 'false');
+                                }
+                            });
+                            listItem.classList.toggle('show');
+                            dropdownMenu.classList.toggle('show');
+                            this.setAttribute('aria-expanded', listItem.classList.contains('show'));
+                        });
+
+                    } else {
+                        listItem.innerHTML = `
+                            <a href="${parentItem.url}" class="nav-link">
+                                <i class="${parentItem.icon_class}"></i> ${parentItem.name_hi}
+                            </a>
+                        `;
+                        if (parentItem.is_external) listItem.querySelector('.nav-link').target = '_blank';
+                    }
+                    navMenuContainer.appendChild(listItem);
+                });
+
+                const profileItem = document.createElement('li');
+                profileItem.className = 'nav-item';
+                profileItem.innerHTML = `
+                    <a href="#" class="nav-link" id="profileLink-sidebar">
+                        <i class="fas fa-user"></i> प्रोफाइल
+                    </a>
+                `;
+                navMenuContainer.appendChild(profileItem);
+
+                const logoutItem = document.createElement('li');
+                logoutItem.className = 'nav-item';
+                logoutItem.innerHTML = `
+                    <a href="#" class="nav-link logout-link" id="logoutLink-sidebar">
+                        <i class="fas fa-sign-out-alt"></i> लॉगआउट
+                    </a>
+                `;
+                navMenuContainer.appendChild(logoutItem);
+
+            } catch (error) {
+                console.error('Error loading navigation items:', error);
+                showToast('नेवीगेशन लोड करने में त्रुटि', 'error');
+            }
+        }
+
+        function setupAccessibility() {
+            const skipLink = document.createElement('a');
+            skipLink.href = '#main-content';
+            skipLink.textContent = 'मुख्य सामग्री पर जाएं';
+            skipLink.style.cssText = 'position: absolute; top: -40px; left: 6px; background: #000; color: #fff; padding: 8px; text-decoration: none; z-index: 10000; border-radius: 4px;';
+            skipLink.addEventListener('focus', () => { skipLink.style.top = '6px'; });
+            skipLink.addEventListener('blur', () => { skipLink.style.top = '-40px'; });
+            document.body.insertBefore(skipLink, document.body.firstChild);
+            document.querySelector('.main-content').id = 'main-content';
+        }
+
+        function setupEventListeners() {
+            document.getElementById('sidebarToggle').addEventListener('click', function() {
+                const pageContainer = document.getElementById('pageContainer');
+                pageContainer.classList.toggle('display-full');
+            });
+
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.sidemenu .nav-link:not(.dropdown-toggle)') || e.target.closest('.sidemenu .dropdown-item')) {
+                    const linkElement = e.target.closest('.sidemenu .nav-link:not(.dropdown-toggle)') || e.target.closest('.sidemenu .dropdown-item');
+                    if (linkElement && linkElement.href && linkElement.href !== '#') {
+                        const pageContainer = document.getElementById('pageContainer');
+                        if (pageContainer.classList.contains('display-full')) {
+                            pageContainer.classList.remove('display-full');
+                        }
+                    }
+                }
+            });
+
+            document.getElementById('profileLink-sidebar').addEventListener('click', (e) => { e.preventDefault(); showToast('प्रोफाइल सेटिंग्स यहां लोड होंगी', 'info'); });
+            document.getElementById('logoutLink-sidebar').addEventListener('click', (e) => { e.preventDefault(); if (confirm('लॉगआउट करें?')) logout(); });
+
+            // Admin toolbar buttons (if this page needs them, otherwise remove from HTML)
+            if (isAdmin) {
+                document.getElementById('addCardBtn').addEventListener('click', () => showToast('कार्ड जोड़ने का फ़ंक्शन यहां नहीं है', 'error'));
+                document.getElementById('manageNavBtn').addEventListener('click', () => showToast('नेवीगेशन प्रबंधन फ़ंक्शन यहां नहीं है', 'error'));
+                document.getElementById('toggleEditMode').addEventListener('click', () => showToast('एडिट मोड फ़ंक्शन यहां नहीं है', 'error'));
+                document.getElementById('userManagementBtn').addEventListener('click', () => showToast('उपयोगकर्ता प्रबंधन फ़ंक्शन यहां नहीं है', 'error'));
+                document.getElementById('analyticsDashboardBtn').addEventListener('click', () => showToast('एनालिटिक्स फ़ंक्शन यहां नहीं है', 'error'));
+                document.getElementById('createDynamicFormBtn').addEventListener('click', () => showToast('डायनेमिक फॉर्म क्रिएटर फ़ंक्शन यहां नहीं है', 'error'));
+                document.getElementById('manageDynamicFormsBtn').addEventListener('click', () => showToast('फॉर्म प्रबंधन फ़ंक्शन यहां नहीं है', 'error'));
+            }
+
+            // Form submission
+            document.getElementById('dailyReportForm').addEventListener('submit', handleFormSubmission);
+        }
+
+        function displayCurrentDate() {
+            const today = new Date();
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('currentDate').textContent = today.toLocaleDateString('hi-IN', options);
+        }
+
+        function setupOfficerTotalCalculation() {
+            const officerInputs = [
+                document.getElementById('distAdminCount'),
+                document.getElementById('deptOfficersCount'),
+                document.getElementById('alliedDeptCount'),
+                document.getElementById('kvkCount'),
+                document.getElementById('igkvCount')
+            ];
+            const totalOfficersInput = document.getElementById('totalOfficers');
+
+            const calculateTotal = () => {
+                let total = 0;
+                officerInputs.forEach(input => {
+                    total += parseInt(input.value) || 0;
+                });
+                totalOfficersInput.value = total;
+            };
+
+            officerInputs.forEach(input => {
+                input.addEventListener('input', calculateTotal);
+            });
+            calculateTotal(); // Initial calculation
+        }
+
+        async function handleFormSubmission(event) {
+            event.preventDefault();
+            const submitBtn = document.getElementById('submitReportBtn');
+            const formMessage = document.getElementById('formMessage');
+            formMessage.style.display = 'none'; // Hide previous messages
+
+            if (!currentUser || !currentUser.id) {
+                showMessage(formMessage, 'error', 'उपयोगकर्ता प्रमाणीकरण त्रुटि। कृपया पुनः लॉग इन करें।');
+                return;
+            }
+
+            const districtId = document.getElementById('districtSelect').value;
+            if (!districtId) {
+                showMessage(formMessage, 'error', 'कृपया जिले का नाम चुनें।');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> सबमिट हो रहा है...';
+
+            const formData = {
+                report_date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+                district_id: districtId,
+                total_camps_organized: parseInt(document.getElementById('totalCamps').value) || 0,
+                total_farmers_participated: parseInt(document.getElementById('totalFarmers').value) || 0,
+                male_farmers: parseInt(document.getElementById('maleFarmers').value) || 0,
+                female_farmers: parseInt(document.getElementById('femaleFarmers').value) || 0,
+                public_reps_count: parseInt(document.getElementById('publicRepsCount').value) || 0,
+                public_reps_names: document.getElementById('publicRepsNames').value.trim(),
+                officers_dist_admin: parseInt(document.getElementById('distAdminCount').value) || 0,
+                officers_departmental: parseInt(document.getElementById('deptOfficersCount').value) || 0,
+                officers_allied_dept: parseInt(document.getElementById('alliedDeptCount').value) || 0,
+                officers_kvk: parseInt(document.getElementById('kvkCount').value) || 0,
+                officers_igkv_scient_prof: parseInt(document.getElementById('igkvCount').value) || 0,
+                total_officers_present: parseInt(document.getElementById('totalOfficers').value) || 0, // Should be calculated
+                publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount').value) || 0,
+                cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmount').value) || 0.00,
+                implement_names: document.getElementById('implementNames').value.trim(),
+                implement_scheme: document.getElementById('implementScheme').value.trim(),
+                total_implement_amount: parseFloat(document.getElementById('totalImplementAmount').value) || 0.00,
+                subsidy_implement_amount: parseFloat(document.getElementById('subsidyImplementAmount').value) || 0.00,
+                created_by: currentUser.id
+            };
+
+            try {
+                // Assuming a table named 'viksit_krishi_report' in your Supabase
+                const { data, error } = await supabaseClient
+                    .from('viksit_krishi_report')
+                    .insert([formData]);
+
+                if (error) throw error;
+
+                showMessage(formMessage, 'success', 'दैनिक रिपोर्ट सफलतापूर्वक सबमिट की गई!');
+                showToast('रिपोर्ट सबमिट की गई', 'success');
+                event.target.reset(); // Clear the form
+                setupOfficerTotalCalculation(); // Recalculate totals
+                
+            } catch (error) {
+                console.error('Error submitting report:', error);
+                showMessage(formMessage, 'error', 'रिपोर्ट सबमिट करने में त्रुटि: ' + error.message);
+                showToast('रिपोर्ट सबमिट करने में त्रुटि', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> रिपोर्ट सबमिट करें';
+            }
+        }
+
+        function showMessage(element, type, message) {
+            element.className = `form-message ${type}`;
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        window.logout = async function() {
+            try {
+                const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+                showToast('लॉगआउट हो रहा है...', 'info');
+                
+                if (userId) {
+                    await supabaseClient
+                        .from('test_users')
+                        .update({ is_online: false, last_activity: new Date().toISOString() })
+                        .eq('id', userId);
+                }
+
+                sessionStorage.removeItem('userId');
+                localStorage.removeItem('userId');
+                showToast('सफलतापूर्वक लॉगआउट हो गए', 'success');
+                setTimeout(() => { window.location.href = 'header.html'; }, 1000);
+                
+            } catch (error) {
+                showToast('लॉगआउट में त्रुटि', 'error');
+                setTimeout(() => { window.location.href = 'header.html'; }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>
