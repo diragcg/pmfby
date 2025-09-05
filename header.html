@@ -394,20 +394,16 @@
                 <div id="errorMessage" class="error-message"></div>
                 <div id="successMessage" class="success-message"></div>
 
-                <!-- Removed bottom-links section -->
             </form>
         </div>
     </div>
 
     <script type="module">
-        // Ensure supabaseClient is correctly imported and configured in your supabase-config.js
-        // Example:
-        // import { createClient } from '@supabase/supabase-js';
-        // const supabaseUrl = 'YOUR_SUPABASE_URL';
-        // const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
-        // export const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-
-        import { supabaseClient } from './supabase-config.js'; // Assuming supabase-config.js is in the same directory
+        // Import all secure modules
+        import { supabaseClient } from './js/config.js'; // Assuming config.js is in pmfby/js/
+        import { SecurityUtils } from './js/security.js'; // Assuming security.js is in pmfby/js/
+        import { authManager } from './js/auth.js';     // Assuming auth.js is in pmfby/js/
+        import { errorHandler } from './js/error-handler.js'; // Assuming error-handler.js is in pmfby/js/
 
         // CAPTCHA functionality (retained your numerical logic)
         let currentCaptcha = '';
@@ -424,7 +420,7 @@
         function drawCaptcha() {
             currentCaptcha = generateCaptcha();
             const captchaDisplay = document.getElementById('captchaDisplay');
-            captchaDisplay.textContent = currentCaptcha; // Display numerical CAPTCHA
+            if(captchaDisplay) captchaDisplay.textContent = currentCaptcha; // Display numerical CAPTCHA
         }
 
         // Hash password with SHA-256
@@ -440,6 +436,7 @@
         async function loadDistricts() {
             try {
                 const districtSelect = document.getElementById('district');
+                if (!districtSelect) return;
                 
                 const { data, error } = await supabaseClient
                     .from('districts') // Assuming your districts table is named 'districts'
@@ -448,6 +445,7 @@
                     
                 if (error) throw error;
                 
+                // Clear existing options except the first one
                 while (districtSelect.options.length > 1) {
                     districtSelect.remove(1);
                 }
@@ -462,113 +460,85 @@
                 }
             } catch (error) {
                 console.error('Error loading districts:', error);
+                errorHandler.showError('जिला लोड करने में त्रुटि'); // Use error handler
                 const districtSelect = document.getElementById('district');
-                const errorOption = document.createElement('option');
-                errorOption.value = "";
-                errorOption.textContent = "जिला लोड करने में त्रुटि";
-                errorOption.style.color = "#C62828";
-                districtSelect.appendChild(errorOption);
+                if (districtSelect) {
+                    const errorOption = document.createElement('option');
+                    errorOption.value = "";
+                    errorOption.textContent = "जिला लोड करने में त्रुटि";
+                    errorOption.style.color = "#C62828";
+                    districtSelect.appendChild(errorOption);
+                }
             }
         }
-
-        // Modal functions (adapted to work with the full-page login)
-        window.openLoginModal = function() {
-            // No need to open a modal, this is the login page itself.
-            // If this function is called from another page, it should redirect to this login.html
-            // For now, it just ensures districts are loaded.
-            loadDistricts();
-        }
-
-        window.closeLoginModal = function() {
-            // This function would typically close a modal.
-            // On a full login page, it might redirect or reset the form.
-            document.getElementById('loginForm').reset();
-            hideMessages();
-            drawCaptcha(); // Refresh CAPTCHA on reset
-        }
-
-        // No separate CAPTCHA modal in this design, CAPTCHA is inline.
-        window.closeCaptchaModal = function() {
-            document.getElementById('captchaInput').value = '';
-            document.getElementById('errorMessage').style.display = 'none'; // Use main error message
-            document.getElementById('loginBtn').innerHTML = 'Login';
-            document.getElementById('loginBtn').disabled = false;
-            drawCaptcha(); // Refresh CAPTCHA
-        }
-
-        // Close modal when clicking outside (not applicable to full page)
-        window.onclick = function(event) {
-            // No modals to close this way in this design
-        }
-
-        // Close modal with Escape key (not applicable to full page, but can reset form)
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                document.getElementById('loginForm').reset();
-                hideMessages();
-                drawCaptcha();
-                document.getElementById('loginBtn').innerHTML = 'Login';
-                document.getElementById('loginBtn').disabled = false;
-            }
-        });
 
         // Hide messages
         function hideMessages() {
-            document.getElementById('errorMessage').style.display = 'none';
-            document.getElementById('successMessage').style.display = 'none';
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            if (errorDiv) errorDiv.style.display = 'none';
+            if (successDiv) successDiv.style.display = 'none';
         }
 
         // Show error message
         function showError(message) {
             hideMessages();
             const errorDiv = document.getElementById('errorMessage');
-            errorDiv.textContent = message;
-            errorDiv.style.display = 'block';
+            if (errorDiv) {
+                errorDiv.textContent = message;
+                errorDiv.style.display = 'block';
+            }
         }
 
         // Show success message
         function showSuccess(message) {
             hideMessages();
             const successDiv = document.getElementById('successMessage');
-            successDiv.textContent = message;
-            successDiv.style.display = 'block';
+            if (successDiv) {
+                successDiv.textContent = message;
+                successDiv.style.display = 'block';
+            }
         }
 
         // CAPTCHA event listeners
-        document.getElementById('refreshCaptcha').addEventListener('click', function() {
+        document.getElementById('refreshCaptcha')?.addEventListener('click', function() {
             drawCaptcha();
-            document.getElementById('captchaInput').value = '';
-            document.getElementById('errorMessage').style.display = 'none'; // Clear any error
+            const captchaInput = document.getElementById('captchaInput');
+            if (captchaInput) captchaInput.value = ''; // Clear input
+            hideMessages(); // Clear any error
         });
 
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        document.getElementById('loginForm')?.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             tempLoginData = {
-                username: document.getElementById('username').value.trim(),
-                password: document.getElementById('password').value,
-                districtId: document.getElementById('district').value, // Now directly from visible dropdown
+                username: document.getElementById('username')?.value.trim(),
+                password: document.getElementById('password')?.value,
+                districtId: document.getElementById('district')?.value, // Now directly from visible dropdown
             };
 
             // Validate form data including the visible district and CAPTCHA input
-            if (!tempLoginData.username || !tempLoginData.password || !tempLoginData.districtId || !document.getElementById('captchaInput').value.trim()) {
+            if (!tempLoginData.username || !tempLoginData.password || !tempLoginData.districtId || !document.getElementById('captchaInput')?.value.trim()) {
                 showError('कृपया सभी आवश्यक फील्ड भरें');
                 return;
             }
             
             // CAPTCHA verification (using your numerical logic)
-            const userInputCaptcha = document.getElementById('captchaInput').value;
+            const userInputCaptcha = document.getElementById('captchaInput')?.value;
             if (userInputCaptcha !== currentCaptcha) {
                 showError('गलत कैप्चा! कृपया पुनः प्रयास करें।');
                 drawCaptcha(); // Generate new CAPTCHA
-                document.getElementById('captchaInput').value = ''; // Clear input
+                const captchaInput = document.getElementById('captchaInput');
+                if (captchaInput) captchaInput.value = ''; // Clear input
                 return; // Stop here if CAPTCHA is wrong
             }
 
             // Show loading state
             const loginBtn = document.getElementById('loginBtn');
-            loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width: 1rem; height: 1rem;"></span> Login...';
-            loginBtn.disabled = true;
+            if (loginBtn) {
+                loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width: 1rem; height: 1rem;"></span> Login...';
+                loginBtn.disabled = true;
+            }
             hideMessages(); // Clear messages before login attempt
 
             // Proceed with actual login process
@@ -603,10 +573,11 @@
                 }
 
                 // District verification using the selected dropdown value
-                if (data.district_id && data.district_id !== districtId) {
+                if (data.district_id && data.district_id !== parseInt(districtId)) { // Ensure type matching for districtId
                     throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
                 }
 
+                // Update user status
                 await supabaseClient
                     .from('test_users')
                     .update({
@@ -616,22 +587,17 @@
                     })
                     .eq('id', data.id);
 
-                const userData = {
-                    id: data.id,
-                    username: data.username,
-                    fullName: data.full_name,
-                    role: data.role,
-                    districtId: data.district_id,
-                    districtName: data.districts ? data.districts.name : 'Unknown District',
-                    loginTime: new Date().toISOString()
-                };
-
+                // Store user data in session for immediate use
                 sessionStorage.setItem('userId', data.id);
                 sessionStorage.setItem('username', data.username);
                 sessionStorage.setItem('fullName', data.full_name);
                 sessionStorage.setItem('role', data.role);
                 sessionStorage.setItem('districtId', data.district_id);
-                sessionStorage.setItem('districtName', userData.districtName);
+                sessionStorage.setItem('districtName', data.districts ? data.districts.name : 'Unknown District');
+
+                // FIXED: Set authVerified flag for smooth transition to dashboard
+                sessionStorage.setItem('authVerified', 'true');
+                sessionStorage.setItem('authTimestamp', Date.now().toString());
 
                 showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
 
@@ -645,22 +611,28 @@
                 showError(error.message || 'लॉगिन में त्रुटि हुई। कृपया पुनः प्रयास करें।');
                 
                 const loginBtn = document.getElementById('loginBtn');
-                loginBtn.innerHTML = 'Login';
-                loginBtn.disabled = false;
+                if (loginBtn) {
+                    loginBtn.innerHTML = 'Login';
+                    loginBtn.disabled = false;
+                }
                 
                 drawCaptcha(); // Refresh CAPTCHA on login failure
-                document.getElementById('captchaInput').value = ''; // Clear CAPTCHA input
+                const captchaInput = document.getElementById('captchaInput');
+                if (captchaInput) captchaInput.value = ''; // Clear CAPTCHA input
                 tempLoginData = {};
             }
         }
 
         // Initialize on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const userId = sessionStorage.getItem('userId');
-            if (userId) {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Check if already logged in via Supabase session
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+            if (session && session.user && session.user.id) {
+                console.log('User already logged in via Supabase session, redirecting to dashboard.');
                 window.location.href = 'dashboard.html';
                 return;
             }
+
             drawCaptcha();
             loadDistricts(); // Load districts when the page loads
         });
