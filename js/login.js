@@ -154,10 +154,9 @@ async function proceedWithLogin() {
         }
 
         // District verification using the selected dropdown value
-        if (users.district_id && users.district_id !== parseInt(districtId)) { // Ensure type matching for districtId
-            throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
+         if (users.district_id && users.district_id !== districtId) {
+                    throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
-
         // Update user status in your database
         await secureDB.secureUpdate('test_users', users.id, {
             last_login: new Date().toISOString(),
