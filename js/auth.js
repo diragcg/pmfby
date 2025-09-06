@@ -1,9 +1,11 @@
+// pmfby/js/auth.js
+
 import { supabaseClient } from './config.js';
-import { SecurityUtils } from './security.js';
+import { SecurityUtils } from './security.js'; // Ensure this is imported if used
 
 class AuthManager {
     constructor() {
-        this.currentUser = null;
+        this.currentUser = null; // Will store user data from sessionStorage
         this.isAuthenticated = false;
         this.sessionTimeout = 30 * 60 * 1000; // 30 minutes
         this.init();
@@ -11,227 +13,103 @@ class AuthManager {
 
     async init() {
         try {
-            // Check if user has valid session
-            await this.checkExistingSession();
-            
-            // Setup session monitoring
-            this.setupSessionMonitoring();
+            // Check for existing state in sessionStorage
+            await this.loadSessionFromStorage();
             
             // Setup auto-logout on inactivity
             this.setupInactivityLogout();
             
         } catch (error) {
             console.error('Auth initialization error:', error);
-            // Don't auto-redirect during initialization
+            // No auto-redirect here during init
         }
     }
 
-    // Check for existing valid session
-    async checkExistingSession() {
-        try {
-            // Get session from Supabase
-            const { data: { session }, error } = await supabaseClient.auth.getSession();
-            
-            if (error) throw error;
-            
-            if (session && session.user) {
-                // Validate session is not expired
-                const now = new Date().getTime();
-                const sessionTime = new Date(session.expires_at).getTime();
-                
-                if (now < sessionTime) {
-                    this.currentUser = session.user;
-                    this.isAuthenticated = true;
-                    
-                    // Get additional user data from your database
-                    await this.loadUserProfile();
-                    
-                    console.log('✅ Valid session found for:', this.currentUser.email);
-                    return true;
-                } else {
-                    console.log('⏰ Session expired, clearing...');
-                    await this.clearExpiredSession();
-                }
+    // NEW: Load session state directly from sessionStorage
+    async loadSessionFromStorage() {
+        const userId = sessionStorage.getItem('userId');
+        const username = sessionStorage.getItem('username');
+        const fullName = sessionStorage.getItem('fullName');
+        const role = sessionStorage.getItem('role');
+        const districtId = sessionStorage.getItem('districtId');
+        const districtName = sessionStorage.getItem('districtName');
+        const authVerified = sessionStorage.getItem('authVerified');
+        const authTimestamp = sessionStorage.getItem('authTimestamp');
+
+        if (userId && username && authVerified === 'true' && authTimestamp) {
+            const timeDiff = Date.now() - parseInt(authTimestamp);
+            // Consider session valid for a short period after verification
+            if (timeDiff < this.sessionTimeout) { // Use sessionTimeout for storage validity
+                this.currentUser = {
+                    id: userId,
+                    email: `${username}@custom.auth`, // Dummy email for internal consistency
+                    user_metadata: {
+                        full_name: fullName,
+                        username: username,
+                        role: role,
+                        district_id: districtId
+                    },
+                    profile: { // Mimic profile structure for easier integration
+                        id: userId,
+                        full_name: fullName,
+                        username: username,
+                        role: role,
+                        district_id: districtId,
+                        districts: { id: districtId, name: districtName }
+                    },
+                    // Add other necessary fields
+                };
+                this.isAuthenticated = true;
+                console.log('✅ Session loaded from sessionStorage for:', username);
+                this.updateUserDisplay();
+                this.setupRoleBasedAccess();
+                return true;
             } else {
-                console.log('❌ No valid session found');
+                console.log('⏰ SessionStorage expired, clearing...');
+                this.clearUserData();
             }
-            
-        } catch (error) {
-            console.error('Session check error:', error);
         }
-        
+        console.log('❌ No valid session found in sessionStorage');
         return false;
     }
 
-    // Clear expired session without redirect
-    async clearExpiredSession() {
-        try {
-            await supabaseClient.auth.signOut();
-            this.currentUser = null;
-            this.isAuthenticated = false;
-        } catch (error) {
-            console.error('Error clearing expired session:', error);
-        }
+    // checkExistingSession is now just a wrapper for loadSessionFromStorage
+    async checkExistingSession() {
+        return this.loadSessionFromStorage();
     }
 
-    // Load user profile from your database
-    async loadUserProfile() {
-        if (!this.currentUser) return;
-
-        try {
-            const { data: userProfile, error } = await supabaseClient
-                .from('test_users')
-                .select('id, full_name, role, username, districts(id, name)')
-                .eq('email', this.currentUser.email)
-                .single();
-
-            if (error) throw error;
-
-            if (userProfile) {
-                this.currentUser.profile = userProfile;
-                this.updateUserDisplay();
-                this.setupRoleBasedAccess();
-                
-                // Update user's last activity
-                await this.updateLastActivity();
-            }
-
-        } catch (error) {
-            console.error('Failed to load user profile:', error);
-        }
-    }
-
-    // Secure login function
-    async login(credentials) {
-        try {
-            // Sanitize input credentials
-            const sanitizedCredentials = SecurityUtils.sanitizeFormData(credentials);
-            
-            // Validate credentials
-            if (!sanitizedCredentials.email || !sanitizedCredentials.password) {
-                throw new Error('Email and password are required');
-            }
-
-            if (!SecurityUtils.validateField(sanitizedCredentials.email, 'email', 'Email').length === 0) {
-                throw new Error('Please enter a valid email address');
-            }
-
-            console.log('🔐 Attempting login for:', sanitizedCredentials.email);
-
-            // Attempt Supabase authentication
-            const { data, error } = await supabaseClient.auth.signInWithPassword({
-                email: sanitizedCredentials.email,
-                password: sanitizedCredentials.password // Don't sanitize passwords
-            });
-
-            if (error) throw error;
-
-            if (data.user) {
-                this.currentUser = data.user;
-                this.isAuthenticated = true;
-                
-                // Load additional profile data
-                await this.loadUserProfile();
-                
-                // Update user status in database
-                await this.updateUserStatus(true);
-                
-                console.log('✅ Login successful for:', this.currentUser.email);
-                return { success: true, user: this.currentUser };
-            }
-
-        } catch (error) {
-            console.error('❌ Login failed:', error.message);
-            this.isAuthenticated = false;
-            this.currentUser = null;
-            return { success: false, error: error.message };
-        }
-    }
-
-    // Secure logout function
+    // No longer interacts with Supabase.auth.signOut directly
     async logout() {
-        try {
-            console.log('🚪 Logging out user...');
-            
-            // Update user status in database
-            if (this.currentUser?.profile?.id) {
-                await this.updateUserStatus(false);
-            }
-
-            // Sign out from Supabase
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) console.error('Logout error:', error);
-
-            // Clear local state
-            this.currentUser = null;
-            this.isAuthenticated = false;
-
-            // Clear any cached data
-            this.clearUserData();
-
-            console.log('✅ Logout successful');
-            
-            // Redirect to login page
-            this.redirectToLogin();
-
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Force redirect even if logout fails
-            this.redirectToLogin();
-        }
+        console.log('🚪 Logging out user (client-side only)...');
+        this.clearUserData();
+        this.currentUser = null;
+        this.isAuthenticated = false;
+        console.log('✅ Logout successful');
+        this.redirectToLogin();
     }
 
-    // Update user online status
+    // These functions now update sessionStorage directly
     async updateUserStatus(isOnline) {
-        if (!this.currentUser?.profile?.id) return;
-
-        try {
-            await supabaseClient
-                .from('test_users')
-                .update({
-                    is_online: isOnline,
-                    last_activity: new Date().toISOString()
-                })
-                .eq('id', this.currentUser.profile.id);
-
-        } catch (error) {
-            console.error('Failed to update user status:', error);
-        }
+        // In this insecure workaround, we don't update DB on online status
+        // as we are bypassing Supabase Auth and RLS.
+        // This function becomes a no-op or just updates sessionStorage flags.
+        console.warn('⚠️ updateUserStatus is a no-op in client-side-only mode.');
+        // If you still want to track this in sessionStorage:
+        sessionStorage.setItem('isOnline', isOnline.toString());
+        sessionStorage.setItem('lastActivity', new Date().toISOString());
     }
 
-    // Update last activity timestamp
     async updateLastActivity() {
-        if (!this.currentUser?.profile?.id) return;
-
-        try {
-            await supabaseClient
-                .from('test_users')
-                .update({ last_activity: new Date().toISOString() })
-                .eq('id', this.currentUser.profile.id);
-
-        } catch (error) {
-            console.error('Failed to update last activity:', error);
-        }
+        // Similar to updateUserStatus, a no-op or sessionStorage update.
+        console.warn('⚠️ updateLastActivity is a no-op in client-side-only mode.');
+        sessionStorage.setItem('lastActivity', new Date().toISOString());
     }
 
-    // Setup session monitoring
+    // setupSessionMonitoring is no longer needed as we don't rely on Supabase.auth.onAuthStateChange
     setupSessionMonitoring() {
-        // Listen for auth state changes
-        supabaseClient.auth.onAuthStateChange((event, session) => {
-            console.log('🔄 Auth state changed:', event);
-            
-            if (event === 'SIGNED_OUT') {
-                this.currentUser = null;
-                this.isAuthenticated = false;
-                // Don't auto-redirect on sign out event
-            } else if (event === 'SIGNED_IN' && session) {
-                this.currentUser = session.user;
-                this.isAuthenticated = true;
-            }
-        });
+        console.warn('⚠️ Supabase.auth.onAuthStateChange is bypassed in client-side-only mode.');
     }
 
-    // Setup automatic logout on inactivity
     setupInactivityLogout() {
         let inactivityTimer;
         
@@ -252,7 +130,6 @@ class AuthManager {
         resetTimer();
     }
 
-    // Update user display in UI
     updateUserDisplay() {
         const userDisplayElement = document.getElementById('user-display');
         if (userDisplayElement && this.currentUser) {
@@ -267,142 +144,85 @@ class AuthManager {
         }
     }
 
-    // Setup role-based access control
     setupRoleBasedAccess() {
         const isAdmin = this.currentUser?.profile?.role === 'admin';
         
-        // Show/hide admin features
         const adminElements = document.querySelectorAll('.admin-only, #adminToolbar');
         adminElements.forEach(element => {
-            element.style.display = isAdmin ? 'block' : 'none';
+            element.style.display = isAdmin ? 'flex' : 'none'; // Use flex for toolbar
         });
 
-        // Store admin status globally
-        window.isAdmin = isAdmin;
+        window.isAdmin = isAdmin; // Global flag for compatibility
         
-        console.log('👤 User role:', this.currentUser?.profile?.role);
-        console.log('🔑 Admin access:', isAdmin);
+        console.log('👤 User role (from sessionStorage):', this.currentUser?.profile?.role);
+        console.log('🔑 Admin access (from sessionStorage):', isAdmin);
     }
 
-    // Require authentication for protected actions
+    // requireAuth now checks sessionStorage state
     requireAuth() {
         if (!this.isAuthenticated || !this.currentUser) {
-            console.warn('🚫 Authentication required');
+            console.warn('🚫 Authentication required (from sessionStorage check)');
+            this.redirectToLogin();
             throw new Error('Authentication required');
         }
         return true;
     }
 
-    // Check if user has specific role
     hasRole(role) {
         return this.currentUser?.profile?.role === role;
     }
 
-    // Clear user data
     clearUserData() {
-        // Clear any cached data
-        localStorage.removeItem('userData');
-        sessionStorage.removeItem('redirectCount');
-        
-        // Clear any auto-saved form data
+        sessionStorage.clear(); // Clears all user-related data
+        // Also clear specific localStorage items if any were used
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith('autosave_')) {
                 localStorage.removeItem(key);
             }
         });
+        console.log('🗑️ User data cleared from sessionStorage.');
     }
 
-    // FIXED: Better redirect logic to prevent loops
     redirectToLogin() {
         const currentPath = window.location.pathname;
         const currentPage = currentPath.split('/').pop() || 'index.html';
         
-        // Pages that don't need authentication
         const publicPages = ['header.html', 'login.html', 'index.html', 'signup.html'];
         
-        // Don't redirect if already on a public page
         if (publicPages.includes(currentPage)) {
-            console.log('Already on public page:', currentPage);
             return;
         }
         
-        // Don't redirect if user is actually authenticated
         if (this.isAuthenticated && this.currentUser) {
-            console.log('User is authenticated, no redirect needed');
             return;
         }
         
-        // Check for redirect loops
         const redirectCount = parseInt(sessionStorage.getItem('redirectCount') || '0');
         if (redirectCount > 3) {
             console.error('🚨 Redirect loop detected, stopping redirects');
             sessionStorage.removeItem('redirectCount');
-            alert('Authentication error detected. Please clear your browser cache and try again.');
+            // Use errorHandler for user feedback
+            errorHandler.showError('प्रमाणीकरण त्रुटि', 'लगातार रीडायरेक्ट का पता चला। कृपया ब्राउज़र कैश साफ़ करके पुनः प्रयास करें।');
             return;
         }
         
-        // Increment redirect counter
         sessionStorage.setItem('redirectCount', (redirectCount + 1).toString());
         
         console.log('🔄 Redirecting to login...', { currentPage, redirectCount: redirectCount + 1 });
         
-        // Add delay to prevent rapid redirects
         setTimeout(() => {
             window.location.href = 'header.html';
         }, 1000);
     }
 
-    // Get current user info
     getCurrentUser() {
         return this.currentUser;
     }
 
-    // Check if user is authenticated
     isUserAuthenticated() {
         return this.isAuthenticated;
     }
-
-    // New method: Check authentication without redirect
-    async verifyAuthentication() {
-        try {
-            const { data: { session }, error } = await supabaseClient.auth.getSession();
-            
-            if (error) {
-                console.error('Session verification error:', error);
-                return false;
-            }
-            
-            if (!session || !session.user) {
-                console.log('No valid session during verification');
-                return false;
-            }
-            
-            // Check if session is expired
-            const now = new Date().getTime();
-            const expiresAt = new Date(session.expires_at).getTime();
-            
-            if (now >= expiresAt) {
-                console.log('Session expired during verification');
-                await this.clearExpiredSession();
-                return false;
-            }
-            
-            // Update local state if needed
-            if (!this.isAuthenticated) {
-                this.currentUser = session.user;
-                this.isAuthenticated = true;
-                await this.loadUserProfile();
-            }
-            
-            return true;
-            
-        } catch (error) {
-            console.error('Authentication verification failed:', error);
-            return false;
-        }
-    }
 }
 
-// Create and export singleton instance
 const authManager = new AuthManager();
 export { authManager };
