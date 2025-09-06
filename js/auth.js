@@ -1,31 +1,26 @@
 // pmfby/js/auth.js
 
 import { supabaseClient } from './config.js';
-import { SecurityUtils } from './security.js'; // Ensure this is imported if used
+import { SecurityUtils } from './security.js'; 
 
 class AuthManager {
     constructor() {
-        this.currentUser = null; // Will store user data from sessionStorage
+        this.currentUser = null; 
         this.isAuthenticated = false;
-        this.sessionTimeout = 30 * 60 * 1000; // 30 minutes
+        this.sessionTimeout = 30 * 60 * 1000; 
         this.init();
     }
 
     async init() {
         try {
-            // Check for existing state in sessionStorage
             await this.loadSessionFromStorage();
-            
-            // Setup auto-logout on inactivity
             this.setupInactivityLogout();
             
         } catch (error) {
             console.error('Auth initialization error:', error);
-            // No auto-redirect here during init
         }
     }
 
-    // NEW: Load session state directly from sessionStorage
     async loadSessionFromStorage() {
         const userId = sessionStorage.getItem('userId');
         const username = sessionStorage.getItem('username');
@@ -38,31 +33,16 @@ class AuthManager {
 
         if (userId && username && authVerified === 'true' && authTimestamp) {
             const timeDiff = Date.now() - parseInt(authTimestamp);
-            // Consider session valid for a short period after verification
-            if (timeDiff < this.sessionTimeout) { // Use sessionTimeout for storage validity
-                this.currentUser = {
+            if (timeDiff < this.sessionTimeout) {
+                this.setAuthManagerState({
                     id: userId,
-                    email: `${username}@custom.auth`, // Dummy email for internal consistency
-                    user_metadata: {
-                        full_name: fullName,
-                        username: username,
-                        role: role,
-                        district_id: districtId
-                    },
-                    profile: { // Mimic profile structure for easier integration
-                        id: userId,
-                        full_name: fullName,
-                        username: username,
-                        role: role,
-                        district_id: districtId,
-                        districts: { id: districtId, name: districtName }
-                    },
-                    // Add other necessary fields
-                };
-                this.isAuthenticated = true;
+                    username: username,
+                    fullName: fullName,
+                    role: role,
+                    districtId: districtId,
+                    districtName: districtName
+                });
                 console.log('✅ Session loaded from sessionStorage for:', username);
-                this.updateUserDisplay();
-                this.setupRoleBasedAccess();
                 return true;
             } else {
                 console.log('⏰ SessionStorage expired, clearing...');
@@ -70,42 +50,64 @@ class AuthManager {
             }
         }
         console.log('❌ No valid session found in sessionStorage');
+        this.setAuthManagerState(null); // Ensure state is cleared if no valid session
         return false;
     }
+    
+    // NEW: Method to explicitly set authManager's internal state
+    setAuthManagerState(userDataFromSessionStorage) {
+        if (userDataFromSessionStorage) {
+            this.currentUser = {
+                id: userDataFromSessionStorage.id,
+                email: `${userDataFromSessionStorage.username}@custom.auth`, // Dummy email
+                user_metadata: {
+                    full_name: userDataFromSessionStorage.fullName,
+                    username: userDataFromSessionStorage.username,
+                    role: userDataFromSessionStorage.role,
+                    district_id: userDataFromSessionStorage.districtId
+                },
+                profile: { // Mimic profile structure
+                    id: userDataFromSessionStorage.id,
+                    full_name: userDataFromSessionStorage.fullName,
+                    username: userDataFromSessionStorage.username,
+                    role: userDataFromSessionStorage.role,
+                    district_id: userDataFromSessionStorage.districtId,
+                    districts: { id: userDataFromSessionStorage.districtId, name: userDataFromSessionStorage.districtName }
+                },
+            };
+            this.isAuthenticated = true;
+        } else {
+            this.currentUser = null;
+            this.isAuthenticated = false;
+        }
+        this.updateUserDisplay();
+        this.setupRoleBasedAccess();
+    }
 
-    // checkExistingSession is now just a wrapper for loadSessionFromStorage
+
     async checkExistingSession() {
         return this.loadSessionFromStorage();
     }
 
-    // No longer interacts with Supabase.auth.signOut directly
     async logout() {
         console.log('🚪 Logging out user (client-side only)...');
         this.clearUserData();
-        this.currentUser = null;
-        this.isAuthenticated = false;
+        this.setAuthManagerState(null); // Clear state explicitly
         console.log('✅ Logout successful');
         this.redirectToLogin();
     }
 
-    // These functions now update sessionStorage directly
     async updateUserStatus(isOnline) {
-        // In this insecure workaround, we don't update DB on online status
-        // as we are bypassing Supabase Auth and RLS.
-        // This function becomes a no-op or just updates sessionStorage flags.
         console.warn('⚠️ updateUserStatus is a no-op in client-side-only mode.');
-        // If you still want to track this in sessionStorage:
         sessionStorage.setItem('isOnline', isOnline.toString());
         sessionStorage.setItem('lastActivity', new Date().toISOString());
     }
 
     async updateLastActivity() {
-        // Similar to updateUserStatus, a no-op or sessionStorage update.
         console.warn('⚠️ updateLastActivity is a no-op in client-side-only mode.');
         sessionStorage.setItem('lastActivity', new Date().toISOString());
     }
 
-    // setupSessionMonitoring is no longer needed as we don't rely on Supabase.auth.onAuthStateChange
     setupSessionMonitoring() {
         console.warn('⚠️ Supabase.auth.onAuthStateChange is bypassed in client-side-only mode.');
     }
@@ -121,12 +123,10 @@ class AuthManager {
             }, this.sessionTimeout);
         };
 
-        // Reset timer on user activity
         ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
             document.addEventListener(event, resetTimer, true);
         });
 
-        // Start the timer
         resetTimer();
     }
 
@@ -141,6 +141,8 @@ class AuthManager {
             const districtName = this.currentUser.profile?.districts?.name || 'Unknown District';
             
             userDisplayElement.textContent = `${displayName} - ${districtName}`;
+        } else if (userDisplayElement) {
+            userDisplayElement.textContent = 'Guest'; // Show guest if not authenticated
         }
     }
 
@@ -149,16 +151,15 @@ class AuthManager {
         
         const adminElements = document.querySelectorAll('.admin-only, #adminToolbar');
         adminElements.forEach(element => {
-            element.style.display = isAdmin ? 'flex' : 'none'; // Use flex for toolbar
+            element.style.display = isAdmin ? 'flex' : 'none';
         });
 
-        window.isAdmin = isAdmin; // Global flag for compatibility
+        window.isAdmin = isAdmin; 
         
         console.log('👤 User role (from sessionStorage):', this.currentUser?.profile?.role);
         console.log('🔑 Admin access (from sessionStorage):', isAdmin);
     }
 
-    // requireAuth now checks sessionStorage state
     requireAuth() {
         if (!this.isAuthenticated || !this.currentUser) {
             console.warn('🚫 Authentication required (from sessionStorage check)');
@@ -173,8 +174,7 @@ class AuthManager {
     }
 
     clearUserData() {
-        sessionStorage.clear(); // Clears all user-related data
-        // Also clear specific localStorage items if any were used
+        sessionStorage.clear();
         Object.keys(localStorage).forEach(key => {
             if (key.startsWith('autosave_')) {
                 localStorage.removeItem(key);
@@ -201,7 +201,6 @@ class AuthManager {
         if (redirectCount > 3) {
             console.error('🚨 Redirect loop detected, stopping redirects');
             sessionStorage.removeItem('redirectCount');
-            // Use errorHandler for user feedback
             errorHandler.showError('प्रमाणीकरण त्रुटि', 'लगातार रीडायरेक्ट का पता चला। कृपया ब्राउज़र कैश साफ़ करके पुनः प्रयास करें।');
             return;
         }
