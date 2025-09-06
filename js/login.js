@@ -1,11 +1,11 @@
 // pmfby/js/login.js
 
 // Import all secure modules
-import { supabaseClient } from './config.js'; // Assuming config.js is in pmfby/js/
-import { SecurityUtils } from './security.js'; // Assuming security.js is in pmfby/js/
-import { authManager } from './auth.js';     // Assuming auth.js is in pmfby/js/
-import { errorHandler } from './error-handler.js'; // Assuming error-handler.js is in pmfby/js/
-import { secureDB } from './database.js'; // Needed for loadDistricts
+import { supabaseClient } from './config.js';
+import { SecurityUtils } from './security.js';
+import { authManager } from './auth.js';     
+import { errorHandler } from './error-handler.js';
+import { secureDB } from './database.js'; 
 
 // CAPTCHA functionality
 let currentCaptcha = '';
@@ -40,10 +40,8 @@ async function loadDistricts() {
         const districtSelect = document.getElementById('district');
         if (!districtSelect) return;
         
-        // Use secureDB to fetch districts, configured with isPublic: true
         const districts = await secureDB.getDistricts(); 
         
-        // Clear existing options except the first one
         while (districtSelect.options.length > 1) {
             districtSelect.remove(1);
         }
@@ -58,7 +56,7 @@ async function loadDistricts() {
         }
     } catch (error) {
         console.error('Error loading districts:', error);
-        errorHandler.showError('जिला लोड करने में त्रुटि'); // Use error handler
+        errorHandler.showError('जिला लोड करने में त्रुटि'); 
         const districtSelect = document.getElementById('district');
         if (districtSelect) {
             const errorOption = document.createElement('option');
@@ -82,8 +80,8 @@ function hideMessages() {
 document.getElementById('refreshCaptcha')?.addEventListener('click', function() {
     drawCaptcha();
     const captchaInput = document.getElementById('captchaInput');
-    if (captchaInput) captchaInput.value = ''; // Clear input
-    hideMessages(); // Clear any error
+    if (captchaInput) captchaInput.value = ''; 
+    hideMessages(); 
 });
 
 document.getElementById('loginForm')?.addEventListener('submit', async function(e) {
@@ -95,35 +93,30 @@ document.getElementById('loginForm')?.addEventListener('submit', async function(
         districtId: document.getElementById('district')?.value,
     };
 
-    // Validate form data including the visible district and CAPTCHA input
     if (!tempLoginData.username || !tempLoginData.password || !tempLoginData.districtId || !document.getElementById('captchaInput')?.value.trim()) {
-        errorHandler.showError('कृपया सभी आवश्यक फील्ड भरें'); // Use errorHandler.showError
+        errorHandler.showError('कृपया सभी आवश्यक फील्ड भरें'); 
         return;
     }
     
-    // CAPTCHA verification (using your numerical logic)
     const userInputCaptcha = document.getElementById('captchaInput')?.value;
     if (userInputCaptcha !== currentCaptcha) {
-        errorHandler.showError('गलत कैप्चा! कृपया पुनः प्रयास करें।'); // Use errorHandler.showError
-        drawCaptcha(); // Generate new CAPTCHA
+        errorHandler.showError('गलत कैप्चा! कृपया पुनः प्रयास करें।'); 
+        drawCaptcha(); 
         const captchaInput = document.getElementById('captchaInput');
-        if (captchaInput) captchaInput.value = ''; // Clear input
-        return; // Stop here if CAPTCHA is wrong
+        if (captchaInput) captchaInput.value = ''; 
+        return; 
     }
 
-    // Show loading state
     const loginBtn = document.getElementById('loginBtn');
     if (loginBtn) {
         loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" style="width: 1rem; height: 1rem;"></span> Login...';
         loginBtn.disabled = true;
     }
-    hideMessages(); // Clear messages before login attempt
+    hideMessages(); 
 
-    // Proceed with actual login process
     proceedWithLogin();
 });
 
-// Actual login process after CAPTCHA verification
 async function proceedWithLogin() {
     try {
         const { username, password, districtId } = tempLoginData;
@@ -131,7 +124,6 @@ async function proceedWithLogin() {
         const hashedPassword = await hashPassword(password);
         
         // --- STEP 1: Custom user verification (isPublic: true to bypass auth check) ---
-        // Fetch user data including the 'email' column from your custom table
         const users = await secureDB.secureSelect('test_users', {
             select: `
                 id, username, email, password_hash, full_name, role, is_active, district_id,
@@ -139,9 +131,9 @@ async function proceedWithLogin() {
                     id, name
                 )
             `,
-            filters: { username: username, is_active: true }, // Filter by username
-            single: true, // Expect a single user
-            isPublic: true // CRUCIAL: Allow this initial select to bypass auth check
+            filters: { username: username, is_active: true }, 
+            single: true, 
+            isPublic: true 
         });
 
         if (!users) { 
@@ -152,41 +144,42 @@ async function proceedWithLogin() {
             throw new Error('अमान्य यूजरनेम या पासवर्ड');
         }
 
-        // District verification using the selected dropdown value (string comparison for UUIDs)
         if (users.district_id && users.district_id !== districtId) { 
             throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
         
-        // --- CRUCIAL CHECK: Ensure email is present ---
         if (!users.email || users.email.trim() === '') {
             throw new Error('लॉगिन के लिए यूजर का ईमेल एड्रेस उपलब्ध नहीं है। कृपया एडमिन से संपर्क करें।');
         }
 
-        // --- STEP 2: BYPASS SUPABASE.AUTH.SIGNINWITHPASSWORD & SETSESSION ---
-        // This is the insecure client-side workaround.
-        // We will manually set sessionStorage and update authManager's internal state.
-        
-        // Update user status in your database (This is the only DB write after verification)
-        await secureDB.secureUpdate('test_users', users.id, {
-            last_login: new Date().toISOString(),
-            is_online: true,
-            last_activity: new Date().toISOString()
-        });
-
-        // --- STEP 3: Manually populate sessionStorage for client-side state ---
+        // --- STEP 2: Manually populate sessionStorage for client-side state ---
         sessionStorage.setItem('userId', users.id);
         sessionStorage.setItem('username', users.username);
         sessionStorage.setItem('fullName', users.full_name);
         sessionStorage.setItem('role', users.role);
         sessionStorage.setItem('districtId', users.district_id);
         sessionStorage.setItem('districtName', users.districts ? users.districts.name : 'Unknown District');
-
         sessionStorage.setItem('authVerified', 'true');
         sessionStorage.setItem('authTimestamp', Date.now().toString());
 
-        // --- STEP 4: Force authManager to load this new state ---
-        // This will update authManager.isAuthenticated and authManager.currentUser
-        await authManager.loadSessionFromStorage(); 
+        // --- STEP 3: SYNCHRONOUSLY UPDATE authManager's internal state ---
+        // This is the critical change. We pass the data directly to setAuthManagerState.
+        authManager.setAuthManagerState({
+            id: users.id,
+            username: users.username,
+            fullName: users.full_name,
+            role: users.role,
+            districtId: users.district_id,
+            districtName: users.districts ? users.districts.name : 'Unknown District'
+        });
+        
+        // --- STEP 4: Perform authenticated database updates (now authManager is ready) ---
+        // This will now pass the authManager.requireAuth() check
+        await secureDB.secureUpdate('test_users', users.id, {
+            last_login: new Date().toISOString(),
+            is_online: true,
+            last_activity: new Date().toISOString()
+        });
 
         errorHandler.showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
 
@@ -215,9 +208,8 @@ async function proceedWithLogin() {
 document.addEventListener('DOMContentLoaded', async function() {
     sessionStorage.removeItem('redirectCount');
 
-    // In this insecure workaround, we don't check supabaseClient.auth.getSession() here
-    // as we are bypassing it. authManager.loadSessionFromStorage will handle initial state.
-    await authManager.loadSessionFromStorage();
+    // Check if authenticated via sessionStorage and redirect if so
+    await authManager.loadSessionFromStorage(); // This will set authManager's state
     if (authManager.isUserAuthenticated()) {
         console.log('User already logged in via sessionStorage, redirecting to dashboard.');
         window.location.href = 'dashboard.html';
