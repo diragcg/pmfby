@@ -157,83 +157,23 @@ async function proceedWithLogin() {
             throw new Error('आपके द्वारा चयनित जिला आपके UserName से मेल नहीं खाता');
         }
         
-        // --- CRUCIAL CHECK: Ensure email is present (even if we don't use it for signInWithPassword) ---
-        // This is good practice for data integrity.
+        // --- CRUCIAL CHECK: Ensure email is present ---
         if (!users.email || users.email.trim() === '') {
             throw new Error('लॉगिन के लिए यूजर का ईमेल एड्रेस उपलब्ध नहीं है। कृपया एडमिन से संपर्क करें।');
         }
 
-        // --- STEP 2: Establish Supabase session (CLIENT-SIDE INSECURE WORKAROUND) ---
-        // We are NOT using supabaseClient.auth.signInWithPassword() as it requires email/phone.
-        // Instead, we are manually constructing a session to satisfy Supabase's client library.
-        // This is INSECURE for production as the access_token is not cryptographically valid.
-
-        // Generate a very basic, syntactically valid JWT structure (but not cryptographically signed)
-        // Header (alg: none, typ: JWT)
-        const header = btoa(JSON.stringify({ alg: "none", typ: "JWT" }));
-        // Payload (user info, expiry)
-        const payload = btoa(JSON.stringify({
-            aud: "authenticated",
-            exp: Math.floor(Date.now() / 1000) + (60 * 60), // Expires in 1 hour
-            sub: users.id, // User ID from your test_users table
-            email: users.email,
-            role: users.role, // Role from your test_users table
-            user_metadata: {
-                full_name: users.full_name,
-                username: users.username,
-                district_id: users.district_id
-            },
-            app_metadata: {
-                provider: 'custom_username_auth'
-            }
-        }));
-        // Signature (empty because alg is "none")
-        const insecureAccessToken = `${header}.${payload}.`; 
-
-        const sessionData = {
-            access_token: insecureAccessToken,
-            refresh_token: 'dummy_refresh_token_for_client_side_only_auth', // Still needed for refresh logic
-            expires_in: 3600, // 1 hour
-            token_type: 'bearer',
-            user: {
-                id: users.id,
-                email: users.email,
-                user_metadata: {
-                    full_name: users.full_name,
-                    username: users.username,
-                    district_id: users.district_id
-                },
-                app_metadata: {
-                    provider: 'custom_username_auth'
-                },
-                aud: 'authenticated',
-                created_at: new Date().toISOString(),
-                confirmed_at: new Date().toISOString(),
-                last_sign_in_at: new Date().toISOString(),
-                role: users.role,
-            },
-            expires_at: Math.floor(Date.now() / 1000) + 3600,
-        };
-
-        const { error: setSessionError } = await supabaseClient.auth.setSession(sessionData);
-
-        if (setSessionError) {
-            console.error("Supabase auth.setSession error:", setSessionError);
-            throw new Error("लॉगिन में आंतरिक त्रुटि (सेशन): " + setSessionError.message);
-        }
-        // --- END CLIENT-SIDE INSECURE WORKAROUND ---
-
-        // --- STEP 3: IMMEDIATELY UPDATE authManager's internal state ---
-        await authManager.checkExistingSession(); 
+        // --- STEP 2: BYPASS SUPABASE.AUTH.SIGNINWITHPASSWORD & SETSESSION ---
+        // This is the insecure client-side workaround.
+        // We will manually set sessionStorage and update authManager's internal state.
         
-        // --- STEP 4: Perform authenticated database updates (now authManager is ready) ---
+        // Update user status in your database (This is the only DB write after verification)
         await secureDB.secureUpdate('test_users', users.id, {
             last_login: new Date().toISOString(),
             is_online: true,
             last_activity: new Date().toISOString()
         });
 
-        // --- STEP 5: Store user data and redirect ---
+        // --- STEP 3: Manually populate sessionStorage for client-side state ---
         sessionStorage.setItem('userId', users.id);
         sessionStorage.setItem('username', users.username);
         sessionStorage.setItem('fullName', users.full_name);
@@ -243,6 +183,10 @@ async function proceedWithLogin() {
 
         sessionStorage.setItem('authVerified', 'true');
         sessionStorage.setItem('authTimestamp', Date.now().toString());
+
+        // --- STEP 4: Force authManager to load this new state ---
+        // This will update authManager.isAuthenticated and authManager.currentUser
+        await authManager.loadSessionFromStorage(); 
 
         errorHandler.showSuccess('लॉगिन सफल! रीडायरेक्ट हो रहा है...');
 
@@ -271,9 +215,11 @@ async function proceedWithLogin() {
 document.addEventListener('DOMContentLoaded', async function() {
     sessionStorage.removeItem('redirectCount');
 
-    const { data: { session }, error } = await supabaseClient.auth.getSession();
-    if (session && session.user && session.user.id) {
-        console.log('User already logged in via Supabase session, redirecting to dashboard.');
+    // In this insecure workaround, we don't check supabaseClient.auth.getSession() here
+    // as we are bypassing it. authManager.loadSessionFromStorage will handle initial state.
+    await authManager.loadSessionFromStorage();
+    if (authManager.isUserAuthenticated()) {
+        console.log('User already logged in via sessionStorage, redirecting to dashboard.');
         window.location.href = 'dashboard.html';
         return;
     }
