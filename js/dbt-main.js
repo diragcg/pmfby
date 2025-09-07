@@ -1,5 +1,3 @@
-// dbt-main.js
-
 // Supabase configuration
 const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
@@ -1328,7 +1326,7 @@ const ReportManager = {
 
 async function initializeUI() {
     setupHeader();
-    setupHeaderEventListeners();
+    setupHeaderEventListeners(); // This is correctly called now
     
     if (isAdmin) {
         try {
@@ -1374,6 +1372,82 @@ function setupHeader() {
         setupAdminNavigation();
     }
 }
+
+// Moved to global scope so it's defined before initializeUI calls it
+function setupHeaderEventListeners() {
+    const budgetMasterBtn = document.getElementById('budgetMasterBtn');
+    if (budgetMasterBtn) {
+        budgetMasterBtn.addEventListener('click', () => {
+            if (typeof BudgetMaster !== 'undefined') {
+                BudgetMaster.showBudgetMasterModal();
+            }
+        });
+    }
+    
+    const showPrintModalBtn = document.getElementById('showPrintModalBtn');
+    if (showPrintModalBtn) {
+        showPrintModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.showPrintModal();
+            }
+        });
+    }
+    
+    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+    if (downloadExcelBtn) {
+        downloadExcelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.downloadExcel(true); // true for all schemes
+            }
+        });
+    }
+    
+    const downloadPDFBtn = document.getElementById('downloadPDFBtn');
+    if (downloadPDFBtn) {
+        downloadPDFBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.downloadPDF(true); // true for all schemes
+            }
+        });
+    }
+
+    const showBudgetStatusBtn = document.getElementById('showBudgetStatusBtn');
+    if (showBudgetStatusBtn) {
+        showBudgetStatusBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.showBudgetStatusReport();
+            }
+        });
+    }
+
+    // Event listeners for print report modal buttons
+    const previewReportBtn = document.getElementById('previewReportBtn');
+    if (previewReportBtn) {
+        previewReportBtn.addEventListener('click', () => ReportManager.previewReport());
+    }
+
+    const printReportBtn = document.getElementById('printReportBtn');
+    if (printReportBtn) {
+        printReportBtn.addEventListener('click', () => ReportManager.printReport());
+    }
+
+    // Event listener for add scheme modal save button
+    const saveNewSchemeBtn = document.getElementById('saveNewSchemeBtn');
+    if (saveNewSchemeBtn && typeof DBTAdmin !== 'undefined') {
+        saveNewSchemeBtn.addEventListener('click', () => DBTAdmin.saveNewScheme());
+    }
+
+    // Event listener for export budget status button
+    const exportBudgetStatusBtn = document.getElementById('exportBudgetStatusBtn');
+    if (exportBudgetStatusBtn && typeof ReportManager !== 'undefined') {
+        exportBudgetStatusBtn.addEventListener('click', () => ReportManager.exportBudgetStatus());
+    }
+}
+
 
 function setupUserMenu() {
     const userMenu = document.getElementById('userMenu');
@@ -2176,7 +2250,7 @@ function loadDraftData() {
             showAlert('पिछला ड्राफ्ट लोड किया गया।', 'info');
             
         } catch (error) {
-            console.error('Error loading draft:', error);
+                console.error('Error loading draft:', error);
             localStorage.removeItem('dbtFormDraft');
         }
     }
