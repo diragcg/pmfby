@@ -1,3 +1,4 @@
+2. Complete Updated dbt-main.js
 // dbt-main.js
 
 // Supabase configuration
@@ -12,6 +13,7 @@ let currentUser = null;
 let formProgress = 0;
 let isDraftMode = false;
 let isAdmin = false;
+let availableSchemes = [];
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
@@ -35,15 +37,6 @@ async function initializeApp() {
         currentUser = DBTAuth.getCurrentUser();
         isAdmin = DBTAuth.isAdmin();
 
-        // Check Budget Master requirement first
-        if (!isAdmin && !BudgetMaster.checkBudgetMasterStatus()) {
-            // Show Budget Master modal for district users
-            BudgetMaster.showBudgetMasterModal();
-        } else {
-            // Budget Master completed or admin user
-            BudgetMaster.unlockMainForm();
-        }
-
         // Initialize UI components
         await initializeUI();
         
@@ -52,6 +45,10 @@ async function initializeApp() {
         
         // Load initial data
         await loadInitialData();
+        
+        // Initialize Budget Master and Report Manager
+        BudgetMaster.init();
+        ReportManager.init();
         
         console.log('DBT Application initialized successfully');
         
@@ -77,36 +74,16 @@ function waitForModules() {
     });
 }
 
-// Budget Master Modal Management
+// Budget Master Management - Redesigned
 const BudgetMaster = {
-    isCompleted: false,
-    budgetData: null,
-
-    // Check if budget master is required and completed
-    checkBudgetMasterStatus() {
-        // Only for district users (non-admin)
-        if (isAdmin) {
-            this.isCompleted = true;
-            return true;
-        }
-
-        // Check if budget master data exists in session
-        const savedBudget = sessionStorage.getItem('budgetMasterData');
-        if (savedBudget) {
-            try {
-                this.budgetData = JSON.parse(savedBudget);
-                this.isCompleted = true;
-                return true;
-            } catch (error) {
-                console.error('Error parsing saved budget data:', error);
-                sessionStorage.removeItem('budgetMasterData');
-            }
-        }
-
-        return false;
+    budgetData: new Map(), // Store budget data per scheme
+    
+    init() {
+        this.loadBudgetMasterData();
+        this.updateBudgetStatusDisplay();
     },
 
-    // Show budget master modal
+    // Show budget master modal (manual trigger)
     showBudgetMasterModal() {
         const modal = new bootstrap.Modal(document.getElementById('budgetMasterModal'));
         modal.show();
@@ -114,8 +91,8 @@ const BudgetMaster = {
         // Setup budget master form
         this.setupBudgetMasterForm();
         
-        // Lock main form
-        this.lockMainForm();
+        // Load schemes in budget master modal
+        this.loadSchemesForBudgetMaster();
     },
 
     // Setup budget master form functionality
@@ -123,6 +100,7 @@ const BudgetMaster = {
         const form = document.getElementById('budgetMasterForm');
         const saveBudgetBtn = document.getElementById('saveBudgetMaster');
         const budgetInputs = form.querySelectorAll('input[required]');
+        const schemeSelect = document.getElementById('budgetMasterSchemeSelect');
         
         // Setup real-time total calculation
         budgetInputs.forEach(input => {
@@ -132,11 +110,140 @@ const BudgetMaster = {
             });
         });
         
+        // Setup scheme selection handler
+        schemeSelect.addEventListener('change', () => {
+            this.onSchemeSelectionChange();
+        });
+        
         // Setup save button
         saveBudgetBtn.addEventListener('click', () => this.saveBudgetMaster());
         
         // Initial validation
         this.validateBudgetForm();
+    },
+
+    // Load schemes for budget master modal
+    async loadSchemesForBudgetMaster() {
+        const schemeSelect = document.getElementById('budgetMasterSchemeSelect');
+        if (!schemeSelect) return;
+        
+        schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
+        
+        try {
+            // Use the same schemes data as main form
+            if (availableSchemes.length > 0) {
+                schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+                
+                const centrallySponsored = availableSchemes.filter(s => s.scheme_type === 'Centrally Sponsored');
+                const stateSchemes = availableSchemes.filter(s => s.scheme_type === 'State Scheme');
+                
+                if (centrallySponsored.length > 0) {
+                    const csGroup = document.createElement('optgroup');
+                    csGroup.label = 'Centrally Sponsored Schemes';
+                    centrallySponsored.forEach(scheme => {
+                        const option = document.createElement('option');
+                        option.value = scheme.id;
+                        option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                        option.dataset.type = scheme.scheme_type;
+                        csGroup.appendChild(option);
+                    });
+                    schemeSelect.appendChild(csGroup);
+                }
+                
+                if (stateSchemes.length > 0) {
+                    const ssGroup = document.createElement('optgroup');
+                    ssGroup.label = 'State Schemes';
+                    stateSchemes.forEach(scheme => {
+                        const option = document.createElement('option');
+                        option.value = scheme.id;
+                        option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                        option.dataset.type = scheme.scheme_type;
+                        ssGroup.appendChild(option);
+                    });
+                    schemeSelect.appendChild(ssGroup);
+                }
+            }
+        } catch (error) {
+            console.error('Error loading schemes for budget master:', error);
+            schemeSelect.innerHTML = '<option value="">Error loading schemes</option>';
+        }
+    },
+
+    // Handle scheme selection change in budget master
+    onSchemeSelectionChange() {
+        const schemeSelect = document.getElementById('budgetMasterSchemeSelect');
+        const selectedSchemeId = schemeSelect.value;
+        
+        if (selectedSchemeId) {
+            // Load existing budget data for this scheme if available
+            this.loadExistingBudgetForScheme(selectedSchemeId);
+        } else {
+            this.clearBudgetFields();
+        }
+        
+        this.validateBudgetForm();
+    },
+
+    // Load existing budget for selected scheme
+    loadExistingBudgetForScheme(schemeId) {
+        const existingBudget = this.budgetData.get(schemeId);
+        
+        if (existingBudget) {
+            document.getElementById('budgetCentralAllocation').value = existingBudget.centralAllocation || 0;
+            document.getElementById('budgetStateNormative').value = existingBudget.stateNormativeAllocation || 0;
+            document.getElementById('budgetAdditionalState').value = existingBudget.additionalStateAllocation || 0;
+            
+            this.calculateBudgetTotal();
+            
+            // Show edit mode indicator
+            const modal = document.querySelector('#budgetMasterModal .modal-title');
+            if (modal) {
+                modal.innerHTML = `
+                    <i class="fas fa-edit me-2"></i>
+                    Edit Budget Master
+                    <span class="badge bg-warning ms-2">Editing</span>
+                `;
+            }
+        } else {
+            this.clearBudgetFields();
+            
+            // Show add mode indicator
+            const modal = document.querySelector('#budgetMasterModal .modal-title');
+            if (modal) {
+                modal.innerHTML = `
+                    <i class="fas fa-coins me-2"></i>
+                    Budget Master Entry
+                `;
+            }
+        }
+    },
+
+    // Clear budget fields
+    clearBudgetFields() {
+        document.getElementById('budgetCentralAllocation').value = '';
+        document.getElementById('budgetStateNormative').value = '';
+        document.getElementById('budgetAdditionalState').value = '';
+        this.calculateBudgetTotal();
+    },
+
+    // Clear form (button handler)
+    clearForm() {
+        this.clearBudgetFields();
+        document.getElementById('budgetMasterSchemeSelect').value = '';
+        this.validateBudgetForm();
+    },
+
+    // Load existing budget (button handler)
+    loadExistingBudget() {
+        const schemeSelect = document.getElementById('budgetMasterSchemeSelect');
+        const selectedSchemeId = schemeSelect.value;
+        
+        if (!selectedSchemeId) {
+            showAlert('पहले स्कीम सेलेक्ट करें।', 'warning');
+            return;
+        }
+        
+        this.loadExistingBudgetForScheme(selectedSchemeId);
     },
 
     // Calculate total budget
@@ -149,7 +256,7 @@ const BudgetMaster = {
         
         const totalDisplay = document.getElementById('budgetTotalDisplay');
         if (totalDisplay) {
-            totalDisplay.textContent = `₹\${formatCurrency(total)}`;
+            totalDisplay.textContent = `₹${formatCurrency(total)}`;
         }
         
         return total;
@@ -157,11 +264,12 @@ const BudgetMaster = {
 
     // Validate budget master form
     validateBudgetForm() {
+        const schemeId = document.getElementById('budgetMasterSchemeSelect')?.value;
         const central = parseFloat(document.getElementById('budgetCentralAllocation')?.value) || 0;
         const stateNormative = parseFloat(document.getElementById('budgetStateNormative')?.value) || 0;
         const additional = parseFloat(document.getElementById('budgetAdditionalState')?.value) || 0;
         
-        const isValid = central > 0 && stateNormative > 0 && additional >= 0;
+        const isValid = schemeId && central > 0 && stateNormative > 0 && additional >= 0;
         
         const saveBudgetBtn = document.getElementById('saveBudgetMaster');
         if (saveBudgetBtn) {
@@ -172,39 +280,46 @@ const BudgetMaster = {
     },
 
     // Save budget master data
-    saveBudgetMaster() {
+    async saveBudgetMaster() {
         if (!this.validateBudgetForm()) {
             showAlert('कृपया सभी आवश्यक बजट फील्ड भरें।', 'warning');
             return;
         }
 
         try {
+            const schemeId = document.getElementById('budgetMasterSchemeSelect').value;
+            const schemeSelect = document.getElementById('budgetMasterSchemeSelect');
+            const schemeName = schemeSelect.options[schemeSelect.selectedIndex].textContent;
+            
             // Collect budget data
-            this.budgetData = {
+            const budgetData = {
+                schemeId: schemeId,
+                schemeName: schemeName,
                 centralAllocation: parseFloat(document.getElementById('budgetCentralAllocation').value) || 0,
                 stateNormativeAllocation: parseFloat(document.getElementById('budgetStateNormative').value) || 0,
                 additionalStateAllocation: parseFloat(document.getElementById('budgetAdditionalState').value) || 0,
                 timestamp: new Date().toISOString(),
-                userId: currentUser?.id
+                userId: currentUser?.id,
+                districtId: currentUser?.districtId,
+                districtName: currentUser?.districtName
             };
 
-            // Save to session storage
-            sessionStorage.setItem('budgetMasterData', JSON.stringify(this.budgetData));
+            // Save to local storage (scheme-wise)
+            this.budgetData.set(schemeId, budgetData);
+            this.saveBudgetMasterToStorage();
             
-            // Mark as completed
-            this.isCompleted = true;
+            // Save to database
+            await this.saveBudgetMasterToDatabase(budgetData);
             
             // Close modal
             const modal = bootstrap.Modal.getInstance(document.getElementById('budgetMasterModal'));
             modal.hide();
             
-            // Unlock main form
-            this.unlockMainForm();
+            // Update displays
+            this.updateBudgetStatusDisplay();
+            this.updateSchemeBudgetStatus();
             
-            // Pre-populate budget fields in main form
-            this.populateBudgetFields();
-            
-            showAlert('बजट मास्टर सफलतापूर्वक सेव हो गया। अब आप DBT डेटा एंट्री कर सकते हैं।', 'success');
+            showAlert(`${schemeName} के लिए बजट मास्टर सफलतापूर्वक सेव हो गया।`, 'success');
             
         } catch (error) {
             console.error('Error saving budget master:', error);
@@ -212,43 +327,170 @@ const BudgetMaster = {
         }
     },
 
-    // Lock main form
-    lockMainForm() {
-        const mainContainer = document.getElementById('mainContainer');
-        if (mainContainer) {
-            mainContainer.style.opacity = '0.5';
-            mainContainer.style.pointerEvents = 'none';
+    // Save budget master to database
+    async saveBudgetMasterToDatabase(budgetData) {
+        try {
+            const dbData = {
+                scheme_id: parseInt(budgetData.schemeId),
+                scheme_name: budgetData.schemeName,
+                central_allocation: budgetData.centralAllocation,
+                state_normative_allocation: budgetData.stateNormativeAllocation,
+                additional_state_allocation: budgetData.additionalStateAllocation,
+                total_allocation: budgetData.centralAllocation + budgetData.stateNormativeAllocation + budgetData.additionalStateAllocation,
+                user_id: budgetData.userId,
+                district_id: budgetData.districtId,
+                district_name: budgetData.districtName,
+                created_at: budgetData.timestamp,
+                updated_at: budgetData.timestamp
+            };
+
+            // Check if budget master already exists for this scheme and user
+            const { data: existing, error: checkError } = await supabaseClient
+                .from('budget_master')
+                .select('id')
+                .eq('scheme_id', dbData.scheme_id)
+                .eq('user_id', dbData.user_id)
+                .single();
+
+            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+                throw checkError;
+            }
+
+            if (existing) {
+                // Update existing record
+                const { error: updateError } = await supabaseClient
+                    .from('budget_master')
+                    .update(dbData)
+                    .eq('id', existing.id);
+
+                if (updateError) throw updateError;
+            } else {
+                // Insert new record
+                const { error: insertError } = await supabaseClient
+                    .from('budget_master')
+                    .insert([dbData]);
+
+                if (insertError) throw insertError;
+            }
+
+        } catch (error) {
+            console.warn('Database save failed, continuing with local storage:', error);
+            // Continue with local storage even if database fails
+        }
+    },
+
+    // Load budget master data from storage
+    loadBudgetMasterData() {
+        try {
+            const savedData = localStorage.getItem('budgetMasterData');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                this.budgetData = new Map(Object.entries(parsedData));
+            }
+        } catch (error) {
+            console.error('Error loading budget master data:', error);
+            this.budgetData = new Map();
+        }
+    },
+
+    // Save budget master data to storage
+    saveBudgetMasterToStorage() {
+        try {
+            const dataToSave = Object.fromEntries(this.budgetData);
+            localStorage.setItem('budgetMasterData', JSON.stringify(dataToSave));
+        } catch (error) {
+            console.error('Error saving budget master data to storage:', error);
+        }
+    },
+
+    // Update budget status display in header
+    updateBudgetStatusDisplay() {
+        const totalSchemes = availableSchemes.length;
+        const completedSchemes = this.budgetData.size;
+        
+        const budgetStatusCount = document.getElementById('budgetStatusCount');
+        const budgetMasterBadge = document.getElementById('budgetMasterBadge');
+        
+        if (budgetStatusCount) {
+            budgetStatusCount.textContent = `${completedSchemes}/${totalSchemes} Schemes`;
         }
         
-        const budgetStatusIndicator = document.getElementById('budgetStatusIndicator');
-        if (budgetStatusIndicator) {
-            budgetStatusIndicator.innerHTML = `
-                <i class="fas fa-lock text-warning"></i>
-                <small>Budget Master Required</small>
+        if (budgetMasterBadge) {
+            const pendingCount = totalSchemes - completedSchemes;
+            if (pendingCount > 0) {
+                budgetMasterBadge.textContent = pendingCount;
+                budgetMasterBadge.style.display = 'inline-block';
+            } else {
+                budgetMasterBadge.style.display = 'none';
+            }
+        }
+    },
+
+    // Update scheme budget status when scheme is selected
+    updateSchemeBudgetStatus() {
+        const schemeSelect = document.getElementById('schemeSelect');
+        const selectedSchemeId = schemeSelect?.value;
+        const statusDiv = document.getElementById('schemeBudgetStatus');
+        
+        if (!statusDiv || !selectedSchemeId) return;
+        
+        const budgetExists = this.budgetData.has(selectedSchemeId);
+        
+        if (budgetExists) {
+            const budgetData = this.budgetData.get(selectedSchemeId);
+            const totalAllocation = budgetData.centralAllocation + budgetData.stateNormativeAllocation + budgetData.additionalStateAllocation;
+            
+            statusDiv.innerHTML = `
+                <div class="alert alert-success alert-sm">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Budget Master Available</strong>
+                    <br>
+                    <small>Total Allocation: ₹${formatCurrency(totalAllocation)}</small>
+                    <button type="button" class="btn btn-outline-success btn-sm ms-2" onclick="BudgetMaster.editBudgetForScheme('${selectedSchemeId}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+            `;
+            
+            // Auto-populate budget fields in main form
+            this.populateBudgetFieldsInMainForm(selectedSchemeId);
+        } else {
+            statusDiv.innerHTML = `
+                <div class="alert alert-warning alert-sm">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Budget Master Required</strong>
+                    <br>
+                    <small>Please set budget master for this scheme first.</small>
+                    <button type="button" class="btn btn-outline-warning btn-sm ms-2" onclick="BudgetMaster.createBudgetForScheme('${selectedSchemeId}')">
+                        <i class="fas fa-plus"></i> Create
+                    </button>
+                </div>
             `;
         }
     },
 
-    // Unlock main form
-    unlockMainForm() {
-        const mainContainer = document.getElementById('mainContainer');
-        if (mainContainer) {
-            mainContainer.style.opacity = '1';
-            mainContainer.style.pointerEvents = 'auto';
-        }
-        
-        const budgetStatusIndicator = document.getElementById('budgetStatusIndicator');
-        if (budgetStatusIndicator) {
-            budgetStatusIndicator.innerHTML = `
-                <i class="fas fa-unlock text-success"></i>
-                <small>Budget Master Completed</small>
-            `;
-        }
+    // Edit budget for specific scheme
+    editBudgetForScheme(schemeId) {
+        document.getElementById('budgetMasterSchemeSelect').value = schemeId;
+        this.showBudgetMasterModal();
+        setTimeout(() => {
+            this.onSchemeSelectionChange();
+        }, 500);
+    },
+
+    // Create budget for specific scheme
+    createBudgetForScheme(schemeId) {
+        document.getElementById('budgetMasterSchemeSelect').value = schemeId;
+        this.showBudgetMasterModal();
+        setTimeout(() => {
+            this.clearBudgetFields();
+        }, 500);
     },
 
     // Populate budget fields in main form
-    populateBudgetFields() {
-        if (!this.budgetData) return;
+    populateBudgetFieldsInMainForm(schemeId) {
+        const budgetData = this.budgetData.get(schemeId);
+        if (!budgetData) return;
         
         setTimeout(() => {
             const centralField = document.getElementById('centralAllocation');
@@ -256,32 +498,576 @@ const BudgetMaster = {
             const additionalField = document.getElementById('additionalStateAllocation');
             
             if (centralField) {
-                centralField.value = this.budgetData.centralAllocation;
+                centralField.value = budgetData.centralAllocation;
                 centralField.readOnly = true;
-                centralField.style.backgroundColor = '#e8f5e8';
+                centralField.classList.add('budget-master-prefilled');
             }
             
             if (stateField) {
-                stateField.value = this.budgetData.stateNormativeAllocation;
+                stateField.value = budgetData.stateNormativeAllocation;
                 stateField.readOnly = true;
-                stateField.style.backgroundColor = '#e8f5e8';
+                stateField.classList.add('budget-master-prefilled');
             }
             
             if (additionalField) {
-                additionalField.value = this.budgetData.additionalStateAllocation;
+                additionalField.value = budgetData.additionalStateAllocation;
                 additionalField.readOnly = true;
-                additionalField.style.backgroundColor = '#e8f5e8';
+                additionalField.classList.add('budget-master-prefilled');
             }
             
-            // Add budget master indicator
-            const budgetSection = document.getElementById('budgetSection');
-            if (budgetSection) {
-                const indicator = budgetSection.querySelector('.budget-pre-filled-indicator');
-                if (indicator) {
-                    indicator.style.display = 'inline-block';
-                }
+            // Show pre-filled indicator
+            const indicator = document.getElementById('budgetPreFilledIndicator');
+            if (indicator) {
+                indicator.style.display = 'inline-block';
             }
         }, 500);
+    },
+
+    // Get budget data for scheme
+    getBudgetDataForScheme(schemeId) {
+        return this.budgetData.get(schemeId) || null;
+    },
+
+    // Check if scheme has budget master
+    hasBudgetMaster(schemeId) {
+        return this.budgetData.has(schemeId);
+    }
+};
+
+// Report Manager - New functionality
+const ReportManager = {
+    
+    init() {
+        this.setupReportModals();
+    },
+
+    setupReportModals() {
+        // Setup print report modal
+        this.loadSchemesForReports();
+        this.setDefaultReportDates();
+        
+        // Show admin district selection if admin
+        if (isAdmin) {
+            const adminDistrictSelection = document.getElementById('adminDistrictSelection');
+            if (adminDistrictSelection) {
+                adminDistrictSelection.style.display = 'block';
+                this.loadDistrictsForReports();
+            }
+        }
+    },
+
+    // Load schemes for report modals
+    async loadSchemesForReports() {
+        const printSchemeSelect = document.getElementById('printSchemeSelect');
+        if (!printSchemeSelect) return;
+        
+        printSchemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
+        
+        try {
+            if (availableSchemes.length > 0) {
+                printSchemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+                
+                availableSchemes.forEach(scheme => {
+                    const option = document.createElement('option');
+                    option.value = scheme.id;
+                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                    printSchemeSelect.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error loading schemes for reports:', error);
+            printSchemeSelect.innerHTML = '<option value="">Error loading schemes</option>';
+        }
+    },
+
+    // Load districts for admin reports
+    async loadDistrictsForReports() {
+        const districtSelect = document.getElementById('printDistrictSelect');
+        if (!districtSelect || !isAdmin) return;
+        
+        try {
+            // Load districts (implement based on your district data source)
+            const districts = [
+                'Raipur', 'Bilaspur', 'Durg', 'Korba', 'Rajnandgaon', 'Raigarh',
+                'Jagdalpur', 'Ambikapur', 'Dhamtari', 'Mahasamund', 'Kanker'
+            ];
+            
+            districts.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.textContent = district;
+                districtSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading districts for reports:', error);
+        }
+    },
+
+    // Set default report dates
+    setDefaultReportDates() {
+        const today = new Date().toISOString().split('T')[0];
+        const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+        
+        const reportDateField = document.getElementById('printReportDate');
+        const fromDateField = document.getElementById('printFromDate');
+        const toDateField = document.getElementById('printToDate');
+        
+        if (reportDateField) reportDateField.value = today;
+        if (fromDateField) fromDateField.value = firstDayOfMonth;
+        if (toDateField) toDateField.value = today;
+    },
+
+    // Show print modal
+    showPrintModal() {
+        const modal = new bootstrap.Modal(document.getElementById('printReportModal'));
+        modal.show();
+    },
+
+    // Preview report
+    previewReport() {
+        const reportData = this.collectReportData();
+        if (!reportData) return;
+        
+        const printContent = this.generatePrintContent(reportData);
+        
+        // Show preview in new window
+        const previewWindow = window.open('', '_blank', 'width=800,height=600');
+        previewWindow.document.write(printContent);
+        previewWindow.document.close();
+    },
+
+    // Print report
+    printReport() {
+        const reportData = this.collectReportData();
+        if (!reportData) return;
+        
+        const printContent = this.generatePrintContent(reportData);
+        
+        // Create print window
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        
+        // Trigger print
+        setTimeout(() => {
+            printWindow.print();
+        }, 500);
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('printReportModal'));
+        modal.hide();
+    },
+
+    // Download Excel
+    async downloadExcel() {
+        try {
+            const reportData = this.collectReportData();
+            if (!reportData) return;
+            
+            // Get DBT data for the selected scheme
+            const dbtData = await this.getDBTDataForReport(reportData);
+            
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            
+            // Create worksheet data
+            const wsData = this.formatDataForExcel(dbtData, reportData);
+            
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'DBT Report');
+            
+            // Generate filename
+            const filename = `DBT_Report_${reportData.schemeName.replace(/[^a-zA-Z0-9]/g, '_')}_${reportData.reportDate}.xlsx`;
+            
+            // Download file
+            XLSX.writeFile(wb, filename);
+            
+            showAlert('Excel रिपोर्ट डाउनलोड हो गई।', 'success');
+            
+        } catch (error) {
+            console.error('Error downloading Excel:', error);
+            showAlert('Excel डाउनलोड करने में त्रुटि हुई।', 'danger');
+        }
+    },
+
+    // Download PDF
+    async downloadPDF() {
+        try {
+            const reportData = this.collectReportData();
+            if (!reportData) return;
+            
+            // Get DBT data for the selected scheme
+            const dbtData = await this.getDBTDataForReport(reportData);
+            
+            // Create PDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add content to PDF
+            this.addContentToPDF(doc, dbtData, reportData);
+            
+            // Generate filename
+            const filename = `DBT_Report_${reportData.schemeName.replace(/[^a-zA-Z0-9]/g, '_')}_${reportData.reportDate}.pdf`;
+            
+            // Download PDF
+            doc.save(filename);
+            
+            showAlert('PDF रिपोर्ट डाउनलोड हो गई।', 'success');
+            
+        } catch (error) {
+            console.error('Error downloading PDF:', error);
+            showAlert('PDF डाउनलोड करने में त्रुटि हुई।', 'danger');
+        }
+    },
+
+    // Collect report data from form
+    collectReportData() {
+        const schemeSelect = document.getElementById('printSchemeSelect');
+        const reportDate = document.getElementById('printReportDate')?.value;
+        const fromDate = document.getElementById('printFromDate')?.value;
+        const toDate = document.getElementById('printToDate')?.value;
+        const districtSelect = document.getElementById('printDistrictSelect');
+        
+        if (!schemeSelect.value) {
+            showAlert('कृपया स्कीम सेलेक्ट करें।', 'warning');
+            return null;
+        }
+        
+        return {
+            schemeId: schemeSelect.value,
+            schemeName: schemeSelect.options[schemeSelect.selectedIndex].textContent,
+            reportDate: reportDate || new Date().toISOString().split('T')[0],
+            fromDate: fromDate,
+            toDate: toDate,
+            districtId: districtSelect?.value || currentUser?.districtId,
+            districtName: districtSelect?.value || currentUser?.districtName,
+            isAdmin: isAdmin
+        };
+    },
+
+    // Get DBT data for report
+    async getDBTDataForReport(reportData) {
+        try {
+            let query = supabaseClient
+                .from('dbt_data_entries')
+                .select('*')
+                .eq('scheme_id', reportData.schemeId);
+            
+            // Add date filters if provided
+            if (reportData.fromDate && reportData.toDate) {
+                query = query.gte('dbt_date', reportData.fromDate)
+                            .lte('dbt_date', reportData.toDate);
+            }
+            
+            // Add district filter for non-admin users
+            if (!isAdmin && currentUser?.districtId) {
+                query = query.eq('district_id', currentUser.districtId);
+            } else if (isAdmin && reportData.districtId) {
+                query = query.eq('district_id', reportData.districtId);
+            }
+            
+            const { data, error } = await query.order('created_at', { ascending: false });
+            
+            if (error) throw error;
+            
+            return data || [];
+            
+        } catch (error) {
+            console.error('Error fetching DBT data for report:', error);
+            return [];
+        }
+    },
+
+    // Generate print content
+    generatePrintContent(reportData) {
+        const currentDate = new Date().toLocaleDateString('en-IN');
+        
+        return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>DBT Report - ${reportData.schemeName}</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 20px; }
+                .logo { width: 80px; height: 80px; margin: 0 auto 10px; }
+                .title { font-size: 24px; font-weight: bold; color: #1B5E20; margin-bottom: 5px; }
+                .subtitle { font-size: 18px; color: #666; margin-bottom: 10px; }
+                .report-info { background: #f5f5f5; padding: 15px; margin: 20px 0; border-radius: 5px; }
+                .section { margin: 20px 0; }
+                .section-title { font-size: 16px; font-weight: bold; color: #1B5E20; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px; }
+                .data-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+                .data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                .data-table th { background-color: #f2f2f2; font-weight: bold; }
+                .summary-box { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                .footer { margin-top: 30px; font-size: 12px; color: #666; text-align: center; }
+                @media print { 
+                    body { margin: 0; }
+                    .no-print { display: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="logo">
+                <div class="title">संचालनालय कृषि छत्तीसगढ़</div>
+                <div class="title">Directorate Agriculture Chhattisgarh</div>
+                <div class="subtitle">Scheme-wise DBT Status Report</div>
+            </div>
+            
+            <div class="report-info">
+                <table style="width: 100%;">
+                    <tr>
+                        <td><strong>Scheme:</strong> ${reportData.schemeName}</td>
+                        <td><strong>Report Date:</strong> ${reportData.reportDate}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>District:</strong> ${reportData.districtName}</td>
+                        <td><strong>Generated On:</strong> ${currentDate}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">Budget Allocation Summary</div>
+                <div id="budgetSummary">Loading budget data...</div>
+            </div>
+            
+            <div class="section">
+                <div class="section-title">DBT Data Summary</div>
+                <div id="dbtSummary">Loading DBT data...</div>
+            </div>
+            
+            <div class="footer">
+                <p>This is a computer-generated report from DBT Data Entry System</p>
+                <p>संचालनालय कृषि छत्तीसगढ़ - Directorate Agriculture Chhattisgarh</p>
+            </div>
+            
+            <script>
+                // Load and display data
+                window.onload = function() {
+                    // This will be populated with actual data
+                    document.getElementById('budgetSummary').innerHTML = 'Budget data will be loaded here';
+                    document.getElementById('dbtSummary').innerHTML = 'DBT data will be loaded here';
+                };
+            </script>
+        </body>
+        </html>
+        `;
+    },
+
+    // Format data for Excel
+    formatDataForExcel(dbtData, reportData) {
+        const headers = [
+            'Entry ID', 'Date', 'Scheme', 'District',
+            'Central Allocation', 'State Normative', 'Additional State',
+            'Total Amount Disbursed', 'Total Beneficiaries',
+            'Electronic Disbursed', 'Non-Electronic Disbursed',
+            'Savings Amount', 'Status', 'Created By'
+        ];
+        
+        const rows = [
+            ['Directorate Agriculture Chhattisgarh'],
+            [`Scheme-wise DBT Status Report - ${reportData.schemeName}`],
+            [`Report Date: ${reportData.reportDate}`],
+            [''],
+            headers
+        ];
+        
+        dbtData.forEach(entry => {
+            rows.push([
+                entry.entry_id || '',
+                entry.dbt_date || '',
+                entry.scheme_select || '',
+                entry.district_name || '',
+                entry.central_allocation || 0,
+                entry.state_normative_allocation || 0,
+                entry.additional_state_allocation || 0,
+                entry.total_amount_disbursed || 0,
+                entry.total_beneficiaries || 0,
+                entry.electronic_disbursed || 0,
+                entry.non_electronic_disbursed || 0,
+                entry.saving_amount || 0,
+                entry.status || '',
+                entry.created_by || ''
+            ]);
+        });
+        
+        return rows;
+    },
+
+    // Add content to PDF
+    addContentToPDF(doc, dbtData, reportData) {
+        let yPosition = 20;
+        
+        // Header
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text('संचालनालय कृषि छत्तीसगढ़', 105, yPosition, { align: 'center' });
+        yPosition += 10;
+        
+        doc.setFontSize(16);
+        doc.text('Directorate Agriculture Chhattisgarh', 105, yPosition, { align: 'center' });
+        yPosition += 15;
+        
+        doc.setFontSize(14);
+        doc.text('Scheme-wise DBT Status Report', 105, yPosition, { align: 'center' });
+        yPosition += 20;
+        
+        // Report Info
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Scheme: ${reportData.schemeName}`, 20, yPosition);
+        doc.text(`Report Date: ${reportData.reportDate}`, 120, yPosition);
+        yPosition += 10;
+        
+        doc.text(`District: ${reportData.districtName}`, 20, yPosition);
+        doc.text(`Generated On: ${new Date().toLocaleDateString('en-IN')}`, 120, yPosition);
+        yPosition += 20;
+        
+        // Data Summary
+        if (dbtData.length > 0) {
+            doc.setFont(undefined, 'bold');
+            doc.text('Summary:', 20, yPosition);
+            yPosition += 10;
+            
+            doc.setFont(undefined, 'normal');
+            doc.text(`Total Entries: ${dbtData.length}`, 20, yPosition);
+            yPosition += 8;
+            
+            const totalAmount = dbtData.reduce((sum, entry) => sum + (parseFloat(entry.total_amount_disbursed) || 0), 0);
+            doc.text(`Total Amount Disbursed: ₹${formatCurrency(totalAmount)}`, 20, yPosition);
+            yPosition += 8;
+            
+            const totalBeneficiaries = dbtData.reduce((sum, entry) => sum + (parseInt(entry.total_beneficiaries) || 0), 0);
+            doc.text(`Total Beneficiaries: ${totalBeneficiaries}`, 20, yPosition);
+        } else {
+            doc.text('No data found for the selected criteria.', 20, yPosition);
+        }
+    },
+
+    // Show budget status report
+    showBudgetStatusReport() {
+        const modal = new bootstrap.Modal(document.getElementById('budgetStatusModal'));
+        modal.show();
+        this.loadBudgetStatusData();
+    },
+
+    // Load budget status data
+    async loadBudgetStatusData() {
+        const tableBody = document.getElementById('budgetStatusTableBody');
+        if (!tableBody) return;
+        
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center">Loading budget status...</td></tr>';
+        
+        try {
+            let statusData = [];
+            
+            // For admin users, show all districts
+            if (isAdmin) {
+                // Load budget status for all districts (implement based on your data structure)
+                statusData = await this.getBudgetStatusForAllDistricts();
+            } else {
+                // Load budget status for current user's district
+                statusData = await this.getBudgetStatusForDistrict(currentUser?.districtId);
+            }
+            
+            this.displayBudgetStatusData(statusData);
+            
+        } catch (error) {
+            console.error('Error loading budget status:', error);
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading budget status</td></tr>';
+        }
+    },
+
+    // Get budget status for all districts (admin)
+    async getBudgetStatusForAllDistricts() {
+        try {
+            const { data, error } = await supabaseClient
+                .from('budget_master')
+                .select(`
+                    *, 
+                    schemes (scheme_name, scheme_code),
+                    test_users (full_name, districts (name))
+                `)
+                .order('updated_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching budget status for all districts:', error);
+            return [];
+        }
+    },
+
+    // Get budget status for specific district
+    async getBudgetStatusForDistrict(districtId) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('budget_master')
+                .select(`
+                    *, 
+                    schemes (scheme_name, scheme_code)
+                `)
+                .eq('district_id', districtId)
+                .order('updated_at', { ascending: false });
+
+            if (error) throw error;
+            return data || [];
+        } catch (error) {
+            console.error('Error fetching budget status for district:', error);
+            return [];
+        }
+    },
+
+    // Display budget status data
+    displayBudgetStatusData(statusData) {
+        const tableBody = document.getElementById('budgetStatusTableBody');
+        if (!tableBody) return;
+        
+        if (statusData.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center">No budget master data found</td></tr>';
+            return;
+        }
+        
+        tableBody.innerHTML = '';
+        
+        statusData.forEach(item => {
+            const row = document.createElement('tr');
+            const schemeName = item.schemes?.scheme_name || item.scheme_name || 'Unknown Scheme';
+            const districtName = item.test_users?.districts?.name || item.district_name || 'Unknown District';
+            const totalAllocation = (item.central_allocation || 0) + (item.state_normative_allocation || 0) + (item.additional_state_allocation || 0);
+            const lastUpdated = new Date(item.updated_at).toLocaleDateString('en-IN');
+            
+            row.innerHTML = `
+                <td>${schemeName}</td>
+                <td>${districtName}</td>
+                <td><span class="badge bg-success">Completed</span></td>
+                <td>₹${formatCurrency(totalAllocation)}</td>
+                <td>${lastUpdated}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="ReportManager.viewBudgetDetails('${item.id}')">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+    },
+
+    // Export budget status
+    exportBudgetStatus() {
+        // Implementation for exporting budget status
+        showAlert('Budget Status export functionality will be implemented.', 'info');
+    },
+
+    // View budget details
+    viewBudgetDetails(budgetId) {
+        // Implementation for viewing budget details
+        showAlert(`Budget details for ID: ${budgetId}`, 'info');
     }
 };
 
@@ -486,24 +1272,24 @@ function setupFormFields() {
             <div class="form-row two-col">
                 <div class="mb-3 currency-input">
                     <label class="form-label">Central Allocation for the State (INR)</label>
-                    <input type="number" class="form-control budget-master-field" id="centralAllocation" step="0.01" min="0">
-                    <small class="text-muted">Pre-filled from Budget Master</small>
+                    <input type="number" class="form-control pistachio-field budget-master-field" id="centralAllocation" step="0.01" min="0">
+                    <small class="text-muted">Auto-filled from Budget Master</small>
                 </div>
                 <div class="mb-3 currency-input">
                     <label class="form-label">State Normative Allocation (INR)</label>
-                    <input type="number" class="form-control budget-master-field" id="stateNormativeAllocation" step="0.01" min="0">
-                    <small class="text-muted">Pre-filled from Budget Master</small>
+                    <input type="number" class="form-control pistachio-field budget-master-field" id="stateNormativeAllocation" step="0.01" min="0">
+                    <small class="text-muted">Auto-filled from Budget Master</small>
                 </div>
             </div>
             <div class="form-row two-col">
                 <div class="mb-3 currency-input">
                     <label class="form-label">Additional State Allocation (if any) (INR)</label>
-                    <input type="number" class="form-control budget-master-field" id="additionalStateAllocation" step="0.01" min="0">
-                    <small class="text-muted">Pre-filled from Budget Master</small>
+                    <input type="number" class="form-control pistachio-field budget-master-field" id="additionalStateAllocation" step="0.01" min="0">
+                    <small class="text-muted">Auto-filled from Budget Master</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Remarks (if any relate to budget allocation)</label>
-                    <textarea class="form-control" id="budgetRemarks" rows="3" style="height: auto;"></textarea>
+                    <textarea class="form-control pistachio-field" id="budgetRemarks" rows="3" style="height: auto;"></textarea>
                 </div>
             </div>
         `;
@@ -521,35 +1307,35 @@ function setupFormFields() {
                 </div>
                 <div class="mb-3 currency-input">
                     <label class="form-label">Central Share Fund Transferred</label>
-                    <input type="number" class="form-control" id="centralShareFund" step="0.01" min="0">
+                    <input type="number" class="form-control pistachio-field" id="centralShareFund" step="0.01" min="0">
                 </div>
             </div>
             <div class="form-row two-col">
                 <div class="mb-3 currency-input">
                     <label class="form-label">Normative - State Share Fund Transferred</label>
-                    <input type="number" class="form-control" id="normativeStateShare" step="0.01" min="0">
+                    <input type="number" class="form-control pistachio-field" id="normativeStateShare" step="0.01" min="0">
                 </div>
                 <div class="mb-3 currency-input">
                     <label class="form-label">Additional State Contributed Fund Transferred</label>
-                    <input type="number" class="form-control" id="additionalStateContributed" step="0.01" min="0">
+                    <input type="number" class="form-control pistachio-field" id="additionalStateContributed" step="0.01" min="0">
                 </div>
             </div>
             <div class="form-row full-width">
                 <div class="mb-3 currency-input">
                     <label class="form-label">State Share Fund Transferred To Additional beneficiaries Supported By State</label>
-                    <input type="number" class="form-control" id="stateShareAdditional" step="0.01" min="0">
+                    <input type="number" class="form-control pistachio-field" id="stateShareAdditional" step="0.01" min="0">
                 </div>
             </div>
             <div class="form-row full-width">
                 <div class="mb-3 currency-input">
                     <label class="form-label">Total Amount Disbursed Through Non Electronic Mode (Cash, Cheque, Demand Draft, Money Order etc)</label>
-                    <input type="number" class="form-control" id="nonElectronicDisbursed" step="0.01" min="0">
+                    <input type="number" class="form-control pistachio-field" id="nonElectronicDisbursed" step="0.01" min="0">
                 </div>
             </div>
             <div class="form-row full-width">
                 <div class="mb-3 currency-input">
                     <label class="form-label">Total Amount Disbursed Through Electronic Mode (ABP, NEFT, RTGS, AEPS etc)</label>
-                    <input type="number" class="form-control" id="electronicDisbursed" step="0.01" min="0">
+                    <input type="number" class="form-control pistachio-field" id="electronicDisbursed" step="0.01" min="0">
                 </div>
             </div>
         `;
@@ -577,57 +1363,57 @@ function setupBenefitDetailsSection() {
         <div class="form-row three-col">
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Additional Beneficiaries Supported By State, If Any (Applicable For CSS)</label>
-                <input type="number" class="form-control" id="additionalBeneficiariesCSS" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="additionalBeneficiariesCSS" min="0" value="0">
             </div>
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Additional Beneficiaries Supported By State, If Any (Applicable For State Scheme)</label>
-                <input type="number" class="form-control" id="additionalBeneficiariesState" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="additionalBeneficiariesState" min="0" value="0">
             </div>
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries - Digitized</label>
-                <input type="number" class="form-control" id="beneficiariesDigitized" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="beneficiariesDigitized" min="0" value="0">
             </div>
         </div>
         <div class="form-row full-width">
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries - Bank Account Details Available With Department</label>
-                <input type="number" class="form-control" id="bankAccountDetails" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="bankAccountDetails" min="0" value="0">
             </div>
         </div>
         <div class="form-row two-col">
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries - Aadhaar Seeded (Aadhaar Number Of Beneficiaries Available With Department)</label>
-                <input type="number" class="form-control" id="aadhaarSeeded" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="aadhaarSeeded" min="0" value="0">
             </div>
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries - Aadhaar Authenticated</label>
-                <input type="number" class="form-control" id="aadhaarAuthenticated" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="aadhaarAuthenticated" min="0" value="0">
             </div>
         </div>
         <div class="form-row two-col">
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries - Mobile Number Available With Department</label>
-                <input type="number" class="form-control" id="mobileAvailable" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="mobileAvailable" min="0" value="0">
             </div>
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries - Amount Disbursed Through Electronic Mode (ABP NEFT AEPS etc.)</label>
-                <input type="number" class="form-control" id="electronicModeBeneficiaries" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="electronicModeBeneficiaries" min="0" value="0">
             </div>
         </div>
         <div class="form-row two-col">
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries - Amount Disbursed Through Non Electronic Mode (Cash Cheque, Demand Draft etc.)</label>
-                <input type="number" class="form-control" id="nonElectronicBeneficiaries" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="nonElectronicBeneficiaries" min="0" value="0">
             </div>
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Transactions Through Electronic Mode (ABP NEFT AEPS etc.)</label>
-                <input type="number" class="form-control" id="electronicTransactions" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="electronicTransactions" min="0" value="0">
             </div>
         </div>
         <div class="form-row full-width">
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Transactions Through Non-Electronic Mode (Cash Cheque, Demand Draft, Money Order etc.)</label>
-                <input type="number" class="form-control" id="nonElectronicTransactions" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="nonElectronicTransactions" min="0" value="0">
             </div>
         </div>
     `;
@@ -641,15 +1427,15 @@ function setupSavingsSection() {
         <div class="form-row four-col">
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Beneficiaries Removed Due To De-Duplication Using Aadhaar</label>
-                <input type="number" class="form-control" id="deduplicationAadhaar" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="deduplicationAadhaar" min="0" value="0">
             </div>
             <div class="mb-3 number-input">
                 <label class="form-label">Number Of Ghost/Fake Beneficiaries Removed</label>
-                <input type="number" class="form-control" id="ghostBeneficiaries" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="ghostBeneficiaries" min="0" value="0">
             </div>
             <div class="mb-3 currency-input">
                 <label class="form-label">Other Savings Due To Process Reengineering/Efficiency</label>
-                <input type="number" class="form-control" id="otherSavings" step="0.01" min="0" value="0">
+                <input type="number" class="form-control pistachio-field" id="otherSavings" step="0.01" min="0" value="0">
             </div>
             <div class="mb-3 currency-input">
                 <label class="form-label">Saving Amount (in INR)</label>
@@ -709,6 +1495,9 @@ function setupEventListeners() {
                 const schemeType = selectedOption.dataset.type;
                 const benefitType = selectedOption.dataset.benefitType;
                 updateFormFieldsBasedOnScheme(schemeType, benefitType);
+                
+                // Update scheme budget status
+                BudgetMaster.updateSchemeBudgetStatus();
             }
         });
     }
@@ -796,11 +1585,6 @@ async function loadInitialData() {
     if (isAdmin) {
         loadNotifications();
     }
-    
-    // Populate budget fields if budget master is completed
-    if (BudgetMaster.isCompleted && BudgetMaster.budgetData) {
-        BudgetMaster.populateBudgetFields();
-    }
 }
 
 async function loadSchemes() {
@@ -825,6 +1609,9 @@ async function loadSchemes() {
         schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
         
         if (data && data.length > 0) {
+            // Store schemes globally for other components
+            availableSchemes = data;
+            
             const centrallySponsored = data.filter(s => s.scheme_type === 'Centrally Sponsored');
             const stateSchemes = data.filter(s => s.scheme_type === 'State Scheme');
             
@@ -857,6 +1644,9 @@ async function loadSchemes() {
             }
             
             console.log(`Loaded ${data.length} schemes successfully`);
+            
+            // Update budget status display after schemes are loaded
+            BudgetMaster.updateBudgetStatusDisplay();
         } else {
             loadFallbackSchemes();
         }
@@ -874,13 +1664,16 @@ function loadFallbackSchemes() {
     schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
     
     const fallbackSchemes = [
-        { id: 1, name: 'SubMission on Agroforestry', code: 'CS1', type: 'Centrally Sponsored' },
-        { id: 2, name: 'Rajiv Gandhi Nyay Yojana', code: 'SS1', type: 'State Scheme' },
-        { id: 3, name: 'National Food Security Mission', code: 'CS8', type: 'Centrally Sponsored' },
-        { id: 4, name: 'Godhan Nyay Yojana', code: 'SS7', type: 'State Scheme' },
-        { id: 5, name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', code: 'CS12', type: 'Centrally Sponsored' },
-        { id: 6, name: 'Kisan Samrudhi Yojana', code: 'SS12', type: 'State Scheme' }
+        { id: 1, scheme_name: 'SubMission on Agroforestry', scheme_code: 'CS1', scheme_type: 'Centrally Sponsored' },
+        { id: 2, scheme_name: 'Rajiv Gandhi Nyay Yojana', scheme_code: 'SS1', scheme_type: 'State Scheme' },
+        { id: 3, scheme_name: 'National Food Security Mission', scheme_code: 'CS8', scheme_type: 'Centrally Sponsored' },
+        { id: 4, scheme_name: 'Godhan Nyay Yojana', scheme_code: 'SS7', scheme_type: 'State Scheme' },
+        { id: 5, scheme_name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', scheme_code: 'CS12', scheme_type: 'Centrally Sponsored' },
+        { id: 6, scheme_name: 'Kisan Samrudhi Yojana', scheme_code: 'SS12', scheme_type: 'State Scheme' }
     ];
+    
+    // Store fallback schemes globally
+    availableSchemes = fallbackSchemes;
     
     const csGroup = document.createElement('optgroup');
     csGroup.label = 'Centrally Sponsored Schemes';
@@ -890,10 +1683,10 @@ function loadFallbackSchemes() {
     fallbackSchemes.forEach(scheme => {
         const option = document.createElement('option');
         option.value = scheme.id;
-        option.textContent = `${scheme.name} (${scheme.code})`;
-        option.dataset.type = scheme.type;
+        option.textContent = `${scheme.scheme_name} (\${scheme.scheme_code})`;
+        option.dataset.type = scheme.scheme_type;
         
-        if (scheme.type === 'Centrally Sponsored') {
+        if (scheme.scheme_type === 'Centrally Sponsored') {
             csGroup.appendChild(option);
         } else {
             ssGroup.appendChild(option);
@@ -904,6 +1697,9 @@ function loadFallbackSchemes() {
     schemeSelect.appendChild(ssGroup);
     
     console.log('Loaded fallback schemes successfully');
+    
+    // Update budget status display after fallback schemes are loaded
+    BudgetMaster.updateBudgetStatusDisplay();
 }
 
 function loadNotifications() {
@@ -930,10 +1726,10 @@ function loadNotifications() {
                 item.className = 'dropdown-item-text border-bottom pb-2 mb-2';
                 item.innerHTML = `
                     <div class="d-flex justify-content-between">
-                        <small class="text-muted">${notif.time}</small>
-                        <i class="fas fa-${notif.type === 'info' ? 'info-circle text-info' : notif.type === 'success' ? 'check-circle text-success' : 'exclamation-triangle text-warning'}"></i>
+                        <small class="text-muted">\${notif.time}</small>
+                        <i class="fas fa-\${notif.type === 'info' ? 'info-circle text-info' : notif.type === 'success' ? 'check-circle text-success' : 'exclamation-triangle text-warning'}"></i>
                     </div>
-                    <div>${notif.message}</div>
+                    <div>\${notif.message}</div>
                 `;
                 notificationList.appendChild(item);
             });
@@ -1017,10 +1813,13 @@ function collectFormData() {
     formData.dbt_date = document.getElementById('dbtDate')?.value || null;
 
     // Budget Allocation (Section A.2) - Include Budget Master data
-    if (BudgetMaster.budgetData) {
-        formData.central_allocation = BudgetMaster.budgetData.centralAllocation;
-        formData.state_normative_allocation = BudgetMaster.budgetData.stateNormativeAllocation;
-        formData.additional_state_allocation = BudgetMaster.budgetData.additionalStateAllocation;
+    const selectedSchemeId = document.getElementById('schemeSelect')?.value;
+    const budgetData = BudgetMaster.getBudgetDataForScheme(selectedSchemeId);
+    
+    if (budgetData) {
+        formData.central_allocation = budgetData.centralAllocation;
+        formData.state_normative_allocation = budgetData.stateNormativeAllocation;
+        formData.additional_state_allocation = budgetData.additionalStateAllocation;
     } else {
         formData.central_allocation = parseFloat(document.getElementById('centralAllocation')?.value) || 0;
         formData.state_normative_allocation = parseFloat(document.getElementById('stateNormativeAllocation')?.value) || 0;
@@ -1064,10 +1863,10 @@ function collectFormData() {
 async function handleFormSubmission(event) {
     event.preventDefault();
     
-    // Check if budget master is completed for non-admin users
-    if (!isAdmin && !BudgetMaster.isCompleted) {
-        showAlert('पहले बजट मास्टर पूरा करें।', 'warning');
-        BudgetMaster.showBudgetMasterModal();
+    // Check if budget master exists for selected scheme
+    const selectedSchemeId = document.getElementById('schemeSelect')?.value;
+    if (!isAdmin && selectedSchemeId && !BudgetMaster.hasBudgetMaster(selectedSchemeId)) {
+        showAlert('पहले चयनित स्कीम के लिए बजट मास्टर सेट करें।', 'warning');
         return;
     }
     
@@ -1176,18 +1975,12 @@ function loadDraftData() {
         try {
             const data = JSON.parse(draftData);
             
-            // Don't load budget master fields from draft if budget master is completed
-            if (!BudgetMaster.isCompleted) {
-                if (document.getElementById('centralAllocation')) document.getElementById('centralAllocation').value = data.central_allocation || 0;
-                if (document.getElementById('stateNormativeAllocation')) document.getElementById('stateNormativeAllocation').value = data.state_normative_allocation || 0;
-                if (document.getElementById('additionalStateAllocation')) document.getElementById('additionalStateAllocation').value = data.additional_state_allocation || 0;
-            }
-            
-            // Load other fields
+            // Load form fields (excluding budget master fields)
             if (document.getElementById('schemeSelect')) document.getElementById('schemeSelect').value = data.scheme_id || '';
             if (document.getElementById('dbtDate')) document.getElementById('dbtDate').value = data.dbt_date || '';
             if (document.getElementById('budgetRemarks')) document.getElementById('budgetRemarks').value = data.budget_remarks || '';
 
+            // Load other sections
             if (document.getElementById('totalAmountDisbursed')) document.getElementById('totalAmountDisbursed').value = data.total_amount_disbursed || 0;
             if (document.getElementById('centralShareFund')) document.getElementById('centralShareFund').value = data.central_share_fund || 0;
             if (document.getElementById('normativeStateShare')) document.getElementById('normativeStateShare').value = data.normative_state_share || 0;
@@ -1232,7 +2025,7 @@ function loadDraftData() {
 
 // Auto-save draft every 2 minutes
 setInterval(() => {
-    if (BudgetMaster.isCompleted) { // Only auto-save if budget master is completed
+    if (formProgress > 10) { // Only auto-save if there's significant progress
         const formData = collectFormData();
         localStorage.setItem('dbtFormDraft', JSON.stringify(formData));
     }
@@ -1256,11 +2049,16 @@ function viewAllNotifications() {
 }
 
 function resetForm() {
-    if (confirm('क्या आप वाकई फॉर्म रीसेट करना चाहते हैं? सभी डेटा खो जाएगा।')) {
+    if (confirm('क्या आप वाकई फॉर्म रीसेट करना चाहते हैं? सभी DBT डेटा खो जाएगा। (Budget Master डेटा सुरक्षित रहेगा)')) {
         document.getElementById('dbtForm').reset();
         localStorage.removeItem('dbtFormDraft');
         updateProgress();
-        location.reload();
+        
+        // Re-populate budget fields if budget master exists for selected scheme
+        const selectedSchemeId = document.getElementById('schemeSelect')?.value;
+        if (selectedSchemeId && BudgetMaster.hasBudgetMaster(selectedSchemeId)) {
+            BudgetMaster.populateBudgetFieldsInMainForm(selectedSchemeId);
+        }
     }
 }
 
@@ -1284,10 +2082,10 @@ function showAlert(message, type) {
     existingAlerts.forEach(alert => alert.remove());
     
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-custom`;
+    alertDiv.className = `alert alert-\${type} alert-custom`;
     alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-        <span class="hindi">${message}</span>
+        <i class="fas fa-\${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+        <span class="hindi">\${message}</span>
         <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
     `;
     
@@ -1325,23 +2123,30 @@ console.log(`
 ║  📱 Responsive Design Implemented                            ║
 ║  🔒 Secure Data Handling                                     ║
 ║  👑 Admin Controls Available                                 ║
-║  💰 Budget Master Workflow Implemented                      ║
+║  💰 Scheme-wise Budget Master System                        ║
+║  📄 Print & Download Reports                                ║
+║  🎨 Pistachio Green Input Fields                            ║
 ║                                                              ║
 ║  Keyboard Shortcuts:                                         ║
 ║  • Ctrl + S: Save Draft                                      ║
 ║  • Ctrl + Enter: Submit Form                                 ║
 ║                                                              ║
-║  Workflow:                                                   ║
-║  1. Budget Master Modal (District Users)                    ║
-║  2. Main DBT Entry Form                                      ║
-║  3. Auto-populated Budget Fields                            ║
+║  New Features:                                               ║
+║  • Manual Budget Master (Click to Open)                     ║
+║  • Scheme-wise Budget Tracking                              ║
+║  • Print Reports with Government Header                     ║
+║  • Excel & PDF Download Options                             ║
+║  • Budget Status Dashboard                                   ║
 ║                                                              ║
 ║  Modular Architecture:                                       ║
-║  • dbt-main.js: Core functionality + Budget Master          ║
+║  • dbt-main.js: Core + Budget Master + Reports              ║
 ║  • dbt-auth.js: Authentication handling                     ║
 ║  • dbt-validation.js: Form validation                       ║
 ║  • dbt-calculations.js: Auto calculations                   ║
 ║  • dbt-admin.js: Admin features                             ║
+║                                                              
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
+
+
