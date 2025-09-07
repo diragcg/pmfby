@@ -37,6 +37,39 @@
 
                         <!-- User Info and Controls -->
                         <div class="d-flex align-items-center">
+                            <!-- Budget Master Button -->
+                            <button class="btn btn-outline-light me-3" id="budgetMasterBtn" onclick="BudgetMaster.showBudgetMasterModal()">
+                                <i class="fas fa-coins me-2"></i>
+                                <span class="hindi">Budget Master</span>
+                                <span class="badge bg-warning ms-1" id="budgetMasterBadge" style="display: none;">0</span>
+                            </button>
+
+                            <!-- Print & Download Dropdown -->
+                            <div class="dropdown me-3">
+                                <button class="btn btn-outline-light dropdown-toggle" type="button" id="reportDropdown" data-bs-toggle="dropdown">
+                                    <i class="fas fa-print me-2"></i>
+                                    <span class="hindi">Reports</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><h6 class="dropdown-header">
+                                        <i class="fas fa-file-alt me-2"></i>Generate Reports
+                                    </h6></li>
+                                    <li><a class="dropdown-item" href="#" onclick="ReportManager.showPrintModal()">
+                                        <i class="fas fa-print me-2"></i>Print Report
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="ReportManager.downloadExcel()">
+                                        <i class="fas fa-file-excel me-2"></i>Download Excel
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="ReportManager.downloadPDF()">
+                                        <i class="fas fa-file-pdf me-2"></i>Download PDF
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" onclick="ReportManager.showBudgetStatusReport()">
+                                        <i class="fas fa-chart-bar me-2"></i>Budget Master Status
+                                    </a></li>
+                                </ul>
+                            </div>
+
                             <!-- Notifications -->
                             <div class="dropdown me-3">
                                 <button class="btn btn-outline-light position-relative" type="button" id="notificationDropdown" data-bs-toggle="dropdown">
@@ -81,25 +114,40 @@
         </div>
     </div>
 
-    <!-- Budget Master Modal - Opens First -->
-    <div class="modal fade" id="budgetMasterModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <!-- Budget Master Modal - Manual Trigger -->
+    <div class="modal fade" id="budgetMasterModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
                         <i class="fas fa-coins me-2"></i>
                         Budget Master Entry
-                        <span class="badge bg-warning text-dark ms-2">Required First</span>
                     </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle me-2"></i>
-                        <strong>महत्वपूर्ण:</strong> DBT डेटा एंट्री से पहले बजट मास्टर की जानकारी भरना आवश्यक है।
+                        <strong>नोट:</strong> प्रत्येक स्कीम के लिए अलग से बजट मास्टर सेट करें।
                     </div>
                     
                     <form id="budgetMasterForm">
                         <div class="row">
+                            <div class="col-12 mb-4">
+                                <h6 class="text-primary border-bottom pb-2">
+                                    <i class="fas fa-list me-2"></i>Scheme Selection
+                                </h6>
+                            </div>
+                            
+                            <div class="col-12 mb-4">
+                                <label class="form-label required">
+                                    Select Scheme for Budget Master *
+                                </label>
+                                <select class="form-control pistachio-field" id="budgetMasterSchemeSelect" required>
+                                    <option value="">-- Select Scheme --</option>
+                                </select>
+                            </div>
+                            
                             <div class="col-12 mb-4">
                                 <h6 class="text-primary border-bottom pb-2">
                                     <i class="fas fa-rupee-sign me-2"></i>Budget Allocation Details
@@ -111,7 +159,7 @@
                                     Central Allocation for the State (INR) *
                                 </label>
                                 <div class="currency-input">
-                                    <input type="number" class="form-control" id="budgetCentralAllocation" 
+                                    <input type="number" class="form-control pistachio-field" id="budgetCentralAllocation" 
                                            step="0.01" min="0" required placeholder="Enter central allocation amount">
                                 </div>
                             </div>
@@ -121,7 +169,7 @@
                                     State Normative Allocation (INR) *
                                 </label>
                                 <div class="currency-input">
-                                    <input type="number" class="form-control" id="budgetStateNormative" 
+                                    <input type="number" class="form-control pistachio-field" id="budgetStateNormative" 
                                            step="0.01" min="0" required placeholder="Enter state normative allocation">
                                 </div>
                             </div>
@@ -131,7 +179,7 @@
                                     Additional State Allocation (if any) (INR) *
                                 </label>
                                 <div class="currency-input">
-                                    <input type="number" class="form-control" id="budgetAdditionalState" 
+                                    <input type="number" class="form-control pistachio-field" id="budgetAdditionalState" 
                                            step="0.01" min="0" required placeholder="Enter additional allocation (0 if none)">
                                 </div>
                             </div>
@@ -150,12 +198,16 @@
                 </div>
                 <div class="modal-footer">
                     <div class="d-flex justify-content-between w-100 align-items-center">
-                        <small class="text-muted">
-                            <i class="fas fa-lock me-1"></i>
-                            Main form will unlock after budget master completion
-                        </small>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="BudgetMaster.loadExistingBudget()">
+                                <i class="fas fa-search me-1"></i>Load Existing
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-sm" onclick="BudgetMaster.clearForm()">
+                                <i class="fas fa-eraser me-1"></i>Clear
+                            </button>
+                        </div>
                         <button type="button" class="btn btn-primary btn-lg" id="saveBudgetMaster" disabled>
-                            <i class="fas fa-save me-2"></i>Save & Continue to DBT Entry
+                            <i class="fas fa-save me-2"></i>Save Budget Master
                         </button>
                     </div>
                 </div>
@@ -163,18 +215,116 @@
         </div>
     </div>
 
+    <!-- Print Report Modal -->
+    <div class="modal fade" id="printReportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-print me-2"></i>
+                        Print DBT Report
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="printReportForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Select Scheme *</label>
+                                <select class="form-control pistachio-field" id="printSchemeSelect" required>
+                                    <option value="">-- Select Scheme --</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Report Date</label>
+                                <input type="date" class="form-control pistachio-field" id="printReportDate">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">From Date</label>
+                                <input type="date" class="form-control pistachio-field" id="printFromDate">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">To Date</label>
+                                <input type="date" class="form-control pistachio-field" id="printToDate">
+                            </div>
+                            <div class="col-12 mb-3" id="adminDistrictSelection" style="display: none;">
+                                <label class="form-label">Select District (Admin Only)</label>
+                                <select class="form-control pistachio-field" id="printDistrictSelect">
+                                    <option value="">-- All Districts --</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-info" onclick="ReportManager.previewReport()">
+                        <i class="fas fa-eye me-2"></i>Preview
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="ReportManager.printReport()">
+                        <i class="fas fa-print me-2"></i>Print Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Budget Status Report Modal -->
+    <div class="modal fade" id="budgetStatusModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Budget Master Status Report
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Scheme Name</th>
+                                    <th>District</th>
+                                    <th>Budget Status</th>
+                                    <th>Total Allocation</th>
+                                    <th>Last Updated</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="budgetStatusTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center">Loading budget status...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="ReportManager.exportBudgetStatus()">
+                        <i class="fas fa-download me-2"></i>Export Status
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Container -->
-    <div class="dbt-container" id="mainContainer" style="opacity: 0.5; pointer-events: none;">
+    <div class="dbt-container" id="mainContainer">
         <!-- Page Header -->
         <div class="page-header">
             <h2>
                 <i class="fas fa-edit me-2"></i>
                 Update DBT Data
-                <span class="budget-status-indicator" id="budgetStatusIndicator">
-                    <i class="fas fa-lock text-warning"></i>
-                    <small>Budget Master Required</small>
-                </span>
             </h2>
+            <div class="budget-status-summary" id="budgetStatusSummary">
+                <small class="text-light">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Budget Master: <span id="budgetStatusCount">0/0 Schemes</span>
+                </small>
+            </div>
         </div>
 
         <!-- Form Card -->
@@ -206,13 +356,16 @@
                                     <i class="fas fa-plus me-1"></i>Add New Scheme
                                 </button>
                             </div>
-                            <select class="form-select" id="schemeSelect" required>
+                            <select class="form-select pistachio-field" id="schemeSelect" required>
                                 <option value="">-- Select Scheme --</option>
                             </select>
+                            <div class="scheme-budget-status mt-2" id="schemeBudgetStatus">
+                                <!-- Budget status for selected scheme will appear here -->
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label hindi">Select a Date to Add DBT Data</label>
-                            <input type="date" class="form-control" id="dbtDate" required>
+                            <input type="date" class="form-control pistachio-field" id="dbtDate" required>
                         </div>
                     </div>
                 </div>
@@ -220,7 +373,7 @@
                 <!-- A.2 Budget Allocation -->
                 <div class="subsection-header" data-target="budgetSection">
                     <span>A.2) Budget Allocation</span>
-                    <span class="budget-pre-filled-indicator">
+                    <span class="budget-pre-filled-indicator" id="budgetPreFilledIndicator" style="display: none;">
                         <i class="fas fa-check-circle text-success"></i>
                         <small>Pre-filled from Budget Master</small>
                     </span>
@@ -279,6 +432,13 @@
         </div>
     </div>
 
+    <!-- Print Preview Area (Hidden) -->
+    <div id="printPreviewArea" style="display: none;">
+        <div class="print-document" id="printDocument">
+            <!-- Print content will be generated here -->
+        </div>
+    </div>
+
     <!-- Modals will be populated by JS -->
     <div id="modalContainer">
         <!-- Success Modal -->
@@ -323,15 +483,15 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Scheme Name *</label>
-                                    <input type="text" class="form-control" id="newSchemeName" required>
+                                    <input type="text" class="form-control pistachio-field" id="newSchemeName" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Scheme Code *</label>
-                                    <input type="text" class="form-control" id="newSchemeCode" required>
+                                    <input type="text" class="form-control pistachio-field" id="newSchemeCode" required>
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Scheme Type *</label>
-                                    <select class="form-select" id="newSchemeType" required>
+                                    <select class="form-select pistachio-field" id="newSchemeType" required>
                                         <option value="">-- Select Type --</option>
                                         <option value="Centrally Sponsored">Centrally Sponsored</option>
                                         <option value="State Scheme">State Scheme</option>
@@ -339,7 +499,7 @@
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Benefit Type *</label>
-                                    <select class="form-select" id="newBenefitType" required>
+                                    <select class="form-select pistachio-field" id="newBenefitType" required>
                                         <option value="">-- Select Benefit Type --</option>
                                         <option value="Cash">Cash</option>
                                         <option value="In Kind">In Kind</option>
@@ -348,12 +508,12 @@
                                 </div>
                                 <div class="col-12 mb-3">
                                     <label class="form-label">Department Name</label>
-                                    <input type="text" class="form-control" id="newDepartmentName" 
+                                    <input type="text" class="form-control pistachio-field" id="newDepartmentName" 
                                            value="Agriculture Development & Farmer Welfare & Bio-Technology Department (Agriculture)">
                                 </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Budget Type</label>
-                                    <select class="form-select" id="newBudgetType">
+                                    <select class="form-select pistachio-field" id="newBudgetType">
                                         <option value="Budget">Budget</option>
                                         <option value="Non-Budget">Non-Budget</option>
                                     </select>
@@ -375,6 +535,10 @@
     <!-- External JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    
+    <!-- External Libraries for Reports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     
     <!-- Custom JS with defer to ensure proper loading order -->
     <script defer src="../js/dbt-auth.js"></script>
