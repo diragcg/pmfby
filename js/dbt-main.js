@@ -1,5 +1,3 @@
-2. Complete Updated dbt-main.js
-// dbt-main.js
 
 // Supabase configuration
 const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
