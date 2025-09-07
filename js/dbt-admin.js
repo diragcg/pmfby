@@ -1,10 +1,3 @@
-7. Admin File - dbt-admin.js
-// dbt-admin.js
-
-/**
- * DBT Admin Module
- * Handles all administrative functions, user management, system controls, and admin-only features
- */
 
 const DBTAdmin = {
     
