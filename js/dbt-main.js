@@ -1,3 +1,5 @@
+// dbt-main.js
+
 // Supabase configuration
 const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
@@ -18,8 +20,12 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeApp();
     }, 100);
 });
+
 async function initializeApp() {
     try {
+        // Wait for all modules to be loaded
+        await waitForModules();
+        
         // Check authentication first
         if (!DBTAuth.checkUserAuthentication()) {
             return; // User will be redirected to login
@@ -28,6 +34,15 @@ async function initializeApp() {
         // Get current user data
         currentUser = DBTAuth.getCurrentUser();
         isAdmin = DBTAuth.isAdmin();
+
+        // Check Budget Master requirement first
+        if (!isAdmin && !BudgetMaster.checkBudgetMasterStatus()) {
+            // Show Budget Master modal for district users
+            BudgetMaster.showBudgetMasterModal();
+        } else {
+            // Budget Master completed or admin user
+            BudgetMaster.unlockMainForm();
+        }
 
         // Initialize UI components
         await initializeUI();
@@ -46,14 +61,253 @@ async function initializeApp() {
     }
 }
 
+// Wait for all required modules to be loaded
+function waitForModules() {
+    return new Promise((resolve) => {
+        const checkModules = () => {
+            if (typeof DBTAuth !== 'undefined' && 
+                typeof DBTValidation !== 'undefined' && 
+                typeof DBTCalculations !== 'undefined') {
+                resolve();
+            } else {
+                setTimeout(checkModules, 50); // Check every 50ms
+            }
+        };
+        checkModules();
+    });
+}
+
+// Budget Master Modal Management
+const BudgetMaster = {
+    isCompleted: false,
+    budgetData: null,
+
+    // Check if budget master is required and completed
+    checkBudgetMasterStatus() {
+        // Only for district users (non-admin)
+        if (isAdmin) {
+            this.isCompleted = true;
+            return true;
+        }
+
+        // Check if budget master data exists in session
+        const savedBudget = sessionStorage.getItem('budgetMasterData');
+        if (savedBudget) {
+            try {
+                this.budgetData = JSON.parse(savedBudget);
+                this.isCompleted = true;
+                return true;
+            } catch (error) {
+                console.error('Error parsing saved budget data:', error);
+                sessionStorage.removeItem('budgetMasterData');
+            }
+        }
+
+        return false;
+    },
+
+    // Show budget master modal
+    showBudgetMasterModal() {
+        const modal = new bootstrap.Modal(document.getElementById('budgetMasterModal'));
+        modal.show();
+        
+        // Setup budget master form
+        this.setupBudgetMasterForm();
+        
+        // Lock main form
+        this.lockMainForm();
+    },
+
+    // Setup budget master form functionality
+    setupBudgetMasterForm() {
+        const form = document.getElementById('budgetMasterForm');
+        const saveBudgetBtn = document.getElementById('saveBudgetMaster');
+        const budgetInputs = form.querySelectorAll('input[required]');
+        
+        // Setup real-time total calculation
+        budgetInputs.forEach(input => {
+            input.addEventListener('input', () => {
+                this.calculateBudgetTotal();
+                this.validateBudgetForm();
+            });
+        });
+        
+        // Setup save button
+        saveBudgetBtn.addEventListener('click', () => this.saveBudgetMaster());
+        
+        // Initial validation
+        this.validateBudgetForm();
+    },
+
+    // Calculate total budget
+    calculateBudgetTotal() {
+        const central = parseFloat(document.getElementById('budgetCentralAllocation')?.value) || 0;
+        const stateNormative = parseFloat(document.getElementById('budgetStateNormative')?.value) || 0;
+        const additional = parseFloat(document.getElementById('budgetAdditionalState')?.value) || 0;
+        
+        const total = central + stateNormative + additional;
+        
+        const totalDisplay = document.getElementById('budgetTotalDisplay');
+        if (totalDisplay) {
+            totalDisplay.textContent = `₹\${formatCurrency(total)}`;
+        }
+        
+        return total;
+    },
+
+    // Validate budget master form
+    validateBudgetForm() {
+        const central = parseFloat(document.getElementById('budgetCentralAllocation')?.value) || 0;
+        const stateNormative = parseFloat(document.getElementById('budgetStateNormative')?.value) || 0;
+        const additional = parseFloat(document.getElementById('budgetAdditionalState')?.value) || 0;
+        
+        const isValid = central > 0 && stateNormative > 0 && additional >= 0;
+        
+        const saveBudgetBtn = document.getElementById('saveBudgetMaster');
+        if (saveBudgetBtn) {
+            saveBudgetBtn.disabled = !isValid;
+        }
+        
+        return isValid;
+    },
+
+    // Save budget master data
+    saveBudgetMaster() {
+        if (!this.validateBudgetForm()) {
+            showAlert('कृपया सभी आवश्यक बजट फील्ड भरें।', 'warning');
+            return;
+        }
+
+        try {
+            // Collect budget data
+            this.budgetData = {
+                centralAllocation: parseFloat(document.getElementById('budgetCentralAllocation').value) || 0,
+                stateNormativeAllocation: parseFloat(document.getElementById('budgetStateNormative').value) || 0,
+                additionalStateAllocation: parseFloat(document.getElementById('budgetAdditionalState').value) || 0,
+                timestamp: new Date().toISOString(),
+                userId: currentUser?.id
+            };
+
+            // Save to session storage
+            sessionStorage.setItem('budgetMasterData', JSON.stringify(this.budgetData));
+            
+            // Mark as completed
+            this.isCompleted = true;
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('budgetMasterModal'));
+            modal.hide();
+            
+            // Unlock main form
+            this.unlockMainForm();
+            
+            // Pre-populate budget fields in main form
+            this.populateBudgetFields();
+            
+            showAlert('बजट मास्टर सफलतापूर्वक सेव हो गया। अब आप DBT डेटा एंट्री कर सकते हैं।', 'success');
+            
+        } catch (error) {
+            console.error('Error saving budget master:', error);
+            showAlert('बजट मास्टर सेव करने में त्रुटि हुई।', 'danger');
+        }
+    },
+
+    // Lock main form
+    lockMainForm() {
+        const mainContainer = document.getElementById('mainContainer');
+        if (mainContainer) {
+            mainContainer.style.opacity = '0.5';
+            mainContainer.style.pointerEvents = 'none';
+        }
+        
+        const budgetStatusIndicator = document.getElementById('budgetStatusIndicator');
+        if (budgetStatusIndicator) {
+            budgetStatusIndicator.innerHTML = `
+                <i class="fas fa-lock text-warning"></i>
+                <small>Budget Master Required</small>
+            `;
+        }
+    },
+
+    // Unlock main form
+    unlockMainForm() {
+        const mainContainer = document.getElementById('mainContainer');
+        if (mainContainer) {
+            mainContainer.style.opacity = '1';
+            mainContainer.style.pointerEvents = 'auto';
+        }
+        
+        const budgetStatusIndicator = document.getElementById('budgetStatusIndicator');
+        if (budgetStatusIndicator) {
+            budgetStatusIndicator.innerHTML = `
+                <i class="fas fa-unlock text-success"></i>
+                <small>Budget Master Completed</small>
+            `;
+        }
+    },
+
+    // Populate budget fields in main form
+    populateBudgetFields() {
+        if (!this.budgetData) return;
+        
+        setTimeout(() => {
+            const centralField = document.getElementById('centralAllocation');
+            const stateField = document.getElementById('stateNormativeAllocation');
+            const additionalField = document.getElementById('additionalStateAllocation');
+            
+            if (centralField) {
+                centralField.value = this.budgetData.centralAllocation;
+                centralField.readOnly = true;
+                centralField.style.backgroundColor = '#e8f5e8';
+            }
+            
+            if (stateField) {
+                stateField.value = this.budgetData.stateNormativeAllocation;
+                stateField.readOnly = true;
+                stateField.style.backgroundColor = '#e8f5e8';
+            }
+            
+            if (additionalField) {
+                additionalField.value = this.budgetData.additionalStateAllocation;
+                additionalField.readOnly = true;
+                additionalField.style.backgroundColor = '#e8f5e8';
+            }
+            
+            // Add budget master indicator
+            const budgetSection = document.getElementById('budgetSection');
+            if (budgetSection) {
+                const indicator = budgetSection.querySelector('.budget-pre-filled-indicator');
+                if (indicator) {
+                    indicator.style.display = 'inline-block';
+                }
+            }
+        }, 500);
+    }
+};
+
 async function initializeUI() {
     // Setup header and navigation
     setupHeader();
     
     // Setup admin controls if user is admin
     if (isAdmin) {
-        DBTAdmin.setupAdminControls();
-        await DBTAdmin.loadAdminStats();
+        try {
+            if (typeof DBTAdmin !== 'undefined') {
+                DBTAdmin.setupAdminControls();
+                await DBTAdmin.loadAdminStats();
+            } else {
+                console.warn('DBTAdmin module not loaded yet');
+                // Retry after a short delay
+                setTimeout(() => {
+                    if (typeof DBTAdmin !== 'undefined') {
+                        DBTAdmin.setupAdminControls();
+                        DBTAdmin.loadAdminStats();
+                    }
+                }, 500);
+            }
+        } catch (error) {
+            console.error('Error setting up admin controls:', error);
+        }
     }
     
     // Setup notifications
@@ -191,100 +445,8 @@ function setupNotifications() {
 }
 
 function setupModals() {
-    const modalContainer = document.getElementById('modalContainer');
-    if (!modalContainer) return;
-    
-    modalContainer.innerHTML = `
-        <!-- Success Modal -->
-        <div class="modal fade" id="successModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <span class="hindi">सफलतापूर्वक सबमिट</span>
-                        </h5>
-                    </div>
-                    <div class="modal-body text-center">
-                        <div class="mb-3">
-                            <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
-                        </div>
-                        <h4 class="hindi">DBT डेटा सफलतापूर्वक अपडेट हो गया!</h4>
-                        <p class="hindi">आपका डेटा सुरक्षित रूप से सेव हो गया है।</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-primary" onclick="window.location.reload()">
-                            <span class="hindi">नया एंट्री करें</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Scheme Modal (Admin Only) -->
-        <div class="modal fade" id="addSchemeModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">
-                            <i class="fas fa-plus-circle me-2"></i>
-                            Add New Scheme
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="addSchemeForm">
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Scheme Name *</label>
-                                    <input type="text" class="form-control" id="newSchemeName" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Scheme Code *</label>
-                                    <input type="text" class="form-control" id="newSchemeCode" required>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Scheme Type *</label>
-                                    <select class="form-select" id="newSchemeType" required>
-                                        <option value="">-- Select Type --</option>
-                                        <option value="Centrally Sponsored">Centrally Sponsored</option>
-                                        <option value="State Scheme">State Scheme</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Benefit Type *</label>
-                                    <select class="form-select" id="newBenefitType" required>
-                                        <option value="">-- Select Benefit Type --</option>
-                                        <option value="Cash">Cash</option>
-                                        <option value="In Kind">In Kind</option>
-                                        <option value="Cash & In Kind">Cash & In Kind</option>
-                                    </select>
-                                </div>
-                                <div class="col-12 mb-3">
-                                    <label class="form-label">Department Name</label>
-                                    <input type="text" class="form-control" id="newDepartmentName" 
-                                           value="Agriculture Development & Farmer Welfare & Bio-Technology Department (Agriculture)">
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Budget Type</label>
-                                    <select class="form-select" id="newBudgetType">
-                                        <option value="Budget">Budget</option>
-                                        <option value="Non-Budget">Non-Budget</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" onclick="DBTAdmin.saveNewScheme()">
-                            <i class="fas fa-save me-2"></i>Save Scheme
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    // Modals are already in HTML, just ensure they're properly initialized
+    console.log('Modals setup completed');
 }
 
 function setupForm() {
@@ -302,7 +464,9 @@ function setupForm() {
     setupEventListeners();
     
     // Setup auto-calculations
-    DBTCalculations.setupAutoCalculations();
+    if (typeof DBTCalculations !== 'undefined') {
+        DBTCalculations.setupAutoCalculations();
+    }
     
     // Set default date
     setDefaultDate();
@@ -322,17 +486,20 @@ function setupFormFields() {
             <div class="form-row two-col">
                 <div class="mb-3 currency-input">
                     <label class="form-label">Central Allocation for the State (INR)</label>
-                    <input type="number" class="form-control" id="centralAllocation" step="0.01" min="0">
+                    <input type="number" class="form-control budget-master-field" id="centralAllocation" step="0.01" min="0">
+                    <small class="text-muted">Pre-filled from Budget Master</small>
                 </div>
                 <div class="mb-3 currency-input">
                     <label class="form-label">State Normative Allocation (INR)</label>
-                    <input type="number" class="form-control" id="stateNormativeAllocation" step="0.01" min="0">
+                    <input type="number" class="form-control budget-master-field" id="stateNormativeAllocation" step="0.01" min="0">
+                    <small class="text-muted">Pre-filled from Budget Master</small>
                 </div>
             </div>
             <div class="form-row two-col">
                 <div class="mb-3 currency-input">
                     <label class="form-label">Additional State Allocation (if any) (INR)</label>
-                    <input type="number" class="form-control" id="additionalStateAllocation" step="0.01" min="0">
+                    <input type="number" class="form-control budget-master-field" id="additionalStateAllocation" step="0.01" min="0">
+                    <small class="text-muted">Pre-filled from Budget Master</small>
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Remarks (if any relate to budget allocation)</label>
@@ -528,7 +695,9 @@ function setupEventListeners() {
     formInputs.forEach(input => {
         input.addEventListener('input', updateProgress);
         input.addEventListener('change', updateProgress);
-        input.addEventListener('blur', (e) => DBTValidation.validateField(e));
+        if (typeof DBTValidation !== 'undefined') {
+            input.addEventListener('blur', (e) => DBTValidation.validateField(e));
+        }
     });
 
     // Scheme selection handler
@@ -599,33 +768,17 @@ function setupCollapsibleSections() {
 
 function setupRoleBasedAccess() {
     if (!isAdmin) {
-        // Disable certain admin-only fields for regular users
-        const adminOnlyFields = [
-            'centralAllocation',
-            'stateNormativeAllocation', 
-            'additionalStateAllocation'
-        ];
-        
-        adminOnlyFields.forEach(fieldId => {
-            const field = document.getElementById(fieldId);
-            if (field) {
-                field.setAttribute('readonly', true);
-                field.style.backgroundColor = '#f8f9fa';
-                field.title = 'This field is admin-only';
-            }
-        });
+        // Hide add scheme button for non-admin users
+        const addSchemeBtn = document.getElementById('addSchemeBtn');
+        if (addSchemeBtn) {
+            addSchemeBtn.style.display = 'none';
+        }
         
         // Hide admin-only sections
         const adminSections = document.querySelectorAll('.admin-only-section');
         adminSections.forEach(section => {
             section.style.display = 'none';
         });
-        
-        // Hide add scheme button
-        const addSchemeBtn = document.getElementById('addSchemeBtn');
-        if (addSchemeBtn) {
-            addSchemeBtn.style.display = 'none';
-        }
     } else {
         // Show add scheme button for admins
         const addSchemeBtn = document.getElementById('addSchemeBtn');
@@ -642,6 +795,11 @@ async function loadInitialData() {
     // Load notifications if admin
     if (isAdmin) {
         loadNotifications();
+    }
+    
+    // Populate budget fields if budget master is completed
+    if (BudgetMaster.isCompleted && BudgetMaster.budgetData) {
+        BudgetMaster.populateBudgetFields();
     }
 }
 
@@ -858,10 +1016,16 @@ function collectFormData() {
     
     formData.dbt_date = document.getElementById('dbtDate')?.value || null;
 
-    // Budget Allocation (Section A.2)
-    formData.central_allocation = parseFloat(document.getElementById('centralAllocation')?.value) || 0;
-    formData.state_normative_allocation = parseFloat(document.getElementById('stateNormativeAllocation')?.value) || 0;
-    formData.additional_state_allocation = parseFloat(document.getElementById('additionalStateAllocation')?.value) || 0;
+    // Budget Allocation (Section A.2) - Include Budget Master data
+    if (BudgetMaster.budgetData) {
+        formData.central_allocation = BudgetMaster.budgetData.centralAllocation;
+        formData.state_normative_allocation = BudgetMaster.budgetData.stateNormativeAllocation;
+        formData.additional_state_allocation = BudgetMaster.budgetData.additionalStateAllocation;
+    } else {
+        formData.central_allocation = parseFloat(document.getElementById('centralAllocation')?.value) || 0;
+        formData.state_normative_allocation = parseFloat(document.getElementById('stateNormativeAllocation')?.value) || 0;
+        formData.additional_state_allocation = parseFloat(document.getElementById('additionalStateAllocation')?.value) || 0;
+    }
     formData.budget_remarks = document.getElementById('budgetRemarks')?.value.trim() || null;
 
     // Benefits Transferred (Section B.1)
@@ -900,7 +1064,14 @@ function collectFormData() {
 async function handleFormSubmission(event) {
     event.preventDefault();
     
-    if (!DBTValidation.validateForm()) {
+    // Check if budget master is completed for non-admin users
+    if (!isAdmin && !BudgetMaster.isCompleted) {
+        showAlert('पहले बजट मास्टर पूरा करें।', 'warning');
+        BudgetMaster.showBudgetMasterModal();
+        return;
+    }
+    
+    if (typeof DBTValidation !== 'undefined' && !DBTValidation.validateForm()) {
         showAlert('कृपया सभी आवश्यक फील्ड भरें और त्रुटियों को सुधारें।', 'danger');
         return;
     }
@@ -1005,12 +1176,16 @@ function loadDraftData() {
         try {
             const data = JSON.parse(draftData);
             
-            // Explicitly map keys from draft data to form elements
+            // Don't load budget master fields from draft if budget master is completed
+            if (!BudgetMaster.isCompleted) {
+                if (document.getElementById('centralAllocation')) document.getElementById('centralAllocation').value = data.central_allocation || 0;
+                if (document.getElementById('stateNormativeAllocation')) document.getElementById('stateNormativeAllocation').value = data.state_normative_allocation || 0;
+                if (document.getElementById('additionalStateAllocation')) document.getElementById('additionalStateAllocation').value = data.additional_state_allocation || 0;
+            }
+            
+            // Load other fields
             if (document.getElementById('schemeSelect')) document.getElementById('schemeSelect').value = data.scheme_id || '';
             if (document.getElementById('dbtDate')) document.getElementById('dbtDate').value = data.dbt_date || '';
-            if (document.getElementById('centralAllocation')) document.getElementById('centralAllocation').value = data.central_allocation || 0;
-            if (document.getElementById('stateNormativeAllocation')) document.getElementById('stateNormativeAllocation').value = data.state_normative_allocation || 0;
-            if (document.getElementById('additionalStateAllocation')) document.getElementById('additionalStateAllocation').value = data.additional_state_allocation || 0;
             if (document.getElementById('budgetRemarks')) document.getElementById('budgetRemarks').value = data.budget_remarks || '';
 
             if (document.getElementById('totalAmountDisbursed')) document.getElementById('totalAmountDisbursed').value = data.total_amount_disbursed || 0;
@@ -1039,9 +1214,11 @@ function loadDraftData() {
             if (document.getElementById('otherSavings')) document.getElementById('otherSavings').value = data.other_savings || 0;
             if (document.getElementById('savingAmount')) document.getElementById('savingAmount').value = data.saving_amount || 0;
             
-            DBTCalculations.calculateTotalAmount();
-            DBTCalculations.calculateTotalBeneficiaries();
-            DBTCalculations.calculateSavings();
+            if (typeof DBTCalculations !== 'undefined') {
+                DBTCalculations.calculateTotalAmount();
+                DBTCalculations.calculateTotalBeneficiaries();
+                DBTCalculations.calculateSavings();
+            }
             updateProgress();
             
             showAlert('पिछला ड्राफ्ट लोड किया गया।', 'info');
@@ -1055,8 +1232,10 @@ function loadDraftData() {
 
 // Auto-save draft every 2 minutes
 setInterval(() => {
-    const formData = collectFormData();
-    localStorage.setItem('dbtFormDraft', JSON.stringify(formData));
+    if (BudgetMaster.isCompleted) { // Only auto-save if budget master is completed
+        const formData = collectFormData();
+        localStorage.setItem('dbtFormDraft', JSON.stringify(formData));
+    }
 }, 120000);
 
 // User Profile Functions
@@ -1146,13 +1325,19 @@ console.log(`
 ║  📱 Responsive Design Implemented                            ║
 ║  🔒 Secure Data Handling                                     ║
 ║  👑 Admin Controls Available                                 ║
+║  💰 Budget Master Workflow Implemented                      ║
 ║                                                              ║
 ║  Keyboard Shortcuts:                                         ║
 ║  • Ctrl + S: Save Draft                                      ║
 ║  • Ctrl + Enter: Submit Form                                 ║
 ║                                                              ║
+║  Workflow:                                                   ║
+║  1. Budget Master Modal (District Users)                    ║
+║  2. Main DBT Entry Form                                      ║
+║  3. Auto-populated Budget Fields                            ║
+║                                                              ║
 ║  Modular Architecture:                                       ║
-║  • dbt-main.js: Core functionality                          ║
+║  • dbt-main.js: Core functionality + Budget Master          ║
 ║  • dbt-auth.js: Authentication handling                     ║
 ║  • dbt-validation.js: Form validation                       ║
 ║  • dbt-calculations.js: Auto calculations                   ║
@@ -1160,4 +1345,3 @@ console.log(`
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
-
