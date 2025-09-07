@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Link to external CSS file for dashboard -->
+    <link rel="stylesheet" href="./css/dashboard.css"> 
+
+</head>
+<body>
+    <div id="pageLoading" class="page-loading">
+        <div class="spinner"></div>
+        <div class="loading-text">लोड हो रहा है...</div>
+    </div>
+
+    <div id="adminToolbar" class="admin-toolbar">
+        <h3><i class="fas fa-shield-alt"></i> एडमिन कंट्रोल पैनल</h3>
+        <button class="admin-btn" id="addCardBtn"><i class="fas fa-plus"></i> नया कार्ड जोड़ें</button>
+        <button class="admin-btn" id="manageNavBtn"><i class="fas fa-bars"></i> नेवीगेशन प्रबंधन</button>
+        <button class="admin-btn" id="toggleEditMode"><i class="fas fa-edit"></i> एडिट मोड</button>
+        <button class="admin-btn" id="userManagementBtn"><i class="fas fa-users"></i> उपयोगकर्ता प्रबंधन</button>
+        <button class="admin-btn" id="analyticsDashboardBtn"><i class="fas fa-chart-pie"></i> एनालिटिक्स</button>
+        <button class="admin-btn" id="createDynamicFormBtn"><i class="fas fa-file-excel"></i> डायनेमिक फॉर्म</button>
+        <button class="admin-btn" id="manageDynamicFormsBtn"><i class="fas fa-list-alt"></i> फॉर्म प्रबंधित करें</button>
+    </div>
+
+    <div class="header-strip">
+        <div class="header-container">
+            <div class="logo-section">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                <div class="logo-text">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>Directorate of Agriculture, Chhattisgarh</p>
+                </div>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="user-display" id="user-display">Loading...</div> <!-- Corrected id attribute -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <ul class="nav-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" class="nav-link active">
+                        <i class="fas fa-home"></i> होम
+                    </a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a href="#" class="nav-link" id="sectionsDropdownToggle">
+                        <i class="fas fa-th-large"></i> सेक्शन <i class="fas fa-chevron-down"></i>
+                    </a>
+                    <div class="dropdown-content" id="dynamicDropdown"></div>
+                </li>
+                <li class="nav-item profile-link">
+                    <a href="#" class="nav-link" id="profileLink">
+                        <i class="fas fa-user"></i> प्रोफाइल
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="#" class="nav-link logout-link" id="logoutLink">
+                        <i class="fas fa-sign-out-alt"></i> लॉगआउट
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        <div class="dashboard-cards" id="dynamicDashboardCards"></div>
+    </main>
+
+    <!-- Add Card Modal -->
+    <div id="addCardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नया कार्ड जोड़ें</h2>
+                <span class="close" id="closeAddCardModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addCardForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cardTitleHi">शीर्षक (हिंदी) *</label>
+                            <input type="text" id="cardTitleHi" name="cardTitleHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cardTitleEn">Title (English) *</label>
+                            <input type="text" id="cardTitleEn" name="cardTitleEn" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardDescHi">विवरण (हिंदी)</label>
+                        <textarea id="cardDescHi" name="cardDescHi" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardDescEn">Description (English)</label>
+                        <textarea id="cardDescEn" name="cardDescEn" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardUrl">URL *</label>
+                        <input type="url" id="cardUrl" name="cardUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="cardCategory">कैटेगरी</label>
+                        <select id="cardCategory" name="cardCategory">
+                            <option value="general">सामान्य</option>
+                            <option value="finance">वित्त</option>
+                            <option value="agriculture">कृषि</option>
+                            <option value="storage">भंडारण</option>
+                            <option value="reports">रिपोर्ट</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="displayOrder">प्रदर्शन क्रम</label>
+                        <input type="number" id="displayOrder" name="displayOrder" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="iconPicker"></div>
+                        <input type="hidden" id="selectedIcon" name="selectedIcon" value="fas fa-cube">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="addCardSubmitBtn">
+                        <i class="fas fa-plus"></i> कार्ड जोड़ें
+                    </button>
+                    <div id="addCardErrorMessage" class="error-message"></div>
+                    <div id="addCardSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Card Modal -->
+    <div id="editCardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>कार्ड संपादित करें</h2>
+                <span class="close" id="closeEditCardModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editCardForm">
+                    <input type="hidden" id="editCardId" name="editCardId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCardTitleHi">शीर्षक (हिंदी) *</label>
+                            <input type="text" id="editCardTitleHi" name="editCardTitleHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCardTitleEn">Title (English) *</label>
+                            <input type="text" id="editCardTitleEn" name="editCardTitleEn" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCardDescHi">विवरण (हिंदी)</label>
+                        <textarea id="editCardDescHi" name="editCardDescHi" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCardDescEn">Description (English)</label>
+                        <textarea id="editCardDescEn" name="editCardDescEn" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCardUrl">URL *</label>
+                        <input type="url" id="editCardUrl" name="editCardUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCardCategory">कैटेगरी</label>
+                        <select id="editCardCategory" name="editCardCategory">
+                            <option value="general">सामान्य</option>
+                            <option value="finance">वित्त</option>
+                            <option value="agriculture">कृषि</option>
+                            <option value="storage">भंडारण</option>
+                            <option value="reports">रिपोर्ट</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDisplayOrder">प्रदर्शन क्रम</label>
+                        <input type="number" id="editDisplayOrder" name="editDisplayOrder" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="editIconPicker"></div>
+                        <input type="hidden" id="editSelectedIcon" name="editSelectedIcon" value="fas fa-cube">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="editCardSubmitBtn">
+                        <i class="fas fa-save"></i> परिवर्तन सहेजें
+                    </button>
+                    <div id="editCardErrorMessage" class="error-message"></div>
+                    <div id="editCardSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Manager Modal -->
+    <div id="navManagerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नेवीगेशन प्रबंधन</h2>
+                <span class="close" id="closeNavManagerModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="nav-manager">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50;">नेवीगेशन आइटम</h3>
+                        <button class="admin-btn" id="addNavItemBtn" style="background: #28a745; border-color: #28a745;">
+                            <i class="fas fa-plus"></i> नया आइटम जोड़ें
+                        </button>
+                    </div>
+                    <div id="navItemsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Navigation Item Modal -->
+    <div id="addNavModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नेवीगेशन आइटम जोड़ें</h2>
+                <span class="close" id="closeAddNavModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addNavForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="navNameHi">नाम (हिंदी) *</label>
+                            <input type="text" id="navNameHi" name="navNameHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="navNameEn">Name (English) *</label>
+                            <input type="text" id="navNameEn" name="navNameEn" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="navUrl">URL *</label>
+                        <input type="url" id="navUrl" name="navUrl" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="navCategory">कैटेगरी</label>
+                            <select id="navCategory" name="navCategory"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="navOrder">प्रदर्शन क्रम</label>
+                            <input type="number" id="navOrder" name="navOrder" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="navIconPicker"></div>
+                        <input type="hidden" id="selectedNavIcon" name="selectedNavIcon" value="fas fa-link">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="addNavSubmitBtn">
+                        <i class="fas fa-plus"></i> नेवीगेशन आइटम जोड़ें
+                    </button>
+                    <div id="addNavErrorMessage" class="error-message"></div>
+                    <div id="addNavSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Navigation Item Modal -->
+    <div id="editNavModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नेवीगेशन आइटम संपादित करें</h2>
+                <span class="close" id="closeEditNavModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editNavForm">
+                    <input type="hidden" id="editNavId" name="editNavId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editNavNameHi">नाम (हिंदी) *</label>
+                            <input type="text" id="editNavNameHi" name="editNavNameHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editNavNameEn">Name (English) *</label>
+                            <input type="text" id="editNavNameEn" name="editNavNameEn" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editNavUrl">URL *</label>
+                        <input type="url" id="editNavUrl" name="editNavUrl" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editNavCategory">कैटेगरी</label>
+                            <select id="editNavCategory" name="editNavCategory"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editNavOrder">प्रदर्शन क्रम</label>
+                            <input type="number" id="editNavOrder" name="editNavOrder" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="editNavIconPicker"></div>
+                        <input type="hidden" id="editSelectedNavIcon" name="editSelectedNavIcon" value="fas fa-link">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="editNavSubmitBtn">
+                        <i class="fas fa-save"></i> परिवर्तन सहेजें
+                    </button>
+                    <div id="editNavErrorMessage" class="error-message"></div>
+                    <div id="editNavSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="userManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>उपयोगकर्ता प्रबंधन</h2>
+                <span class="close" id="closeUserManagementModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="user-list-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50;">पंजीकृत उपयोगकर्ता</h3>
+                    </div>
+                    <div id="userList">
+                        <!-- User list will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>उपयोगकर्ता संपादित करें</h2>
+                <span class="close" id="closeEditUserModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId" name="editUserId">
+                    <div class="form-group">
+                        <label for="editUserFullName">पूरा नाम</label>
+                        <input type="text" id="editUserFullName" name="editUserFullName">
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserUsername">उपयोगकर्ता नाम</label>
+                        <input type="text" id="editUserUsername" name="editUserUsername" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserEmail">ईमेल</label>
+                        <input type="email" id="editUserEmail" name="editUserEmail" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserRole">भूमिका</label>
+                        <select id="editUserRole" name="editUserRole">
+                            <option value="user">उपयोगकर्ता</option>
+                            <option value="admin">एडमिन</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserDistrict">जिला</label>
+                        <select id="editUserDistrict" name="editUserDistrict"></select>
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="editUserSubmitBtn">
+                        <i class="fas fa-save"></i> परिवर्तन सहेजें
+                    </button>
+                    <div id="editUserErrorMessage" class="error-message"></div>
+                    <div id="editUserSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Update your dropdown in dashboard.html -->
+    <div class="dropdown-content" id="dynamicDropdown">
+        <a href="#" class="dropdown-item" data-page="store">
+            <i class="fas fa-store"></i> STORE
+        </a>
+        <!-- Add other navigation items here -->
+    </div>
+
+    <!-- Analytics Dashboard Modal -->
+    <div id="analyticsDashboardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>एनालिटिक्स डैशबोर्ड</h2>
+                <span class="close" id="closeAnalyticsDashboardModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="analytics-section">
+                    <h3>कुल सारांश</h3>
+                    <div class="analytics-summary">
+                        <div class="summary-card">
+                            <div class="value" id="totalUsersCount">0</div>
+                            <div class="label">कुल उपयोगकर्ता</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="value" id="activeUsersCount">0</div>
+                            <div class="label">सक्रिय उपयोगकर्ता</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="value" id="totalCardClicks">0</div>
+                            <div class="label">कुल कार्ड क्लिक</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-section">
+                    <h3>शीर्ष कार्ड (क्लिक के अनुसार)</h3>
+                    <div id="topCardsList">
+                        <table class="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>कार्ड</th>
+                                    <th>क्लिक</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topCardsTableBody">
+                                <!-- Top cards will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="analytics-section">
+                    <h3>हाल की एडमिन गतिविधियाँ</h3>
+                    <div id="adminActivityList">
+                        <table class="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>क्रिया</th>
+                                    <th>विवरण</th>
+                                    <th>समय</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminActivityTableBody">
+                                <!-- Admin activity will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Form Creator Modal -->
+    <div id="dynamicFormCreatorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>डायनेमिक फॉर्म डिज़ाइनर</h2>
+                <span class="close" id="closeDynamicFormCreatorModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="inputExcel">Excel फ़ाइल अपलोड करें *</label>
+                    <input id="inputExcel" type="file" accept=".xlsx,.xls" class="form-control" required/>
+                </div>
+
+                <div class="form-group">
+                    <label for="inputTableName">टेबल का नाम (वैकल्पिक)</label>
+                    <input id="inputTableName" class="form-control" placeholder="यदि खाली, फ़ाइल का नाम उपयोग होगा" />
+                </div>
+
+                <div class="form-group">
+                    <label for="formNavParentItem">नेवीगेशन सेक्शन चुनें *</label>
+                    <select id="formNavParentItem" name="formNavParentItem" class="form-select" required></select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="formParentDashboardCard">मैप करने के लिए कार्ड चुनें *</label>
+                    <select id="formParentDashboardCard" name="formParentDashboardCard" class="form-select" required></select>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button id="btnProcessExcel" class="profile-submit-btn">Preview Designer</button>
+                </div>
+
+                <hr class="my-4">
+
+                <div id="designerPreviewArea" style="display:none;">
+                    <h5>फ़ील्ड डिज़ाइनर</h5>
+                    <p class="text-muted small">यहां आप प्रत्येक फ़ील्ड के लेबल, प्रकार और 'एल्गोरिथम' नियम परिभाषित कर सकते हैं।</p>
+                    <div id="designerFieldsContainer">
+                        <!-- Fields will be dynamically loaded here -->
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button id="btnCreateDynamicForm" class="profile-submit-btn" style="background-color: #28a745;">
+                            टेबल बनाएं & परिभाषा सहेजें
+                        </button>
+                        <button id="btnCancelDynamicForm" class="profile-submit-btn" style="background-color: #6c757d;">
+                            रद्द करें
+                        </button>
+                    </div>
+                </div>
+                <div id="dynamicFormMessages" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Form Selector Modal (New Modal) -->
+    <div id="dynamicFormSelectorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="dynamicFormSelectorTitle">फॉर्म चुनें</h2>
+                <span class="close" id="closeDynamicFormSelectorModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="dynamicFormSelectorDescription" class="text-muted small mb-3">इस सेक्शन से एक फॉर्म चुनें:</p>
+                <div id="dynamicFormList" class="list-group dynamic-form-selector-list">
+                    <!-- Dynamic forms associated with the clicked card will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Dynamic Forms Modal (New Modal) -->
+    <div id="manageDynamicFormsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>डायनेमिक फॉर्म प्रबंधित करें</h2>
+                <span class="close" id="closeManageDynamicFormsModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="manage-dynamic-forms-list list-group" id="dynamicFormsManagementList">
+                    <!-- List of dynamic forms for management -->
+                </div>
+                <div id="manageDynamicFormsMessages" class="error-message" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>प्रोफाइल सेटिंग्स</h2>
+                <span class="close" id="closeProfileModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <div class="form-group">
+                        <label for="currentPassword">वर्तमान पासवर्ड</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">नया पासवर्ड</label>
+                        <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">पासवर्ड की पुष्टि करें</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="profileBtn">
+                        <i class="fas fa-save"></i> पासवर्ड अपडेट करें
+                    </button>
+                    <div id="profileErrorMessage" class="error-message"></div>
+                    <div id="profileSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Link to external JavaScript file for dashboard -->
+    <script type="module" src="./js/dashboard.js"></script>
+
+</body>
+</html>
