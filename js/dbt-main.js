@@ -13,9 +13,11 @@ let isAdmin = false;
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
-    initializeApp();
+    // Small delay to ensure all deferred scripts are loaded
+    setTimeout(() => {
+        initializeApp();
+    }, 100);
 });
-
 async function initializeApp() {
     try {
         // Check authentication first
