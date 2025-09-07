@@ -23,7 +23,7 @@ const availableIcons = [
     'fas fa-money-bill-transfer', 'fas fa-store', 'fas fa-chart-line', 'fas fa-credit-card',
     'fas fa-spa', 'fas fa-flask', 'fas fa-bug', 'fas fa-seedling', 'fas fa-tractor',
     'fas fa-warehouse', 'fas fa-file-alt', 'fas fa-users', 'fas fa-calendar',
-    'fas fa-bell', 'fas fa-envelope', 'fas fa-phone', 'fas fa-map-marker-alt', // Corrected example for multiple icons
+    'fas fa-bell', 'fas fa-envelope', 'fas fa-phone', 'fas fa-map-marker-alt',
     'fas fa-cube', 'fas fa-boxes', 'fas fa-truck', 'fas fa-clipboard-list', 'fas fa-link'
 ];
 
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Show initial loading
         performanceManager.showLoading('pageLoading', 'Checking authentication...');
 
-        // Authentication check
+        // Authentication check (using the re-introduced verifyAuthentication)
         const isAuthenticated = await authManager.verifyAuthentication();
 
         if (!isAuthenticated) {
@@ -1390,7 +1390,7 @@ async function createDynamicTableAndSaveDef() {
         }
         return;
     }
-    if (!formNavParentItemId) {
+    if (!formNavParentItem?.value) {
         if (dynamicFormMessages) {
             dynamicFormMessages.textContent = 'कृपया नेवीगेशन सेक्शन चुनें';
             dynamicFormMessages.style.display = 'block';
@@ -1398,7 +1398,7 @@ async function createDynamicTableAndSaveDef() {
         }
         return;
     }
-    if (!formParentDashboardCardId) {
+    if (!formParentDashboardCard?.value) {
         if (dynamicFormMessages) {
             dynamicFormMessages.textContent = 'कृपया मैप करने के लिए डैशबोर्ड कार्ड चुनें';
             dynamicFormMessages.style.display = 'block';
@@ -1695,7 +1695,6 @@ window.viewDynamicFormDefinition = async function(formDefId) {
             fieldsList.appendChild(mappedInfo);
         }
 
-        // Assuming you have a bootstrap.Modal instance or similar
         const viewModalElement = document.getElementById('viewModal');
         if (viewModalElement) viewModalElement.style.display = 'block';
 
@@ -1712,21 +1711,17 @@ window.deleteDynamicForm = async function(formDefId, tableName, navItemId) {
     }
 
     try {
-        // 1. Log Admin Action BEFORE deletion attempts
         await logAdminAction('DYNAMIC_FORM_DELETION_ATTEMPT', `Attempting to delete dynamic form: ${tableName} (ID: ${formDefId})`, formDefId);
 
-        // 2. Delete navigation item (if exists)
         if (navItemId) {
             await secureDB.secureDelete('navigation_items', navItemId);
             console.log(`Navigation item ${navItemId} deleted.`);
         }
 
-        // 3. Delete form_definition entry
         await secureDB.secureDelete('form_definitions', formDefId);
         console.log(`Form definition ${formDefId} deleted.`);
 
-        // 4. Drop the actual dynamic SQL table
-        const dropTableDdl = `DROP TABLE IF EXISTS public."${tableName}" CASCADE;`; // CASCADE to drop dependent objects
+        const dropTableDdl = `DROP TABLE IF EXISTS public."${tableName}" CASCADE;`; 
         const rpcResult = await secureDB.executeSqlScript(dropTableDdl);
         if (rpcResult && rpcResult.startsWith('ERROR')) throw new Error('Failed to drop dynamic table: ' + rpcResult);
         console.log(`Dynamic table "${tableName}" dropped.`);
@@ -1736,17 +1731,14 @@ window.deleteDynamicForm = async function(formDefId, tableName, navItemId) {
         errorHandler.showToast('success', `डायनेमिक फॉर्म "${tableName}" सफलतापूर्वक हटा दिया गया!`, 'सफलतापूर्वक हटाया गया!');
 
         closeManageDynamicFormsModal();
-        loadDynamicContent(); // Refresh UI
+        loadDynamicContent(); 
 
     } catch (error) {
         console.error('Error deleting dynamic form:', error);
         errorHandler.showToast('error', 'डायनेमिक फॉर्म हटाने में त्रुटि: ' + (error.message || JSON.stringify(error)), 'error');
-        // Consider logging a failed deletion attempt here too
     }
 }
 
-
-// Other modals and functions remain the same...
 
 function openProfileModal() {
     const modal = document.getElementById('profileModal');
@@ -1775,7 +1767,7 @@ function closeAllModals() {
     closeAnalyticsDashboardModal();
     closeDynamicFormCreatorModal();
     closeDynamicFormSelectorModal();
-    closeManageDynamicFormsModal(); // New close
+    closeManageDynamicFormsModal(); 
     closeProfileModal();
 }
 
@@ -2247,14 +2239,14 @@ async function handleEditNavItem(e) {
         logAdminAction('NAV_ITEM_UPDATED', `Updated navigation item: ${nameHi} (ID: ${navItemId})`, navItemId);
 
         showEditNavSuccess('नेवीगेशन आइटम सफलतापूर्वक अपडेट हो गया!');
-        showToast('नेवीगेशन आइटम अपडेट हो गया', 'success');
+        errorHandler.showToast('success', 'नेवीगेशन आइटम अपडेट', 'नेवीगेशन आइटम सफलतापूर्वक अपडेट हो गया');
         
         setTimeout(() => { closeEditNavModal(); loadNavItemsForManager(); }, 2000);
 
     } catch (error) {
         console.error('Error updating nav item:', error);
         showEditNavError('नेवीगेशन आइटम अपडेट करने में त्रुटि: ' + error.message);
-        showToast('नेवीगेशन आइटम अपडेट करने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'नेवीगेशन आइटम अपडेट करने में त्रुटि', error.message);
     } finally {
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="fas fa-save"></i> परिवर्तन सहेजें';
