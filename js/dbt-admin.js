@@ -1,4 +1,3 @@
-
 const DBTAdmin = {
     
     // Admin configuration
