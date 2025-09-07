@@ -2,6 +2,7 @@
 
 import { supabaseClient } from './config.js';
 import { SecurityUtils } from './security.js'; 
+import { errorHandler } from './error-handler.js'; // Ensure errorHandler is imported
 
 class AuthManager {
     constructor() {
@@ -33,7 +34,7 @@ class AuthManager {
 
         if (userId && username && authVerified === 'true' && authTimestamp) {
             const timeDiff = Date.now() - parseInt(authTimestamp);
-            if (timeDiff < this.sessionTimeout) {
+            if (timeDiff < this.sessionTimeout) { 
                 this.setAuthManagerState({
                     id: userId,
                     username: username,
@@ -50,11 +51,10 @@ class AuthManager {
             }
         }
         console.log('❌ No valid session found in sessionStorage');
-        this.setAuthManagerState(null); // Ensure state is cleared if no valid session
+        this.setAuthManagerState(null); 
         return false;
     }
     
-    // NEW: Method to explicitly set authManager's internal state
     setAuthManagerState(userDataFromSessionStorage) {
         if (userDataFromSessionStorage) {
             this.currentUser = {
@@ -84,15 +84,19 @@ class AuthManager {
         this.setupRoleBasedAccess();
     }
 
+    // FIXED: Re-introduced verifyAuthentication as a wrapper for loadSessionFromStorage
+    async verifyAuthentication() {
+        return this.loadSessionFromStorage();
+    }
 
-    async checkExistingSession() {
+    async checkExistingSession() { // This method is now effectively the same as verifyAuthentication
         return this.loadSessionFromStorage();
     }
 
     async logout() {
         console.log('🚪 Logging out user (client-side only)...');
         this.clearUserData();
-        this.setAuthManagerState(null); // Clear state explicitly
+        this.setAuthManagerState(null); 
         console.log('✅ Logout successful');
         this.redirectToLogin();
     }
@@ -142,7 +146,7 @@ class AuthManager {
             
             userDisplayElement.textContent = `${displayName} - ${districtName}`;
         } else if (userDisplayElement) {
-            userDisplayElement.textContent = 'Guest'; // Show guest if not authenticated
+            userDisplayElement.textContent = 'Guest'; 
         }
     }
 
@@ -151,7 +155,7 @@ class AuthManager {
         
         const adminElements = document.querySelectorAll('.admin-only, #adminToolbar');
         adminElements.forEach(element => {
-            element.style.display = isAdmin ? 'flex' : 'none';
+            element.style.display = isAdmin ? 'flex' : 'none'; 
         });
 
         window.isAdmin = isAdmin; 
