@@ -12,112 +12,61 @@ let currentUser = null;
 let isAdmin = false;
 let availableSchemes = []; // Stores all active schemes loaded from DB
 
-// --- Core Application Initialization ---
-document.addEventListener('DOMContentLoaded', function() {
-    // Small delay to ensure all deferred scripts are loaded and parsed
+// --- Utility Functions (Moved to top for proper hoisting/scoping) ---
+
+function showLoading(show) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = show ? 'flex' : 'none';
+    }
+}
+
+function showAlert(message, type) {
+    const existingAlerts = document.querySelectorAll('.alert-custom');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-custom`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+        <span class="hindi">${message}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    const formCard = document.querySelector('.form-card');
+    if (formCard) {
+        formCard.insertBefore(alertDiv, formCard.firstChild);
+    } else {
+        document.body.prepend(alertDiv);
+    }
+    
     setTimeout(() => {
-        initializeApp();
-    }, 100); 
-});
-
-async function initializeApp() {
-    try {
-        await waitForModules(); // Ensure all modules are defined and accessible
-        
-        // 1. Authenticate User
-        if (!DBTAuth.checkUserAuthentication()) {
-            return; // User will be redirected to login if not authenticated
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
         }
-        currentUser = DBTAuth.getCurrentUser();
-        isAdmin = DBTAuth.isAdmin();
-
-        // 2. Load Core Data (Schemes)
-        await loadSchemes(); // Load schemes first, as many components depend on it
-
-        // 3. Initialize UI Components
-        await initializeUI();
-        
-        // 4. Setup Main Form
-        setupForm();
-        
-        // 5. Load Initial Non-Form Data (e.g., Notifications)
-        await loadInitialNonFormData(); 
-        
-        // 6. Initialize Feature Modules
-        BudgetMaster.init(); 
-        ReportManager.init(); 
-        
-        // Ensure loading overlay is hidden after app initialization
-        showLoading(false);
-
-        console.log('DBT Application initialized successfully');
-        
-    } catch (error) {
-        console.error('Error initializing application:', error);
-        showAlert('एप्लिकेशन शुरू करने में त्रुटि हुई।', 'danger');
-        showLoading(false); // Ensure overlay is hidden on error
-    }
+    }, 5000);
 }
 
-// Ensures all required external modules are loaded and globally available
-function waitForModules() {
-    return new Promise((resolve) => {
-        const checkModules = () => {
-            if (typeof DBTAuth !== 'undefined' && 
-                typeof DBTValidation !== 'undefined' && 
-                typeof DBTCalculations !== 'undefined' &&
-                typeof DBTAdmin !== 'undefined') { // Check for all expected modules
-                resolve();
-            } else {
-                setTimeout(checkModules, 50); // Re-check every 50ms
-            }
-        };
-        checkModules();
-    });
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
 }
 
-// --- UI Setup Functions ---
-async function initializeUI() {
-    setupHeader();
-    setupHeaderEventListeners();
+function generateEntryId() {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const timestamp = Date.now().toString().slice(-6);
     
-    if (isAdmin) {
-        if (typeof DBTAdmin !== 'undefined') {
-            DBTAdmin.setupAdminControls();
-            await DBTAdmin.loadAdminStats();
-        } else {
-            console.warn('DBTAdmin module not loaded in initializeUI. Retrying...');
-            setTimeout(() => {
-                if (typeof DBTAdmin !== 'undefined') {
-                    DBTAdmin.setupAdminControls();
-                    DBTAdmin.loadAdminStats();
-                }
-            }, 500);
-        }
-    }
-    
-    setupNotifications();
-    // setupModals(); // Modals are now mostly in HTML, or dynamically added by modules
-    setupCollapsibleSections(); // Re-wired and fixed
-    setupRoleBasedAccess();
+    return `DBT${year}${month}${day}${timestamp}`;
 }
 
-function setupHeader() {
-    const userInfoElement = document.getElementById('userInfo');
-    if (userInfoElement && currentUser) {
-        userInfoElement.textContent = `${currentUser.fullName} - ${currentUser.districtName}`;
-    }
-    
-    const userRoleElement = document.getElementById('userRole');
-    if (userRoleElement) {
-        userRoleElement.style.display = isAdmin ? 'inline-block' : 'none';
-    }
-    
-    setupUserMenu();
-    
-    if (isAdmin) {
-        setupAdminNavigation();
-    }
+function isValidUUID(uuid) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return typeof uuid === 'string' && uuidRegex.test(uuid);
 }
 
 // Moved to global scope so it's defined before initializeUI calls it
@@ -196,6 +145,215 @@ function setupHeaderEventListeners() {
         exportBudgetStatusBtn.addEventListener('click', () => ReportManager.exportBudgetStatus());
     }
 }
+
+// Moved loadSchemes to top as it's called early in initializeApp
+async function loadSchemes() {
+    try {
+        const schemeSelect = document.getElementById('schemeSelect');
+        if (!schemeSelect) return;
+        
+        schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
+        
+        const { data, error } = await supabaseClient
+            .from('schemes')
+            .select('id, scheme_name, scheme_code, scheme_type, benefit_type')
+            .eq('is_active', true)
+            .order('scheme_name');
+        
+        if (error) {
+            console.warn('Schemes table error (likely not found or RLS issue), loading fallback data:', error);
+            loadFallbackSchemes();
+            return;
+        }
+        
+        schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+        
+        if (data && data.length > 0) {
+            availableSchemes = data; // Store schemes globally
+            
+            const centrallySponsored = data.filter(s => s.scheme_type === 'Centrally Sponsored');
+            const stateSchemes = data.filter(s => s.scheme_type === 'State Scheme');
+            
+            if (centrallySponsored.length > 0) {
+                const csGroup = document.createElement('optgroup');
+                csGroup.label = 'Centrally Sponsored Schemes';
+                centrallySponsored.forEach(scheme => {
+                    const option = document.createElement('option');
+                    option.value = scheme.id;
+                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                    option.dataset.type = scheme.scheme_type;
+                    option.dataset.benefitType = scheme.benefit_type;
+                    csGroup.appendChild(option);
+                });
+                schemeSelect.appendChild(csGroup);
+            }
+            
+            if (stateSchemes.length > 0) {
+                const ssGroup = document.createElement('optgroup');
+                ssGroup.label = 'State Schemes';
+                stateSchemes.forEach(scheme => {
+                    const option = document.createElement('option');
+                    option.value = scheme.id;
+                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                    option.dataset.type = scheme.scheme_type;
+                    option.dataset.benefitType = scheme.benefit_type;
+                    ssGroup.appendChild(option);
+                });
+                schemeSelect.appendChild(ssGroup);
+            }
+            
+            console.log(`Loaded ${data.length} schemes successfully`);
+            
+            if (typeof BudgetMaster !== 'undefined') {
+                BudgetMaster.updateBudgetStatusDisplay();
+            }
+        } else {
+            loadFallbackSchemes();
+        }
+        
+    } catch (error) {
+        console.error('Error loading schemes:', error);
+        loadFallbackSchemes();
+    }
+}
+
+function loadFallbackSchemes() {
+    const schemeSelect = document.getElementById('schemeSelect');
+    if (!schemeSelect) return;
+    
+    schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+    
+    const fallbackSchemes = [
+        { id: 1, scheme_name: 'SubMission on Agroforestry', scheme_code: 'CS1', scheme_type: 'Centrally Sponsored' },
+        { id: 2, scheme_name: 'Rajiv Gandhi Nyay Yojana', scheme_code: 'SS1', scheme_type: 'State Scheme' },
+        { id: 3, scheme_name: 'National Food Security Mission', scheme_code: 'CS8', scheme_type: 'Centrally Sponsored' },
+        { id: 4, scheme_name: 'Godhan Nyay Yojana', scheme_code: 'SS7', scheme_type: 'State Scheme' },
+        { id: 5, scheme_name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', scheme_code: 'CS12', scheme_type: 'Centrally Sponsored' },
+        { id: 6, scheme_name: 'Kisan Samrudhi Yojana', scheme_code: 'SS12', scheme_type: 'State Scheme' }
+    ];
+    
+    availableSchemes = fallbackSchemes;
+    
+    const csGroup = document.createElement('optgroup');
+    csGroup.label = 'Centrally Sponsored Schemes';
+    const ssGroup = document.createElement('optgroup');
+    ssGroup.label = 'State Schemes';
+    
+    fallbackSchemes.forEach(scheme => {
+        const option = document.createElement('option');
+        option.value = scheme.id;
+        option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+        option.dataset.type = scheme.scheme_type;
+        
+        if (scheme.scheme_type === 'Centrally Sponsored') {
+            csGroup.appendChild(option);
+        } else {
+            ssGroup.appendChild(option);
+        }
+    });
+    
+    schemeSelect.appendChild(csGroup);
+    schemeSelect.appendChild(ssGroup);
+    
+    console.log('Loaded fallback schemes successfully');
+    
+    if (typeof BudgetMaster !== 'undefined') {
+        BudgetMaster.updateBudgetStatusDisplay();
+    }
+}
+
+
+// --- Core Application Initialization ---
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        initializeApp();
+    }, 100); // Small delay to ensure all deferred scripts are loaded and parsed
+});
+
+async function initializeApp() {
+    try {
+        await waitForModules(); // Ensure all modules are defined and accessible
+        
+        // 1. Authenticate User
+        if (!DBTAuth.checkUserAuthentication()) {
+            return; // User will be redirected to login if not authenticated
+        }
+        currentUser = DBTAuth.getCurrentUser();
+        isAdmin = DBTAuth.isAdmin();
+
+        // 2. Load Core Data (Schemes)
+        // loadSchemes() is now called before initializeUI
+        await loadSchemes(); 
+
+        // 3. Initialize UI Components
+        await initializeUI();
+        
+        // 4. Setup Main Form
+        setupForm();
+        
+        // 5. Load Initial Non-Form Data (e.g., Notifications)
+        await loadInitialNonFormData(); 
+        
+        // 6. Initialize Feature Modules
+        BudgetMaster.init(); 
+        ReportManager.init(); 
+        
+        // Ensure loading overlay is hidden after app initialization
+        showLoading(false);
+
+        console.log('DBT Application initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing application:', error);
+        showAlert('एप्लिकेशन शुरू करने में त्रुटि हुई।', 'danger');
+        showLoading(false); // Ensure overlay is hidden on error
+    }
+}
+
+// --- UI Setup Functions ---
+async function initializeUI() {
+    setupHeader();
+    setupHeaderEventListeners(); // This call is now correctly placed after definition
+    
+    if (isAdmin) {
+        if (typeof DBTAdmin !== 'undefined') {
+            DBTAdmin.setupAdminControls();
+            await DBTAdmin.loadAdminStats();
+        } else {
+            console.warn('DBTAdmin module not loaded in initializeUI. Retrying...');
+            setTimeout(() => {
+                if (typeof DBTAdmin !== 'undefined') {
+                    DBTAdmin.setupAdminControls();
+                    DBTAdmin.loadAdminStats();
+                }
+            }, 500);
+        }
+    }
+    
+    setupNotifications();
+    // setupModals(); // Modals are now mostly in HTML, or dynamically added by modules
+    setupCollapsibleSections(); // Re-wired and fixed
+    setupRoleBasedAccess();
+}
+
+function setupHeader() {
+    const userInfoElement = document.getElementById('userInfo');
+    if (userInfoElement && currentUser) {
+        userInfoElement.textContent = `${currentUser.fullName} - ${currentUser.districtName}`;
+    }
+    
+    const userRoleElement = document.getElementById('userRole');
+    if (userRoleElement) {
+        userRoleElement.style.display = isAdmin ? 'inline-block' : 'none';
+    }
+    
+    setupUserMenu();
+    
+    if (isAdmin) {
+        setupAdminNavigation();
+    }
+}
+
 
 function setupUserMenu() {
     const userMenu = document.getElementById('userMenu');
@@ -528,8 +686,8 @@ function setupEventListeners() {
     
     const formInputs = document.querySelectorAll('#dbtForm input, #dbtForm select, #dbtForm textarea');
     formInputs.forEach(input => {
-        // input.addEventListener('input', updateProgress); // Removed
-        // input.addEventListener('change', updateProgress); // Removed
+        // input.addEventListener('input', updateProgress); // Removed as per requirement
+        // input.addEventListener('change', updateProgress); // Removed as per requirement
         if (typeof DBTValidation !== 'undefined') {
             input.addEventListener('blur', (e) => DBTValidation.validateField(e));
         }
@@ -607,20 +765,6 @@ function updateFormFieldsBasedOnScheme(schemeType, benefitType) {
     }
 }
 
-function generateEntryId() {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const timestamp = Date.now().toString().slice(-6);
-    
-    return `DBT${year}${month}${day}${timestamp}`;
-}
-
-function isValidUUID(uuid) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return typeof uuid === 'string' && uuidRegex.test(uuid);
-}
 
 function collectFormData() {
     const formData = {};
@@ -874,47 +1018,7 @@ function logout() {
     }
 }
 
-// --- Utility Functions ---
-function showLoading(show) {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = show ? 'flex' : 'none';
-    }
-}
-
-function showAlert(message, type) {
-    const existingAlerts = document.querySelectorAll('.alert-custom');
-    existingAlerts.forEach(alert => alert.remove());
-    
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-custom`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-        <span class="hindi">${message}</span>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    
-    const formCard = document.querySelector('.form-card');
-    if (formCard) {
-        formCard.insertBefore(alertDiv, formCard.firstChild);
-    } else {
-        document.body.prepend(alertDiv);
-    }
-    
-    setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
-        }
-    }, 5000);
-}
-
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(amount);
-}
-
+// --- Console Log for Debugging/Info ---
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                    DBT Data Entry System                     ║
@@ -928,6 +1032,9 @@ console.log(`
 ║  ✅ Header Green Color Strip Fixed                           ║
 ║  ✅ Budget Master Modal Scheme Pre-selection Fixed           ║
 ║  ✅ Report Buttons Responsive & Comprehensive                ║
+║  ✅ All Text Readability (Dark/Black) Fixed                  ║
+║  ✅ Header Navbar Proportions & Curve Fixed                  ║
+║  ✅ Form Cards Color Professional Fixed                      ║
 ║                                                              ║
 ║  Modular Architecture:                                       ║
 ║  • dbt-main.js: Core + Budget Master + Reports              ║
