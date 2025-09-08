@@ -14,7 +14,7 @@ let availableSchemes = []; // Stores all active schemes loaded from DB
 let formProgress = 0; // Not used for indicator, but for draft logic
 let isDraftMode = false;
 
-// --- 1. ALL UTILITY FUNCTIONS (Must be defined first) ---
+// --- 1. ALL GLOBAL UTILITY FUNCTIONS (Must be defined first) ---
 
 function showLoading(show) {
     const overlay = document.getElementById('loadingOverlay');
@@ -143,123 +143,7 @@ function updateFormFieldsBasedOnScheme(schemeType, benefitType) {
     }
 }
 
-async function loadSchemes() {
-    try {
-        const schemeSelect = document.getElementById('schemeSelect');
-        if (!schemeSelect) return;
-        
-        schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
-        
-        const { data, error } = await supabaseClient
-            .from('schemes')
-            .select('id, scheme_name, scheme_code, scheme_type, benefit_type')
-            .eq('is_active', true)
-            .order('scheme_name');
-        
-        if (error) {
-            console.warn('Schemes table error (likely not found or RLS issue), loading fallback data:', error);
-            loadFallbackSchemes();
-            return;
-        }
-        
-        schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
-        
-        if (data && data.length > 0) {
-            availableSchemes = data; // Store schemes globally
-            
-            const centrallySponsored = data.filter(s => s.scheme_type === 'Centrally Sponsored');
-            const stateSchemes = data.filter(s => s.scheme_type === 'State Scheme');
-            
-            if (centrallySponsored.length > 0) {
-                const csGroup = document.createElement('optgroup');
-                csGroup.label = 'Centrally Sponsored Schemes';
-                centrallySponsored.forEach(scheme => {
-                    const option = document.createElement('option');
-                    option.value = scheme.id;
-                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
-                    option.dataset.type = scheme.scheme_type;
-                    option.dataset.benefitType = scheme.benefit_type;
-                    csGroup.appendChild(option);
-                });
-                schemeSelect.appendChild(csGroup);
-            }
-            
-            if (stateSchemes.length > 0) {
-                const ssGroup = document.createElement('optgroup');
-                ssGroup.label = 'State Schemes';
-                stateSchemes.forEach(scheme => {
-                    const option = document.createElement('option');
-                    option.value = scheme.id;
-                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
-                    option.dataset.type = scheme.scheme_type;
-                    option.dataset.benefitType = scheme.benefit_type;
-                    ssGroup.appendChild(option);
-                });
-                schemeSelect.appendChild(ssGroup);
-            }
-            
-            console.log(`Loaded ${data.length} schemes successfully`);
-            
-            // Only update BudgetMaster display if it's already defined
-            if (typeof BudgetMaster !== 'undefined') {
-                BudgetMaster.updateBudgetStatusDisplay();
-            }
-        } else {
-            loadFallbackSchemes();
-        }
-        
-    } catch (error) {
-        console.error('Error loading schemes:', error);
-        loadFallbackSchemes();
-    }
-}
-
-function loadFallbackSchemes() {
-    const schemeSelect = document.getElementById('schemeSelect');
-    if (!schemeSelect) return;
-    
-    schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
-    
-    const fallbackSchemes = [
-        { id: 1, scheme_name: 'SubMission on Agroforestry', scheme_code: 'CS1', scheme_type: 'Centrally Sponsored' },
-        { id: 2, scheme_name: 'Rajiv Gandhi Nyay Yojana', scheme_code: 'SS1', scheme_type: 'State Scheme' },
-        { id: 3, scheme_name: 'National Food Security Mission', scheme_code: 'CS8', scheme_type: 'Centrally Sponsored' },
-        { id: 4, scheme_name: 'Godhan Nyay Yojana', scheme_code: 'SS7', scheme_type: 'State Scheme' },
-        { id: 5, scheme_name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', scheme_code: 'CS12', scheme_type: 'Centrally Sponsored' },
-        { id: 6, scheme_name: 'Kisan Samrudhi Yojana', scheme_code: 'SS12', scheme_type: 'State Scheme' }
-    ];
-    
-    availableSchemes = fallbackSchemes;
-    
-    const csGroup = document.createElement('optgroup');
-    csGroup.label = 'Centrally Sponsored Schemes';
-    const ssGroup = document.createElement('optgroup');
-    ssGroup.label = 'State Schemes';
-    
-    fallbackSchemes.forEach(scheme => {
-        const option = document.createElement('option');
-        option.value = scheme.id;
-        option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
-        option.dataset.type = scheme.scheme_type;
-        
-        if (scheme.scheme_type === 'Centrally Sponsored') {
-            csGroup.appendChild(option);
-        } else {
-            ssGroup.appendChild(option);
-        }
-    });
-    
-    schemeSelect.appendChild(csGroup);
-    schemeSelect.appendChild(ssGroup);
-    
-    console.log('Loaded fallback schemes successfully');
-    
-    if (typeof BudgetMaster !== 'undefined') {
-        BudgetMaster.updateBudgetStatusDisplay();
-    }
-}
-
-// --- 2. Feature Modules (Defined as const before main app logic uses them) ---
+// --- 2. ALL FEATURE MODULES (Defined as const before UI/App logic uses them) ---
 
 // Budget Master Management
 const BudgetMaster = {
@@ -1524,7 +1408,804 @@ const ReportManager = {
     }
 };
 
-// --- Core Application Entry Point ---
+// --- 3. CORE UI SETUP FUNCTIONS (Defined after Modules, before App Init) ---
+
+async function initializeUI() {
+    setupHeader();
+    setupHeaderEventListeners(); 
+    
+    if (isAdmin) {
+        if (typeof DBTAdmin !== 'undefined') {
+            DBTAdmin.setupAdminControls();
+            await DBTAdmin.loadAdminStats();
+        } else {
+            console.warn('DBTAdmin module not loaded in initializeUI. Retrying...');
+            setTimeout(() => {
+                if (typeof DBTAdmin !== 'undefined') {
+                    DBTAdmin.setupAdminControls();
+                    DBTAdmin.loadAdminStats();
+                }
+            }, 500);
+        }
+    }
+    
+    setupNotifications();
+    setupModals(); 
+    setupCollapsibleSections(); 
+    setupRoleBasedAccess();
+}
+
+function setupHeader() {
+    const userInfoElement = document.getElementById('userInfo');
+    if (userInfoElement && currentUser) {
+        userInfoElement.textContent = `${currentUser.fullName} - ${currentUser.districtName}`;
+    }
+    
+    const userRoleElement = document.getElementById('userRole');
+    if (userRoleElement) {
+        userRoleElement.style.display = isAdmin ? 'inline-block' : 'none';
+    }
+    
+    setupUserMenu();
+    
+    if (isAdmin) {
+        setupAdminNavigation();
+    }
+}
+
+function setupHeaderEventListeners() {
+    const budgetMasterBtn = document.getElementById('budgetMasterBtn');
+    if (budgetMasterBtn) {
+        budgetMasterBtn.addEventListener('click', () => {
+            if (typeof BudgetMaster !== 'undefined') {
+                BudgetMaster.showBudgetMasterModal();
+            }
+        });
+    }
+    
+    const showPrintModalBtn = document.getElementById('showPrintModalBtn');
+    if (showPrintModalBtn) {
+        showPrintModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.showPrintModal();
+            }
+        });
+    }
+    
+    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+    if (downloadExcelBtn) {
+        downloadExcelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.downloadExcel(true); // true for all schemes
+            }
+        });
+    }
+    
+    const downloadPDFBtn = document.getElementById('downloadPDFBtn');
+    if (downloadPDFBtn) {
+        downloadPDFBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.downloadPDF(true); // true for all schemes
+            }
+        });
+    }
+
+    const showBudgetStatusBtn = document.getElementById('showBudgetStatusBtn');
+    if (showBudgetStatusBtn) {
+        showBudgetStatusBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.showBudgetStatusReport();
+            }
+        });
+    }
+
+    // Event listeners for print report modal buttons
+    const previewReportBtn = document.getElementById('previewReportBtn');
+    if (previewReportBtn) {
+        previewReportBtn.addEventListener('click', () => ReportManager.previewReport());
+    }
+
+    const printReportBtn = document.getElementById('printReportBtn');
+    if (printReportBtn) {
+        printReportBtn.addEventListener('click', () => ReportManager.printReport());
+    }
+
+    // Event listener for add scheme modal save button
+    const saveNewSchemeBtn = document.getElementById('saveNewSchemeBtn');
+    if (saveNewSchemeBtn && typeof DBTAdmin !== 'undefined') {
+        saveNewSchemeBtn.addEventListener('click', () => DBTAdmin.saveNewScheme());
+    }
+
+    // Event listener for export budget status button
+    const exportBudgetStatusBtn = document.getElementById('exportBudgetStatusBtn');
+    if (exportBudgetStatusBtn && typeof ReportManager !== 'undefined') {
+        exportBudgetStatusBtn.addEventListener('click', () => ReportManager.exportBudgetStatus());
+    }
+}
+
+
+function setupUserMenu() {
+    const userMenu = document.getElementById('userMenu');
+    if (!userMenu) return;
+    
+    userMenu.innerHTML = `
+        <li><a class="dropdown-item" href="#" onclick="showProfile()">
+            <i class="fas fa-user-circle me-2"></i>My Profile
+        </a></li>
+        <li><a class="dropdown-item" href="#" onclick="changePassword()">
+            <i class="fas fa-key me-2"></i>Change Password
+        </a></li>
+        <li><a class="dropdown-item" href="#" onclick="showMyActivity()">
+            <i class="fas fa-history me-2"></i>My Activity
+        </a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="#" onclick="logout()">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+        </a></li>
+    `;
+}
+
+function setupAdminNavigation() {
+    const adminControls = document.getElementById('adminControls');
+    if (!adminControls) return;
+    
+    adminControls.style.display = 'flex';
+    adminControls.innerHTML = `
+        <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                <i class="fas fa-cog me-2"></i>
+                <span class="hindi">Admin Panel</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showUserManagement()">
+                    <i class="fas fa-users me-2"></i>User Management
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showSchemeManagement()">
+                    <i class="fas fa-list-alt me-2"></i>Scheme Management
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showDataReports()">
+                    <i class="fas fa-chart-bar me-2"></i>Data Reports & Analytics
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showSystemSettings()">
+                    <i class="fas fa-wrench me-2"></i>System Settings
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showAuditLogs()">
+                    <i class="fas fa-clipboard-list me-2"></i>Audit Logs
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showBackupRestore()">
+                    <i class="fas fa-database me-2"></i>Backup & Restore
+                </a></li>
+            </ul>
+        </div>
+        
+        <a class="nav-link" href="#" onclick="DBTAdmin.showDashboard()">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            <span class="hindi">Dashboard</span>
+        </a>
+        
+        <a class="nav-link" href="#" onclick="DBTAdmin.showPendingApprovals()">
+            <i class="fas fa-clock me-2"></i>
+            <span class="hindi">Approvals</span>
+            <span class="badge bg-warning ms-1" id="pendingCount">0</span>
+        </a>
+
+        <a class="nav-link" href="#" onclick="DBTAdmin.toggleQuickActions()">
+            <i class="fas fa-bolt me-2"></i>
+            <span class="hindi">Quick Actions</span>
+        </a>
+    `;
+}
+
+function setupNotifications() {
+    const notificationMenu = document.getElementById('notificationMenu');
+    if (!notificationMenu) return;
+    
+    notificationMenu.innerHTML = `
+        <li><h6 class="dropdown-header">
+            <i class="fas fa-bell me-2"></i>Notifications
+        </h6></li>
+        <li><div class="dropdown-item-text" id="notificationList">
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>No new notifications</div>
+            </div>
+        </div></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-center" href="#" onclick="viewAllNotifications()">
+            <small>View All Notifications</small>
+        </a></li>
+    `;
+    
+    loadNotifications();
+}
+
+function setupModals() {
+    console.log('Modals setup completed');
+}
+
+function setupCollapsibleSections() {
+    const headers = document.querySelectorAll('.subsection-header');
+    
+    headers.forEach(header => {
+        // Remove existing listener to prevent duplicates
+        header.removeEventListener('click', _toggleSubsection);
+        header.addEventListener('click', _toggleSubsection);
+    });
+
+    function _toggleSubsection(event) {
+        const header = event.currentTarget; // Use currentTarget to ensure it's the header itself
+        const targetId = header.dataset.target;
+        const content = document.getElementById(targetId);
+        const icon = header.querySelector('.expand-icon i');
+        
+        if (content && icon) {
+            // Toggle the 'collapsed' class on the content
+            content.classList.toggle('collapsed');
+            // Also toggle 'collapsed' class on the header for styling consistency
+            header.classList.toggle('collapsed');
+
+            // Rotate icon based on collapsed state
+            if (content.classList.contains('collapsed')) {
+                icon.style.transform = 'rotate(-90deg)';
+            } else {
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+}
+
+function setupRoleBasedAccess() {
+    if (!isAdmin) {
+        const addSchemeBtn = document.getElementById('addSchemeBtn');
+        if (addSchemeBtn) {
+            addSchemeBtn.style.display = 'none';
+        }
+        
+        const adminSections = document.querySelectorAll('.admin-only-section');
+        adminSections.forEach(section => {
+            section.style.display = 'none';
+        });
+    } else {
+        const addSchemeBtn = document.getElementById('addSchemeBtn');
+        if (addSchemeBtn) {
+            addSchemeBtn.style.display = 'inline-block';
+        }
+    }
+}
+
+async function loadInitialNonFormData() {
+    if (isAdmin) {
+        loadNotifications();
+    }
+}
+
+// --- 4. Main Form Setup and Logic (Defined after all dependencies are met) ---
+
+function setupForm() {
+    const form = document.getElementById('dbtForm');
+    if (!form) return;
+    
+    form.reset();
+    setupFormFields();
+    setupEventListeners(); // Main form event listeners
+    
+    if (typeof DBTCalculations !== 'undefined') {
+        DBTCalculations.setupAutoCalculations();
+    }
+    
+    setDefaultDate();
+    // updateProgress(); // Removed as per requirement
+    loadDraftData();
+}
+
+function setupFormFields() {
+    const budgetSection = document.getElementById('budgetSection');
+    if (budgetSection) {
+        budgetSection.innerHTML = `
+            <div class="form-row two-col">
+                <div class="mb-3 currency-input">
+                    <label class="form-label">Central Allocation for the State (INR)</label>
+                    <input type="number" class="form-control" id="centralAllocation" step="0.01" min="0">
+                    <small class="text-muted">Auto-filled from Budget Master</small>
+                </div>
+                <div class="mb-3 currency-input">
+                    <label class="form-label">State Normative Allocation (INR)</label>
+                    <input type="number" class="form-control" id="stateNormativeAllocation" step="0.01" min="0">
+                    <small class="text-muted">Auto-filled from Budget Master</small>
+                </div>
+            </div>
+            <div class="form-row two-col">
+                <div class="mb-3 currency-input">
+                    <label class="form-label">Additional State Allocation (if any) (INR)</label>
+                    <input type="number" class="form-control" id="additionalStateAllocation" step="0.01" min="0">
+                    <small class="text-muted">Auto-filled from Budget Master</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Remarks (if any relate to budget allocation)</label>
+                    <textarea class="form-control" id="budgetRemarks" rows="3" style="height: auto;"></textarea>
+                </div>
+            </div>
+        `;
+    }
+    
+    setupBenefitDetailsSection();
+    setupSavingsSection();
+}
+
+function setupBenefitDetailsSection() {
+    const benefitDetailsSection = document.getElementById('benefitDetailsSection');
+    if (!benefitDetailsSection) return;
+    
+    benefitDetailsSection.innerHTML = `
+        <div class="form-row full-width">
+            <div class="mb-3 number-input">
+                <label class="form-label">Total Number Of Beneficiaries</label>
+                <input type="number" class="form-control auto-calculated" id="totalBeneficiaries" min="0" readonly>
+                <small class="calculation-indicator">Auto-calculated from below fields</small>
+            </div>
+        </div>
+        <div class="form-row three-col">
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Additional Beneficiaries Supported By State, If Any (Applicable For CSS)</label>
+                <input type="number" class="form-control" id="additionalBeneficiariesCSS" min="0" value="0">
+            </div>
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Additional Beneficiaries Supported By State, If Any (Applicable For State Scheme)</label>
+                <input type="number" class="form-control" id="additionalBeneficiariesState" min="0" value="0">
+            </div>
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries - Digitized</label>
+                <input type="number" class="form-control" id="beneficiariesDigitized" min="0" value="0">
+            </div>
+        </div>
+        <div class="form-row full-width">
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries - Bank Account Details Available With Department</label>
+                <input type="number" class="form-control" id="bankAccountDetails" min="0" value="0">
+            </div>
+        </div>
+        <div class="form-row two-col">
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries - Aadhaar Seeded (Aadhaar Number Of Beneficiaries Available With Department)</label>
+                <input type="number" class="form-control" id="aadhaarSeeded" min="0" value="0">
+            </div>
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries - Aadhaar Authenticated</label>
+                <input type="number" class="form-control" id="aadhaarAuthenticated" min="0" value="0">
+            </div>
+        </div>
+        <div class="form-row two-col">
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries - Mobile Number Available With Department</label>
+                <input type="number" class="form-control" id="mobileAvailable" min="0" value="0">
+            </div>
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries - Amount Disbursed Through Electronic Mode (ABP NEFT AEPS etc.)</label>
+                <input type="number" class="form-control" id="electronicModeBeneficiaries" min="0" value="0">
+            </div>
+        </div>
+        <div class="form-row two-col">
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries - Amount Disbursed Through Non Electronic Mode (Cash Cheque, Demand Draft etc.)</label>
+                <input type="number" class="form-control" id="nonElectronicBeneficiaries" min="0" value="0">
+            </div>
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Transactions Through Electronic Mode (ABP NEFT AEPS etc.)</label>
+                <input type="number" class="form-control" id="electronicTransactions" min="0" value="0">
+            </div>
+        </div>
+        <div class="form-row full-width">
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Transactions Through Non-Electronic Mode (Cash Cheque, Demand Draft, Money Order etc.)</label>
+                <input type="number" class="form-control" id="nonElectronicTransactions" min="0" value="0">
+            </div>
+        </div>
+    `;
+}
+
+function setupSavingsSection() {
+    const savingsSection = document.getElementById('savingsSection');
+    if (!savingsSection) return;
+    
+    savingsSection.innerHTML = `
+        <div class="form-row four-col">
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Beneficiaries Removed Due To De-Duplication Using Aadhaar</label>
+                <input type="number" class="form-control" id="deduplicationAadhaar" min="0" value="0">
+            </div>
+            <div class="mb-3 number-input">
+                <label class="form-label">Number Of Ghost/Fake Beneficiaries Removed</label>
+                <input type="number" class="form-control" id="ghostBeneficiaries" min="0" value="0">
+            </div>
+            <div class="mb-3 currency-input">
+                <label class="form-label">Other Savings Due To Process Reengineering/Efficiency</label>
+                <input type="number" class="form-control" id="otherSavings" step="0.01" min="0" value="0">
+            </div>
+            <div class="mb-3 currency-input">
+                <label class="form-label">Saving Amount (in INR)</label>
+                <input type="number" class="form-control auto-calculated" id="savingAmount" step="0.01" min="0" readonly>
+                <small class="calculation-indicator">Auto-calculated</small>
+            </div>
+        </div>
+    `;
+}
+
+function setupEventListeners() {
+    const form = document.getElementById('dbtForm');
+    if (form) {
+        form.addEventListener('submit', handleFormSubmission);
+    }
+    
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    if (saveDraftBtn) {
+        saveDraftBtn.addEventListener('click', saveDraft);
+    }
+    
+    const resetBtn = document.getElementById('resetBtn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', resetForm);
+    }
+    
+    const addSchemeBtn = document.getElementById('addSchemeBtn');
+    if (addSchemeBtn) {
+        addSchemeBtn.addEventListener('click', () => {
+            if (isAdmin && typeof DBTAdmin !== 'undefined') {
+                const modal = new bootstrap.Modal(document.getElementById('addSchemeModal'));
+                modal.show();
+            }
+        });
+    }
+    
+    const formInputs = document.querySelectorAll('#dbtForm input, #dbtForm select, #dbtForm textarea');
+    formInputs.forEach(input => {
+        // input.addEventListener('input', updateProgress); // Removed as per requirement
+        // input.addEventListener('change', updateProgress); // Removed as per requirement
+        if (typeof DBTValidation !== 'undefined') {
+            input.addEventListener('blur', (e) => DBTValidation.validateField(e));
+        }
+    });
+
+    const schemeSelect = document.getElementById('schemeSelect');
+    if (schemeSelect) {
+        schemeSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption.value) {
+                const schemeType = selectedOption.dataset.type;
+                const benefitType = selectedOption.dataset.benefitType;
+                updateFormFieldsBasedOnScheme(schemeType, benefitType);
+                
+                if (typeof BudgetMaster !== 'undefined') {
+                    BudgetMaster.updateSchemeBudgetStatus(); // Update status for newly selected scheme
+                }
+            } else {
+                // Clear status and fields if no scheme is selected
+                const statusDiv = document.getElementById('schemeBudgetStatus');
+                if(statusDiv) statusDiv.innerHTML = '';
+                const indicator = document.getElementById('budgetPreFilledIndicator');
+                if(indicator) indicator.style.display = 'none';
+                
+                document.getElementById('centralAllocation').value = '';
+                document.getElementById('stateNormativeAllocation').value = '';
+                document.getElementById('additionalStateAllocation').value = '';
+                document.getElementById('centralAllocation').readOnly = false;
+                document.getElementById('stateNormativeAllocation').readOnly = false;
+                document.getElementById('additionalStateAllocation').readOnly = false;
+                document.getElementById('centralAllocation').classList.remove('budget-master-prefilled'); // Ensure class is removed
+                document.getElementById('stateNormativeAllocation').classList.remove('budget-master-prefilled');
+                document.getElementById('additionalStateAllocation').classList.remove('budget-master-prefilled');
+            }
+        });
+    }
+    
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 's') {
+            e.preventDefault();
+            saveDraft();
+        }
+        
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) submitBtn.click();
+        }
+    });
+    
+    window.addEventListener('beforeunload', function(e) {
+        const formData = collectFormData();
+        const hasData = Object.values(formData).some(value => 
+            value !== '' && value !== 0 && value !== false
+        );
+        
+        if (hasData /* && formProgress > 10 */ ) { // Removed formProgress condition
+            localStorage.setItem('dbtFormDraft', JSON.stringify(formData));
+            e.preventDefault();
+            e.returnValue = 'आपका काम सेव नहीं हुआ है। क्या आप वाकई पेज छोड़ना चाहते हैं?';
+        }
+    });
+}
+
+function setupCollapsibleSections() {
+    const headers = document.querySelectorAll('.subsection-header');
+    
+    headers.forEach(header => {
+        // Remove existing listener to prevent duplicates
+        header.removeEventListener('click', _toggleSubsection);
+        header.addEventListener('click', _toggleSubsection);
+    });
+
+    function _toggleSubsection(event) {
+        const header = event.currentTarget; // Use currentTarget to ensure it's the header itself
+        const targetId = header.dataset.target;
+        const content = document.getElementById(targetId);
+        const icon = header.querySelector('.expand-icon i');
+        
+        if (content && icon) {
+            // Toggle the 'collapsed' class on the content
+            content.classList.toggle('collapsed');
+            // Also toggle 'collapsed' class on the header for styling consistency
+            header.classList.toggle('collapsed');
+
+            // Rotate icon based on collapsed state
+            if (content.classList.contains('collapsed')) {
+                icon.style.transform = 'rotate(-90deg)';
+            } else {
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+}
+
+function setupRoleBasedAccess() {
+    if (!isAdmin) {
+        const addSchemeBtn = document.getElementById('addSchemeBtn');
+        if (addSchemeBtn) {
+            addSchemeBtn.style.display = 'none';
+        }
+        
+        const adminSections = document.querySelectorAll('.admin-only-section');
+        adminSections.forEach(section => {
+            section.style.display = 'none';
+        });
+    } else {
+        const addSchemeBtn = document.getElementById('addSchemeBtn');
+        if (addSchemeBtn) {
+            addSchemeBtn.style.display = 'inline-block';
+        }
+    }
+}
+
+async function loadInitialNonFormData() {
+    if (isAdmin) {
+        loadNotifications();
+    }
+}
+
+// --- 3. CORE UI SETUP FUNCTIONS (Defined after Modules, before App Init) ---
+
+async function initializeUI() {
+    setupHeader();
+    setupHeaderEventListeners(); // This call is now correctly placed after definition
+    
+    if (isAdmin) {
+        if (typeof DBTAdmin !== 'undefined') {
+            DBTAdmin.setupAdminControls();
+            await DBTAdmin.loadAdminStats();
+        } else {
+            console.warn('DBTAdmin module not loaded in initializeUI. Retrying...');
+            setTimeout(() => {
+                if (typeof DBTAdmin !== 'undefined') {
+                    DBTAdmin.setupAdminControls();
+                    DBTAdmin.loadAdminStats();
+                }
+            }, 500);
+        }
+    }
+    
+    setupNotifications();
+    setupModals(); 
+    setupCollapsibleSections(); 
+    setupRoleBasedAccess();
+}
+
+function setupHeader() {
+    const userInfoElement = document.getElementById('userInfo');
+    if (userInfoElement && currentUser) {
+        userInfoElement.textContent = `${currentUser.fullName} - ${currentUser.districtName}`;
+    }
+    
+    const userRoleElement = document.getElementById('userRole');
+    if (userRoleElement) {
+        userRoleElement.style.display = isAdmin ? 'inline-block' : 'none';
+    }
+    
+    setupUserMenu();
+    
+    if (isAdmin) {
+        setupAdminNavigation();
+    }
+}
+
+function setupHeaderEventListeners() {
+    const budgetMasterBtn = document.getElementById('budgetMasterBtn');
+    if (budgetMasterBtn) {
+        budgetMasterBtn.addEventListener('click', () => {
+            if (typeof BudgetMaster !== 'undefined') {
+                BudgetMaster.showBudgetMasterModal();
+            }
+        });
+    }
+    
+    const showPrintModalBtn = document.getElementById('showPrintModalBtn');
+    if (showPrintModalBtn) {
+        showPrintModalBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.showPrintModal();
+            }
+        });
+    }
+    
+    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
+    if (downloadExcelBtn) {
+        downloadExcelBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.downloadExcel(true); // true for all schemes
+            }
+        });
+    }
+    
+    const downloadPDFBtn = document.getElementById('downloadPDFBtn');
+    if (downloadPDFBtn) {
+        downloadPDFBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.downloadPDF(true); // true for all schemes
+            }
+        });
+    }
+
+    const showBudgetStatusBtn = document.getElementById('showBudgetStatusBtn');
+    if (showBudgetStatusBtn) {
+        showBudgetStatusBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof ReportManager !== 'undefined') {
+                ReportManager.showBudgetStatusReport();
+            }
+        });
+    }
+
+    // Event listeners for print report modal buttons
+    const previewReportBtn = document.getElementById('previewReportBtn');
+    if (previewReportBtn) {
+        previewReportBtn.addEventListener('click', () => ReportManager.previewReport());
+    }
+
+    const printReportBtn = document.getElementById('printReportBtn');
+    if (printReportBtn) {
+        printReportBtn.addEventListener('click', () => ReportManager.printReport());
+    }
+
+    // Event listener for add scheme modal save button
+    const saveNewSchemeBtn = document.getElementById('saveNewSchemeBtn');
+    if (saveNewSchemeBtn && typeof DBTAdmin !== 'undefined') {
+        saveNewSchemeBtn.addEventListener('click', () => DBTAdmin.saveNewScheme());
+    }
+
+    // Event listener for export budget status button
+    const exportBudgetStatusBtn = document.getElementById('exportBudgetStatusBtn');
+    if (exportBudgetStatusBtn && typeof ReportManager !== 'undefined') {
+        exportBudgetStatusBtn.addEventListener('click', () => ReportManager.exportBudgetStatus());
+    }
+}
+
+
+function setupUserMenu() {
+    const userMenu = document.getElementById('userMenu');
+    if (!userMenu) return;
+    
+    userMenu.innerHTML = `
+        <li><a class="dropdown-item" href="#" onclick="showProfile()">
+            <i class="fas fa-user-circle me-2"></i>My Profile
+        </a></li>
+        <li><a class="dropdown-item" href="#" onclick="changePassword()">
+            <i class="fas fa-key me-2"></i>Change Password
+        </a></li>
+        <li><a class="dropdown-item" href="#" onclick="showMyActivity()">
+            <i class="fas fa-history me-2"></i>My Activity
+        </a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-danger" href="#" onclick="logout()">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+        </a></li>
+    `;
+}
+
+function setupAdminNavigation() {
+    const adminControls = document.getElementById('adminControls');
+    if (!adminControls) return;
+    
+    adminControls.style.display = 'flex';
+    adminControls.innerHTML = `
+        <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                <i class="fas fa-cog me-2"></i>
+                <span class="hindi">Admin Panel</span>
+            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showUserManagement()">
+                    <i class="fas fa-users me-2"></i>User Management
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showSchemeManagement()">
+                    <i class="fas fa-list-alt me-2"></i>Scheme Management
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showDataReports()">
+                    <i class="fas fa-chart-bar me-2"></i>Data Reports & Analytics
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showSystemSettings()">
+                    <i class="fas fa-wrench me-2"></i>System Settings
+                </a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showAuditLogs()">
+                    <i class="fas fa-clipboard-list me-2"></i>Audit Logs
+                </a></li>
+                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showBackupRestore()">
+                    <i class="fas fa-database me-2"></i>Backup & Restore
+                </a></li>
+            </ul>
+        </div>
+        
+        <a class="nav-link" href="#" onclick="DBTAdmin.showDashboard()">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            <span class="hindi">Dashboard</span>
+        </a>
+        
+        <a class="nav-link" href="#" onclick="DBTAdmin.showPendingApprovals()">
+            <i class="fas fa-clock me-2"></i>
+            <span class="hindi">Approvals</span>
+            <span class="badge bg-warning ms-1" id="pendingCount">0</span>
+        </a>
+
+        <a class="nav-link" href="#" onclick="DBTAdmin.toggleQuickActions()">
+            <i class="fas fa-bolt me-2"></i>
+            <span class="hindi">Quick Actions</span>
+        </a>
+    `;
+}
+
+function setupNotifications() {
+    const notificationMenu = document.getElementById('notificationMenu');
+    if (!notificationMenu) return;
+    
+    notificationMenu.innerHTML = `
+        <li><h6 class="dropdown-header">
+            <i class="fas fa-bell me-2"></i>Notifications
+        </h6></li>
+        <li><div class="dropdown-item-text" id="notificationList">
+            <div class="text-center text-muted py-3">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>No new notifications</div>
+            </div>
+        </div></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item text-center" href="#" onclick="viewAllNotifications()">
+            <small>View All Notifications</small>
+        </a></li>
+    `;
+    
+    loadNotifications();
+}
+
+function setupModals() {
+    console.log('Modals setup completed');
+}
+
+// --- 4. Main Application Entry Point ---
 document.addEventListener('DOMContentLoaded', function() {
     // Show loading overlay immediately on DOMContentLoaded
     showLoading(true); 
