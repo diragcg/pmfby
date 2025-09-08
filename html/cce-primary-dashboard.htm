@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCE Primary User Dashboard - संचालनालय कृषि छत्तीसगढ़</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../css/common-styles.css">
+    <link rel="stylesheet" href="../css/dashboard-styles.css">
+    <link rel="stylesheet" href="../css/forms-styles.css">
+    <link rel="stylesheet" href="../css/reports-styles.css">
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div class="mt-3 hindi">
+                <strong id="loadingText">डेटा लोड हो रहा है...</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <nav class="navbar navbar-expand-lg navbar-dark">
+                <div class="container-fluid">
+                    <a class="navbar-brand" href="#">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार">
+                        <span class="hindi">संचालनालय कृषि छत्तीसगढ़</span>
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <span class="nav-link hindi">
+                                    <i class="fas fa-user me-1"></i>
+                                    <span id="userFullName">CCE Primary User</span>
+                                    <span class="admin-badge" style="background: linear-gradient(45deg, #4CAF50, #81C784);">CCE-P</span>
+                                </span>
+                            </li>
+                            <li class="nav-item">
+                                <span class="nav-link hindi">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    जिला: <span id="userDistrict">-</span>
+                                </span>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="mySubmissionsBtn">
+                                    <i class="fas fa-list me-1"></i>
+                                    <span class="hindi">मेरी एंट्रीज</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" id="logoutBtn" style="background: #DC3545; border-radius: 5px;">
+                                    <i class="fas fa-sign-out-alt me-1"></i>
+                                    <span class="hindi">लॉगआउट</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="admin-container">
+        <!-- Alert Box -->
+        <div id="alertBox" class="alert" style="display: none;"></div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h2 class="hindi">
+                <i class="fas fa-seedling me-2"></i>
+                CCE Primary User Dashboard
+            </h2>
+            <p class="hindi mb-0">Crop Cutting Experiment प्राथमिक उपयोगकर्ता प्रबंधन एवं Hierarchy सुधार</p>
+        </div>
+
+        <!-- Dashboard Card -->
+        <div class="dashboard-card">
+            <!-- Location Selection Section -->
+            <div class="section-header">
+                <i class="fas fa-map-marked-alt me-2"></i>
+                <span class="hindi">तहसील एवं RI का चयन</span>
+            </div>
+
+            <div style="padding: 25px;">
+                <!-- Breadcrumb -->
+                <div style="background: var(--pistachio-light); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0">
+                            <li class="breadcrumb-item hindi">जिला: <span id="breadcrumbDistrict">-</span></li>
+                            <li class="breadcrumb-item hindi">तहसील: <span id="breadcrumbTehsil">-</span></li>
+                            <li class="breadcrumb-item hindi">RI: <span id="breadcrumbRI">-</span></li>
+                        </ol>
+                    </nav>
+                </div>
+
+                <!-- Location Selection Form -->
+                <div class="form-row two-col">
+                    <div class="form-group">
+                        <label for="tehsilSelect" class="form-label hindi required-field">
+                            तहसील (Level 4) का चयन करें
+                        </label>
+                        <select class="form-select" id="tehsilSelect" required>
+                            <option value="">-- तहसील चुनें --</option>
+                        </select>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    <div class="form-group">
+                        <label for="riSelect" class="form-label hindi required-field">
+                            RI Name (Level 5) का चयन करें
+                        </label>
+                        <select class="form-select" id="riSelect" disabled required>
+                            <option value="">-- पहले तहसील चुनें --</option>
+                        </select>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CCE Primary Users Count Section -->
+        <div id="cceCountSection" class="dashboard-card mt-4" style="display: none;">
+            <div class="section-header">
+                <i class="fas fa-users me-2"></i>
+                <span class="hindi">CCE Primary Users Count Declaration</span>
+            </div>
+
+            <div style="padding: 25px;">
+                <form id="cceCountForm">
+                    <!-- User Counts -->
+                    <div class="subsection-header">
+                        <i class="fas fa-calculator me-2"></i>
+                        <span class="hindi">उपयोगकर्ता संख्या घोषणा</span>
+                    </div>
+
+                    <div class="cce-stats-container">
+                        <div class="form-group">
+                            <label for="totalCCEUsers" class="form-label hindi required-field">
+                                कुल CCE Primary Users संख्या
+                            </label>
+                            <input type="number" class="form-control" id="totalCCEUsers" placeholder="कुल संख्या दर्ज करें" min="0" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="activeCCEUsers" class="form-label hindi required-field">
+                                Active User Count
+                            </label>
+                            <input type="number" class="form-control" id="activeCCEUsers" placeholder="सक्रिय उपयोगकर्ता संख्या" min="0" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inactiveCCEUsers" class="form-label hindi required-field">
+                                Not Active Count
+                            </label>
+                            <input type="number" class="form-control" id="inactiveCCEUsers" placeholder="निष्क्रिय उपयोगकर्ता संख्या" min="0" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                    <!-- Hierarchy Check Counts -->
+                    <div class="subsection-header mt-4">
+                        <i class="fas fa-sitemap me-2"></i>
+                        <span class="hindi">Hierarchy Check Status</span>
+                    </div>
+
+                    <div class="cce-stats-container">
+                        <div class="form-group">
+                            <label for="hierarchyOKCount" class="form-label hindi required-field">
+                                Hierarchy Checked और Found OK Count
+                            </label>
+                            <input type="number" class="form-control" id="hierarchyOKCount" placeholder="सही hierarchy वाले users" min="0" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="hierarchyIssueCount" class="form-label hindi required-field">
+                                Hierarchy Checked और Found Issue Count
+                            </label>
+                            <input type="number" class="form-control" id="hierarchyIssueCount" placeholder="समस्या वाले users" min="0" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                    <!-- CCE Primary User Details -->
+                    <div class="subsection-header mt-4">
+                        <i class="fas fa-user-plus me-2"></i>
+                        <span class="hindi">CCE Primary User Details</span>
+                    </div>
+
+                    <div class="form-row two-col">
+                        <div class="form-group">
+                            <label for="ccePrimaryUserName" class="form-label hindi required-field">
+                                CCE Primary User Name
+                            </label>
+                            <input type="text" class="form-control" id="ccePrimaryUserName" placeholder="CCE Primary User का नाम" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="ccePrimaryUserMobile" class="form-label hindi required-field">
+                                CCE Primary User Mobile Number
+                            </label>
+                            <input type="tel" class="form-control" id="ccePrimaryUserMobile" placeholder="10 अंकों का मोबाइल नंबर" pattern="[0-9]{10}" maxlength="10" required>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions center">
+                        <button type="button" class="btn btn-secondary" id="resetCountsBtn">
+                            <i class="fas fa-undo me-2"></i>
+                            <span class="hindi">रीसेट करें</span>
+                        </button>
+                        <button type="submit" class="btn btn-success" id="saveCountsBtn">
+                            <i class="fas fa-save me-2"></i>
+                            <span class="hindi">Count Data सेव करें</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Hierarchy Issues Section -->
+        <div id="hierarchyIssuesSection" class="hierarchy-issue-section mt-4" style="display: none;">
+            <div class="hierarchy-issue-title">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <span class="hindi">Hierarchy Mapping Issues</span>
+            </div>
+            
+            <p class="hindi mb-3">
+                यदि Hierarchy में समस्या है तो उन Village Codes का चयन करें जिनमें mapping issue है:
+            </p>
+
+            <!-- Village Selection -->
+            <div class="subsection-header">
+                <i class="fas fa-map-pin me-2"></i>
+                <span class="hindi">समस्याग्रस्त Villages का चयन</span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="village-selection-container">
+                        <div class="p-3">
+                            <div class="search-filter-container mb-3">
+                                <input type="text" class="form-control search-input" id="villageSearchInput" placeholder="Village Name या Code खोजें...">
+                            </div>
+                            <div id="villagesList">
+                                <div class="text-center text-muted hindi">
+                                    पहले तहसील और RI का चयन करें
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div id="selectedVillagesContainer">
+                        <h6 class="hindi mb-3">चयनित समस्याग्रस्त Villages:</h6>
+                        <div id="selectedVillagesList" class="selected-villages-list">
+                            <div class="text-muted hindi">कोई village चयनित नहीं है</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hierarchy Correction Section -->
+        <div id="hierarchyCorrectionSection" class="dashboard-card mt-4" style="display: none;">
+            <div class="section-header">
+                <i class="fas fa-tools me-2"></i>
+                <span class="hindi">Hierarchy Correction</span>
+            </div>
+
+            <div style="padding: 25px;">
+                <div id="hierarchyCorrectionContainer">
+                    <!-- Hierarchy correction forms will be dynamically generated here -->
+                </div>
+
+                <div class="form-actions center mt-4" id="hierarchyActions" style="display: none;">
+                    <button type="button" class="btn btn-secondary" id="resetHierarchyBtn">
+                        <i class="fas fa-undo me-2"></i>
+                        <span class="hindi">रीसेट करें</span>
+                    </button>
+                    <button type="button" class="btn btn-success" id="submitHierarchyBtn">
+                        <i class="fas fa-check me-2"></i>
+                        <span class="hindi">Hierarchy Correction Submit करें</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Submissions Section -->
+        <div id="mySubmissionsSection" class="dashboard-card mt-4" style="display: none;">
+            <div class="section-header">
+                <i class="fas fa-list me-2"></i>
+                <span class="hindi">मेरी Submissions</span>
+            </div>
+
+            <div style="padding: 25px;">
+                <!-- Export Buttons -->
+                <div class="export-buttons">
+                    <button class="export-btn excel" onclick="exportMyData('excel')">
+                        <i class="fas fa-file-excel"></i>
+                        Excel Download
+                    </button>
+                    <button class="export-btn pdf" onclick="exportMyData('pdf')">
+                        <i class="fas fa-file-pdf"></i>
+                        PDF Download
+                    </button>
+                </div>
+
+                <!-- Submissions Table -->
+                <div class="data-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="hindi">Date</th>
+                                <th class="hindi">Tehsil</th>
+                                <th class="hindi">RI Name</th>
+                                <th class="hindi">Total CCE Users</th>
+                                <th class="hindi">Active Users</th>
+                                <th class="hindi">Hierarchy Issues</th>
+                                <th class="hindi">Villages Corrected</th>
+                                <th class="hindi">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="mySubmissionsTableBody">
+                            <tr>
+                                <td colspan="8" class="text-center hindi">कोई submission नहीं मिली</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
+    <!-- Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="../js/common-utils.js"></script>
+    <script src="../js/hierarchy-validator.js"></script>
+    <script src="../js/cce-primary.js"></script>
+</body>
+</html>
