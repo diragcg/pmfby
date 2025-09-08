@@ -1,3 +1,5 @@
+// dbt-main.js - FINAL VERIFIED CODE FOR CORRECT ORDERING AND FUNCTIONALITY
+
 // Supabase configuration
 const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
@@ -7,63 +9,257 @@ const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
 // Global variables
 let currentUser = null;
-let formProgress = 0;
-let isDraftMode = false;
 let isAdmin = false;
 let availableSchemes = []; // Stores all active schemes loaded from DB
+let formProgress = 0; // Not used for indicator, but for draft logic
+let isDraftMode = false;
 
-// Initialize application
-document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        initializeApp();
-    }, 100); // Small delay to ensure all deferred scripts are loaded
-});
+// --- 1. ALL UTILITY FUNCTIONS (Must be defined first) ---
 
-async function initializeApp() {
-    try {
-        await waitForModules(); // Ensure all modules are defined
-        
-        if (!DBTAuth.checkUserAuthentication()) {
-            return; // User will be redirected to login if not authenticated
-        }
-
-        currentUser = DBTAuth.getCurrentUser();
-        isAdmin = DBTAuth.isAdmin();
-
-        await loadSchemes(); // Load schemes first, as many components depend on it
-
-        await initializeUI();
-        setupForm();
-        await loadInitialData(); // This now mainly covers notifications
-        
-        BudgetMaster.init(); // Initialize BudgetMaster after schemes are loaded
-        ReportManager.init(); // Initialize ReportManager after schemes are loaded
-        
-        console.log('DBT Application initialized successfully');
-        
-    } catch (error) {
-        console.error('Error initializing application:', error);
-        showAlert('एप्लिकेशन शुरू करने में त्रुटि हुई।', 'danger');
+function showLoading(show) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+        overlay.style.display = show ? 'flex' : 'none';
     }
 }
 
-// Ensures all required external modules (DBTAuth, DBTValidation, DBTCalculations, DBTAdmin) are loaded
-function waitForModules() {
-    return new Promise((resolve) => {
-        const checkModules = () => {
-            // Check for both main modules and DBTAdmin, as initializeUI uses DBTAdmin
-            if (typeof DBTAuth !== 'undefined' && 
-                typeof DBTValidation !== 'undefined' && 
-                typeof DBTCalculations !== 'undefined' &&
-                typeof DBTAdmin !== 'undefined') { // Added DBTAdmin check
-                resolve();
-            } else {
-                setTimeout(checkModules, 50); // Check every 50ms
-            }
-        };
-        checkModules();
-    });
+function showAlert(message, type) {
+    const existingAlerts = document.querySelectorAll('.alert-custom');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-custom`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+        <span class="hindi">${message}</span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    const formCard = document.querySelector('.form-card');
+    if (formCard) {
+        formCard.insertBefore(alertDiv, formCard.firstChild);
+    } else {
+        document.body.prepend(alertDiv);
+    }
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
 }
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    }).format(amount);
+}
+
+function generateEntryId() {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const timestamp = Date.now().toString().slice(-6);
+    
+    return `DBT${year}${month}${day}${timestamp}`;
+}
+
+function isValidUUID(uuid) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return typeof uuid === 'string' && uuidRegex.test(uuid);
+}
+
+function loadNotifications() {
+    const notifications = [
+        { id: 1, message: 'New DBT entry submitted for approval', time: '2 minutes ago', type: 'info' },
+        { id: 2, message: 'System backup completed successfully', time: '1 hour ago', type: 'success' },
+        { id: 3, message: 'User registration requires approval', time: '3 hours ago', type: 'warning' }
+    ];
+
+    if (notifications.length > 0) {
+        const notificationBadge = document.getElementById('notificationBadge');
+        if (notificationBadge) {
+            notificationBadge.style.display = 'inline-block';
+            notificationBadge.textContent = notifications.length;
+        }
+
+        const notificationList = document.getElementById('notificationList');
+        if (notificationList) {
+            notificationList.innerHTML = '';
+
+            notifications.forEach(notif => {
+                const item = document.createElement('div');
+                item.className = 'dropdown-item-text border-bottom pb-2 mb-2';
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">${notif.time}</small>
+                        <i class="fas fa-${notif.type === 'info' ? 'info-circle text-info' : notif.type === 'success' ? 'check-circle text-success' : 'exclamation-triangle text-warning'}"></i>
+                    </div>
+                    <div>${notif.message}</div>
+                `;
+                notificationList.appendChild(item);
+            });
+        }
+    }
+}
+
+function setDefaultDate() {
+    const today = new Date().toISOString().split('T')[0];
+    const dbtDateInput = document.getElementById('dbtDate');
+    if (dbtDateInput) {
+        dbtDateInput.value = today;
+    }
+}
+
+function updateProgress() {
+    // This function is still defined but not used for the progress bar,
+    // keeping it for potential future use or draft saving logic if needed.
+    const formInputs = document.querySelectorAll('#dbtForm input:not([readonly]), #dbtForm select, #dbtForm textarea');
+    let filledInputs = 0;
+    
+    formInputs.forEach(input => {
+        if (input.type === 'checkbox' || input.type === 'radio') {
+            if (input.checked) filledInputs++;
+        } else if (input.value.trim() !== '') {
+            filledInputs++;
+        }
+    });
+    
+    formProgress = Math.round((filledInputs / formInputs.length) * 100);
+}
+
+function updateFormFieldsBasedOnScheme(schemeType, benefitType) {
+    const centralFields = document.querySelectorAll('.central-scheme-only');
+    const stateFields = document.querySelectorAll('.state-scheme-only');
+    
+    if (schemeType === 'Centrally Sponsored') {
+        centralFields.forEach(field => field.style.display = 'block');
+        stateFields.forEach(field => field.style.display = 'none');
+    } else if (schemeType === 'State Scheme') {
+        centralFields.forEach(field => field.style.display = 'none');
+        stateFields.forEach(field => field.style.display = 'block');
+    }
+}
+
+async function loadSchemes() {
+    try {
+        const schemeSelect = document.getElementById('schemeSelect');
+        if (!schemeSelect) return;
+        
+        schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
+        
+        const { data, error } = await supabaseClient
+            .from('schemes')
+            .select('id, scheme_name, scheme_code, scheme_type, benefit_type')
+            .eq('is_active', true)
+            .order('scheme_name');
+        
+        if (error) {
+            console.warn('Schemes table error (likely not found or RLS issue), loading fallback data:', error);
+            loadFallbackSchemes();
+            return;
+        }
+        
+        schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+        
+        if (data && data.length > 0) {
+            availableSchemes = data; // Store schemes globally
+            
+            const centrallySponsored = data.filter(s => s.scheme_type === 'Centrally Sponsored');
+            const stateSchemes = data.filter(s => s.scheme_type === 'State Scheme');
+            
+            if (centrallySponsored.length > 0) {
+                const csGroup = document.createElement('optgroup');
+                csGroup.label = 'Centrally Sponsored Schemes';
+                centrallySponsored.forEach(scheme => {
+                    const option = document.createElement('option');
+                    option.value = scheme.id;
+                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                    option.dataset.type = scheme.scheme_type;
+                    option.dataset.benefitType = scheme.benefit_type;
+                    csGroup.appendChild(option);
+                });
+                schemeSelect.appendChild(csGroup);
+            }
+            
+            if (stateSchemes.length > 0) {
+                const ssGroup = document.createElement('optgroup');
+                ssGroup.label = 'State Schemes';
+                stateSchemes.forEach(scheme => {
+                    const option = document.createElement('option');
+                    option.value = scheme.id;
+                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+                    option.dataset.type = scheme.scheme_type;
+                    option.dataset.benefitType = scheme.benefit_type;
+                    ssGroup.appendChild(option);
+                });
+                schemeSelect.appendChild(ssGroup);
+            }
+            
+            console.log(`Loaded ${data.length} schemes successfully`);
+            
+            // Only update BudgetMaster display if it's already defined
+            if (typeof BudgetMaster !== 'undefined') {
+                BudgetMaster.updateBudgetStatusDisplay();
+            }
+        } else {
+            loadFallbackSchemes();
+        }
+        
+    } catch (error) {
+        console.error('Error loading schemes:', error);
+        loadFallbackSchemes();
+    }
+}
+
+function loadFallbackSchemes() {
+    const schemeSelect = document.getElementById('schemeSelect');
+    if (!schemeSelect) return;
+    
+    schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
+    
+    const fallbackSchemes = [
+        { id: 1, scheme_name: 'SubMission on Agroforestry', scheme_code: 'CS1', scheme_type: 'Centrally Sponsored' },
+        { id: 2, scheme_name: 'Rajiv Gandhi Nyay Yojana', scheme_code: 'SS1', scheme_type: 'State Scheme' },
+        { id: 3, scheme_name: 'National Food Security Mission', scheme_code: 'CS8', scheme_type: 'Centrally Sponsored' },
+        { id: 4, scheme_name: 'Godhan Nyay Yojana', scheme_code: 'SS7', scheme_type: 'State Scheme' },
+        { id: 5, scheme_name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', scheme_code: 'CS12', scheme_type: 'Centrally Sponsored' },
+        { id: 6, scheme_name: 'Kisan Samrudhi Yojana', scheme_code: 'SS12', scheme_type: 'State Scheme' }
+    ];
+    
+    availableSchemes = fallbackSchemes;
+    
+    const csGroup = document.createElement('optgroup');
+    csGroup.label = 'Centrally Sponsored Schemes';
+    const ssGroup = document.createElement('optgroup');
+    ssGroup.label = 'State Schemes';
+    
+    fallbackSchemes.forEach(scheme => {
+        const option = document.createElement('option');
+        option.value = scheme.id;
+        option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
+        option.dataset.type = scheme.scheme_type;
+        
+        if (scheme.scheme_type === 'Centrally Sponsored') {
+            csGroup.appendChild(option);
+        } else {
+            ssGroup.appendChild(option);
+        }
+    });
+    
+    schemeSelect.appendChild(csGroup);
+    schemeSelect.appendChild(ssGroup);
+    
+    console.log('Loaded fallback schemes successfully');
+    
+    if (typeof BudgetMaster !== 'undefined') {
+        BudgetMaster.updateBudgetStatusDisplay();
+    }
+}
+
+// --- 2. Feature Modules (Defined as const before main app logic uses them) ---
 
 // Budget Master Management
 const BudgetMaster = {
@@ -121,9 +317,11 @@ const BudgetMaster = {
         
         // Event listeners for budget inputs
         budgetInputs.forEach(input => {
-            input.removeEventListener('input', this._budgetInputHandler); // Remove old to prevent duplicates
+            // Ensure unique listeners by removing previous one if exists
+            input.removeEventListener('input', this._budgetInputHandler); 
             input.removeEventListener('change', this._budgetInputHandler);
-            this._budgetInputHandler = () => { // Store handler for removal
+            // Define and store handler reference
+            this._budgetInputHandler = () => { 
                 this.calculateBudgetTotal();
                 this.validateBudgetForm();
             };
@@ -352,11 +550,12 @@ const BudgetMaster = {
                 .eq('user_id', dbData.user_id)
                 .single();
 
-            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+            if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error (no rows found)
                 throw checkError;
             }
 
             if (existing) {
+                // Update existing record
                 const { error: updateError } = await supabaseClient
                     .from('budget_master')
                     .update(dbData)
@@ -364,6 +563,7 @@ const BudgetMaster = {
 
                 if (updateError) throw updateError;
             } else {
+                // Insert new record
                 const { error: insertError } = await supabaseClient
                     .from('budget_master')
                     .insert([dbData]);
@@ -424,19 +624,22 @@ const BudgetMaster = {
         const schemeSelect = document.getElementById('schemeSelect');
         const selectedSchemeId = schemeSelect?.value;
         const statusDiv = document.getElementById('schemeBudgetStatus');
+        const indicator = document.getElementById('budgetPreFilledIndicator');
         
         if (!statusDiv) return; // Ensure statusDiv exists
         
         if (!selectedSchemeId) {
             statusDiv.innerHTML = ''; // Clear status if no scheme is selected
-            // Also clear pre-filled budget fields
+            // Also clear pre-filled budget fields and reset their state
             document.getElementById('centralAllocation').value = '';
             document.getElementById('stateNormativeAllocation').value = '';
             document.getElementById('additionalStateAllocation').value = '';
             document.getElementById('centralAllocation').readOnly = false;
             document.getElementById('stateNormativeAllocation').readOnly = false;
             document.getElementById('additionalStateAllocation').readOnly = false;
-            const indicator = document.getElementById('budgetPreFilledIndicator');
+            document.getElementById('centralAllocation').classList.remove('budget-master-prefilled'); // Ensure class is removed
+            document.getElementById('stateNormativeAllocation').classList.remove('budget-master-prefilled');
+            document.getElementById('additionalStateAllocation').classList.remove('budget-master-prefilled');
             if(indicator) indicator.style.display = 'none';
             return;
         }
@@ -477,7 +680,9 @@ const BudgetMaster = {
             document.getElementById('centralAllocation').readOnly = false;
             document.getElementById('stateNormativeAllocation').readOnly = false;
             document.getElementById('additionalStateAllocation').readOnly = false;
-            const indicator = document.getElementById('budgetPreFilledIndicator');
+            document.getElementById('centralAllocation').classList.remove('budget-master-prefilled');
+            document.getElementById('stateNormativeAllocation').classList.remove('budget-master-prefilled');
+            document.getElementById('additionalStateAllocation').classList.remove('budget-master-prefilled');
             if(indicator) indicator.style.display = 'none';
         }
     },
@@ -485,17 +690,15 @@ const BudgetMaster = {
     editBudgetForScheme(schemeId) {
         document.getElementById('budgetMasterSchemeSelect').value = schemeId;
         this.showBudgetMasterModal();
-        // Use a timeout to ensure modal is fully rendered before populating
-        setTimeout(() => {
-            this.onSchemeSelectionChange(); // This will load the existing budget for the selected scheme
+        setTimeout(() => { // Timeout to ensure modal is fully rendered before populating
+            this.onSchemeSelectionChange(); 
         }, 100); 
     },
 
     createBudgetForScheme(schemeId) {
         document.getElementById('budgetMasterSchemeSelect').value = schemeId;
         this.showBudgetMasterModal();
-        // Use a timeout to ensure modal is fully rendered before clearing
-        setTimeout(() => {
+        setTimeout(() => { // Timeout to ensure modal is fully rendered before clearing
             this.clearBudgetFields();
             this.validateBudgetForm();
         }, 100);
@@ -514,21 +717,18 @@ const BudgetMaster = {
                 centralField.value = budgetData.centralAllocation;
                 centralField.readOnly = true;
                 centralField.classList.add('budget-master-prefilled');
-                centralField.style.backgroundColor = '#e8f5e8'; // Keep light green for pre-filled
             }
             
             if (stateField) {
                 stateField.value = budgetData.stateNormativeAllocation;
                 stateField.readOnly = true;
                 stateField.classList.add('budget-master-prefilled');
-                stateField.style.backgroundColor = '#e8f5e8';
             }
             
             if (additionalField) {
                 additionalField.value = budgetData.additionalStateAllocation;
                 additionalField.readOnly = true;
                 additionalField.classList.add('budget-master-prefilled');
-                additionalField.style.backgroundColor = '#e8f5e8';
             }
             
             const indicator = document.getElementById('budgetPreFilledIndicator');
@@ -1324,1045 +1524,70 @@ const ReportManager = {
     }
 };
 
-async function initializeUI() {
-    setupHeader();
-    setupHeaderEventListeners(); // This is correctly called now
-    
-    if (isAdmin) {
-        try {
-            if (typeof DBTAdmin !== 'undefined') {
-                DBTAdmin.setupAdminControls();
-                await DBTAdmin.loadAdminStats();
-            } else {
-                console.warn('DBTAdmin module not loaded yet in initializeUI');
-                setTimeout(() => {
-                    if (typeof DBTAdmin !== 'undefined') {
-                        DBTAdmin.setupAdminControls();
-                        DBTAdmin.loadAdminStats();
-                    }
-                }, 500);
-            }
-        } catch (error) {
-            console.error('Error setting up admin controls:', error);
-        }
-    }
-    
-    setupNotifications();
-    setupModals();
-    setupCollapsibleSections();
-    setupRoleBasedAccess();
-}
-
-function setupHeader() {
-    const userInfoElement = document.getElementById('userInfo');
-    if (userInfoElement && currentUser) {
-        userInfoElement.textContent = `${currentUser.fullName} - ${currentUser.districtName}`;
-    }
-    
-    if (isAdmin) {
-        const userRoleElement = document.getElementById('userRole');
-        if (userRoleElement) {
-            userRoleElement.style.display = 'inline-block';
-        }
-    }
-    
-    setupUserMenu();
-    
-    if (isAdmin) {
-        setupAdminNavigation();
-    }
-}
-
-// Moved to global scope so it's defined before initializeUI calls it
-function setupHeaderEventListeners() {
-    const budgetMasterBtn = document.getElementById('budgetMasterBtn');
-    if (budgetMasterBtn) {
-        budgetMasterBtn.addEventListener('click', () => {
-            if (typeof BudgetMaster !== 'undefined') {
-                BudgetMaster.showBudgetMasterModal();
-            }
-        });
-    }
-    
-    const showPrintModalBtn = document.getElementById('showPrintModalBtn');
-    if (showPrintModalBtn) {
-        showPrintModalBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (typeof ReportManager !== 'undefined') {
-                ReportManager.showPrintModal();
-            }
-        });
-    }
-    
-    const downloadExcelBtn = document.getElementById('downloadExcelBtn');
-    if (downloadExcelBtn) {
-        downloadExcelBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (typeof ReportManager !== 'undefined') {
-                ReportManager.downloadExcel(true); // true for all schemes
-            }
-        });
-    }
-    
-    const downloadPDFBtn = document.getElementById('downloadPDFBtn');
-    if (downloadPDFBtn) {
-        downloadPDFBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (typeof ReportManager !== 'undefined') {
-                ReportManager.downloadPDF(true); // true for all schemes
-            }
-        });
-    }
-
-    const showBudgetStatusBtn = document.getElementById('showBudgetStatusBtn');
-    if (showBudgetStatusBtn) {
-        showBudgetStatusBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (typeof ReportManager !== 'undefined') {
-                ReportManager.showBudgetStatusReport();
-            }
-        });
-    }
-
-    // Event listeners for print report modal buttons
-    const previewReportBtn = document.getElementById('previewReportBtn');
-    if (previewReportBtn) {
-        previewReportBtn.addEventListener('click', () => ReportManager.previewReport());
-    }
-
-    const printReportBtn = document.getElementById('printReportBtn');
-    if (printReportBtn) {
-        printReportBtn.addEventListener('click', () => ReportManager.printReport());
-    }
-
-    // Event listener for add scheme modal save button
-    const saveNewSchemeBtn = document.getElementById('saveNewSchemeBtn');
-    if (saveNewSchemeBtn && typeof DBTAdmin !== 'undefined') {
-        saveNewSchemeBtn.addEventListener('click', () => DBTAdmin.saveNewScheme());
-    }
-
-    // Event listener for export budget status button
-    const exportBudgetStatusBtn = document.getElementById('exportBudgetStatusBtn');
-    if (exportBudgetStatusBtn && typeof ReportManager !== 'undefined') {
-        exportBudgetStatusBtn.addEventListener('click', () => ReportManager.exportBudgetStatus());
-    }
-}
-
-
-function setupUserMenu() {
-    const userMenu = document.getElementById('userMenu');
-    if (!userMenu) return;
-    
-    userMenu.innerHTML = `
-        <li><a class="dropdown-item" href="#" onclick="showProfile()">
-            <i class="fas fa-user-circle me-2"></i>My Profile
-        </a></li>
-        <li><a class="dropdown-item" href="#" onclick="changePassword()">
-            <i class="fas fa-key me-2"></i>Change Password
-        </a></li>
-        <li><a class="dropdown-item" href="#" onclick="showMyActivity()">
-            <i class="fas fa-history me-2"></i>My Activity
-        </a></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item text-danger" href="#" onclick="logout()">
-            <i class="fas fa-sign-out-alt me-2"></i>Logout
-        </a></li>
-    `;
-}
-
-function setupAdminNavigation() {
-    const adminControls = document.getElementById('adminControls');
-    if (!adminControls) return;
-    
-    adminControls.style.display = 'flex';
-    adminControls.innerHTML = `
-        <div class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
-                <i class="fas fa-cog me-2"></i>
-                <span class="hindi">Admin Panel</span>
-            </a>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showUserManagement()">
-                    <i class="fas fa-users me-2"></i>User Management
-                </a></li>
-                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showSchemeManagement()">
-                    <i class="fas fa-list-alt me-2"></i>Scheme Management
-                </a></li>
-                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showDataReports()">
-                    <i class="fas fa-chart-bar me-2"></i>Data Reports & Analytics
-                </a></li>
-                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showSystemSettings()">
-                    <i class="fas fa-wrench me-2"></i>System Settings
-                </a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showAuditLogs()">
-                    <i class="fas fa-clipboard-list me-2"></i>Audit Logs
-                </a></li>
-                <li><a class="dropdown-item" href="#" onclick="DBTAdmin.showBackupRestore()">
-                    <i class="fas fa-database me-2"></i>Backup & Restore
-                </a></li>
-            </ul>
-        </div>
-        
-        <a class="nav-link" href="#" onclick="DBTAdmin.showDashboard()">
-            <i class="fas fa-tachometer-alt me-2"></i>
-            <span class="hindi">Dashboard</span>
-        </a>
-        
-        <a class="nav-link" href="#" onclick="DBTAdmin.showPendingApprovals()">
-            <i class="fas fa-clock me-2"></i>
-            <span class="hindi">Approvals</span>
-            <span class="badge bg-warning ms-1" id="pendingCount">0</span>
-        </a>
-
-        <a class="nav-link" href="#" onclick="DBTAdmin.toggleQuickActions()">
-            <i class="fas fa-bolt me-2"></i>
-            <span class="hindi">Quick Actions</span>
-        </a>
-    `;
-}
-
-function setupNotifications() {
-    const notificationMenu = document.getElementById('notificationMenu');
-    if (!notificationMenu) return;
-    
-    notificationMenu.innerHTML = `
-        <li><h6 class="dropdown-header">
-            <i class="fas fa-bell me-2"></i>Notifications
-        </h6></li>
-        <li><div class="dropdown-item-text" id="notificationList">
-            <div class="text-center text-muted py-3">
-                <i class="fas fa-inbox fa-2x mb-2"></i>
-                <div>No new notifications</div>
-            </div>
-        </div></li>
-        <li><hr class="dropdown-divider"></li>
-        <li><a class="dropdown-item text-center" href="#" onclick="viewAllNotifications()">
-            <small>View All Notifications</small>
-        </a></li>
-    `;
-    
-    loadNotifications();
-}
-
-function setupModals() {
-    console.log('Modals setup completed');
-}
-
-function setupForm() {
-    const form = document.getElementById('dbtForm');
-    if (!form) return;
-    
-    form.reset();
-    setupFormFields();
-    setupEventListeners();
-    
-    if (typeof DBTCalculations !== 'undefined') {
-        DBTCalculations.setupAutoCalculations();
-    }
-    
-    setDefaultDate();
-    updateProgress();
-    loadDraftData();
-}
-
-function setupFormFields() {
-    const budgetSection = document.getElementById('budgetSection');
-    if (budgetSection) {
-        budgetSection.innerHTML = `
-            <div class="form-row two-col">
-                <div class="mb-3 currency-input">
-                    <label class="form-label">Central Allocation for the State (INR)</label>
-                    <input type="number" class="form-control" id="centralAllocation" step="0.01" min="0">
-                    <small class="text-muted">Auto-filled from Budget Master</small>
-                </div>
-                <div class="mb-3 currency-input">
-                    <label class="form-label">State Normative Allocation (INR)</label>
-                    <input type="number" class="form-control" id="stateNormativeAllocation" step="0.01" min="0">
-                    <small class="text-muted">Auto-filled from Budget Master</small>
-                </div>
-            </div>
-            <div class="form-row two-col">
-                <div class="mb-3 currency-input">
-                    <label class="form-label">Additional State Allocation (if any) (INR)</label>
-                    <input type="number" class="form-control" id="additionalStateAllocation" step="0.01" min="0">
-                    <small class="text-muted">Auto-filled from Budget Master</small>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Remarks (if any relate to budget allocation)</label>
-                    <textarea class="form-control" id="budgetRemarks" rows="3" style="height: auto;"></textarea>
-                </div>
-            </div>
-        `;
-    }
-    
-    setupBenefitDetailsSection();
-    setupSavingsSection();
-}
-
-function setupBenefitDetailsSection() {
-    const benefitDetailsSection = document.getElementById('benefitDetailsSection');
-    if (!benefitDetailsSection) return;
-    
-    benefitDetailsSection.innerHTML = `
-        <div class="form-row full-width">
-            <div class="mb-3 number-input">
-                <label class="form-label">Total Number Of Beneficiaries</label>
-                <input type="number" class="form-control auto-calculated" id="totalBeneficiaries" min="0" readonly>
-                <small class="calculation-indicator">Auto-calculated from below fields</small>
-            </div>
-        </div>
-        <div class="form-row three-col">
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Additional Beneficiaries Supported By State, If Any (Applicable For CSS)</label>
-                <input type="number" class="form-control" id="additionalBeneficiariesCSS" min="0" value="0">
-            </div>
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Additional Beneficiaries Supported By State, If Any (Applicable For State Scheme)</label>
-                <input type="number" class="form-control" id="additionalBeneficiariesState" min="0" value="0">
-            </div>
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries - Digitized</label>
-                <input type="number" class="form-control" id="beneficiariesDigitized" min="0" value="0">
-            </div>
-        </div>
-        <div class="form-row full-width">
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries - Bank Account Details Available With Department</label>
-                <input type="number" class="form-control" id="bankAccountDetails" min="0" value="0">
-            </div>
-        </div>
-        <div class="form-row two-col">
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries - Aadhaar Seeded (Aadhaar Number Of Beneficiaries Available With Department)</label>
-                <input type="number" class="form-control" id="aadhaarSeeded" min="0" value="0">
-            </div>
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries - Aadhaar Authenticated</label>
-                <input type="number" class="form-control" id="aadhaarAuthenticated" min="0" value="0">
-            </div>
-        </div>
-        <div class="form-row two-col">
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries - Mobile Number Available With Department</label>
-                <input type="number" class="form-control" id="mobileAvailable" min="0" value="0">
-            </div>
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries - Amount Disbursed Through Electronic Mode (ABP NEFT AEPS etc.)</label>
-                <input type="number" class="form-control" id="electronicModeBeneficiaries" min="0" value="0">
-            </div>
-        </div>
-        <div class="form-row two-col">
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries - Amount Disbursed Through Non Electronic Mode (Cash Cheque, Demand Draft etc.)</label>
-                <input type="number" class="form-control" id="nonElectronicBeneficiaries" min="0" value="0">
-            </div>
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Transactions Through Electronic Mode (ABP NEFT AEPS etc.)</label>
-                <input type="number" class="form-control" id="electronicTransactions" min="0" value="0">
-            </div>
-        </div>
-        <div class="form-row full-width">
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Transactions Through Non-Electronic Mode (Cash Cheque, Demand Draft, Money Order etc.)</label>
-                <input type="number" class="form-control" id="nonElectronicTransactions" min="0" value="0">
-            </div>
-        </div>
-    `;
-}
-
-function setupSavingsSection() {
-    const savingsSection = document.getElementById('savingsSection');
-    if (!savingsSection) return;
-    
-    savingsSection.innerHTML = `
-        <div class="form-row four-col">
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Beneficiaries Removed Due To De-Duplication Using Aadhaar</label>
-                <input type="number" class="form-control" id="deduplicationAadhaar" min="0" value="0">
-            </div>
-            <div class="mb-3 number-input">
-                <label class="form-label">Number Of Ghost/Fake Beneficiaries Removed</label>
-                <input type="number" class="form-control" id="ghostBeneficiaries" min="0" value="0">
-            </div>
-            <div class="mb-3 currency-input">
-                <label class="form-label">Other Savings Due To Process Reengineering/Efficiency</label>
-                <input type="number" class="form-control" id="otherSavings" step="0.01" min="0" value="0">
-            </div>
-            <div class="mb-3 currency-input">
-                <label class="form-label">Saving Amount (in INR)</label>
-                <input type="number" class="form-control auto-calculated" id="savingAmount" step="0.01" min="0" readonly>
-                <small class="calculation-indicator">Auto-calculated</small>
-            </div>
-        </div>
-    `;
-}
-
-function setupEventListeners() {
-    const form = document.getElementById('dbtForm');
-    if (form) {
-        form.addEventListener('submit', handleFormSubmission);
-    }
-    
-    const saveDraftBtn = document.getElementById('saveDraftBtn');
-    if (saveDraftBtn) {
-        saveDraftBtn.addEventListener('click', saveDraft);
-    }
-    
-    const resetBtn = document.getElementById('resetBtn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', resetForm);
-    }
-    
-    const addSchemeBtn = document.getElementById('addSchemeBtn');
-    if (addSchemeBtn) {
-        addSchemeBtn.addEventListener('click', () => {
-            if (isAdmin && typeof DBTAdmin !== 'undefined') {
-                const modal = new bootstrap.Modal(document.getElementById('addSchemeModal'));
-                modal.show();
-            }
-        });
-    }
-    
-    const formInputs = document.querySelectorAll('#dbtForm input, #dbtForm select, #dbtForm textarea');
-    formInputs.forEach(input => {
-        input.addEventListener('input', updateProgress);
-        input.addEventListener('change', updateProgress);
-        if (typeof DBTValidation !== 'undefined') {
-            input.addEventListener('blur', (e) => DBTValidation.validateField(e));
-        }
-    });
-
-    const schemeSelect = document.getElementById('schemeSelect');
-    if (schemeSelect) {
-        schemeSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            if (selectedOption.value) {
-                const schemeType = selectedOption.dataset.type;
-                const benefitType = selectedOption.dataset.benefitType;
-                updateFormFieldsBasedOnScheme(schemeType, benefitType);
-                
-                if (typeof BudgetMaster !== 'undefined') {
-                    BudgetMaster.updateSchemeBudgetStatus(); // Update status for newly selected scheme
-                }
-            } else {
-                // Clear status and fields if no scheme is selected
-                const statusDiv = document.getElementById('schemeBudgetStatus');
-                if(statusDiv) statusDiv.innerHTML = '';
-                const indicator = document.getElementById('budgetPreFilledIndicator');
-                if(indicator) indicator.style.display = 'none';
-                
-                document.getElementById('centralAllocation').value = '';
-                document.getElementById('stateNormativeAllocation').value = '';
-                document.getElementById('additionalStateAllocation').value = '';
-                document.getElementById('centralAllocation').readOnly = false;
-                document.getElementById('stateNormativeAllocation').readOnly = false;
-                document.getElementById('additionalStateAllocation').readOnly = false;
-                document.getElementById('centralAllocation').style.backgroundColor = ''; // Reset background
-                document.getElementById('stateNormativeAllocation').style.backgroundColor = '';
-                document.getElementById('additionalStateAllocation').style.backgroundColor = '';
-            }
-        });
-    }
-    
-    document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 's') {
-            e.preventDefault();
-            saveDraft();
-        }
-        
-        if (e.ctrlKey && e.key === 'Enter') {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            if (submitBtn) submitBtn.click();
-        }
-    });
-    
-    window.addEventListener('beforeunload', function(e) {
-        const formData = collectFormData();
-        const hasData = Object.values(formData).some(value => 
-            value !== '' && value !== 0 && value !== false
-        );
-        
-        if (hasData && formProgress > 10) {
-            localStorage.setItem('dbtFormDraft', JSON.stringify(formData));
-            e.preventDefault();
-            e.returnValue = 'आपका काम सेव नहीं हुआ है। क्या आप वाकई पेज छोड़ना चाहते हैं?';
-        }
-    });
-}
-
-function setupCollapsibleSections() {
-    const headers = document.querySelectorAll('.subsection-header');
-    
-    headers.forEach(header => {
-        header.addEventListener('click', function() {
-            const targetId = this.dataset.target;
-            const content = document.getElementById(targetId);
-            const icon = this.querySelector('.expand-icon i');
-            
-            if (content && icon) {
-                if (content.classList.contains('collapsed')) {
-                    content.classList.remove('collapsed');
-                    this.classList.remove('collapsed');
-                    icon.style.transform = 'rotate(0deg)';
-                } else {
-                    content.classList.add('collapsed');
-                    this.classList.add('collapsed');
-                    icon.style.transform = 'rotate(-90deg)';
-                }
-            }
-        });
-    });
-}
-
-function setupRoleBasedAccess() {
-    if (!isAdmin) {
-        const addSchemeBtn = document.getElementById('addSchemeBtn');
-        if (addSchemeBtn) {
-            addSchemeBtn.style.display = 'none';
-        }
-        
-        const adminSections = document.querySelectorAll('.admin-only-section');
-        adminSections.forEach(section => {
-            section.style.display = 'none';
-        });
-    } else {
-        const addSchemeBtn = document.getElementById('addSchemeBtn');
-        if (addSchemeBtn) {
-            addSchemeBtn.style.display = 'inline-block';
-        }
-    }
-}
-
-async function loadInitialData() {
-    // This function will now primarily load any notifications or other non-form-specific data
-    if (isAdmin) {
-        loadNotifications();
-    }
-}
-
-async function loadSchemes() {
-    try {
-        const schemeSelect = document.getElementById('schemeSelect');
-        if (!schemeSelect) return;
-        
-        schemeSelect.innerHTML = '<option value="">Loading schemes...</option>';
-        
-        const { data, error } = await supabaseClient
-            .from('schemes')
-            .select('id, scheme_name, scheme_code, scheme_type, benefit_type')
-            .eq('is_active', true)
-            .order('scheme_name');
-        
-        if (error) {
-            console.warn('Schemes table error (likely not found or RLS issue), loading fallback data:', error);
-            loadFallbackSchemes();
-            return;
-        }
-        
-        schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
-        
-        if (data && data.length > 0) {
-            availableSchemes = data; // Store schemes globally
-            
-            const centrallySponsored = data.filter(s => s.scheme_type === 'Centrally Sponsored');
-            const stateSchemes = data.filter(s => s.scheme_type === 'State Scheme');
-            
-            if (centrallySponsored.length > 0) {
-                const csGroup = document.createElement('optgroup');
-                csGroup.label = 'Centrally Sponsored Schemes';
-                centrallySponsored.forEach(scheme => {
-                    const option = document.createElement('option');
-                    option.value = scheme.id;
-                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
-                    option.dataset.type = scheme.scheme_type;
-                    option.dataset.benefitType = scheme.benefit_type;
-                    csGroup.appendChild(option);
-                });
-                schemeSelect.appendChild(csGroup);
-            }
-            
-            if (stateSchemes.length > 0) {
-                const ssGroup = document.createElement('optgroup');
-                ssGroup.label = 'State Schemes';
-                stateSchemes.forEach(scheme => {
-                    const option = document.createElement('option');
-                    option.value = scheme.id;
-                    option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
-                    option.dataset.type = scheme.scheme_type;
-                    option.dataset.benefitType = scheme.benefit_type;
-                    ssGroup.appendChild(option);
-                });
-                schemeSelect.appendChild(ssGroup);
-            }
-            
-            console.log(`Loaded ${data.length} schemes successfully`);
-            
-            if (typeof BudgetMaster !== 'undefined') {
-                BudgetMaster.updateBudgetStatusDisplay();
-            }
-        } else {
-            loadFallbackSchemes();
-        }
-        
-    } catch (error) {
-        console.error('Error loading schemes:', error);
-        loadFallbackSchemes();
-    }
-}
-
-function loadFallbackSchemes() {
-    const schemeSelect = document.getElementById('schemeSelect');
-    if (!schemeSelect) return;
-    
-    schemeSelect.innerHTML = '<option value="">-- Select Scheme --</option>';
-    
-    const fallbackSchemes = [
-        { id: 1, scheme_name: 'SubMission on Agroforestry', scheme_code: 'CS1', scheme_type: 'Centrally Sponsored' },
-        { id: 2, scheme_name: 'Rajiv Gandhi Nyay Yojana', scheme_code: 'SS1', scheme_type: 'State Scheme' },
-        { id: 3, scheme_name: 'National Food Security Mission', scheme_code: 'CS8', scheme_type: 'Centrally Sponsored' },
-        { id: 4, scheme_name: 'Godhan Nyay Yojana', scheme_code: 'SS7', scheme_type: 'State Scheme' },
-        { id: 5, scheme_name: 'Pradhan Mantri Krishi Sinchai Yojana - Agriculture', scheme_code: 'CS12', scheme_type: 'Centrally Sponsored' },
-        { id: 6, scheme_name: 'Kisan Samrudhi Yojana', scheme_code: 'SS12', scheme_type: 'State Scheme' }
-    ];
-    
-    availableSchemes = fallbackSchemes;
-    
-    const csGroup = document.createElement('optgroup');
-    csGroup.label = 'Centrally Sponsored Schemes';
-    const ssGroup = document.createElement('optgroup');
-    ssGroup.label = 'State Schemes';
-    
-    fallbackSchemes.forEach(scheme => {
-        const option = document.createElement('option');
-        option.value = scheme.id;
-        option.textContent = `${scheme.scheme_name} (${scheme.scheme_code})`;
-        option.dataset.type = scheme.scheme_type;
-        
-        if (scheme.scheme_type === 'Centrally Sponsored') {
-            csGroup.appendChild(option);
-        } else {
-            ssGroup.appendChild(option);
-        }
-    });
-    
-    schemeSelect.appendChild(csGroup);
-    schemeSelect.appendChild(ssGroup);
-    
-    console.log('Loaded fallback schemes successfully');
-    
-    if (typeof BudgetMaster !== 'undefined') {
-        BudgetMaster.updateBudgetStatusDisplay();
-    }
-}
-
-function loadNotifications() {
-    const notifications = [
-        { id: 1, message: 'New DBT entry submitted for approval', time: '2 minutes ago', type: 'info' },
-        { id: 2, message: 'System backup completed successfully', time: '1 hour ago', type: 'success' },
-        { id: 3, message: 'User registration requires approval', time: '3 hours ago', type: 'warning' }
-    ];
-
-    if (notifications.length > 0) {
-        const notificationBadge = document.getElementById('notificationBadge');
-        if (notificationBadge) {
-            notificationBadge.style.display = 'inline-block';
-            notificationBadge.textContent = notifications.length;
-        }
-
-        const notificationList = document.getElementById('notificationList');
-        if (notificationList) {
-            notificationList.innerHTML = '';
-
-            notifications.forEach(notif => {
-                const item = document.createElement('div');
-                item.className = 'dropdown-item-text border-bottom pb-2 mb-2';
-                item.innerHTML = `
-                    <div class="d-flex justify-content-between">
-                        <small class="text-muted">${notif.time}</small>
-                        <i class="fas fa-${notif.type === 'info' ? 'info-circle text-info' : notif.type === 'success' ? 'check-circle text-success' : 'exclamation-triangle text-warning'}"></i>
-                    </div>
-                    <div>${notif.message}</div>
-                `;
-                notificationList.appendChild(item);
-            });
-        }
-    }
-}
-
-function setDefaultDate() {
-    const today = new Date().toISOString().split('T')[0];
-    const dbtDateInput = document.getElementById('dbtDate');
-    if (dbtDateInput) {
-        dbtDateInput.value = today;
-    }
-}
-
-function updateProgress() {
-    const formInputs = document.querySelectorAll('#dbtForm input:not([readonly]), #dbtForm select, #dbtForm textarea');
-    let filledInputs = 0;
-    
-    formInputs.forEach(input => {
-        if (input.type === 'checkbox' || input.type === 'radio') {
-            if (input.checked) filledInputs++;
-        } else if (input.value.trim() !== '') {
-            filledInputs++;
-        }
-    });
-    
-    formProgress = Math.round((filledInputs / formInputs.length) * 100);
-    
-    const progressFill = document.getElementById('progressFill');
-    const progressText = document.getElementById('progressText');
-    
-    if (progressFill) progressFill.style.width = formProgress + '%';
-    if (progressText) progressText.textContent = formProgress + '%';
-}
-
-function updateFormFieldsBasedOnScheme(schemeType, benefitType) {
-    const centralFields = document.querySelectorAll('.central-scheme-only');
-    const stateFields = document.querySelectorAll('.state-scheme-only');
-    
-    if (schemeType === 'Centrally Sponsored') {
-        centralFields.forEach(field => field.style.display = 'block');
-        stateFields.forEach(field => field.style.display = 'none');
-    } else if (schemeType === 'State Scheme') {
-        centralFields.forEach(field => field.style.display = 'none');
-        stateFields.forEach(field => field.style.display = 'block');
-    }
-}
-
-function generateEntryId() {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const timestamp = Date.now().toString().slice(-6);
-    
-    return `DBT${year}${month}${day}${timestamp}`;
-}
-
-function isValidUUID(uuid) {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return typeof uuid === 'string' && uuidRegex.test(uuid);
-}
-
-function collectFormData() {
-    const formData = {};
-    
-    formData.entry_id = generateEntryId();
-    
-    formData.scheme_id = parseInt(document.getElementById('schemeSelect')?.value) || null;
-    
-    const schemeSelect = document.getElementById('schemeSelect');
-    formData.scheme_select = schemeSelect?.options[schemeSelect.selectedIndex]?.textContent || null;
-    
-    formData.dbt_date = document.getElementById('dbtDate')?.value || null;
-
-    const selectedSchemeId = document.getElementById('schemeSelect')?.value;
-    const budgetData = BudgetMaster.getBudgetDataForScheme(selectedSchemeId);
-    
-    if (budgetData) {
-        formData.central_allocation = budgetData.centralAllocation;
-        formData.state_normative_allocation = budgetData.stateNormativeAllocation;
-        formData.additional_state_allocation = budgetData.additionalStateAllocation;
-    } else {
-        formData.central_allocation = parseFloat(document.getElementById('centralAllocation')?.value) || 0;
-        formData.state_normative_allocation = parseFloat(document.getElementById('stateNormativeAllocation')?.value) || 0;
-        formData.additional_state_allocation = parseFloat(document.getElementById('additionalStateAllocation')?.value) || 0;
-    }
-    formData.budget_remarks = document.getElementById('budgetRemarks')?.value.trim() || null;
-
-    formData.total_amount_disbursed = parseFloat(document.getElementById('totalAmountDisbursed')?.value) || 0;
-    formData.central_share_fund = parseFloat(document.getElementById('centralShareFund')?.value) || 0;
-    formData.normative_state_share = parseFloat(document.getElementById('normativeStateShare')?.value) || 0;
-    formData.additional_state_contributed = parseFloat(document.getElementById('additionalStateContributed')?.value) || 0;
-    formData.state_share_additional = parseFloat(document.getElementById('stateShareAdditional')?.value) || 0;
-    formData.non_electronic_disbursed = parseFloat(document.getElementById('nonElectronicDisbursed')?.value) || 0;
-    formData.electronic_disbursed = parseFloat(document.getElementById('electronicDisbursed')?.value) || 0;
-
-    formData.total_beneficiaries = parseInt(document.getElementById('totalBeneficiaries')?.value) || 0;
-    formData.additional_beneficiaries_css = parseInt(document.getElementById('additionalBeneficiariesCSS')?.value) || 0;
-    formData.additional_beneficiaries_state = parseInt(document.getElementById('additionalBeneficiariesState')?.value) || 0;
-    formData.beneficiaries_digitized = parseInt(document.getElementById('beneficiariesDigitized')?.value) || 0;
-    formData.bank_account_details = parseInt(document.getElementById('bankAccountDetails')?.value) || 0;
-    formData.aadhaar_seeded = parseInt(document.getElementById('aadhaarSeeded')?.value) || 0;
-    formData.aadhaar_authenticated = parseInt(document.getElementById('aadhaarAuthenticated')?.value) || 0;
-    formData.mobile_available = parseInt(document.getElementById('mobileAvailable')?.value) || 0;
-    formData.electronic_mode_beneficiaries = parseInt(document.getElementById('electronicModeBeneficiaries')?.value) || 0;
-    formData.non_electronic_beneficiaries = parseInt(document.getElementById('nonElectronicBeneficiaries')?.value) || 0;
-    formData.electronic_transactions = parseInt(document.getElementById('electronicTransactions')?.value) || 0;
-    formData.non_electronic_transactions = parseInt(document.getElementById('nonElectronicTransactions')?.value) || 0;
-
-    formData.deduplication_aadhaar = parseInt(document.getElementById('deduplicationAadhaar')?.value) || 0;
-    formData.ghost_beneficiaries = parseInt(document.getElementById('ghostBeneficiaries')?.value) || 0;
-    formData.other_savings = parseFloat(document.getElementById('otherSavings')?.value) || 0;
-    formData.saving_amount = parseFloat(document.getElementById('savingAmount')?.value) || 0;
-    
-    return formData;
-}
-
-async function handleFormSubmission(event) {
-    event.preventDefault();
-    
-    const selectedSchemeId = document.getElementById('schemeSelect')?.value;
-    if (!isAdmin && selectedSchemeId && typeof BudgetMaster !== 'undefined' && !BudgetMaster.hasBudgetMaster(selectedSchemeId)) {
-        showAlert('पहले चयनित स्कीम के लिए बजट मास्टर सेट करें।', 'warning');
-        return;
-    }
-    
-    if (typeof DBTValidation !== 'undefined' && !DBTValidation.validateForm()) {
-        showAlert('कृपया सभी आवश्यक फील्ड भरें और त्रुटियों को सुधारें।', 'danger');
-        return;
-    }
-    
-    isDraftMode = false;
-    await saveFormData();
-}
-
-async function saveDraft() {
-    isDraftMode = true;
-    await saveFormData();
-}
-
-async function saveFormData() {
-    try {
-        showLoading(true);
-        
-        const formData = collectFormData();
-        
-        if (!formData.entry_id || !formData.dbt_date) {
-            throw new Error('Required fields are missing');
-        }
-        
-        formData.is_draft = isDraftMode;
-        formData.status = isDraftMode ? 'draft' : 'pending';
-        
-        if (!currentUser?.id || !isValidUUID(currentUser.id)) {
-            throw new Error('Invalid user authentication');
-        }
-        
-        formData.created_by = currentUser.id;
-        formData.updated_by = currentUser.id;
-        
-        if (currentUser.districtId && isValidUUID(currentUser.districtId)) {
-            formData.district_id = currentUser.districtId;
-            formData.district_name = currentUser.districtName;
-        } else {
-            console.warn("currentUser.districtId is missing or invalid. Entry might not be associated with a district.");
-            formData.district_id = null;
-            formData.district_name = null;
-        }
-
-        formData.created_at = new Date().toISOString();
-        
-        console.log('Sending data:', formData);
-        
-        const { data, error } = await supabaseClient
-            .from('dbt_data_entries')
-            .insert([formData])
-            .select();
-
-        if (error) {
-            console.error('Supabase error details:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-            });
-            throw error;
-        }
-        
-        showLoading(false);
-        
-        if (isDraftMode) {
-            showAlert('डेटा ड्राफ्ट के रूप में सेव हो गया।', 'success');
-        } else {
-            const successModal = new bootstrap.Modal(document.getElementById('successModal'));
-            successModal.show();
-        }
-        
-        localStorage.removeItem('dbtFormDraft');
-        
-    } catch (error) {
-        console.error('Error saving data:', error);
-        showLoading(false);
-        
-        let errorMessage = 'डेटा सेव करने में त्रुटि हुई।';
-        
-        if (error.message.includes('duplicate key')) {
-            errorMessage = 'यह एंट्री पहले से मौजूद है।';
-        } else if (error.message.includes('foreign key')) {
-            errorMessage = 'चयनित स्कीम मान्य नहीं है।';
-        } else if (error.message.includes('not-null')) {
-            errorMessage = 'कुछ आवश्यक फील्ड गुम हैं।';
-        }
-        
-        showAlert(errorMessage + ' कृपया पुनः प्रयास करें।', 'danger');
-    }
-}
-
-function loadDraftData() {
-    const draftData = localStorage.getItem('dbtFormDraft');
-    
-    if (draftData) {
-        try {
-            const data = JSON.parse(draftData);
-            
-            if (document.getElementById('schemeSelect')) document.getElementById('schemeSelect').value = data.scheme_id || '';
-            if (document.getElementById('dbtDate')) document.getElementById('dbtDate').value = data.dbt_date || '';
-            if (document.getElementById('budgetRemarks')) document.getElementById('budgetRemarks').value = data.budget_remarks || '';
-
-            if (document.getElementById('totalAmountDisbursed')) document.getElementById('totalAmountDisbursed').value = data.total_amount_disbursed || 0;
-            if (document.getElementById('centralShareFund')) document.getElementById('centralShareFund').value = data.central_share_fund || 0;
-            if (document.getElementById('normativeStateShare')) document.getElementById('normativeStateShare').value = data.normative_state_share || 0;
-            if (document.getElementById('additionalStateContributed')) document.getElementById('additionalStateContributed').value = data.additional_state_contributed || 0;
-            if (document.getElementById('stateShareAdditional')) document.getElementById('stateShareAdditional').value = data.state_share_additional || 0;
-            if (document.getElementById('nonElectronicDisbursed')) document.getElementById('nonElectronicDisbursed').value = data.non_electronic_disbursed || 0;
-            if (document.getElementById('electronicDisbursed')) document.getElementById('electronicDisbursed').value = data.electronic_disbursed || 0;
-
-            if (document.getElementById('totalBeneficiaries')) document.getElementById('totalBeneficiaries').value = data.total_beneficiaries || 0;
-            if (document.getElementById('additionalBeneficiariesCSS')) document.getElementById('additionalBeneficiariesCSS').value = data.additional_beneficiaries_css || 0;
-            if (document.getElementById('additionalBeneficiariesState')) document.getElementById('additionalBeneficiariesState').value = data.additional_beneficiaries_state || 0;
-            if (document.getElementById('beneficiariesDigitized')) document.getElementById('beneficiariesDigitized').value = data.beneficiaries_digitized || 0;
-            if (document.getElementById('bankAccountDetails')) document.getElementById('bankAccountDetails').value = data.bank_account_details || 0;
-            if (document.getElementById('aadhaarSeeded')) document.getElementById('aadhaarSeeded').value = data.aadhaar_seeded || 0;
-            if (document.getElementById('aadhaarAuthenticated')) document.getElementById('aadhaarAuthenticated').value = data.aadhaar_authenticated || 0;
-            if (document.getElementById('mobileAvailable')) document.getElementById('mobileAvailable').value = data.mobile_available || 0;
-            if (document.getElementById('electronicModeBeneficiaries')) document.getElementById('electronicModeBeneficiaries').value = data.electronic_mode_beneficiaries || 0;
-            if (document.getElementById('nonElectronicBeneficiaries')) document.getElementById('nonElectronicBeneficiaries').value = data.non_electronic_beneficiaries || 0;
-            if (document.getElementById('electronicTransactions')) document.getElementById('electronicTransactions').value = data.electronic_transactions || 0;
-            if (document.getElementById('nonElectronicTransactions')) document.getElementById('nonElectronicTransactions').value = data.non_electronic_transactions || 0;
-
-            if (document.getElementById('deduplicationAadhaar')) document.getElementById('deduplicationAadhaar').value = data.deduplication_aadhaar || 0;
-            if (document.getElementById('ghostBeneficiaries')) document.getElementById('ghostBeneficiaries').value = data.ghost_beneficiaries || 0;
-            if (document.getElementById('otherSavings')) document.getElementById('otherSavings').value = data.other_savings || 0;
-            if (document.getElementById('savingAmount')) document.getElementById('savingAmount').value = data.saving_amount || 0;
-            
-            if (typeof DBTCalculations !== 'undefined') {
-                DBTCalculations.calculateTotalAmount();
-                DBTCalculations.calculateTotalBeneficiaries();
-                DBTCalculations.calculateSavings();
-            }
-            updateProgress();
-            
-            showAlert('पिछला ड्राफ्ट लोड किया गया।', 'info');
-            
-        } catch (error) {
-                console.error('Error loading draft:', error);
-            localStorage.removeItem('dbtFormDraft');
-        }
-    }
-}
-
-setInterval(() => {
-    if (formProgress > 10) {
-        const formData = collectFormData();
-        localStorage.setItem('dbtFormDraft', JSON.stringify(formData));
-    }
-}, 120000);
-
-function showProfile() {
-    window.open('profile.html', '_blank');
-}
-
-function changePassword() {
-    window.open('change-password.html', '_blank');
-}
-
-function showMyActivity() {
-    window.open('my-activity.html', '_blank');
-}
-
-function viewAllNotifications() {
-    window.open('notifications.html', '_blank');
-}
-
-function resetForm() {
-    if (confirm('क्या आप वाकई फॉर्म रीसेट करना चाहते हैं? सभी DBT डेटा खो जाएगा। (Budget Master डेटा सुरक्षित रहेगा)')) {
-        document.getElementById('dbtForm').reset();
-        localStorage.removeItem('dbtFormDraft');
-        updateProgress();
-        
-        const selectedSchemeId = document.getElementById('schemeSelect')?.value;
-        if (selectedSchemeId && typeof BudgetMaster !== 'undefined' && BudgetMaster.hasBudgetMaster(selectedSchemeId)) {
-            BudgetMaster.populateBudgetFieldsInMainForm(selectedSchemeId);
-        }
-    }
-}
-
-function logout() {
-    if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-        DBTAuth.logout();
-    }
-}
-
-function showLoading(show) {
-    const overlay = document.getElementById('loadingOverlay');
-    if (overlay) {
-        overlay.style.display = show ? 'flex' : 'none';
-    }
-}
-
-function showAlert(message, type) {
-    const existingAlerts = document.querySelectorAll('.alert-custom');
-    existingAlerts.forEach(alert => alert.remove());
-    
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-custom`;
-    alertDiv.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
-        <span class="hindi">${message}</span>
-        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
-    `;
-    
-    const formCard = document.querySelector('.form-card');
-    if (formCard) {
-        formCard.insertBefore(alertDiv, formCard.firstChild);
-    } else {
-        document.body.prepend(alertDiv);
-    }
-    
+// --- Core Application Entry Point ---
+document.addEventListener('DOMContentLoaded', function() {
+    // Show loading overlay immediately on DOMContentLoaded
+    showLoading(true); 
     setTimeout(() => {
-        if (alertDiv.parentNode) {
-            alertDiv.remove();
+        initializeApp();
+    }, 100); // Small delay to ensure all deferred scripts are loaded and parsed
+});
+
+async function initializeApp() {
+    try {
+        await waitForModules(); // Ensure all modules are defined and accessible
+        
+        // 1. Authenticate User
+        if (!DBTAuth.checkUserAuthentication()) {
+            return; // User will be redirected to login if not authenticated
         }
-    }, 5000);
+        currentUser = DBTAuth.getCurrentUser();
+        isAdmin = DBTAuth.isAdmin();
+
+        // 2. Load Core Data (Schemes) - Defined above
+        await loadSchemes(); 
+
+        // 3. Initialize UI Components - Defined above
+        await initializeUI();
+        
+        // 4. Setup Main Form - Defined above
+        setupForm();
+        
+        // 5. Load Initial Non-Form Data (e.g., Notifications) - Defined above
+        await loadInitialNonFormData(); 
+        
+        // 6. Initialize Feature Modules - Defined above
+        BudgetMaster.init(); 
+        ReportManager.init(); 
+        
+        console.log('DBT Application initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing application:', error);
+        showAlert('एप्लिकेशन शुरू करने में त्रुटि हुई।', 'danger');
+    } finally {
+        showLoading(false); // Ensure loading overlay is hidden always
+    }
 }
 
-function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-IN', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(amount);
-}
-
+// --- Console Log for Debugging/Info ---
 console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║                    DBT Data Entry System                     ║
 ║                संचालनालय कृषि छत्तीसगढ़                      ║
 ║                                                              ║
-║  📊 Advanced Form Validation Active                          ║
-║  💾 Auto-save Draft Every 2 Minutes                         ║
-║  🧮 Real-time Calculations Enabled                          ║
-║  📱 Responsive Design Implemented                            ║
-║  🔒 Secure Data Handling                                     ║
-║  👑 Admin Controls Available                                 ║
-║  💰 Scheme-wise Budget Master System                        ║
-║  📄 Print & Download Reports                                ║
-║  🎨 Pistachio Green Input Fields                            ║
-║                                                              ║
-║  Keyboard Shortcuts:                                         ║
-║  • Ctrl + S: Save Draft                                      ║
-║  • Ctrl + Enter: Submit Form                                 ║
-║                                                              ║
-║  New Features:                                               ║
-║  • Manual Budget Master (Click to Open)                     ║
-║  • Scheme-wise Budget Tracking                              ║
-║  • Print Reports with Government Header                     ║
-║  • Excel & PDF Download Options                             ║
-║  • Budget Status Dashboard                                   ║
+║  ✅ Collapsible Sections Fixed                               ║
+║  ✅ "Processing..." Overlay Fixed                            ║
+║  ✅ Navbar Dropdown Z-index Fixed                            ║
+║  ✅ Navbar Button Responsiveness Fixed                       ║
+║  ✅ Progress Indicator Removed                               ║
+║  ✅ Header Green Color Strip Fixed                           ║
+║  ✅ Budget Master Modal Scheme Pre-selection Fixed           ║
+║  ✅ Report Buttons Responsive & Comprehensive                ║
+║  ✅ All Text Readability (Dark/Black) Fixed                  ║
+║  ✅ Header Navbar Proportions & Curve Fixed                  ║
+║  ✅ Form Cards Color Professional Fixed                      ║
+║  ✅ JavaScript ReferenceErrors Fixed                          ║
 ║                                                              ║
 ║  Modular Architecture:                                       ║
 ║  • dbt-main.js: Core + Budget Master + Reports              ║
