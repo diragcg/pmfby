@@ -263,7 +263,49 @@
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     
-    <!-- Custom JS -->
+    <!-- Custom JS - Modified to work with your login system -->
+    <script>
+        // Override the common-utils authentication check for this page
+        function checkAuthentication() {
+            try {
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                
+                if (!storedUser) {
+                    // Redirect to your login.in file instead of login.html
+                    window.location.href = '../login.in';
+                    return null;
+                }
+                
+                currentUser = JSON.parse(storedUser);
+                console.log('Current user:', currentUser);
+                
+                // Update UI with user info
+                updateUserInfo();
+                
+                return currentUser;
+                
+            } catch (error) {
+                console.error('Authentication error:', error);
+                showAlert('प्रमाणीकरण त्रुटि, कृपया पुनः लॉगिन करें।', 'danger');
+                setTimeout(() => {
+                    window.location.href = '../login.in';
+                }, 2000);
+                return null;
+            }
+        }
+
+        // Override logout function to redirect to your login.in
+        function handleLogout() {
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                // Clear storage
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                
+                // Redirect to your login.in
+                window.location.href = '../login.in';
+            }
+        }
+    </script>
     <script src="../js/common-utils.js"></script>
     <script src="../js/pmfby-admin.js"></script>
 </body>
