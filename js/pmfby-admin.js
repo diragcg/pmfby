@@ -361,6 +361,19 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 500);
 });
 
-// Console message
+
 console.log(`
-╔══════════
+╔══════════════════════════════════════════════════════════════╗
+║                   PMFBY District Admin Dashboard             ║
+║                   प्रधानमंत्री फसल बीमा योजना                  ║
+║                                                              ║
+║  🛡️ PMFBY District Admin Management                         ║
+║  📝 Admin Information Update                                ║
+║  📊 Activity Logging                                        ║
+║  📈 Statistics Dashboard                                    ║
+║  🔄 Real-time Status Tracking                              ║
+║                                                              ║
+║  PMFBY Admin module loaded successfully!                    ║
+╚══════════════════════════════════════════════════════════════╝
+`);
+
