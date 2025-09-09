@@ -46,13 +46,16 @@ function showAlert(message, type = 'info') {
     }, 5000);
 }
 
-// Check authentication and get current user
+// Check authentication and get current user - FIXED for your login system
 async function checkAuthentication() {
     try {
         const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
         
         if (!storedUser) {
-            window.location.href = 'login.html';
+            // Check if we're already on a login page to avoid redirect loop
+            if (!window.location.pathname.includes('login')) {
+                window.location.href = '../login.in';  // Changed to your login file
+            }
             return null;
         }
         
@@ -68,7 +71,9 @@ async function checkAuthentication() {
         console.error('Authentication error:', error);
         showAlert('प्रमाणीकरण त्रुटि, कृपया पुनः लॉगिन करें।', 'danger');
         setTimeout(() => {
-            window.location.href = 'login.html';
+            if (!window.location.pathname.includes('login')) {
+                window.location.href = '../login.in';  // Changed to your login file
+            }
         }, 2000);
         return null;
     }
@@ -95,15 +100,15 @@ function updateUserInfo() {
     }
 }
 
-// Handle logout
+// Handle logout - FIXED for your login system
 function handleLogout() {
     if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
         // Clear storage
         localStorage.removeItem('user');
         sessionStorage.removeItem('user');
         
-        // Redirect to login
-        window.location.href = 'login.html';
+        // Redirect to your login file
+        window.location.href = '../login.in';  // Changed to your login file
     }
 }
 
@@ -341,7 +346,7 @@ function exportToPDF(data, filename, title, columns) {
         });
         
         // Save PDF
-        doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`${filename}_\${new Date().toISOString().split('T')[0]}.pdf`);
         showAlert('PDF फाइल डाउनलोड हो गई।', 'success');
     } catch (error) {
         console.error('PDF export error:', error);
@@ -445,7 +450,7 @@ function initializeCommonEventListeners() {
         });
     });
     
-    // Real-time field validation
+// Real-time field validation
     const requiredFields = document.querySelectorAll('[required]');
     requiredFields.forEach(field => {
         field.addEventListener('blur', () => {
@@ -467,12 +472,12 @@ function initializeCommonEventListeners() {
     });
 }
 
-// Initialize on DOM load
+// Initialize on DOM load - MODIFIED to not auto-check authentication
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Common utilities initialized');
     
-    // Check authentication
-    checkAuthentication();
+    // Don't auto-check authentication here, let individual pages handle it
+    // checkAuthentication();
     
     // Initialize common event listeners
     initializeCommonEventListeners();
@@ -511,5 +516,7 @@ console.log(`
 ║  📊 Complete Reporting System                               ║
 ║                                                              ║
 ║  Common utilities loaded successfully!                       ║
+║  Fixed for login.in redirect system                         ║
 ╚══════════════════════════════════════════════════════════════╝
 `);
+
