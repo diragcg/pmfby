@@ -11,7 +11,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Export Libraries -->
+    <!-- Export Libraries (Loaded via CDN) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -1523,7 +1523,7 @@
     <script>
         // Supabase configuration
         const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImeXAiOiJ0eXAiOiJleHAiOjIwNjg2OTE2NTR9.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
         
         const { createClient } = supabase;
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
@@ -1586,7 +1586,7 @@
                 
                 if (!storedUser) {
                     // Redirect to header.html (go up one level from pmfby/html/ folder)
-                    window.location.href = '../../header.html'; // Corrected path
+                    window.location.href = '../header.html'; // CORRECTED PATH
                     return null;
                 }
                 
@@ -1610,7 +1610,7 @@
                 showAlert('प्रमाणीकरण त्रुटि, कृपया पुनः लॉगिन करें।', 'danger');
                 setTimeout(() => {
                     // Redirect to header.html (go up one level from pmfby/html/ folder)
-                    window.location.href = '../../header.html'; // Corrected path
+                    window.location.href = '../header.html'; // CORRECTED PATH
                 }, 2000);
                 return null;
             }
@@ -1621,7 +1621,7 @@
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
                 // Redirect to header.html (go up one level from pmfby/html/ folder)
-                window.location.href = '../../header.html'; // Corrected path
+                window.location.href = '../header.html'; // CORRECTED PATH
             }
         }
 
@@ -2702,7 +2702,7 @@
             tableBody.innerHTML = tableHTML;
         }
 
-        // Export Functions
+        // Export Functions (Generic)
         function exportToExcel(data, filename, sheetName = 'Data') {
             try {
                 const wb = XLSX.utils.book_new();
@@ -2753,6 +2753,7 @@
             }
         }
 
+        // Specific Export Functions (called from onclick in HTML)
         function exportPMFBYData(format) {
             if (pmfbyAdminReportData.length === 0) {
                 showAlert('एक्सपोर्ट के लिए कोई PMFBY डेटा नहीं मिला।', 'warning');
@@ -2897,7 +2898,149 @@
             }
         }
 
-        // Event Listeners
+        // Utility Functions (General)
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleString('hi-IN', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (error) {
+                return '-';
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            
+            try {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('hi-IN', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+            } catch (error) {
+                return '-';
+            }
+        }
+
+        function validateMobileNumber(mobile) {
+            const mobileRegex = /^[0-9]{10}$/;
+            return mobileRegex.test(mobile);
+        }
+
+        function showFieldError(field, message) {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+            
+            const feedback = field.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = message;
+            }
+        }
+
+        function clearFieldError(field) {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            
+            const feedback = field.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = '';
+            }
+        }
+
+        function clearAllFieldErrors(formId) {
+            const form = document.getElementById(formId);
+            if (!form) return;
+            
+            const fields = form.querySelectorAll('.is-invalid, .is-valid');
+            fields.forEach(field => {
+                field.classList.remove('is-invalid', 'is-valid');
+            });
+            
+            const feedbacks = form.querySelectorAll('.invalid-feedback');
+            feedbacks.forEach(feedback => {
+                feedback.textContent = '';
+            });
+        }
+
+        function setButtonLoading(buttonId, isLoading, loadingText = 'प्रोसेसिंग...') {
+            const button = document.getElementById(buttonId);
+            if (!button) return;
+            
+            if (isLoading) {
+                button.dataset.originalText = button.innerHTML;
+                button.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>${loadingText}`;
+                button.disabled = true;
+            } else {
+                button.innerHTML = button.dataset.originalText || button.innerHTML;
+                button.disabled = false;
+            }
+        }
+
+        function validateRequiredFields(formId) {
+            const form = document.getElementById(formId);
+            if (!form) return false;
+            
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                const value = field.value.trim();
+                
+                if (!value) {
+                    showFieldError(field, 'यह फील्ड आवश्यक है');
+                    isValid = false;
+                } else {
+                    clearFieldError(field);
+                    
+                    // Additional validation for specific field types
+                    if (field.type === 'tel' && !validateMobileNumber(value)) {
+                        showFieldError(field, 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें');
+                        isValid = false;
+                    } else if (field.type === 'number' && (isNaN(value) || parseInt(value) < 0)) {
+                        showFieldError(field, 'कृपया वैध संख्या दर्ज करें');
+                        isValid = false;
+                    }
+                }
+            });
+            
+            return isValid;
+        }
+
+        // Get unique values from array of objects
+        function getUniqueValues(array, key) {
+            return [...new Set(array
+                .map(item => item[key])
+                .filter(value => value && value.toString().trim() !== '')
+            )].sort();
+        }
+
+        // Populate dropdown with options
+        function populateDropdown(selectId, options, placeholder = '-- चुनें --') {
+            const select = document.getElementById(selectId);
+            if (!select) return;
+            
+            // Clear existing options
+            select.innerHTML = `<option value="">${placeholder}</option>`;
+            
+            // Add new options
+            options.forEach(option => {
+                const optionElement = document.createElement('option');
+                optionElement.value = option;
+                optionElement.textContent = option;
+                select.appendChild(optionElement);
+            });
+        }
+
+        // Event Listeners (Centralized)
         function initializeEventListeners() {
             // Logout button
             const logoutBtn = document.getElementById('logoutBtn');
@@ -2948,7 +3091,7 @@
                 });
             }
             
-            // Tehsil and RI dropdowns
+            // Tehsil and RI dropdowns (CCE Primary)
             const tehsilSelect = document.getElementById('tehsilSelect');
             const riSelect = document.getElementById('riSelect');
             
@@ -2960,13 +3103,13 @@
                 riSelect.addEventListener('change', handleRIChange);
             }
             
-            // Hierarchy issue count change
+            // Hierarchy issue count change (CCE Primary)
             const hierarchyIssueCount = document.getElementById('hierarchyIssueCount');
             if (hierarchyIssueCount) {
                 hierarchyIssueCount.addEventListener('input', handleHierarchyIssueCountChange);
             }
             
-            // CCE Count form
+            // CCE Count form (CCE Primary)
             const cceCountForm = document.getElementById('cceCountForm');
             const resetCountsBtn = document.getElementById('resetCountsBtn');
             
@@ -2987,7 +3130,7 @@
                 villageSearchInput.addEventListener('input', debounce(searchVillagesForPrimary, 300));
             }
             
-            // Mobile number input formatting (delegated event listener)
+            // Global input event listener for mobile and number types
             document.addEventListener('input', (e) => {
                 if (e.target.type === 'tel') {
                     e.target.value = e.target.value.replace(/\D/g, '');
@@ -2995,33 +3138,28 @@
                         e.target.value = e.target.value.slice(0, 10);
                     }
                 }
-                
-                // Prevent negative values for number inputs
                 if (e.target.type === 'number' && e.target.value < 0) {
                     e.target.value = 0;
                 }
             });
             
-            // Real-time field validation (delegated event listener)
+            // Global blur event listener for required field validation
             document.addEventListener('blur', (e) => {
                 if (e.target.hasAttribute('required')) {
                     const value = e.target.value.trim();
-                    
                     if (!value) {
                         showFieldError(e.target, 'यह फील्ड आवश्यक है');
                     } else {
                         clearFieldError(e.target);
-                        
                         if (e.target.type === 'tel' && !validateMobileNumber(value)) {
                             showFieldError(e.target, 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें');
                         }
                     }
                 }
-            }, true);
+            }, true); // Use capture phase for delegated blur events
             
             // Keyboard shortcuts
             document.addEventListener('keydown', function(e) {
-                // Ctrl + S to save (if save button exists)
                 if (e.ctrlKey && e.key === 's') {
                     e.preventDefault();
                     const saveBtn = document.querySelector('[id*="save"], [id*="Save"], [id*="submit"], [id*="Submit"]');
@@ -3029,8 +3167,6 @@
                         saveBtn.click();
                     }
                 }
-                
-                // Escape to close modals or reset forms
                 if (e.key === 'Escape') {
                     const resetBtn = document.querySelector('[id*="reset"], [id*="Reset"], [id*="cancel"], [id*="Cancel"]');
                     if (resetBtn) {
@@ -3069,17 +3205,14 @@
             };
         }
 
-
         // Initialize Application
         async function initializeApp() {
             try {
                 console.log('Initializing Admin Management Dashboard...');
                 
-                // Check authentication first
                 const user = await checkAuthentication();
                 if (!user) return;
                 
-                // Initialize event listeners
                 initializeEventListeners();
                 
                 console.log('Admin Management Dashboard initialized successfully');
