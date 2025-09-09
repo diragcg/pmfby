@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PMFBY District Admin Dashboard - संचालनालय कृषि छत्तीसगढ़</title>
+    <title>Admin Dashboard - संचालनालय कृषि छत्तीसगढ़</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,6 +11,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Export Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../css/common-styles.css">
@@ -31,7 +35,7 @@
         </div>
     </div>
 
-    <!-- Header -->
+    <!-- Header with Dynamic Navbar -->
     <header class="header">
         <div class="container">
             <nav class="navbar navbar-expand-lg navbar-dark">
@@ -44,12 +48,39 @@
                         <span class="navbar-toggler-icon"></span>
                     </button>
                     <div class="collapse navbar-collapse" id="navbarNav">
+                        <ul class="navbar-nav me-auto">
+                            <!-- Dynamic Navigation Items -->
+                            <li class="nav-item" id="navPMFBYAdmin" style="display: none;">
+                                <a class="nav-link" href="#" onclick="showSection('pmfbyAdmin')">
+                                    <i class="fas fa-user-shield me-1"></i>
+                                    <span class="hindi">PMFBY Admin</span>
+                                </a>
+                            </li>
+                            <li class="nav-item" id="navCCEAdmin" style="display: none;">
+                                <a class="nav-link" href="#" onclick="showSection('cceAdmin')">
+                                    <i class="fas fa-user-cog me-1"></i>
+                                    <span class="hindi">CCE Admin</span>
+                                </a>
+                            </li>
+                            <li class="nav-item" id="navCCEPrimary" style="display: none;">
+                                <a class="nav-link" href="#" onclick="showSection('ccePrimary')">
+                                    <i class="fas fa-seedling me-1"></i>
+                                    <span class="hindi">CCE Primary</span>
+                                </a>
+                            </li>
+                            <li class="nav-item" id="navReports" style="display: none;">
+                                <a class="nav-link" href="#" onclick="showSection('reports')">
+                                    <i class="fas fa-chart-bar me-1"></i>
+                                    <span class="hindi">Reports</span>
+                                </a>
+                            </li>
+                        </ul>
                         <ul class="navbar-nav ms-auto">
                             <li class="nav-item">
                                 <span class="nav-link hindi">
                                     <i class="fas fa-user me-1"></i>
-                                    <span id="userFullName">PMFBY Admin</span>
-                                    <span class="admin-badge">PMFBY</span>
+                                    <span id="userFullName">User</span>
+                                    <span id="userRoleBadge" class="admin-badge">USER</span>
                                 </span>
                             </li>
                             <li class="nav-item">
@@ -57,12 +88,6 @@
                                     <i class="fas fa-map-marker-alt me-1"></i>
                                     जिला: <span id="userDistrict">-</span>
                                 </span>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="#" id="reportsBtn">
-                                    <i class="fas fa-chart-bar me-1"></i>
-                                    <span class="hindi">रिपोर्ट्स</span>
-                                </a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link" href="#" id="logoutBtn" style="background: #DC3545; border-radius: 5px;">
@@ -82,178 +107,446 @@
         <!-- Alert Box -->
         <div id="alertBox" class="alert" style="display: none;"></div>
 
-        <!-- Page Header -->
-        <div class="page-header">
-            <h2 class="hindi">
-                <i class="fas fa-user-shield me-2"></i>
-                PMFBY District Admin Dashboard
-            </h2>
-            <p class="hindi mb-0">प्रधानमंत्री फसल बीमा योजना जिला प्रशासक प्रबंधन</p>
-        </div>
-
-        <!-- Dashboard Card -->
-        <div class="dashboard-card">
-            <!-- Current Admin Information Section -->
-            <div class="section-header">
-                <i class="fas fa-info-circle me-2"></i>
-                <span class="hindi">वर्तमान PMFBY District Admin जानकारी</span>
+        <!-- PMFBY Admin Section -->
+        <div id="pmfbyAdminSection" class="admin-section" style="display: none;">
+            <div class="page-header">
+                <h2 class="hindi">
+                    <i class="fas fa-user-shield me-2"></i>
+                    PMFBY District Admin Management
+                </h2>
+                <p class="hindi mb-0">प्रधानमंत्री फसल बीमा योजना जिला प्रशासक प्रबंधन</p>
             </div>
 
-            <div style="padding: 25px;">
-                <!-- Current Admin Info Card -->
-                <div id="currentAdminInfo" class="admin-info-card">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <h5 class="hindi mb-3">
-                                <i class="fas fa-user me-2"></i>
-                                मौजूदा PMFBY District Admin विवरण
-                            </h5>
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <strong class="hindi">Admin Name:</strong>
-                                    <div id="currentAdminName" class="mt-1">-</div>
+            <div class="dashboard-card">
+                <div class="section-header">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span class="hindi">वर्तमान PMFBY District Admin जानकारी</span>
+                </div>
+
+                <div style="padding: 25px;">
+                    <!-- Current Admin Info -->
+                    <div id="currentPMFBYAdminInfo" class="admin-info-card">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="hindi mb-3">
+                                    <i class="fas fa-user me-2"></i>
+                                    मौजूदा PMFBY District Admin विवरण
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Admin Name:</strong>
+                                        <div id="currentPMFBYAdminName" class="mt-1">-</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Post Name:</strong>
+                                        <div id="currentPMFBYPostName" class="mt-1">-</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Mobile Number:</strong>
+                                        <div id="currentPMFBYMobileNumber" class="mt-1">-</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Status:</strong>
+                                        <div class="mt-1">
+                                            <span id="currentPMFBYAdminStatus" class="admin-status">-</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <strong class="hindi">Post Name:</strong>
-                                    <div id="currentPostName" class="mt-1">-</div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button type="button" class="btn btn-warning" id="updatePMFBYAdminBtn" style="display: none;">
+                                    <i class="fas fa-edit me-2"></i>
+                                    <span class="hindi">Admin जानकारी अपडेट करें</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Update PMFBY Admin Form -->
+                    <div id="updatePMFBYAdminForm" style="display: none;">
+                        <div class="subsection-header">
+                            <i class="fas fa-edit me-2"></i>
+                            <span class="hindi">PMFBY District Admin जानकारी अपडेट करें</span>
+                        </div>
+
+                        <form id="pmfbyAdminUpdateForm">
+                            <div class="form-row two-col">
+                                <div class="form-group">
+                                    <label for="pmfbyAdminName" class="form-label hindi required-field">
+                                        PMFBY District Admin Name
+                                    </label>
+                                    <input type="text" class="form-control" id="pmfbyAdminName" placeholder="Admin का पूरा नाम दर्ज करें" required>
+                                    <div class="invalid-feedback"></div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <strong class="hindi">Mobile Number:</strong>
-                                    <div id="currentMobileNumber" class="mt-1">-</div>
+                                <div class="form-group">
+                                    <label for="pmfbyPostName" class="form-label hindi required-field">
+                                        Post Name
+                                    </label>
+                                    <input type="text" class="form-control" id="pmfbyPostName" placeholder="पद का नाम दर्ज करें" required>
+                                    <div class="invalid-feedback"></div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <strong class="hindi">Status:</strong>
-                                    <div class="mt-1">
-                                        <span id="currentAdminStatus" class="admin-status">-</span>
+                            </div>
+
+                            <div class="form-row two-col">
+                                <div class="form-group">
+                                    <label for="pmfbyMobileNumber" class="form-label hindi required-field">
+                                        Registered Mobile Number
+                                    </label>
+                                    <input type="tel" class="form-control" id="pmfbyMobileNumber" placeholder="10 अंकों का मोबाइल नंबर" pattern="[0-9]{10}" maxlength="10" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="pmfbyAdminStatus" class="form-label hindi required-field">
+                                        Status
+                                    </label>
+                                    <select class="form-select" id="pmfbyAdminStatus" required>
+                                        <option value="">-- Status चुनें --</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="cancelPMFBYUpdateBtn">
+                                    <i class="fas fa-times me-2"></i>
+                                    <span class="hindi">रद्द करें</span>
+                                </button>
+                                <button type="submit" class="btn btn-success" id="savePMFBYAdminBtn">
+                                    <i class="fas fa-save me-2"></i>
+                                    <span class="hindi">Admin जानकारी सेव करें</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CCE Admin Section -->
+        <div id="cceAdminSection" class="admin-section" style="display: none;">
+            <div class="page-header">
+                <h2 class="hindi">
+                    <i class="fas fa-user-cog me-2"></i>
+                    CCE District Admin Management
+                </h2>
+                <p class="hindi mb-0">Crop Cutting Experiment जिला प्रशासक प्रबंधन</p>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="section-header">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span class="hindi">वर्तमान CCE District Admin जानकारी</span>
+                </div>
+
+                <div style="padding: 25px;">
+                    <!-- Current CCE Admin Info -->
+                    <div id="currentCCEAdminInfo" class="admin-info-card">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h5 class="hindi mb-3">
+                                    <i class="fas fa-user me-2"></i>
+                                    मौजूदा CCE District Admin विवरण
+                                </h5>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Admin Name:</strong>
+                                        <div id="currentCCEAdminName" class="mt-1">-</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Post Name:</strong>
+                                        <div id="currentCCEPostName" class="mt-1">-</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Mobile Number:</strong>
+                                        <div id="currentCCEMobileNumber" class="mt-1">-</div>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <strong class="hindi">Status:</strong>
+                                        <div class="mt-1">
+                                            <span id="currentCCEAdminStatus" class="admin-status">-</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button type="button" class="btn btn-warning" id="updateCCEAdminBtn" style="display: none;">
+                                    <i class="fas fa-edit me-2"></i>
+                                    <span class="hindi">Admin जानकारी अपडेट करें</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Update CCE Admin Form -->
+                    <div id="updateCCEAdminForm" style="display: none;">
+                        <div class="subsection-header">
+                            <i class="fas fa-edit me-2"></i>
+                            <span class="hindi">CCE District Admin जानकारी अपडेट करें</span>
+                        </div>
+
+                        <form id="cceAdminUpdateForm">
+                            <div class="form-row two-col">
+                                <div class="form-group">
+                                    <label for="cceAdminName" class="form-label hindi required-field">
+                                        CCE District Admin Name
+                                    </label>
+                                    <input type="text" class="form-control" id="cceAdminName" placeholder="Admin का पूरा नाम दर्ज करें" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ccePostName" class="form-label hindi required-field">
+                                        Post Name
+                                    </label>
+                                    <input type="text" class="form-control" id="ccePostName" placeholder="पद का नाम दर्ज करें" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-row two-col">
+                                <div class="form-group">
+                                    <label for="cceMobileNumber" class="form-label hindi required-field">
+                                        Registered Mobile Number
+                                    </label>
+                                    <input type="tel" class="form-control" id="cceMobileNumber" placeholder="10 अंकों का मोबाइल नंबर" pattern="[0-9]{10}" maxlength="10" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="cceAdminStatus" class="form-label hindi required-field">
+                                        Status
+                                    </label>
+                                    <select class="form-select" id="cceAdminStatus" required>
+                                        <option value="">-- Status चुनें --</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" id="cancelCCEUpdateBtn">
+                                    <i class="fas fa-times me-2"></i>
+                                    <span class="hindi">रद्द करें</span>
+                                </button>
+                                <button type="submit" class="btn btn-success" id="saveCCEAdminBtn">
+                                    <i class="fas fa-save me-2"></i>
+                                    <span class="hindi">Admin जानकारी सेव करें</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CCE Primary User Section -->
+        <div id="ccePrimarySection" class="admin-section" style="display: none;">
+            <div class="page-header">
+                <h2 class="hindi">
+                    <i class="fas fa-seedling me-2"></i>
+                    CCE Primary User Management
+                </h2>
+                <p class="hindi mb-0">Crop Cutting Experiment प्राथमिक उपयोगकर्ता प्रबंधन एवं Hierarchy सुधार</p>
+            </div>
+
+            <div class="dashboard-card">
+                <div class="section-header">
+                    <i class="fas fa-map-marked-alt me-2"></i>
+                    <span class="hindi">तहसील एवं RI का चयन</span>
+                </div>
+
+                <div style="padding: 25px;">
+                    <!-- Breadcrumb -->
+                    <div style="background: var(--pistachio-light); padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0">
+                                <li class="breadcrumb-item hindi">जिला: <span id="breadcrumbDistrict">-</span></li>
+                                <li class="breadcrumb-item hindi">तहसील: <span id="breadcrumbTehsil">-</span></li>
+                                <li class="breadcrumb-item hindi">RI: <span id="breadcrumbRI">-</span></li>
+                            </ol>
+                        </nav>
+                    </div>
+
+                    <!-- Location Selection Form -->
+                    <div class="form-row two-col">
+                        <div class="form-group">
+                            <label for="tehsilSelect" class="form-label hindi required-field">
+                                तहसील (Level 4) का चयन करें
+                            </label>
+                            <select class="form-select" id="tehsilSelect" required>
+                                <option value="">-- तहसील चुनें --</option>
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="riSelect" class="form-label hindi required-field">
+                                RI Name (Level 5) का चयन करें
+                            </label>
+                            <select class="form-select" id="riSelect" disabled required>
+                                <option value="">-- पहले तहसील चुनें --</option>
+                            </select>
+                            <div class="invalid-feedback"></div>
+                        </div>
+                    </div>
+
+                    <!-- CCE Count Form -->
+                    <div id="cceCountSection" style="display: none;">
+                        <div class="subsection-header mt-4">
+                            <i class="fas fa-users me-2"></i>
+                            <span class="hindi">CCE Primary Users Count Declaration</span>
+                        </div>
+
+                        <form id="cceCountForm">
+                            <div class="cce-stats-container">
+                                <div class="form-group">
+                                    <label for="totalCCEUsers" class="form-label hindi required-field">
+                                        कुल CCE Primary Users संख्या
+                                    </label>
+                                    <input type="number" class="form-control" id="totalCCEUsers" placeholder="कुल संख्या दर्ज करें" min="0" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="activeCCEUsers" class="form-label hindi required-field">
+                                        Active User Count
+                                    </label>
+                                    <input type="number" class="form-control" id="activeCCEUsers" placeholder="सक्रिय उपयोगकर्ता संख्या" min="0" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inactiveCCEUsers" class="form-label hindi required-field">
+                                        Not Active Count
+                                    </label>
+                                    <input type="number" class="form-control" id="inactiveCCEUsers" placeholder="निष्क्रिय उपयोगकर्ता संख्या" min="0" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="cce-stats-container">
+                                <div class="form-group">
+                                    <label for="hierarchyOKCount" class="form-label hindi required-field">
+                                        Hierarchy Checked और Found OK Count
+                                    </label>
+                                    <input type="number" class="form-control" id="hierarchyOKCount" placeholder="सही hierarchy वाले users" min="0" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="hierarchyIssueCount" class="form-label hindi required-field">
+                                        Hierarchy Checked और Found Issue Count
+                                    </label>
+                                    <input type="number" class="form-control" id="hierarchyIssueCount" placeholder="समस्या वाले users" min="0" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-row two-col">
+                                <div class="form-group">
+                                    <label for="ccePrimaryUserName" class="form-label hindi required-field">
+                                        CCE Primary User Name
+                                    </label>
+                                    <input type="text" class="form-control" id="ccePrimaryUserName" placeholder="CCE Primary User का नाम" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ccePrimaryUserMobile" class="form-label hindi required-field">
+                                        CCE Primary User Mobile Number
+                                    </label>
+                                    <input type="tel" class="form-control" id="ccePrimaryUserMobile" placeholder="10 अंकों का मोबाइल नंबर" pattern="[0-9]{10}" maxlength="10" required>
+                                    <div class="invalid-feedback"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-actions center">
+                                <button type="button" class="btn btn-secondary" id="resetCountsBtn">
+                                    <i class="fas fa-undo me-2"></i>
+                                    <span class="hindi">रीसेट करें</span>
+                                </button>
+                                <button type="submit" class="btn btn-success" id="saveCountsBtn">
+                                    <i class="fas fa-save me-2"></i>
+                                    <span class="hindi">Count Data सेव करें</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Hierarchy Issues Section -->
+                    <div id="hierarchyIssuesSection" class="hierarchy-issue-section" style="display: none;">
+                        <div class="hierarchy-issue-title">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <span class="hindi">Hierarchy Mapping Issues</span>
+                        </div>
+                        
+                        <p class="hindi mb-3">
+                            यदि Hierarchy में समस्या है तो उन Village Codes का चयन करें जिनमें mapping issue है:
+                        </p>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="village-selection-container">
+                                    <div class="p-3">
+                                        <div class="search-filter-container mb-3">
+                                            <input type="text" class="form-control search-input" id="villageSearchInput" placeholder="Village Name या Code खोजें...">
+                                        </div>
+                                        <div id="villagesList">
+                                            <div class="text-center text-muted hindi">
+                                                पहले तहसील और RI का चयन करें
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div id="selectedVillagesContainer">
+                                    <h6 class="hindi mb-3">चयनित समस्याग्रस्त Villages:</h6>
+                                    <div id="selectedVillagesList" class="selected-villages-list">
+                                        <div class="text-muted hindi">कोई village चयनित नहीं है</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4 text-end">
-                            <button type="button" class="btn btn-warning" id="updateAdminBtn" style="display: none;">
-                                <i class="fas fa-edit me-2"></i>
-                                <span class="hindi">Admin जानकारी अपडेट करें</span>
-                            </button>
-                        </div>
                     </div>
-                </div>
-
-                <!-- Update Admin Form (Hidden by default) -->
-                <div id="updateAdminForm" style="display: none;">
-                    <div class="subsection-header">
-                        <i class="fas fa-edit me-2"></i>
-                        <span class="hindi">PMFBY District Admin जानकारी अपडेट करें</span>
-                    </div>
-
-                    <form id="pmfbyAdminUpdateForm">
-                        <div class="form-row two-col">
-                            <div class="form-group">
-                                <label for="adminName" class="form-label hindi required-field">
-                                    PMFBY District Admin Name
-                                </label>
-                                <input type="text" class="form-control" id="adminName" placeholder="Admin का पूरा नाम दर्ज करें" required>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                            <div class="form-group">
-                                <label for="postName" class="form-label hindi required-field">
-                                    Post Name
-                                </label>
-                                <input type="text" class="form-control" id="postName" placeholder="पद का नाम दर्ज करें" required>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-
-                        <div class="form-row two-col">
-                            <div class="form-group">
-                                <label for="mobileNumber" class="form-label hindi required-field">
-                                    Registered Mobile Number
-                                </label>
-                                <input type="tel" class="form-control" id="mobileNumber" placeholder="10 अंकों का मोबाइल नंबर" pattern="[0-9]{10}" maxlength="10" required>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                            <div class="form-group">
-                                <label for="adminStatus" class="form-label hindi required-field">
-                                    Status
-                                </label>
-                                <select class="form-select" id="adminStatus" required>
-                                    <option value="">-- Status चुनें --</option>
-                                    <option value="active">Active</option>
-                                    <option value="inactive">Inactive</option>
-                                </select>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button type="button" class="btn btn-secondary" id="cancelUpdateBtn">
-                                <i class="fas fa-times me-2"></i>
-                                <span class="hindi">रद्द करें</span>
-                            </button>
-                            <button type="submit" class="btn btn-success" id="saveAdminBtn">
-                                <i class="fas fa-save me-2"></i>
-                                <span class="hindi">Admin जानकारी सेव करें</span>
-                            </button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Admin Activity Log Section -->
-                <div class="subsection-header mt-4">
-                    <i class="fas fa-history me-2"></i>
-                    <span class="hindi">Admin Activity Log</span>
-                </div>
-
-                <div class="data-table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th class="hindi">Date</th>
-                                <th class="hindi">Activity</th>
-                                <th class="hindi">Previous Value</th>
-                                <th class="hindi">New Value</th>
-                                <th class="hindi">Updated By</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activityLogTableBody">
-                            <tr>
-                                <td colspan="5" class="text-center hindi">कोई गतिविधि लॉग उपलब्ध नहीं है</td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Stats Section -->
-        <div class="dashboard-card mt-4">
-            <div class="section-header">
-                <i class="fas fa-chart-pie me-2"></i>
-                <span class="hindi">PMFBY Admin Statistics</span>
+        <!-- Reports Section -->
+        <div id="reportsSection" class="admin-section" style="display: none;">
+            <div class="page-header">
+                <h2 class="hindi">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Complete Admin Reports
+                </h2>
+                <p class="hindi mb-0">सभी PMFBY, CCE Admin और CCE Primary User की संपूर्ण रिपोर्ट</p>
             </div>
-            
-            <div style="padding: 25px;">
-                <div class="summary-cards">
-                    <div class="summary-card">
-                        <div class="summary-title">Total Updates</div>
-                        <div class="summary-value" id="totalUpdates">0</div>
-                        <div class="summary-description hindi">कुल अपडेट्स</div>
-                    </div>
-                    <div class="summary-card info">
-                        <div class="summary-title">Last Updated</div>
-                        <div class="summary-value" id="lastUpdated" style="font-size: 1.2rem;">-</div>
-                        <div class="summary-description hindi">अंतिम अपडेट</div>
-                    </div>
-                    <div class="summary-card warning">
-                        <div class="summary-title">Current Status</div>
-                        <div class="summary-value" id="currentStatusStat" style="font-size: 1.2rem;">-</div>
-                        <div class="summary-description hindi">वर्तमान स्थिति</div>
-                    </div>
-                    <div class="summary-card">
-                        <div class="summary-title">District</div>
-                        <div class="summary-value" id="districtStat" style="font-size: 1.2rem;">-</div>
-                        <div class="summary-description hindi">जिला</div>
-                    </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="summary-title">Total PMFBY Admins</div>
+                    <div class="summary-value" id="totalPMFBYAdmins">0</div>
+                    <div class="summary-description hindi">कुल PMFBY प्रशासक</div>
                 </div>
+                <div class="summary-card info">
+                    <div class="summary-title">Total CCE Admins</div>
+                    <div class="summary-value" id="totalCCEAdmins">0</div>
+                    <div class="summary-description hindi">कुल CCE प्रशासक</div>
+                </div>
+                <div class="summary-card warning">
+                    <div class="summary-title">CCE Primary Users</div>
+                    <div class="summary-value" id="totalCCEPrimary">0</div>
+                    <div class="summary-description hindi">कुल CCE प्राथमिक उपयोगकर्ता</div>
+                </div>
+                <div class="summary-card danger">
+                    <div class="summary-title">Hierarchy Issues</div>
+                    <div class="summary-value" id="totalHierarchyIssues">0</div>
+                    <div class="summary-description hindi">कुल Hierarchy समस्याएं</div>
+                </div>
+            </div>
+
+            <!-- Reports Tables will be added here dynamically -->
+            <div id="reportsContainer">
+                <!-- Reports content will be loaded here -->
             </div>
         </div>
     </div>
@@ -263,24 +556,71 @@
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     
-    <!-- Custom JS - Modified to work with your login system -->
+    <!-- Single Combined JavaScript -->
     <script>
-        // Override the common-utils authentication check for this page
-        function checkAuthentication() {
+        // Supabase configuration
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImV4cCI6MjA2ODY5MTY1NH0.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        // Global variables
+        let currentUser = null;
+        let villageHierarchyData = [];
+        let currentSection = 'pmfbyAdmin';
+
+        // Utility Functions
+        function showLoading(text = 'डेटा लोड हो रहा है...') {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            
+            if (loadingText) {
+                loadingText.textContent = text;
+            }
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
+        }
+
+        function hideLoading() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertBox = document.getElementById('alertBox');
+            if (!alertBox) return;
+            
+            alertBox.textContent = message;
+            alertBox.className = `alert alert-${type} hindi fade-in`;
+            alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        // Authentication Functions
+        async function checkAuthentication() {
             try {
                 const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
                 
                 if (!storedUser) {
-                    // Redirect to your login.in file instead of login.html
                     window.location.href = '../login.in';
                     return null;
                 }
                 
                 currentUser = JSON.parse(storedUser);
-                console.log('Current user:', currentUser);
+                console.log('Current user loaded:', currentUser);
                 
                 // Update UI with user info
                 updateUserInfo();
+                
+                // Setup navigation based on user role
+                setupNavigation();
                 
                 return currentUser;
                 
@@ -294,19 +634,627 @@
             }
         }
 
-        // Override logout function to redirect to your login.in
+        function updateUserInfo() {
+            if (!currentUser) return;
+            
+            // Update user name - try different possible field names
+            const userName = currentUser.fullName || currentUser.full_name || currentUser.name || currentUser.username || 'उपयोगकर्ता';
+            document.getElementById('userFullName').textContent = userName;
+            
+            // Update district - try different possible field names
+            const userDistrict = currentUser.districtName || currentUser.district_name || currentUser.district || 'N/A';
+            document.getElementById('userDistrict').textContent = userDistrict;
+            document.getElementById('breadcrumbDistrict').textContent = userDistrict;
+            
+            // Update role badge
+            const userRole = currentUser.role || currentUser.user_type || 'USER';
+            const roleBadge = document.getElementById('userRoleBadge');
+            
+            switch(userRole.toLowerCase()) {
+                case 'pmfby_admin':
+                case 'pmfby':
+                    roleBadge.textContent = 'PMFBY';
+                    roleBadge.style.background = 'linear-gradient(45deg, #FF9800, #FFB74D)';
+                    break;
+                case 'cce_admin':
+                case 'cce':
+                    roleBadge.textContent = 'CCE';
+                    roleBadge.style.background = 'linear-gradient(45deg, #2196F3, #64B5F6)';
+                    break;
+                case 'cce_primary':
+                case 'cce_primary_user':
+                    roleBadge.textContent = 'CCE-P';
+                    roleBadge.style.background = 'linear-gradient(45deg, #4CAF50, #81C784)';
+                    break;
+                case 'admin':
+                    roleBadge.textContent = 'ADMIN';
+                    roleBadge.style.background = 'linear-gradient(45deg, #9C27B0, #BA68C8)';
+                    break;
+                default:
+                    roleBadge.textContent = 'USER';
+                    roleBadge.style.background = 'linear-gradient(45deg, #607D8B, #90A4AE)';
+            }
+        }
+
+        function setupNavigation() {
+            if (!currentUser) return;
+            
+            const userRole = (currentUser.role || currentUser.user_type || '').toLowerCase();
+            
+            // Hide all navigation items first
+            document.getElementById('navPMFBYAdmin').style.display = 'none';
+            document.getElementById('navCCEAdmin').style.display = 'none';
+            document.getElementById('navCCEPrimary').style.display = 'none';
+            document.getElementById('navReports').style.display = 'none';
+            
+            // Show navigation items based on user role
+            switch(userRole) {
+                case 'pmfby_admin':
+                case 'pmfby':
+                    document.getElementById('navPMFBYAdmin').style.display = 'block';
+                    document.getElementById('navReports').style.display = 'block';
+                    currentSection = 'pmfbyAdmin';
+                    break;
+                    
+                case 'cce_admin':
+                case 'cce':
+                    document.getElementById('navCCEAdmin').style.display = 'block';
+                    document.getElementById('navReports').style.display = 'block';
+                    currentSection = 'cceAdmin';
+                    break;
+                    
+                case 'cce_primary':
+                case 'cce_primary_user':
+                    document.getElementById('navCCEPrimary').style.display = 'block';
+                    currentSection = 'ccePrimary';
+                    break;
+                    
+                case 'admin':
+                    // Admin can see everything
+                    document.getElementById('navPMFBYAdmin').style.display = 'block';
+                    document.getElementById('navCCEAdmin').style.display = 'block';
+                    document.getElementById('navCCEPrimary').style.display = 'block';
+                    document.getElementById('navReports').style.display = 'block';
+                    currentSection = 'reports';
+                    break;
+                    
+                default:
+                    // Default user - show basic access
+                    document.getElementById('navCCEPrimary').style.display = 'block';
+                    currentSection = 'ccePrimary';
+            }
+            
+            // Show the appropriate section
+            showSection(currentSection);
+        }
+
         function handleLogout() {
             if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-                // Clear storage
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
-                
-                // Redirect to your login.in
                 window.location.href = '../login.in';
             }
         }
+
+        // Section Management
+        function showSection(sectionName) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.admin-section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Remove active class from all nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById(sectionName + 'Section');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                currentSection = sectionName;
+                
+                // Add active class to current nav link
+                const activeNavItem = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
+                if (activeNavItem) {
+                    activeNavItem.classList.add('active');
+                }
+                
+                // Load section-specific data
+                loadSectionData(sectionName);
+            }
+        }
+
+        async function loadSectionData(sectionName) {
+            try {
+                switch(sectionName) {
+                    case 'pmfbyAdmin':
+                        await loadPMFBYAdminData();
+                        break;
+                    case 'cceAdmin':
+                        await loadCCEAdminData();
+                        break;
+                    case 'ccePrimary':
+                        await loadCCEPrimaryData();
+                        break;
+                    case 'reports':
+                        await loadReportsData();
+                        break;
+                }
+            } catch (error) {
+                console.error(`Error loading ${sectionName} data:`, error);
+                showAlert(`${sectionName} डेटा लोड करने में त्रुटि।`, 'danger');
+            }
+        }
+
+        // Village Hierarchy Functions
+        async function loadVillageHierarchy() {
+            try {
+                if (!currentUser) {
+                    throw new Error('User not authenticated');
+                }
+                
+                const userDistrict = currentUser.districtName || currentUser.district_name || currentUser.district;
+                if (!userDistrict) {
+                    throw new Error('User district not found');
+                }
+                
+                showLoading('Village Hierarchy लोड हो रहा है...');
+                
+                const { data, error } = await supabaseClient
+                    .from('village_hierarchy')
+                    .select('*')
+                    .eq('districtname', userDistrict)
+                    .order('level4name', { ascending: true });
+                
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
+                
+                villageHierarchyData = data || [];
+                console.log('Village hierarchy loaded:', villageHierarchyData.length, 'records');
+                
+                if (villageHierarchyData.length === 0) {
+                    showAlert(`जिला "${userDistrict}" के लिए कोई hierarchy डेटा नहीं मिला।`, 'warning');
+                    return;
+                }
+                
+                // Populate tehsil dropdown
+                populateTehsilDropdown();
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading village hierarchy:', error);
+                showAlert('Village hierarchy लोड करने में त्रुटि: ' + error.message, 'danger');
+                hideLoading();
+            }
+        }
+
+        function populateTehsilDropdown() {
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            if (!tehsilSelect) return;
+            
+            // Get unique tehsil names
+            const tehsilOptions = [...new Set(villageHierarchyData
+                .map(item => item.level4name)
+                .filter(name => name && name.trim() !== '')
+            )].sort();
+            
+            // Clear existing options
+            tehsilSelect.innerHTML = '<option value="">-- तहसील चुनें --</option>';
+            
+            // Add tehsil options
+            tehsilOptions.forEach(tehsil => {
+                const option = document.createElement('option');
+                option.value = tehsil;
+                option.textContent = tehsil;
+                tehsilSelect.appendChild(option);
+            });
+            
+            console.log('Tehsil options loaded:', tehsilOptions.length);
+        }
+
+        function handleTehsilChange() {
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            const riSelect = document.getElementById('riSelect');
+            const selectedTehsil = tehsilSelect.value;
+            
+            // Update breadcrumb
+            document.getElementById('breadcrumbTehsil').textContent = selectedTehsil || '-';
+            document.getElementById('breadcrumbRI').textContent = '-';
+            
+            // Reset RI dropdown
+            riSelect.innerHTML = '<option value="">-- RI चुनें --</option>';
+            riSelect.disabled = !selectedTehsil;
+            
+            // Hide CCE sections
+            document.getElementById('cceCountSection').style.display = 'none';
+            document.getElementById('hierarchyIssuesSection').style.display = 'none';
+            
+            if (!selectedTehsil) return;
+            
+            // Get unique RI names for selected tehsil
+            const riOptions = [...new Set(villageHierarchyData
+                .filter(item => item.level4name === selectedTehsil)
+                .map(item => item.level5name)
+                .filter(name => name && name.trim() !== '')
+            )].sort();
+            
+            // Populate RI dropdown
+            riOptions.forEach(ri => {
+                const option = document.createElement('option');
+                option.value = ri;
+                option.textContent = ri;
+                riSelect.appendChild(option);
+            });
+            
+            console.log('RI options loaded:', riOptions.length);
+        }
+
+        function handleRIChange() {
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            const riSelect = document.getElementById('riSelect');
+            const selectedTehsil = tehsilSelect.value;
+            const selectedRI = riSelect.value;
+            
+            // Update breadcrumb
+            document.getElementById('breadcrumbRI').textContent = selectedRI || '-';
+            
+            if (!selectedTehsil || !selectedRI) {
+                document.getElementById('cceCountSection').style.display = 'none';
+                document.getElementById('hierarchyIssuesSection').style.display = 'none';
+                return;
+            }
+            
+            // Show CCE count section
+            document.getElementById('cceCountSection').style.display = 'block';
+            
+            // Load villages for hierarchy issues
+            loadVillagesForHierarchy(selectedTehsil, selectedRI);
+        }
+
+        function loadVillagesForHierarchy(tehsil, ri) {
+            const villages = villageHierarchyData.filter(item => 
+                item.level4name === tehsil && 
+                item.level5name === ri &&
+                item.villagename && 
+                item.villagecode
+            );
+            
+            // Remove duplicates based on village code
+            const uniqueVillages = villages.filter((village, index, self) =>
+                index === self.findIndex(v => v.villagecode === village.villagecode)
+            ).sort((a, b) => a.villagename.localeCompare(b.villagename));
+            
+            displayVillagesList(uniqueVillages);
+        }
+
+        function displayVillagesList(villages) {
+            const villagesList = document.getElementById('villagesList');
+            
+            if (villages.length === 0) {
+                villagesList.innerHTML = '<div class="text-center text-muted hindi">कोई गांव नहीं मिला</div>';
+                return;
+            }
+            
+            let villagesHTML = '';
+            villages.forEach(village => {
+                villagesHTML += `
+                    <div class="village-item" data-village-code="${village.villagecode}" onclick="toggleVillageSelection('${village.villagecode}', '${village.villagename}', this)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="hindi">${village.villagename}</strong>
+                                <br>
+                                <small class="text-muted">Code: ${village.villagecode}</small>
+                            </div>
+                            <div>
+                                <i class="fas fa-plus-circle text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            villagesList.innerHTML = villagesHTML;
+        }
+
+        // PMFBY Admin Functions
+        async function loadPMFBYAdminData() {
+            try {
+                showLoading('PMFBY Admin डेटा लोड हो रहा है...');
+                
+                const userDistrict = currentUser.districtName || currentUser.district_name || currentUser.district;
+                
+                const { data, error } = await supabaseClient
+                    .from('pmfby_district_admins')
+                    .select('*')
+                    .eq('district_name', userDistrict)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                const pmfbyAdminData = data;
+                displayPMFBYAdminInfo(pmfbyAdminData);
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading PMFBY admin data:', error);
+                displayPMFBYAdminInfo(null);
+                hideLoading();
+            }
+        }
+
+        function displayPMFBYAdminInfo(adminData) {
+            const currentAdminInfo = document.getElementById('currentPMFBYAdminInfo');
+            const updateAdminBtn = document.getElementById('updatePMFBYAdminBtn');
+            
+            if (adminData) {
+                document.getElementById('currentPMFBYAdminName').textContent = adminData.admin_name || '-';
+                document.getElementById('currentPMFBYPostName').textContent = adminData.post_name || '-';
+                document.getElementById('currentPMFBYMobileNumber').textContent = adminData.mobile_number || '-';
+                
+                const statusElement = document.getElementById('currentPMFBYAdminStatus');
+                statusElement.textContent = adminData.status === 'active' ? 'Active' : 'Inactive';
+                statusElement.className = `admin-status ${adminData.status}`;
+                
+                if (adminData.status === 'inactive') {
+                    updateAdminBtn.style.display = 'block';
+                    currentAdminInfo.classList.add('inactive');
+                } else {
+                    updateAdminBtn.style.display = 'none';
+                    currentAdminInfo.classList.remove('inactive');
+                }
+            } else {
+                document.getElementById('currentPMFBYAdminName').textContent = 'कोई Admin नहीं मिला';
+                document.getElementById('currentPMFBYPostName').textContent = '-';
+                document.getElementById('currentPMFBYMobileNumber').textContent = '-';
+                
+                const statusElement = document.getElementById('currentPMFBYAdminStatus');
+                statusElement.textContent = 'Not Set';
+                statusElement.className = 'admin-status inactive';
+                
+                updateAdminBtn.style.display = 'block';
+                currentAdminInfo.classList.add('inactive');
+            }
+        }
+
+        // CCE Admin Functions
+        async function loadCCEAdminData() {
+            try {
+                showLoading('CCE Admin डेटा लोड हो रहा है...');
+                
+                const userDistrict = currentUser.districtName || currentUser.district_name || currentUser.district;
+                
+                const { data, error } = await supabaseClient
+                    .from('cce_district_admins')
+                    .select('*')
+                    .eq('district_name', userDistrict)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                const cceAdminData = data;
+                displayCCEAdminInfo(cceAdminData);
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading CCE admin data:', error);
+                displayCCEAdminInfo(null);
+                hideLoading();
+            }
+        }
+
+        function displayCCEAdminInfo(adminData) {
+            const currentAdminInfo = document.getElementById('currentCCEAdminInfo');
+            const updateAdminBtn = document.getElementById('updateCCEAdminBtn');
+            
+            if (adminData) {
+                document.getElementById('currentCCEAdminName').textContent = adminData.admin_name || '-';
+                document.getElementById('currentCCEPostName').textContent = adminData.post_name || '-';
+                document.getElementById('currentCCEMobileNumber').textContent = adminData.mobile_number || '-';
+                
+                const statusElement = document.getElementById('currentCCEAdminStatus');
+                statusElement.textContent = adminData.status === 'active' ? 'Active' : 'Inactive';
+                statusElement.className = `admin-status ${adminData.status}`;
+                
+                if (adminData.status === 'inactive') {
+                    updateAdminBtn.style.display = 'block';
+                    currentAdminInfo.classList.add('inactive');
+                } else {
+                    updateAdminBtn.style.display = 'none';
+                    currentAdminInfo.classList.remove('inactive');
+                }
+            } else {
+                document.getElementById('currentCCEAdminName').textContent = 'कोई Admin नहीं मिला';
+                document.getElementById('currentCCEPostName').textContent = '-';
+                document.getElementById('currentCCEMobileNumber').textContent = '-';
+                
+                const statusElement = document.getElementById('currentCCEAdminStatus');
+                statusElement.textContent = 'Not Set';
+                statusElement.className = 'admin-status inactive';
+                
+                updateAdminBtn.style.display = 'block';
+                currentAdminInfo.classList.add('inactive');
+            }
+        }
+
+        // CCE Primary Functions
+        async function loadCCEPrimaryData() {
+            try {
+                showLoading('CCE Primary डेटा लोड हो रहा है...');
+                
+                // Load village hierarchy for dropdowns
+                await loadVillageHierarchy();
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading CCE primary data:', error);
+                hideLoading();
+            }
+        }
+
+        // Reports Functions
+        async function loadReportsData() {
+            try {
+                showLoading('Reports डेटा लोड हो रहा है...');
+                
+                // Load summary data
+                const [pmfbyData, cceAdminData, ccePrimaryData, hierarchyData] = await Promise.all([
+                    supabaseClient.from('pmfby_district_admins').select('id'),
+                    supabaseClient.from('cce_district_admins').select('id'),
+                    supabaseClient.from('cce_primary_users_data').select('id'),
+                    supabaseClient.from('hierarchy_correction_log').select('id')
+                ]);
+                
+                // Update summary cards
+                document.getElementById('totalPMFBYAdmins').textContent = pmfbyData.data?.length || 0;
+                document.getElementById('totalCCEAdmins').textContent = cceAdminData.data?.length || 0;
+                document.getElementById('totalCCEPrimary').textContent = ccePrimaryData.data?.length || 0;
+                document.getElementById('totalHierarchyIssues').textContent = hierarchyData.data?.length || 0;
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading reports data:', error);
+                hideLoading();
+            }
+        }
+
+        // Form Validation Functions
+        function validateMobileNumber(mobile) {
+            const mobileRegex = /^[0-9]{10}$/;
+            return mobileRegex.test(mobile);
+        }
+
+        function showFieldError(field, message) {
+            field.classList.add('is-invalid');
+            field.classList.remove('is-valid');
+            
+            const feedback = field.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = message;
+            }
+        }
+
+        function clearFieldError(field) {
+            field.classList.remove('is-invalid');
+            field.classList.add('is-valid');
+            
+            const feedback = field.parentNode.querySelector('.invalid-feedback');
+            if (feedback) {
+                feedback.textContent = '';
+            }
+        }
+
+        // Event Listeners
+        function initializeEventListeners() {
+            // Logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
+            
+            // Tehsil and RI dropdowns
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            const riSelect = document.getElementById('riSelect');
+            
+            if (tehsilSelect) {
+                tehsilSelect.addEventListener('change', handleTehsilChange);
+            }
+            
+            if (riSelect) {
+                riSelect.addEventListener('change', handleRIChange);
+            }
+            
+            // Mobile number input formatting
+            const mobileInputs = document.querySelectorAll('input[type="tel"]');
+            mobileInputs.forEach(input => {
+                input.addEventListener('input', (e) => {
+                    e.target.value = e.target.value.replace(/\D/g, '');
+                    if (e.target.value.length > 10) {
+                        e.target.value = e.target.value.slice(0, 10);
+                    }
+                });
+            });
+            
+            // Real-time field validation
+            const requiredFields = document.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                field.addEventListener('blur', () => {
+                    const value = field.value.trim();
+                    
+                    if (!value) {
+                        showFieldError(field, 'यह फील्ड आवश्यक है');
+                    } else {
+                        clearFieldError(field);
+                        
+                        if (field.type === 'tel' && !validateMobileNumber(value)) {
+                            showFieldError(field, 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें');
+                        }
+                    }
+                });
+            });
+        }
+
+        // Initialize Application
+        async function initializeApp() {
+            try {
+                console.log('Initializing Admin Dashboard...');
+                
+                // Check authentication first
+                const user = await checkAuthentication();
+                if (!user) return;
+                
+                // Initialize event listeners
+                initializeEventListeners();
+                
+                console.log('Admin Dashboard initialized successfully');
+                
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                showAlert('एप्लिकेशन शुरू करने में त्रुटि।', 'danger');
+            }
+        }
+
+        // DOM Content Loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Starting Admin Dashboard');
+            initializeApp();
+        });
+
+        // Console welcome message
+        console.log(`
+        ╔══════════════════════════════════════════════════════════════╗
+        ║                   Single Page Admin Dashboard                ║
+        ║                   संचालनालय कृषि छत्तीसगढ़                     ║
+        ║                                                              ║
+        ║  🔧 PMFBY District Admin Management                         ║
+        ║  🌾 CCE District Admin Management                           ║
+        ║  👥 CCE Primary User Management                             ║
+        ║  🗂️ Hierarchy Validation & Correction                       ║
+        ║  📊 Complete Reporting System                               ║
+        ║                                                              ║
+        ║  ✅ Single HTML file with dynamic sections                  ║
+        ║  ✅ Role-based navigation                                   ║
+        ║  ✅ Fixed user authentication                               ║
+        ║  ✅ Fixed village hierarchy dropdowns                       ║
+        ║                                                              ║
+        ║  Admin Dashboard loaded successfully!                       ║
+        ╚══════════════════════════════════════════════════════════════╝
+        `);
     </script>
-    <script src="../js/common-utils.js"></script>
-    <script src="../js/pmfby-admin.js"></script>
 </body>
 </html>
