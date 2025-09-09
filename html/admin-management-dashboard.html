@@ -16,8 +16,812 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="../css/admin-management-styles.css">
+    <!-- Embedded CSS Styles -->
+    <style>
+        /* CSS Variables - Same as your dbt color scheme */
+        :root {
+            --primary-brand-dark: #1A431A;
+            --primary-brand-medium: #2E7D32;
+            --primary-brand-light: #4CAF50;
+            --secondary-brand-blue: #1565C0;
+            --secondary-brand-light-blue: #90CAF9;
+            
+            --background-main: #F8F9FA;
+            --background-card: #FFFFFF;
+            --background-light-gray: #F0F2F5;
+            
+            --text-color-dark: #343A40;
+            --text-color-medium: #6C757D;
+            --text-color-light: #FFFFFF;
+            
+            --border-color-light: #E9ECEF;
+            --border-color-medium: #CED4DA;
+            
+            --shadow-subtle: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-medium: 0 5px 15px rgba(0, 0, 0, 0.1);
+            --shadow-strong: 0 10px 30px rgba(0, 0, 0, 0.15);
+            
+            --alert-success-bg: #D4EDDA;
+            --alert-success-text: #155724;
+            --alert-success-border: #C3E6CB;
+            
+            --alert-info-bg: #CCE5FF;
+            --alert-info-text: #004085;
+            --alert-info-border: #B8DAFF;
+            
+            --alert-warning-bg: #FFF3CD;
+            --alert-warning-text: #856404;
+            --alert-warning-border: #FFECB3;
+            
+            --alert-danger-bg: #F8D7DA;
+            --alert-danger-text: #721C24;
+            --alert-danger-border: #F5C6CB;
+
+            --pistachio-lightest: #F8FFF8;
+            --pistachio-light: #E6F5E6;
+            --pistachio-border: #C8E6C8;
+            
+            --header-section-bg: #FFFDE7;
+            --header-section-border: #FFECB3;
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Mukta', sans-serif;
+            background: var(--background-main);
+            min-height: 100vh;
+            color: var(--text-color-dark) !important;
+            line-height: 1.6;
+        }
+
+        .hindi {
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            line-height: 1.5;
+            color: var(--text-color-dark) !important;
+        }
+
+        /* Header & Navbar */
+        .header {
+            background: linear-gradient(135deg, var(--primary-brand-dark) 0%, var(--primary-brand-medium) 100%);
+            box-shadow: var(--shadow-medium);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            border-bottom: 3px solid var(--primary-brand-light);
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            overflow: hidden;
+        }
+
+        .navbar {
+            padding: 10px 0;
+            min-height: 60px;
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-color-light);
+            display: flex;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .navbar-brand img {
+            height: 35px;
+            margin-right: 10px;
+        }
+
+        .navbar-nav .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 500;
+            padding: 7px 14px;
+            border-radius: 5px;
+            transition: all 0.2s ease;
+            margin: 0 3px;
+            display: flex;
+            align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .navbar-nav .nav-link:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-1px);
+        }
+
+        .navbar-nav .nav-link.active {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Admin Badge */
+        .admin-badge {
+            background: linear-gradient(45deg, #FF9800, #FFB74D);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 7px;
+            border-radius: 10px;
+            margin-left: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            background-color: var(--background-card);
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: var(--shadow-strong);
+            color: var(--text-color-dark) !important;
+        }
+
+        /* Main Container */
+        .admin-container {
+            max-width: 1300px;
+            margin: 25px auto;
+            padding: 0 20px;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--secondary-brand-blue) 0%, #1E88E5 100%);
+            color: var(--text-color-light) !important;
+            padding: 20px 30px;
+            border-radius: 12px 12px 0 0;
+            box-shadow: var(--shadow-medium);
+        }
+
+        .page-header h2 {
+            font-weight: 700;
+            font-size: 1.7rem;
+            color: var(--text-color-light) !important;
+        }
+
+        .dashboard-card {
+            background: var(--background-card);
+            border-radius: 0 0 12px 12px;
+            box-shadow: var(--shadow-strong);
+            overflow: hidden;
+        }
+
+        /* Section Headers */
+        .section-header {
+            background: var(--header-section-bg);
+            border-bottom: 1px solid var(--header-section-border);
+            padding: 18px 25px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: var(--text-color-dark) !important;
+        }
+
+        .subsection-header {
+            background: var(--secondary-brand-light-blue);
+            padding: 14px 25px;
+            border-left: 4px solid var(--secondary-brand-blue);
+            margin: 18px 0 12px 0;
+            font-weight: 600;
+            font-size: 1.05rem;
+            color: var(--secondary-brand-blue) !important;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .subsection-header:hover {
+            background: #A7D9F8;
+        }
+
+        /* Admin Info Cards */
+        .admin-info-card {
+            background: var(--background-card);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-subtle);
+            border-left: 4px solid var(--primary-brand-light);
+        }
+
+        .admin-info-card.inactive {
+            border-left-color: var(--alert-warning-border);
+            background: var(--alert-warning-bg);
+        }
+
+        .admin-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .admin-status.active {
+            background: var(--alert-success-bg);
+            color: var(--alert-success-text) !important;
+            border: 1px solid var(--alert-success-border);
+        }
+
+        .admin-status.inactive {
+            background: var(--alert-warning-bg);
+            color: var(--alert-warning-text) !important;
+            border: 1px solid var(--alert-warning-border);
+        }
+
+        /* Form Styles */
+        .form-label {
+            font-weight: 600;
+            color: var(--text-color-dark) !important;
+            margin-bottom: 6px;
+            font-size: 0.95rem;
+        }
+
+        .required-field::after {
+            content: " *";
+            color: var(--alert-danger-text);
+            font-weight: 700;
+        }
+
+        .form-control, .form-select, textarea {
+            height: 48px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color-medium) !important;
+            padding: 10px 15px;
+            font-size: 0.95rem;
+            background-color: var(--pistachio-light) !important;
+            color: var(--text-color-dark) !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .form-control:focus, .form-select:focus, textarea:focus {
+            outline: none;
+            background-color: var(--background-card) !important;
+            border-color: var(--primary-brand-light) !important;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.15) !important;
+        }
+
+        .form-control:hover:not(:focus), .form-select:hover:not(:focus), textarea:hover:not(:focus) {
+            background-color: var(--pistachio-lightest) !important;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-row.two-col {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .form-row.three-col {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--secondary-brand-blue) 0%, #1E88E5 100%);
+            border: none;
+            color: var(--text-color-light);
+            height: 48px;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-shadow: var(--shadow-subtle);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1E88E5 0%, var(--secondary-brand-blue) 100%);
+            box-shadow: var(--shadow-medium);
+            transform: translateY(-1px);
+            color: var(--text-color-light);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--text-color-medium) 0%, #7B8188 100%);
+            border: none;
+            color: var(--text-color-light);
+            height: 48px;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #7B8188 0%, var(--text-color-medium) 100%);
+            transform: translateY(-1px);
+            color: var(--text-color-light);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--primary-brand-light) 0%, var(--primary-brand-medium) 100%);
+            border: none;
+            color: var(--text-color-light);
+            height: 48px;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-shadow: var(--shadow-subtle);
+            transition: all 0.2s ease;
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, var(--primary-brand-medium) 0%, var(--primary-brand-dark) 100%);
+            box-shadow: var(--shadow-medium);
+            transform: translateY(-1px);
+            color: var(--text-color-light);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #FF9800 0%, #FFB74D 100%);
+            border: none;
+            color: var(--text-color-light);
+            height: 48px;
+            font-weight: 600;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #F57C00 0%, #FF9800 100%);
+            box-shadow: var(--shadow-medium);
+            transform: translateY(-1px);
+            color: var(--text-color-light);
+        }
+
+        /* Form Actions */
+        .form-actions {
+            background: var(--background-light-gray);
+            padding: 20px 25px;
+            border-top: 1px solid var(--border-color-light);
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .form-actions.center {
+            justify-content: center;
+        }
+
+        /* Validation States */
+        .is-invalid {
+            border-color: var(--alert-danger-border) !important;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+            background-color: var(--alert-danger-bg) !important;
+        }
+
+        .invalid-feedback {
+            color: var(--alert-danger-text) !important;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: block;
+        }
+
+        .is-valid {
+            border-color: var(--primary-brand-light) !important;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1) !important;
+            background-color: var(--alert-success-bg) !important;
+        }
+
+        /* CCE Primary User Stats */
+        .cce-stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        /* Hierarchy Issue Section */
+        .hierarchy-issue-section {
+            background: var(--alert-warning-bg);
+            border: 2px solid var(--alert-warning-border);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .hierarchy-issue-title {
+            color: var(--alert-warning-text) !important;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        .village-selection-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color-medium);
+            border-radius: 6px;
+            background: var(--background-card);
+        }
+
+        .village-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color-light);
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .village-item:hover {
+            background: var(--pistachio-light);
+        }
+
+        .village-item.selected {
+            background: var(--secondary-brand-light-blue);
+            border-left: 4px solid var(--secondary-brand-blue);
+        }
+
+        /* Reports Styles */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: var(--background-card);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow-subtle);
+            border-left: 4px solid var(--primary-brand-light);
+        }
+
+        .summary-card.warning {
+            border-left-color: #FF9800;
+        }
+
+        .summary-card.danger {
+            border-left-color: #DC3545;
+        }
+
+        .summary-card.info {
+            border-left-color: var(--secondary-brand-blue);
+        }
+
+        .summary-title {
+            font-size: 0.85rem;
+            color: var(--text-color-medium);
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-color-dark);
+            margin-bottom: 5px;
+        }
+
+        .summary-description {
+            font-size: 0.8rem;
+            color: var(--text-color-medium);
+        }
+
+        .reports-container {
+            background: var(--background-card);
+            border-radius: 8px;
+            box-shadow: var(--shadow-medium);
+            overflow: hidden;
+            margin-bottom: 30px;
+        }
+
+        .reports-header {
+            background: linear-gradient(135deg, var(--primary-brand-medium) 0%, var(--primary-brand-dark) 100%);
+            color: var(--text-color-light) !important;
+            padding: 20px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reports-header h3 {
+            margin: 0;
+            font-weight: 700;
+            color: var(--text-color-light) !important;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .export-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .export-btn.excel {
+            background: linear-gradient(135deg, #28A745 0%, #20C997 100%);
+            color: var(--text-color-light);
+        }
+
+        .export-btn.excel:hover {
+            background: linear-gradient(135deg, #20C997 0%, #28A745 100%);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-medium);
+            color: var(--text-color-light);
+        }
+
+        .export-btn.pdf {
+            background: linear-gradient(135deg, #DC3545 0%, #FD7E14 100%);
+            color: var(--text-color-light);
+        }
+
+        .export-btn.pdf:hover {
+            background: linear-gradient(135deg, #FD7E14 0%, #DC3545 100%);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-medium);
+            color: var(--text-color-light);
+        }
+
+        .data-table-container {
+            overflow-x: auto;
+            max-height: 600px;
+            border: 1px solid var(--border-color-light);
+        }
+
+        .data-table {
+            width: 100%;
+            margin: 0;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table thead th {
+            background: var(--secondary-brand-light-blue);
+            color: var(--secondary-brand-blue) !important;
+            font-weight: 600;
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--secondary-brand-blue);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table tbody td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color-light);
+            color: var(--text-color-dark) !important;
+        }
+
+        .data-table tbody tr:hover {
+            background-color: var(--pistachio-light);
+        }
+
+        .data-table tbody tr:nth-child(even) {
+            background-color: var(--background-light-gray);
+        }
+
+        .data-table tbody tr:nth-child(even):hover {
+            background-color: var(--pistachio-light);
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-indicator.active {
+            background: var(--alert-success-bg);
+            color: var(--alert-success-text);
+        }
+
+        .status-indicator.inactive {
+            background: var(--alert-warning-bg);
+            color: var(--alert-warning-text);
+        }
+
+        /* Alerts */
+        .alert {
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 14px 18px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-subtle);
+            border: 1px solid transparent;
+            color: var(--text-color-dark) !important;
+        }
+
+        .alert-info {
+            background: var(--alert-info-bg);
+            color: var(--alert-info-text) !important;
+            border-left: 4px solid var(--alert-info-border);
+        }
+
+        .alert-success {
+            background: var(--alert-success-bg);
+            color: var(--alert-success-text) !important;
+            border-left: 4px solid var(--alert-success-border);
+        }
+
+        .alert-danger {
+            background: var(--alert-danger-bg);
+            color: var(--alert-danger-text) !important;
+            border-left: 4px solid var(--alert-danger-border);
+        }
+
+        .alert-warning {
+            background: var(--alert-warning-bg);
+            color: var(--alert-warning-text) !important;
+            border-left: 4px solid var(--alert-warning-border);
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .text-left { text-align: left; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-1 { margin-bottom: 0.25rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-3 { margin-bottom: 1rem; }
+        .mt-3 { margin-top: 1rem; }
+        .mt-4 { margin-top: 1.5rem; }
+        .p-0 { padding: 0; }
+        .d-none { display: none; }
+        .d-block { display: block; }
+        .d-flex { display: flex; }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1200px) {
+            .form-row.three-col {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .admin-container {
+                padding: 0 15px;
+            }
+            
+            .form-row.two-col,
+            .form-row.three-col {
+                grid-template-columns: 1fr;
+            }
+            
+            .cce-stats-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .page-header {
+                padding: 15px 20px;
+            }
+            
+            .section-header {
+                padding: 15px 20px;
+                font-size: 1.1rem;
+            }
+            
+            .subsection-header {
+                padding: 12px 20px;
+                font-size: 1rem;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+                padding: 20px 15px;
+            }
+            
+            .export-buttons {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .export-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .navbar-brand {
+                font-size: 1.1rem;
+            }
+            
+            .navbar-brand img {
+                height: 30px;
+            }
+            
+            .reports-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .data-table {
+                font-size: 0.8rem;
+            }
+            
+            .data-table thead th,
+            .data-table tbody td {
+                padding: 8px 6px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-control, .form-select {
+                height: 42px;
+                font-size: 0.85rem;
+            }
+            
+            .btn-primary, .btn-secondary, .btn-success, .btn-warning {
+                height: 42px;
+                font-size: 0.9rem;
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .data-table {
+                font-size: 0.75rem;
+            }
+            
+            .data-table thead th,
+            .data-table tbody td {
+                padding: 6px 4px;
+            }
+            
+            .summary-value {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -581,6 +1385,131 @@
                         </table>
                     </div>
                 </div>
+
+                <div class="reports-container mt-4">
+                    <div class="reports-header">
+                        <h3 class="hindi">
+                            <i class="fas fa-user-cog me-2"></i>
+                            CCE District Admin Report
+                        </h3>
+                        <div class="export-buttons">
+                            <button class="export-btn excel" onclick="exportCCEAdminData('excel')">
+                                <i class="fas fa-file-excel"></i>
+                                Excel
+                            </button>
+                            <button class="export-btn pdf" onclick="exportCCEAdminData('pdf')">
+                                <i class="fas fa-file-pdf"></i>
+                                PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="hindi">District</th>
+                                    <th class="hindi">Admin Name</th>
+                                    <th class="hindi">Post Name</th>
+                                    <th class="hindi">Mobile Number</th>
+                                    <th class="hindi">Status</th>
+                                    <th class="hindi">Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cceAdminTableBody">
+                                <tr>
+                                    <td colspan="6" class="text-center hindi">डेटा लोड हो रहा है...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="reports-container mt-4">
+                    <div class="reports-header">
+                        <h3 class="hindi">
+                            <i class="fas fa-seedling me-2"></i>
+                            CCE Primary User Complete Report
+                        </h3>
+                        <div class="export-buttons">
+                            <button class="export-btn excel" onclick="exportCCEPrimaryData('excel')">
+                                <i class="fas fa-file-excel"></i>
+                                Excel
+                            </button>
+                            <button class="export-btn pdf" onclick="exportCCEPrimaryData('pdf')">
+                                <i class="fas fa-file-pdf"></i>
+                                PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="hindi">District</th>
+                                    <th class="hindi">Tehsil</th>
+                                    <th class="hindi">RI Name</th>
+                                    <th class="hindi">CCE Primary User Name</th>
+                                    <th class="hindi">Mobile Number</th>
+                                    <th class="hindi">Total Users</th>
+                                    <th class="hindi">Active Users</th>
+                                    <th class="hindi">Hierarchy Issues</th>
+                                    <th class="hindi">Submission Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ccePrimaryTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center hindi">डेटा लोड हो रहा है...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="reports-container mt-4">
+                    <div class="reports-header">
+                        <h3 class="hindi">
+                            <i class="fas fa-sitemap me-2"></i>
+                            Hierarchy Correction Complete Report
+                        </h3>
+                        <div class="export-buttons">
+                            <button class="export-btn excel" onclick="exportHierarchyData('excel')">
+                                <i class="fas fa-file-excel"></i>
+                                Excel
+                            </button>
+                            <button class="export-btn pdf" onclick="exportHierarchyData('pdf')">
+                                <i class="fas fa-file-pdf"></i>
+                                PDF
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="data-table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="hindi">District</th>
+                                    <th class="hindi">Village Name</th>
+                                    <th class="hindi">Village Code</th>
+                                    <th class="hindi">Original L4</th>
+                                    <th class="hindi">Corrected L4</th>
+                                    <th class="hindi">Original L5</th>
+                                    <th class="hindi">Corrected L5</th>
+                                    <th class="hindi">Issue Type</th>
+                                    <th class="hindi">Status</th>
+                                    <th class="hindi">Submitted By</th>
+                                    <th class="hindi">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hierarchyTableBody">
+                                <tr>
+                                    <td colspan="11" class="text-center hindi">डेटा लोड हो रहा है...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -590,11 +1519,1606 @@
     <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.min.js"></script>
     
-    <!-- Core JavaScript - Always Load -->
-    <script src="../js/admin-management-core.js"></script>
-    
-    <!-- Role-based JavaScript - Loaded Dynamically -->
-    <script id="roleSpecificScript"></script>
+    <!-- Embedded JavaScript Logic -->
+    <script>
+        // Supabase configuration
+        const supabaseUrl = 'https://txjbfqrbbtvzlxpeegkv.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4amJmcXJiYnR2emx4cGVlZ2t2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTMxMTU2NTQsImeXAiOiJ0eXAiOiJleHAiOjIwNjg2OTE2NTR9.sE5UbwEOSnd9ED-k_Ix5OfdZbf7dmwlHZSjQQrEAyCo';
+        
+        const { createClient } = supabase;
+        const supabaseClient = createClient(supabaseUrl, supabaseKey);
+
+        // Global variables
+        let currentUser = null;
+        let villageHierarchyData = [];
+        let currentSection = 'pmfbyAdmin'; // Default section
+        let selectedVillages = []; // For CCE Primary hierarchy issues
+        
+        // Data for PMFBY Admin section
+        let pmfbyAdminData = null;
+        
+        // Data for CCE Admin section
+        let cceAdminData = null;
+
+        // Data for Reports section
+        let pmfbyAdminReportData = [];
+        let cceAdminReportData = [];
+        let ccePrimaryReportData = [];
+        let hierarchyReportData = [];
+
+        // Utility Functions
+        function showLoading(text = 'डेटा लोड हो रहा है...') {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const loadingText = document.getElementById('loadingText');
+            
+            if (loadingText) {
+                loadingText.textContent = text;
+            }
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'flex';
+            }
+        }
+
+        function hideLoading() {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            if (loadingOverlay) {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        function showAlert(message, type = 'info') {
+            const alertBox = document.getElementById('alertBox');
+            if (!alertBox) return;
+            
+            alertBox.textContent = message;
+            alertBox.className = `alert alert-${type} hindi fade-in`;
+            alertBox.style.display = 'block';
+            
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 5000);
+        }
+
+        // Authentication Functions
+        async function checkAuthentication() {
+            try {
+                const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+                
+                if (!storedUser) {
+                    // Redirect to header.html (go up one level from pmfby/html/ folder)
+                    window.location.href = '../../header.html'; // Corrected path
+                    return null;
+                }
+                
+                currentUser = JSON.parse(storedUser);
+                console.log('Current user loaded:', currentUser);
+                
+                // Debug: Log the current user object to see what fields are available
+                console.log('User object fields:', Object.keys(currentUser));
+                console.log('Full user object:', currentUser);
+                
+                // Update UI with user info
+                updateUserInfo();
+                
+                // Setup navigation based on user role
+                setupNavigation();
+                
+                return currentUser;
+                
+            } catch (error) {
+                console.error('Authentication error:', error);
+                showAlert('प्रमाणीकरण त्रुटि, कृपया पुनः लॉगिन करें।', 'danger');
+                setTimeout(() => {
+                    // Redirect to header.html (go up one level from pmfby/html/ folder)
+                    window.location.href = '../../header.html'; // Corrected path
+                }, 2000);
+                return null;
+            }
+        }
+
+        function handleLogout() {
+            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
+                localStorage.removeItem('user');
+                sessionStorage.removeItem('user');
+                // Redirect to header.html (go up one level from pmfby/html/ folder)
+                window.location.href = '../../header.html'; // Corrected path
+            }
+        }
+
+        function updateUserInfo() {
+            if (!currentUser) return;
+            
+            // Update user name - try different possible field names from your login system
+            const userName = currentUser.fullName || 
+                            currentUser.full_name || 
+                            currentUser.name || 
+                            currentUser.username || 
+                            currentUser.user_name || 
+                            currentUser.displayName ||
+                            currentUser.firstName ||
+                            'उपयोगकर्ता';
+            document.getElementById('userFullName').textContent = userName;
+            
+            // Update district - try different possible field names from your login system
+            const userDistrict = currentUser.districtName || 
+                               currentUser.district_name || 
+                               currentUser.district || 
+                               currentUser.districtname ||
+                               currentUser.District ||
+                               'N/A';
+            document.getElementById('userDistrict').textContent = userDistrict;
+            
+            // Update breadcrumb if exists
+            const breadcrumbDistrict = document.getElementById('breadcrumbDistrict');
+            if (breadcrumbDistrict) {
+                breadcrumbDistrict.textContent = userDistrict;
+            }
+            
+            // Update role badge
+            const userRole = currentUser.role || 
+                           currentUser.user_type || 
+                           currentUser.userType || 
+                           currentUser.type ||
+                           currentUser.Role ||
+                           'USER';
+            const roleBadge = document.getElementById('userRoleBadge');
+            
+            // Check role and set badge accordingly
+            const roleStr = userRole.toString().toLowerCase();
+            
+            if (roleStr.includes('pmfby') || roleStr.includes('pmfby_admin')) {
+                roleBadge.textContent = 'PMFBY';
+                roleBadge.style.background = 'linear-gradient(45deg, #FF9800, #FFB74D)';
+            } else if (roleStr.includes('cce_admin') || (roleStr.includes('cce') && roleStr.includes('admin'))) {
+                roleBadge.textContent = 'CCE';
+                roleBadge.style.background = 'linear-gradient(45deg, #2196F3, #64B5F6)';
+            } else if (roleStr.includes('cce_primary') || (roleStr.includes('cce') && roleStr.includes('primary'))) {
+                roleBadge.textContent = 'CCE-P';
+                roleBadge.style.background = 'linear-gradient(45deg, #4CAF50, #81C784)';
+            } else if (roleStr.includes('admin')) {
+                roleBadge.textContent = 'ADMIN';
+                roleBadge.style.background = 'linear-gradient(45deg, #9C27B0, #BA68C8)';
+            } else {
+                roleBadge.textContent = 'USER';
+                roleBadge.style.background = 'linear-gradient(45deg, #607D8B, #90A4AE)';
+            }
+        }
+
+        function setupNavigation() {
+            if (!currentUser) return;
+            
+            const userRole = (currentUser.role || currentUser.user_type || currentUser.userType || currentUser.type || '').toString().toLowerCase();
+            
+            // Hide all navigation items first
+            document.getElementById('navPMFBYAdmin').style.display = 'none';
+            document.getElementById('navCCEAdmin').style.display = 'none';
+            document.getElementById('navCCEPrimary').style.display = 'none';
+            document.getElementById('navReports').style.display = 'none';
+            
+            // Show navigation items based on user role
+            if (userRole.includes('pmfby') || userRole.includes('pmfby_admin')) {
+                document.getElementById('navPMFBYAdmin').style.display = 'block';
+                document.getElementById('navReports').style.display = 'block';
+                currentSection = 'pmfbyAdmin';
+            } else if (userRole.includes('cce_admin') || (userRole.includes('cce') && userRole.includes('admin'))) {
+                document.getElementById('navCCEAdmin').style.display = 'block';
+                document.getElementById('navReports').style.display = 'block';
+                currentSection = 'cceAdmin';
+            } else if (userRole.includes('cce_primary') || (userRole.includes('cce') && userRole.includes('primary'))) {
+                document.getElementById('navCCEPrimary').style.display = 'block';
+                currentSection = 'ccePrimary';
+            } else if (userRole.includes('admin')) {
+                // Admin can see everything
+                document.getElementById('navPMFBYAdmin').style.display = 'block';
+                document.getElementById('navCCEAdmin').style.display = 'block';
+                document.getElementById('navCCEPrimary').style.display = 'block';
+                document.getElementById('navReports').style.display = 'block';
+                currentSection = 'reports';
+            } else {
+                // Default user - show CCE Primary access
+                document.getElementById('navCCEPrimary').style.display = 'block';
+                currentSection = 'ccePrimary';
+            }
+            
+            // Show the appropriate section
+            showSection(currentSection);
+        }
+
+        // Section Management
+        function showSection(sectionName) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.admin-section');
+            sections.forEach(section => {
+                section.style.display = 'none';
+            });
+            
+            // Remove active class from all nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById(sectionName + 'Section');
+            if (targetSection) {
+                targetSection.style.display = 'block';
+                currentSection = sectionName;
+                
+                // Add active class to current nav link
+                const activeNavItem = document.querySelector(`[onclick="showSection('${sectionName}')"]`);
+                if (activeNavItem) {
+                    activeNavItem.classList.add('active');
+                }
+                
+                // Load section-specific data
+                loadSectionData(sectionName);
+            }
+        }
+
+        async function loadSectionData(sectionName) {
+            try {
+                switch(sectionName) {
+                    case 'pmfbyAdmin':
+                        await loadPMFBYAdminData();
+                        break;
+                    case 'cceAdmin':
+                        await loadCCEAdminData();
+                        break;
+                    case 'ccePrimary':
+                        await loadCCEPrimaryData();
+                        break;
+                    case 'reports':
+                        await loadReportsData();
+                        break;
+                }
+            } catch (error) {
+                console.error(`Error loading ${sectionName} data:`, error);
+                showAlert(`${sectionName} डेटा लोड करने में त्रुटि।`, 'danger');
+            }
+        }
+
+        // Village Hierarchy Functions
+        async function loadVillageHierarchy(districtName) {
+            try {
+                if (!districtName) {
+                    throw new Error('District name is required');
+                }
+                
+                const { data, error } = await supabaseClient
+                    .from('village_hierarchy')
+                    .select('*')
+                    .eq('districtname', districtName)
+                    .order('level4name', { ascending: true });
+                
+                if (error) {
+                    console.error('Supabase error:', error);
+                    throw error;
+                }
+                
+                return data || [];
+                
+            } catch (error) {
+                console.error('Error loading village hierarchy:', error);
+                throw error;
+            }
+        }
+
+        function populateTehsilDropdown() {
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            if (!tehsilSelect) return;
+            
+            // Get unique tehsil names
+            const tehsilOptions = getUniqueValues(villageHierarchyData, 'level4name');
+            populateDropdown('tehsilSelect', tehsilOptions, '-- तहसील चुनें --');
+            
+            console.log('Tehsil options loaded:', tehsilOptions.length);
+        }
+
+        function handleTehsilChange() {
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            const riSelect = document.getElementById('riSelect');
+            const selectedTehsil = tehsilSelect.value;
+            
+            // Update breadcrumb
+            document.getElementById('breadcrumbTehsil').textContent = selectedTehsil || '-';
+            document.getElementById('breadcrumbRI').textContent = '-';
+            
+            // Reset RI dropdown
+            riSelect.innerHTML = '<option value="">-- RI चुनें --</option>';
+            riSelect.disabled = !selectedTehsil;
+            
+            // Hide CCE sections
+            document.getElementById('cceCountSection').style.display = 'none';
+            document.getElementById('hierarchyIssuesSection').style.display = 'none';
+            selectedVillages = []; // Clear selected villages on tehsil change
+            updateSelectedVillagesList();
+            
+            if (!selectedTehsil) return;
+            
+            // Get unique RI names for selected tehsil
+            const riOptions = getUniqueValues(
+                villageHierarchyData.filter(item => item.level4name === selectedTehsil),
+                'level5name'
+            );
+            
+            // Populate RI dropdown
+            populateDropdown('riSelect', riOptions, '-- RI चुनें --');
+            
+            console.log('RI options loaded:', riOptions.length);
+        }
+
+        function handleRIChange() {
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            const riSelect = document.getElementById('riSelect');
+            const selectedTehsil = tehsilSelect.value;
+            const selectedRI = riSelect.value;
+            
+            // Update breadcrumb
+            document.getElementById('breadcrumbRI').textContent = selectedRI || '-';
+            
+            if (!selectedTehsil || !selectedRI) {
+                document.getElementById('cceCountSection').style.display = 'none';
+                document.getElementById('hierarchyIssuesSection').style.display = 'none';
+                selectedVillages = []; // Clear selected villages on RI change
+                updateSelectedVillagesList();
+                return;
+            }
+            
+            // Show CCE count section
+            document.getElementById('cceCountSection').style.display = 'block';
+            
+            // Load villages for hierarchy issues
+            loadVillagesForHierarchyForPrimary(selectedTehsil, selectedRI);
+        }
+
+        function loadVillagesForHierarchyForPrimary(tehsil, ri) {
+            const villages = villageHierarchyData.filter(item => 
+                item.level4name === tehsil && 
+                item.level5name === ri &&
+                item.villagename && 
+                item.villagecode
+            );
+            
+            // Remove duplicates based on village code
+            const uniqueVillages = villages.filter((village, index, self) =>
+                index === self.findIndex(v => v.villagecode === village.villagecode)
+            ).sort((a, b) => a.villagename.localeCompare(b.villagename));
+            
+            displayVillagesListForPrimary(uniqueVillages);
+        }
+
+        function displayVillagesListForPrimary(villages) {
+            const villagesList = document.getElementById('villagesList');
+            
+            if (villages.length === 0) {
+                villagesList.innerHTML = '<div class="text-center text-muted hindi">कोई गांव नहीं मिला</div>';
+                return;
+            }
+            
+            let villagesHTML = '';
+            villages.forEach(village => {
+                villagesHTML += `
+                    <div class="village-item" data-village-code="${village.villagecode}" onclick="toggleVillageSelectionForPrimary('${village.villagecode}', '${village.villagename}', this)">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="hindi">${village.villagename}</strong>
+                                <br>
+                                <small class="text-muted">Code: ${village.villagecode}</small>
+                            </div>
+                            <div>
+                                <i class="fas fa-plus-circle text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            villagesList.innerHTML = villagesHTML;
+        }
+
+        function toggleVillageSelectionForPrimary(villageCode, villageName, element) {
+            const isSelected = element.classList.contains('selected');
+            
+            if (isSelected) {
+                // Remove from selection
+                element.classList.remove('selected');
+                element.querySelector('i').className = 'fas fa-plus-circle text-primary';
+                
+                selectedVillages = selectedVillages.filter(v => v.villagecode !== villageCode);
+                
+            } else {
+                // Add to selection
+                element.classList.add('selected');
+                element.querySelector('i').className = 'fas fa-check-circle text-success';
+                
+                const villageData = villageHierarchyData.find(v => v.villagecode === villageCode);
+                if (villageData) {
+                    selectedVillages.push(villageData);
+                }
+            }
+            
+            updateSelectedVillagesList();
+        }
+
+        function updateSelectedVillagesList() {
+            const selectedVillagesList = document.getElementById('selectedVillagesList');
+            
+            if (selectedVillages.length === 0) {
+                selectedVillagesList.innerHTML = '<div class="text-muted hindi">कोई village चयनित नहीं है</div>';
+                return;
+            }
+            
+            let selectedHTML = '';
+            selectedVillages.forEach(village => {
+                selectedHTML += `
+                    <div class="selected-village-item p-2 mb-2" style="background: var(--alert-warning-bg); border-radius: 5px; border-left: 3px solid var(--alert-warning-border);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="hindi">${village.villagename}</strong>
+                                <br>
+                                <small>Code: ${village.villagecode}</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-danger" onclick="removeVillageSelectionForPrimary('${village.villagecode}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            selectedVillagesList.innerHTML = selectedHTML;
+        }
+
+        function removeVillageSelectionForPrimary(villageCode) {
+            selectedVillages = selectedVillages.filter(v => v.villagecode !== villageCode);
+            
+            // Update UI
+            const villageElement = document.querySelector(`[data-village-code="${villageCode}"]`);
+            if (villageElement) {
+                villageElement.classList.remove('selected');
+                villageElement.querySelector('i').className = 'fas fa-plus-circle text-primary';
+            }
+            
+            updateSelectedVillagesList();
+        }
+        
+        // PMFBY Admin Functions
+        async function loadPMFBYAdminData() {
+            try {
+                showLoading('PMFBY Admin डेटा लोड हो रहा है...');
+                
+                const userDistrict = currentUser.districtName || currentUser.district_name || currentUser.district || currentUser.districtname;
+                
+                const { data, error } = await supabaseClient
+                    .from('pmfby_district_admins')
+                    .select('*')
+                    .eq('district_name', userDistrict)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                pmfbyAdminData = data;
+                displayPMFBYAdminInfo(pmfbyAdminData);
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading PMFBY admin data:', error);
+                displayPMFBYAdminInfo(null);
+                hideLoading();
+            }
+        }
+
+        function displayPMFBYAdminInfo(adminData) {
+            const currentAdminInfo = document.getElementById('currentPMFBYAdminInfo');
+            const updateAdminBtn = document.getElementById('updatePMFBYAdminBtn');
+            
+            if (adminData) {
+                document.getElementById('currentPMFBYAdminName').textContent = adminData.admin_name || '-';
+                document.getElementById('currentPMFBYPostName').textContent = adminData.post_name || '-';
+                document.getElementById('currentPMFBYMobileNumber').textContent = adminData.mobile_number || '-';
+                
+                const statusElement = document.getElementById('currentPMFBYAdminStatus');
+                statusElement.textContent = adminData.status === 'active' ? 'Active' : 'Inactive';
+                statusElement.className = `admin-status ${adminData.status}`;
+                
+                if (adminData.status === 'inactive') {
+                    updateAdminBtn.style.display = 'block';
+                    currentAdminInfo.classList.add('inactive');
+                } else {
+                    updateAdminBtn.style.display = 'none';
+                    currentAdminInfo.classList.remove('inactive');
+                }
+            } else {
+                document.getElementById('currentPMFBYAdminName').textContent = 'कोई Admin नहीं मिला';
+                document.getElementById('currentPMFBYPostName').textContent = '-';
+                document.getElementById('currentPMFBYMobileNumber').textContent = '-';
+                
+                const statusElement = document.getElementById('currentPMFBYAdminStatus');
+                statusElement.textContent = 'Not Set';
+                statusElement.className = 'admin-status inactive';
+                
+                updateAdminBtn.style.display = 'block';
+                currentAdminInfo.classList.add('inactive');
+            }
+        }
+
+        function showUpdatePMFBYAdminForm() {
+            const updateForm = document.getElementById('updatePMFBYAdminForm');
+            const updateBtn = document.getElementById('updatePMFBYAdminBtn');
+            
+            // Pre-fill form if data exists
+            if (pmfbyAdminData) {
+                document.getElementById('pmfbyAdminName').value = pmfbyAdminData.admin_name || '';
+                document.getElementById('pmfbyPostName').value = pmfbyAdminData.post_name || '';
+                document.getElementById('pmfbyMobileNumber').value = pmfbyAdminData.mobile_number || '';
+                document.getElementById('pmfbyAdminStatus').value = pmfbyAdminData.status || '';
+            }
+            
+            updateForm.style.display = 'block';
+            updateBtn.style.display = 'none';
+            
+            // Scroll to form
+            updateForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideUpdatePMFBYAdminForm() {
+            const updateForm = document.getElementById('updatePMFBYAdminForm');
+            const updateBtn = document.getElementById('updatePMFBYAdminBtn');
+            
+            updateForm.style.display = 'none';
+            
+            // Show update button if needed
+            if (!pmfbyAdminData || pmfbyAdminData.status === 'inactive') {
+                updateBtn.style.display = 'block';
+            }
+            
+            // Clear form
+            document.getElementById('pmfbyAdminUpdateForm').reset();
+            clearAllFieldErrors('pmfbyAdminUpdateForm');
+        }
+
+        async function savePMFBYAdmin() {
+            try {
+                // Validate form
+                if (!validateRequiredFields('pmfbyAdminUpdateForm')) {
+                    showAlert('कृपया सभी आवश्यक फील्ड भरें।', 'warning');
+                    return;
+                }
+                
+                setButtonLoading('savePMFBYAdminBtn', true, 'सेव हो रहा है...');
+                
+                // Get form data
+                const formData = {
+                    district_name: currentUser.districtName || currentUser.district_name || currentUser.district || currentUser.districtname,
+                    admin_name: document.getElementById('pmfbyAdminName').value.trim(),
+                    post_name: document.getElementById('pmfbyPostName').value.trim(),
+                    mobile_number: document.getElementById('pmfbyMobileNumber').value.trim(),
+                    status: document.getElementById('pmfbyAdminStatus').value,
+                    updated_by: currentUser.id,
+                    updated_at: new Date().toISOString()
+                };
+                
+                let result;
+                
+                if (pmfbyAdminData) {
+                    // Update existing record
+                    const { data, error } = await supabaseClient
+                        .from('pmfby_district_admins')
+                        .update(formData)
+                        .eq('id', pmfbyAdminData.id)
+                        .select()
+                        .single();
+                    
+                    if (error) throw error;
+                    result = data;
+                    
+                    // Log activity
+                    await logAdminActivity('UPDATE', 'PMFBY Admin Updated', 
+                        JSON.stringify(pmfbyAdminData), JSON.stringify(result), 'PMFBY');
+                        
+                } else {
+                    // Insert new record
+                    formData.created_at = new Date().toISOString();
+                    
+                    const { data, error } = await supabaseClient
+                        .from('pmfby_district_admins')
+                        .insert([formData])
+                        .select()
+                        .single();
+                    
+                    if (error) throw error;
+                    result = data;
+                    
+                    // Log activity
+                    await logAdminActivity('CREATE', 'PMFBY Admin Created', 
+                        null, JSON.stringify(result), 'PMFBY');
+                }
+                
+                pmfbyAdminData = result;
+                
+                // Update UI
+                displayPMFBYAdminInfo(pmfbyAdminData);
+                hideUpdatePMFBYAdminForm();
+                
+                showAlert('PMFBY Admin जानकारी सफलतापूर्वक सेव हो गई।', 'success');
+                
+            } catch (error) {
+                console.error('Error saving PMFBY admin:', error);
+                showAlert('PMFBY Admin जानकारी सेव करने में त्रुटि: ' + error.message, 'danger');
+            } finally {
+                setButtonLoading('savePMFBYAdminBtn', false);
+            }
+        }
+
+        // CCE Admin Functions
+        async function loadCCEAdminData() {
+            try {
+                showLoading('CCE Admin डेटा लोड हो रहा है...');
+                
+                const userDistrict = currentUser.districtName || currentUser.district_name || currentUser.district || currentUser.districtname;
+                
+                const { data, error } = await supabaseClient
+                    .from('cce_district_admins')
+                    .select('*')
+                    .eq('district_name', userDistrict)
+                    .single();
+                
+                if (error && error.code !== 'PGRST116') {
+                    throw error;
+                }
+                
+                cceAdminData = data;
+                displayCCEAdminInfo(cceAdminData);
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading CCE admin data:', error);
+                displayCCEAdminInfo(null);
+                hideLoading();
+            }
+        }
+
+        function displayCCEAdminInfo(adminData) {
+            const currentAdminInfo = document.getElementById('currentCCEAdminInfo');
+            const updateAdminBtn = document.getElementById('updateCCEAdminBtn');
+            
+            if (adminData) {
+                document.getElementById('currentCCEAdminName').textContent = adminData.admin_name || '-';
+                document.getElementById('currentCCEPostName').textContent = adminData.post_name || '-';
+                document.getElementById('currentCCEMobileNumber').textContent = adminData.mobile_number || '-';
+                
+                const statusElement = document.getElementById('currentCCEAdminStatus');
+                statusElement.textContent = adminData.status === 'active' ? 'Active' : 'Inactive';
+                statusElement.className = `admin-status ${adminData.status}`;
+                
+                if (adminData.status === 'inactive') {
+                    updateAdminBtn.style.display = 'block';
+                    currentAdminInfo.classList.add('inactive');
+                } else {
+                    updateAdminBtn.style.display = 'none';
+                    currentAdminInfo.classList.remove('inactive');
+                }
+            } else {
+                document.getElementById('currentCCEAdminName').textContent = 'कोई Admin नहीं मिला';
+                document.getElementById('currentCCEPostName').textContent = '-';
+                document.getElementById('currentCCEMobileNumber').textContent = '-';
+                
+                const statusElement = document.getElementById('currentCCEAdminStatus');
+                statusElement.textContent = 'Not Set';
+                statusElement.className = 'admin-status inactive';
+                
+                updateAdminBtn.style.display = 'block';
+                currentAdminInfo.classList.add('inactive');
+            }
+        }
+
+        function showUpdateCCEAdminForm() {
+            const updateForm = document.getElementById('updateCCEAdminForm');
+            const updateBtn = document.getElementById('updateCCEAdminBtn');
+            
+            // Pre-fill form if data exists
+            if (cceAdminData) {
+                document.getElementById('cceAdminName').value = cceAdminData.admin_name || '';
+                document.getElementById('ccePostName').value = cceAdminData.post_name || '';
+                document.getElementById('cceMobileNumber').value = cceAdminData.mobile_number || '';
+                document.getElementById('cceAdminStatus').value = cceAdminData.status || '';
+            }
+            
+            updateForm.style.display = 'block';
+            updateBtn.style.display = 'none';
+            
+            // Scroll to form
+            updateForm.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function hideUpdateCCEAdminForm() {
+            const updateForm = document.getElementById('updateCCEAdminForm');
+            const updateBtn = document.getElementById('updateCCEAdminBtn');
+            
+            updateForm.style.display = 'none';
+            
+            // Show update button if needed
+            if (!cceAdminData || cceAdminData.status === 'inactive') {
+                updateBtn.style.display = 'block';
+            }
+            
+            // Clear form
+            document.getElementById('cceAdminUpdateForm').reset();
+            clearAllFieldErrors('cceAdminUpdateForm');
+        }
+
+        async function saveCCEAdmin() {
+            try {
+                // Validate form
+                if (!validateRequiredFields('cceAdminUpdateForm')) {
+                    showAlert('कृपया सभी आवश्यक फील्ड भरें।', 'warning');
+                    return;
+                }
+                
+                setButtonLoading('saveCCEAdminBtn', true, 'सेव हो रहा है...');
+                
+                // Get form data
+                const formData = {
+                    district_name: currentUser.districtName || currentUser.district_name || currentUser.district || currentUser.districtname,
+                    admin_name: document.getElementById('cceAdminName').value.trim(),
+                    post_name: document.getElementById('ccePostName').value.trim(),
+                    mobile_number: document.getElementById('cceMobileNumber').value.trim(),
+                    status: document.getElementById('cceAdminStatus').value,
+                    updated_by: currentUser.id,
+                    updated_at: new Date().toISOString()
+                };
+                
+                let result;
+                
+                if (cceAdminData) {
+                    // Update existing record
+                    const { data, error } = await supabaseClient
+                        .from('cce_district_admins')
+                        .update(formData)
+                        .eq('id', cceAdminData.id)
+                        .select()
+                        .single();
+                    
+                    if (error) throw error;
+                    result = data;
+                    
+                    // Log activity
+                    await logAdminActivity('UPDATE', 'CCE Admin Updated', 
+                        JSON.stringify(cceAdminData), JSON.stringify(result), 'CCE');
+                        
+                } else {
+                    // Insert new record
+                    formData.created_at = new Date().toISOString();
+                    
+                    const { data, error } = await supabaseClient
+                        .from('cce_district_admins')
+                        .insert([formData])
+                        .select()
+                        .single();
+                    
+                    if (error) throw error;
+                    result = data;
+                    
+                    // Log activity
+                    await logAdminActivity('CREATE', 'CCE Admin Created', 
+                        null, JSON.stringify(result), 'CCE');
+                }
+                
+                cceAdminData = result;
+                
+                // Update UI
+                displayCCEAdminInfo(cceAdminData);
+                hideUpdateCCEAdminForm();
+                
+                showAlert('CCE Admin जानकारी सफलतापूर्वक सेव हो गई।', 'success');
+                
+            } catch (error) {
+                console.error('Error saving CCE admin:', error);
+                showAlert('CCE Admin जानकारी सेव करने में त्रुटि: ' + error.message, 'danger');
+            } finally {
+                setButtonLoading('saveCCEAdminBtn', false);
+            }
+        }
+
+        // Log Admin Activity (shared function)
+        async function logAdminActivity(action, description, previousValue, newValue, adminType) {
+            try {
+                const activityData = {
+                    district_name: currentUser.districtName || currentUser.district_name || currentUser.district,
+                    admin_type: adminType,
+                    action: action,
+                    description: description,
+                    previous_value: previousValue,
+                    new_value: newValue,
+                    updated_by: currentUser.id,
+                    updated_by_name: currentUser.fullName || currentUser.full_name || currentUser.username,
+                    created_at: new Date().toISOString()
+                };
+                
+                const { error } = await supabaseClient
+                    .from('admin_activity_log')
+                    .insert([activityData]);
+                
+                if (error) {
+                    console.error('Error logging activity:', error);
+                }
+                
+            } catch (error) {
+                console.error('Activity log error:', error);
+            }
+        }
+
+        // CCE Primary Functions
+        async function loadCCEPrimaryData() {
+            try {
+                showLoading('CCE Primary डेटा लोड हो रहा है...');
+                
+                // Load village hierarchy for dropdowns
+                const userDistrict = currentUser.districtName || currentUser.district_name || currentUser.district || currentUser.districtname;
+                if (!userDistrict) {
+                    throw new Error('User district not found');
+                }
+                villageHierarchyData = await loadVillageHierarchy(userDistrict); // Using shared loadVillageHierarchy
+                
+                if (villageHierarchyData.length === 0) {
+                    showAlert(`जिला "${userDistrict}" के लिए कोई hierarchy डेटा नहीं मिला।`, 'warning');
+                    return;
+                }
+                
+                // Populate tehsil dropdown
+                populateTehsilDropdown();
+                
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading CCE primary data:', error);
+                showAlert('CCE Primary डेटा लोड करने में त्रुटि।', 'danger');
+                hideLoading();
+            }
+        }
+
+        function handleHierarchyIssueCountChange() {
+            const hierarchyIssueCount = parseInt(document.getElementById('hierarchyIssueCount').value || '0');
+            
+            if (hierarchyIssueCount > 0) {
+                document.getElementById('hierarchyIssuesSection').style.display = 'block';
+            } else {
+                document.getElementById('hierarchyIssuesSection').style.display = 'none';
+                selectedVillages = [];
+                updateSelectedVillagesList();
+            }
+        }
+
+        function validateCCEPrimaryForm() {
+            const totalUsers = parseInt(document.getElementById('totalCCEUsers').value || '0');
+            const activeUsers = parseInt(document.getElementById('activeCCEUsers').value || '0');
+            const inactiveUsers = parseInt(document.getElementById('inactiveCCEUsers').value || '0');
+            const hierarchyOK = parseInt(document.getElementById('hierarchyOKCount').value || '0');
+            const hierarchyIssue = parseInt(document.getElementById('hierarchyIssueCount').value || '0');
+            
+            // Check if total equals active + inactive
+            if (totalUsers !== (activeUsers + inactiveUsers)) {
+                showAlert('कुल CCE Users संख्या, Active और Inactive Users के योग के बराबर होनी चाहिए।', 'warning');
+                return false;
+            }
+            
+            // Check if hierarchy counts match total
+            if (totalUsers !== (hierarchyOK + hierarchyIssue)) {
+                showAlert('कुल CCE Users संख्या, Hierarchy OK और Issue Count के योग के बराबर होनी चाहिए।', 'warning');
+                return false;
+            }
+            
+            // If hierarchy issues exist, check if villages are selected
+            if (hierarchyIssue > 0 && selectedVillages.length === 0) {
+                showAlert('Hierarchy Issue Count > 0 है, कृपया समस्याग्रस्त villages का चयन करें।', 'warning');
+                return false;
+            }
+            
+            return true;
+        }
+
+        async function saveCCEPrimaryCountData() {
+            try {
+                // Validate form
+                if (!validateRequiredFields('cceCountForm') || !validateCCEPrimaryForm()) {
+                    showAlert('कृपया सभी आवश्यक फील्ड सही तरीके से भरें।', 'warning');
+                    return;
+                }
+                
+                setButtonLoading('saveCountsBtn', true, 'सेव हो रहा है...');
+                
+                // Get form data
+                const formData = {
+                    district_name: currentUser.districtName || currentUser.district_name || currentUser.district,
+                    tehsil_name: document.getElementById('tehsilSelect').value,
+                    ri_name: document.getElementById('riSelect').value,
+                    cce_primary_user_name: document.getElementById('ccePrimaryUserName').value.trim(),
+                    cce_primary_user_mobile: document.getElementById('ccePrimaryUserMobile').value.trim(),
+                    total_cce_users: parseInt(document.getElementById('totalCCEUsers').value || '0'),
+                    active_cce_users: parseInt(document.getElementById('activeCCEUsers').value || '0'),
+                    inactive_cce_users: parseInt(document.getElementById('inactiveCCEUsers').value || '0'),
+                    hierarchy_ok_count: parseInt(document.getElementById('hierarchyOKCount').value || '0'),
+                    hierarchy_issue_count: parseInt(document.getElementById('hierarchyIssueCount').value || '0'),
+                    user_id: currentUser.id,
+                    created_at: new Date().toISOString()
+                };
+                
+                const { data, error } = await supabaseClient
+                    .from('cce_primary_users_data')
+                    .insert([formData])
+                    .select()
+                    .single();
+                
+                if (error) throw error;
+                
+                // If hierarchy issues exist, save hierarchy corrections
+                if (selectedVillages.length > 0) {
+                    await saveHierarchyCorrections(data.id);
+                }
+                
+                showAlert('CCE Primary User डेटा सफलतापूर्वक सेव हो गया।', 'success');
+                
+                // Reset form
+                resetCCEPrimaryForm();
+                
+            } catch (error) {
+                console.error('Error saving CCE Primary count data:', error);
+                showAlert('CCE Primary डेटा सेव करने में त्रुटि: ' + error.message, 'danger');
+            } finally {
+                setButtonLoading('saveCountsBtn', false);
+            }
+        }
+
+        async function saveHierarchyCorrections(cceDataId) {
+            try {
+                const hierarchyCorrections = [];
+                
+                selectedVillages.forEach(village => {
+                    const correctionData = {
+                        cce_data_id: cceDataId,
+                        district_name: currentUser.districtName || currentUser.district_name || currentUser.district,
+                        original_districtname: village.districtname,
+                        original_level4name: village.level4name,
+                        original_level5name: village.level5name,
+                        original_level6code: village.level6code,
+                        original_villagename: village.villagename,
+                        original_villagecode: village.villagecode,
+                        // For now, corrected values are same as original as there is no specific correction form yet
+                        corrected_districtname: village.districtname,
+                        corrected_level4name: village.level4name,
+                        corrected_level5name: village.level5name,
+                        corrected_level6code: village.level6code,
+                        issue_type: 'Hierarchy Issue', // Default issue type
+                        correction_status: 'pending', // Mark as pending for admin review
+                        user_id: currentUser.id,
+                        created_at: new Date().toISOString()
+                    };
+                    
+                    hierarchyCorrections.push(correctionData);
+                });
+                
+                const { error } = await supabaseClient
+                    .from('hierarchy_correction_log')
+                    .insert(hierarchyCorrections);
+                
+                if (error) throw error;
+                
+                console.log('Hierarchy corrections saved:', hierarchyCorrections.length);
+                
+            } catch (error) {
+                console.error('Error saving hierarchy corrections:', error);
+                throw error;
+            }
+        }
+
+        function resetCCEPrimaryForm() {
+            document.getElementById('cceCountForm').reset();
+            document.getElementById('tehsilSelect').value = '';
+            document.getElementById('riSelect').value = '';
+            document.getElementById('riSelect').disabled = true;
+            
+            // Update breadcrumb
+            document.getElementById('breadcrumbTehsil').textContent = '-';
+            document.getElementById('breadcrumbRI').textContent = '-';
+            
+            // Hide sections
+            document.getElementById('cceCountSection').style.display = 'none';
+            document.getElementById('hierarchyIssuesSection').style.display = 'none';
+            
+            // Clear selected villages
+            selectedVillages = [];
+            updateSelectedVillagesList();
+            
+            // Clear form errors
+            clearAllFieldErrors('cceCountForm');
+            
+            showAlert('फॉर्म रीसेट हो गया।', 'info');
+        }
+
+        // Reports Functions (Full Implementation)
+        async function loadReportsData() {
+            try {
+                showLoading('Reports डेटा लोड हो रहा है...');
+                
+                // Load all report data concurrently
+                const [pmfbyData, cceAdminData, ccePrimaryData, hierarchyData] = await Promise.all([
+                    supabaseClient.from('pmfby_district_admins').select('*').order('updated_at', { ascending: false }),
+                    supabaseClient.from('cce_district_admins').select('*').order('updated_at', { ascending: false }),
+                    supabaseClient.from('cce_primary_users_data').select(`*, test_users(full_name, username)`).order('created_at', { ascending: false }),
+                    supabaseClient.from('hierarchy_correction_log').select(`*, test_users(full_name, username)`).order('created_at', { ascending: false })
+                ]);
+                
+                pmfbyAdminReportData = pmfbyData.data || [];
+                cceAdminReportData = cceAdminData.data || [];
+                ccePrimaryReportData = ccePrimaryData.data || [];
+                hierarchyReportData = hierarchyData.data || [];
+
+                // Update summary cards
+                document.getElementById('totalPMFBYAdmins').textContent = pmfbyAdminReportData.length;
+                document.getElementById('totalCCEAdmins').textContent = cceAdminReportData.length;
+                document.getElementById('totalCCEPrimary').textContent = ccePrimaryReportData.length;
+                document.getElementById('totalHierarchyIssues').textContent = hierarchyReportData.length;
+                
+                // Display all reports
+                displayPMFBYAdminReportTable(pmfbyAdminReportData);
+                displayCCEAdminReportTable(cceAdminReportData);
+                displayCCEPrimaryReportTable(ccePrimaryReportData);
+                displayHierarchyReportTable(hierarchyReportData);
+
+                hideLoading();
+                
+            } catch (error) {
+                console.error('Error loading reports data:', error);
+                showAlert('Reports डेटा लोड करने में त्रुटि।', 'danger');
+                hideLoading();
+            }
+        }
+
+        function displayPMFBYAdminReportTable(data) {
+            const tableBody = document.getElementById('pmfbyAdminTableBody');
+            
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center hindi">कोई PMFBY Admin डेटा नहीं मिला</td></tr>';
+                return;
+            }
+            
+            let tableHTML = '';
+            data.forEach(admin => {
+                tableHTML += `
+                    <tr>
+                        <td class="hindi">${admin.district_name || '-'}</td>
+                        <td class="hindi">${admin.admin_name || '-'}</td>
+                        <td class="hindi">${admin.post_name || '-'}</td>
+                        <td>${admin.mobile_number || '-'}</td>
+                        <td>
+                            <span class="status-indicator ${admin.status}">
+                                <i class="fas fa-${admin.status === 'active' ? 'check' : 'times'}"></i>
+                                ${admin.status === 'active' ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td>${formatDateTime(admin.updated_at)}</td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = tableHTML;
+        }
+
+        function displayCCEAdminReportTable(data) {
+            const tableBody = document.getElementById('cceAdminTableBody');
+            
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center hindi">कोई CCE Admin डेटा नहीं मिला</td></tr>';
+                return;
+            }
+            
+            let tableHTML = '';
+            data.forEach(admin => {
+                tableHTML += `
+                    <tr>
+                        <td class="hindi">${admin.district_name || '-'}</td>
+                        <td class="hindi">${admin.admin_name || '-'}</td>
+                        <td class="hindi">${admin.post_name || '-'}</td>
+                        <td>${admin.mobile_number || '-'}</td>
+                        <td>
+                            <span class="status-indicator ${admin.status}">
+                                <i class="fas fa-${admin.status === 'active' ? 'check' : 'times'}"></i>
+                                ${admin.status === 'active' ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td>${formatDateTime(admin.updated_at)}</td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = tableHTML;
+        }
+
+        function displayCCEPrimaryReportTable(data) {
+            const tableBody = document.getElementById('ccePrimaryTableBody');
+            
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="9" class="text-center hindi">कोई CCE Primary User डेटा नहीं मिला</td></tr>';
+                return;
+            }
+            
+            let tableHTML = '';
+            data.forEach(user => {
+                const hierarchyIssues = hierarchyReportData.filter(h => 
+                    h.cce_data_id === user.id
+                ).length;
+
+                tableHTML += `
+                    <tr>
+                        <td class="hindi">${user.district_name || '-'}</td>
+                        <td class="hindi">${user.tehsil_name || '-'}</td>
+                        <td class="hindi">${user.ri_name || '-'}</td>
+                        <td class="hindi">${user.cce_primary_user_name || '-'}</td>
+                        <td>${user.cce_primary_user_mobile || '-'}</td>
+                        <td>${user.total_cce_users || 0}</td>
+                        <td>${user.active_cce_users || 0}</td>
+                        <td>${user.hierarchy_issue_count || 0}</td>
+                        <td>${formatDate(user.created_at)}</td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = tableHTML;
+        }
+
+        function displayHierarchyReportTable(data) {
+            const tableBody = document.getElementById('hierarchyTableBody');
+            
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="11" class="text-center hindi">कोई Hierarchy Correction डेटा नहीं मिला</td></tr>';
+                return;
+            }
+            
+            let tableHTML = '';
+            data.forEach(correction => {
+                const submittedBy = correction.test_users?.full_name || correction.test_users?.username || 'Unknown';
+                tableHTML += `
+                    <tr>
+                        <td class="hindi">${correction.district_name || '-'}</td>
+                        <td class="hindi">${correction.original_villagename || '-'}</td>
+                        <td>${correction.original_villagecode || '-'}</td>
+                        <td class="hindi">${correction.original_level4name || '-'}</td>
+                        <td class="hindi">${correction.corrected_level4name || '-'}</td>
+                        <td class="hindi">${correction.original_level5name || '-'}</td>
+                        <td class="hindi">${correction.corrected_level5name || '-'}</td>
+                        <td class="hindi">${correction.issue_type || '-'}</td>
+                        <td>
+                            <span class="status-indicator ${correction.correction_status === 'corrected' ? 'active' : 'inactive'}">
+                                <i class="fas fa-${correction.correction_status === 'corrected' ? 'check' : 'times'}"></i>
+                                ${correction.correction_status === 'corrected' ? 'Corrected' : 'Pending'}
+                            </span>
+                        </td>
+                        <td class="hindi">${submittedBy}</td>
+                        <td>${formatDate(correction.created_at)}</td>
+                    </tr>
+                `;
+            });
+            tableBody.innerHTML = tableHTML;
+        }
+
+        // Export Functions
+        function exportToExcel(data, filename, sheetName = 'Data') {
+            try {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.json_to_sheet(data);
+                
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                XLSX.writeFile(wb, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+                
+                showAlert('Excel फाइल डाउनलोड हो गई।', 'success');
+            } catch (error) {
+                console.error('Excel export error:', error);
+                showAlert('Excel export में त्रुटि।', 'danger');
+            }
+        }
+
+        function exportToPDF(data, filename, title, columns) {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
+                
+                // Add title
+                doc.setFontSize(16);
+                doc.text(title, 20, 20);
+                doc.setFontSize(12);
+                doc.text('Generated on: ' + new Date().toLocaleDateString(), 20, 30);
+                doc.text('Total Records: ' + data.length, 20, 40);
+                
+                // Prepare table data
+                const tableData = data.map(item => 
+                    columns.map(col => item[col.key] || '-')
+                );
+                
+                // Add table
+                doc.autoTable({
+                    head: [columns.map(col => col.label)],
+                    body: tableData,
+                    startY: 50,
+                    styles: { fontSize: 8 },
+                    headStyles: { fillColor: [27, 94, 32] }
+                });
+                
+                // Save PDF
+                doc.save(`${filename}_${new Date().toISOString().split('T')[0]}.pdf`);
+                showAlert('PDF फाइल डाउनलोड हो गई।', 'success');
+            } catch (error) {
+                console.error('PDF export error:', error);
+                showAlert('PDF export में त्रुटि।', 'danger');
+            }
+        }
+
+        function exportPMFBYData(format) {
+            if (pmfbyAdminReportData.length === 0) {
+                showAlert('एक्सपोर्ट के लिए कोई PMFBY डेटा नहीं मिला।', 'warning');
+                return;
+            }
+            
+            const exportData = pmfbyAdminReportData.map(admin => ({
+                'District': admin.district_name,
+                'Admin Name': admin.admin_name,
+                'Post Name': admin.post_name,
+                'Mobile Number': admin.mobile_number,
+                'Status': admin.status,
+                'Last Updated': formatDateTime(admin.updated_at)
+            }));
+            
+            if (format === 'excel') {
+                exportToExcel(exportData, 'PMFBY_District_Admin_Report', 'PMFBY Admins');
+            } else if (format === 'pdf') {
+                const columns = [
+                    { key: 'District', label: 'District' },
+                    { key: 'Admin Name', label: 'Admin Name' },
+                    { key: 'Post Name', label: 'Post Name' },
+                    { key: 'Mobile Number', label: 'Mobile' },
+                    { key: 'Status', label: 'Status' },
+                    { key: 'Last Updated', label: 'Updated' }
+                ];
+                
+                exportToPDF(exportData, 'PMFBY_District_Admin_Report', 
+                    'PMFBY District Admin Complete Report', columns);
+            }
+        }
+
+        function exportCCEAdminData(format) {
+            if (cceAdminReportData.length === 0) {
+                showAlert('एक्सपोर्ट के लिए कोई CCE Admin डेटा नहीं मिला।', 'warning');
+                return;
+            }
+            
+            const exportData = cceAdminReportData.map(admin => ({
+                'District': admin.district_name,
+                'Admin Name': admin.admin_name,
+                'Post Name': admin.post_name,
+                'Mobile Number': admin.mobile_number,
+                'Status': admin.status,
+                'Last Updated': formatDateTime(admin.updated_at)
+            }));
+            
+            if (format === 'excel') {
+                exportToExcel(exportData, 'CCE_District_Admin_Report', 'CCE Admins');
+            } else if (format === 'pdf') {
+                const columns = [
+                    { key: 'District', label: 'District' },
+                    { key: 'Admin Name', label: 'Admin Name' },
+                    { key: 'Post Name', label: 'Post Name' },
+                    { key: 'Mobile Number', label: 'Mobile' },
+                    { key: 'Status', label: 'Status' },
+                    { key: 'Last Updated', label: 'Updated' }
+                ];
+                
+                exportToPDF(exportData, 'CCE_District_Admin_Report', 
+                    'CCE District Admin Complete Report', columns);
+            }
+        }
+
+        function exportCCEPrimaryData(format) {
+            if (ccePrimaryReportData.length === 0) {
+                showAlert('एक्सपोर्ट के लिए कोई CCE Primary डेटा नहीं मिला।', 'warning');
+                return;
+            }
+            
+            const exportData = ccePrimaryReportData.map(user => ({
+                'District': user.district_name,
+                'Tehsil': user.tehsil_name,
+                'RI Name': user.ri_name,
+                'CCE Primary User Name': user.cce_primary_user_name,
+                'Mobile Number': user.cce_primary_user_mobile,
+                'Total CCE Users': user.total_cce_users,
+                'Active Users': user.active_cce_users,
+                'Hierarchy Issues': user.hierarchy_issue_count,
+                'Submission Date': formatDate(user.created_at)
+            }));
+            
+            if (format === 'excel') {
+                exportToExcel(exportData, 'CCE_Primary_User_Complete_Report', 'CCE Primary Users');
+            } else if (format === 'pdf') {
+                const columns = [
+                    { key: 'District', label: 'District' },
+                    { key: 'Tehsil', label: 'Tehsil' },
+                    { key: 'RI Name', label: 'RI Name' },
+                    { key: 'CCE Primary User Name', label: 'User Name' },
+                    { key: 'Mobile Number', label: 'Mobile' },
+                    { key: 'Total CCE Users', label: 'Total' },
+                    { key: 'Active Users', label: 'Active' },
+                    { key: 'Hierarchy Issues', label: 'Issues' },
+                    { key: 'Submission Date', label: 'Date' }
+                ];
+                
+                exportToPDF(exportData, 'CCE_Primary_User_Complete_Report', 
+                    'CCE Primary User Complete Report', columns);
+            }
+        }
+
+        function exportHierarchyData(format) {
+            if (hierarchyReportData.length === 0) {
+                showAlert('एक्सपोर्ट के लिए कोई Hierarchy डेटा नहीं मिला।', 'warning');
+                return;
+            }
+            
+            const exportData = hierarchyReportData.map(correction => ({
+                'District': correction.district_name,
+                'Village Name': correction.original_villagename,
+                'Village Code': correction.original_villagecode,
+                'Original L4 Name': correction.original_level4name,
+                'Corrected L4 Name': correction.corrected_level4name,
+                'Original L5 Name': correction.original_level5name,
+                'Corrected L5 Name': correction.corrected_level5name,
+                'Issue Type': correction.issue_type,
+                'Status': correction.correction_status,
+                'Submitted By': correction.test_users?.full_name || correction.test_users?.username || 'Unknown',
+                'Date': formatDate(correction.created_at)
+            }));
+            
+            if (format === 'excel') {
+                exportToExcel(exportData, 'Hierarchy_Correction_Complete_Report', 'Hierarchy Corrections');
+            } else if (format === 'pdf') {
+                const columns = [
+                    { key: 'District', label: 'District' },
+                    { key: 'Village Name', label: 'Village' },
+                    { key: 'Village Code', label: 'Code' },
+                    { key: 'Original L4 Name', label: 'Orig L4' },
+                    { key: 'Corrected L4 Name', label: 'Corr L4' },
+                    { key: 'Original L5 Name', label: 'Orig L5' },
+                    { key: 'Corrected L5 Name', label: 'Corr L5' },
+                    { key: 'Issue Type', label: 'Issue' },
+                    { key: 'Status', label: 'Status' },
+                    { key: 'Submitted By', label: 'By' },
+                    { key: 'Date', label: 'Date' }
+                ];
+                
+                exportToPDF(exportData, 'Hierarchy_Correction_Complete_Report', 
+                    'Hierarchy Correction Complete Report', columns);
+            }
+        }
+
+        // Event Listeners
+        function initializeEventListeners() {
+            // Logout button
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
+            
+            // PMFBY Admin buttons
+            const updatePMFBYAdminBtn = document.getElementById('updatePMFBYAdminBtn');
+            const cancelPMFBYUpdateBtn = document.getElementById('cancelPMFBYUpdateBtn');
+            const pmfbyAdminUpdateForm = document.getElementById('pmfbyAdminUpdateForm');
+            
+            if (updatePMFBYAdminBtn) {
+                updatePMFBYAdminBtn.addEventListener('click', showUpdatePMFBYAdminForm);
+            }
+            
+            if (cancelPMFBYUpdateBtn) {
+                cancelPMFBYUpdateBtn.addEventListener('click', hideUpdatePMFBYAdminForm);
+            }
+            
+            if (pmfbyAdminUpdateForm) {
+                pmfbyAdminUpdateForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    savePMFBYAdmin();
+                });
+            }
+            
+            // CCE Admin buttons
+            const updateCCEAdminBtn = document.getElementById('updateCCEAdminBtn');
+            const cancelCCEUpdateBtn = document.getElementById('cancelCCEUpdateBtn');
+            const cceAdminUpdateForm = document.getElementById('cceAdminUpdateForm');
+            
+            if (updateCCEAdminBtn) {
+                updateCCEAdminBtn.addEventListener('click', showUpdateCCEAdminForm);
+            }
+            
+            if (cancelCCEUpdateBtn) {
+                cancelCCEUpdateBtn.addEventListener('click', hideUpdateCCEAdminForm);
+            }
+            
+            if (cceAdminUpdateForm) {
+                cceAdminUpdateForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    saveCCEAdmin();
+                });
+            }
+            
+            // Tehsil and RI dropdowns
+            const tehsilSelect = document.getElementById('tehsilSelect');
+            const riSelect = document.getElementById('riSelect');
+            
+            if (tehsilSelect) {
+                tehsilSelect.addEventListener('change', handleTehsilChange);
+            }
+            
+            if (riSelect) {
+                riSelect.addEventListener('change', handleRIChange);
+            }
+            
+            // Hierarchy issue count change
+            const hierarchyIssueCount = document.getElementById('hierarchyIssueCount');
+            if (hierarchyIssueCount) {
+                hierarchyIssueCount.addEventListener('input', handleHierarchyIssueCountChange);
+            }
+            
+            // CCE Count form
+            const cceCountForm = document.getElementById('cceCountForm');
+            const resetCountsBtn = document.getElementById('resetCountsBtn');
+            
+            if (cceCountForm) {
+                cceCountForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    saveCCEPrimaryCountData();
+                });
+            }
+            
+            if (resetCountsBtn) {
+                resetCountsBtn.addEventListener('click', resetCCEPrimaryForm);
+            }
+            
+            // Village search for CCE Primary
+            const villageSearchInput = document.getElementById('villageSearchInput');
+            if (villageSearchInput) {
+                villageSearchInput.addEventListener('input', debounce(searchVillagesForPrimary, 300));
+            }
+            
+            // Mobile number input formatting (delegated event listener)
+            document.addEventListener('input', (e) => {
+                if (e.target.type === 'tel') {
+                    e.target.value = e.target.value.replace(/\D/g, '');
+                    if (e.target.value.length > 10) {
+                        e.target.value = e.target.value.slice(0, 10);
+                    }
+                }
+                
+                // Prevent negative values for number inputs
+                if (e.target.type === 'number' && e.target.value < 0) {
+                    e.target.value = 0;
+                }
+            });
+            
+            // Real-time field validation (delegated event listener)
+            document.addEventListener('blur', (e) => {
+                if (e.target.hasAttribute('required')) {
+                    const value = e.target.value.trim();
+                    
+                    if (!value) {
+                        showFieldError(e.target, 'यह फील्ड आवश्यक है');
+                    } else {
+                        clearFieldError(e.target);
+                        
+                        if (e.target.type === 'tel' && !validateMobileNumber(value)) {
+                            showFieldError(e.target, 'कृपया 10 अंकों का वैध मोबाइल नंबर दर्ज करें');
+                        }
+                    }
+                }
+            }, true);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                // Ctrl + S to save (if save button exists)
+                if (e.ctrlKey && e.key === 's') {
+                    e.preventDefault();
+                    const saveBtn = document.querySelector('[id*="save"], [id*="Save"], [id*="submit"], [id*="Submit"]');
+                    if (saveBtn && !saveBtn.disabled) {
+                        saveBtn.click();
+                    }
+                }
+                
+                // Escape to close modals or reset forms
+                if (e.key === 'Escape') {
+                    const resetBtn = document.querySelector('[id*="reset"], [id*="Reset"], [id*="cancel"], [id*="Cancel"]');
+                    if (resetBtn) {
+                        resetBtn.click();
+                    }
+                }
+            });
+        }
+
+        // Search villages for CCE Primary section
+        function searchVillagesForPrimary() {
+            const searchTerm = document.getElementById('villageSearchInput').value.toLowerCase();
+            const villageItems = document.querySelectorAll('#villagesList .village-item');
+            
+            villageItems.forEach(item => {
+                const villageName = item.querySelector('strong').textContent.toLowerCase();
+                const villageCode = item.querySelector('small').textContent.toLowerCase();
+                
+                if (villageName.includes(searchTerm) || villageCode.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+
+        // Initialize Application
+        async function initializeApp() {
+            try {
+                console.log('Initializing Admin Management Dashboard...');
+                
+                // Check authentication first
+                const user = await checkAuthentication();
+                if (!user) return;
+                
+                // Initialize event listeners
+                initializeEventListeners();
+                
+                console.log('Admin Management Dashboard initialized successfully');
+                
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                showAlert('एप्लिकेशन शुरू करने में त्रुटि।', 'danger');
+            }
+        }
+
+        // DOM Content Loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Starting Admin Management Dashboard');
+            initializeApp();
+        });
+
+        // Console welcome message
+        console.log(`
+        ╔══════════════════════════════════════════════════════════════╗
+        ║                   Single Page Admin Dashboard                ║
+        ║                   संचालनालय कृषि छत्तीसगढ़                     ║
+        ║                                                              ║
+        ║  🔧 PMFBY District Admin Management                         ║
+        ║  🌾 CCE District Admin Management                           ║
+        ║  👥 CCE Primary User Management                             ║
+        ║  🗂️ Hierarchy Validation & Correction                       ║
+        ║  📊 Complete Reporting System                               ║
+        ║                                                              ║
+        ║  ✅ Single HTML file with dynamic sections                  ║
+        ║  ✅ Role-based navigation                                   ║
+        ║  ✅ Fixed authentication for pmfby/html/ structure          ║
+        ║  ✅ Fixed village hierarchy dropdowns                       ║
+        ║  ✅ Complete form validation                                ║
+        ║  ✅ Database integration with Supabase                      ║
+        ║  ✅ Fully functional Reports section                        ║
+        ║                                                              ║
+        ║  Admin Dashboard loaded successfully!                       ║
+        ╚══════════════════════════════════════════════════════════════╝
+        `);
+    </script>
 </body>
 </html>
-
