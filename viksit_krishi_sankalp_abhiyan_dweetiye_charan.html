@@ -3,591 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>विकसित कृषि संकल्प अभियान द्वितीय चरण - संचलनालय कृषि छत्तीसगढ़</title>
+    <title>संचालनालय कृषि छत्तीसगढ़</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <style>
-        /* General & Layout */
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-            background: url('https://github.com/diragcg/pmfby/blob/main/images/warli-art-1.svg?raw=true') no-repeat center center fixed; 
-            background-size: cover; 
-            min-height: 100vh; 
-            position: relative; 
-        }
-        body::before { 
-            content: ''; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(255, 255, 255, 0.3); 
-            z-index: -1; 
-        }
+    
+    <!-- Link to external CSS file for dashboard -->
+    <link rel="stylesheet" href="./css/dashboard.css"> 
 
-        /* Page Loading */
-        .page-loading { 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: rgba(255, 255, 255, 0.9); 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            z-index: 10000; 
-            backdrop-filter: blur(5px); 
-        }
-        .page-loading .spinner { 
-            width: 50px; 
-            height: 50px; 
-            border: 4px solid #f3f3f3; 
-            border-top: 4px solid #007bff; 
-            border-radius: 50%; 
-            animation: spin 1s linear infinite; 
-        }
-        .page-loading .loading-text { 
-            margin-left: 15px; 
-            font-size: 18px; 
-            color: #007bff; 
-            font-weight: 600; 
-        }
-
-        /* Admin Toolbar */
-        .admin-toolbar { 
-            background: linear-gradient(135deg, #dc3545, #c82333); 
-            color: white; 
-            padding: 10px 20px; 
-            margin: 10px 20px 0 20px; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); 
-            display: none; 
-            align-items: center; 
-            gap: 15px; 
-            backdrop-filter: blur(10px); 
-        }
-        .admin-toolbar.show { display: flex; }
-        .admin-toolbar h3 { font-size: 16px; font-weight: 600; margin-right: auto; }
-        .admin-btn { 
-            background: rgba(255, 255, 255, 0.2); 
-            border: 1px solid rgba(255, 255, 255, 0.3); 
-            color: white; 
-            padding: 8px 15px; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            transition: all 0.3s; 
-            font-size: 14px; 
-            display: flex; 
-            align-items: center; 
-            gap: 5px; 
-        }
-        .admin-btn:hover { 
-            background: rgba(255, 255, 255, 0.3); 
-            transform: translateY(-2px); 
-        }
-
-        /* Header Strip */
-        .header-strip { 
-            background: rgba(204, 206, 206, 0.95); 
-            backdrop-filter: blur(10px); 
-            border-bottom: 1px solid #e9ecef; 
-            padding: 15px 0; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-            margin: 20px 20px 0 20px; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            z-index: 100; 
-        }
-        .header-container { 
-            max-width: 1200px; 
-            margin: 0 auto; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            padding: 0 20px; 
-        }
-        .logo-section { display: flex; align-items: center; gap: 15px; }
-        .cg-logo { height: 60px; width: auto; }
-        .logo-text h1 { 
-            font-size: 24px; 
-            font-weight: 600; 
-            color: #2c3e50; 
-            margin-bottom: 5px; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-        }
-        .logo-text p { 
-            font-size: 14px; 
-            color: #6c757d; 
-            font-weight: 400; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-        }
-        .user-section { display: flex; align-items: center; gap: 15px; }
-        .user-info { 
-            background: linear-gradient(135deg, #e8f5e8, #f0f8f0); 
-            color: #b8860b; 
-            padding: 12px 18px; 
-            border-radius: 12px; 
-            box-shadow: 0 2px 8px rgba(184, 134, 11, 0.2); 
-            transition: all 0.3s ease; 
-            border: 1px solid rgba(184, 134, 11, 0.3); 
-            min-width: 200px; 
-        }
-        .user-info:hover { 
-            transform: translateY(-1px); 
-            box-shadow: 0 4px 12px rgba(184, 134, 11, 0.3); 
-        }
-        .user-display { 
-            font-weight: 600; 
-            font-size: 14px; 
-            color: #b8860b; 
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.1); 
-            text-align: center; 
-        }
-
-        /* Navigation Bar */
-        .navbar { 
-            background: rgba(52, 58, 64, 0.95); 
-            backdrop-filter: blur(10px); 
-            border-bottom: 1px solid #dee2e6; 
-            border-bottom-left-radius: 15px; 
-            border-bottom-right-radius: 15px; 
-            margin: 0 20px; 
-            position: fixed; 
-            top: 95px; 
-            left: 0; 
-            right: 0; 
-            z-index: 99; 
-        }
-        .nav-container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
-        .nav-menu { 
-            display: flex; 
-            list-style: none; 
-            margin: 0; 
-            padding: 0; 
-            align-items: center; 
-        }
-        .nav-item { position: relative; }
-        .nav-link { 
-            display: flex; 
-            align-items: center; 
-            padding: 15px 20px; 
-            color: #ffffff; 
-            text-decoration: none; 
-            font-size: 14px; 
-            font-weight: 500; 
-            transition: all 0.2s; 
-            gap: 8px; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-            border-radius: 8px; 
-        }
-        .nav-link:hover, .nav-link.active { 
-            background: #037af1; 
-            border-radius: 12px; 
-            padding: 12px 20px; 
-        }
-        .nav-link:focus { 
-            outline: 2px solid #037af1; 
-            outline-offset: 2px; 
-            background: #037af1; 
-        }
-        .nav-link i { font-size: 14px; }
-        .dropdown { position: relative; }
-        .dropdown-content { 
-            display: none; 
-            position: absolute; 
-            top: 100%; 
-            left: 0; 
-            background: rgba(255, 255, 255, 0.98); 
-            backdrop-filter: blur(10px); 
-            min-width: 250px; 
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2); 
-            border-radius: 8px; 
-            z-index: 9999; 
-            border: 1px solid #dee2e6; 
-            max-height: 400px; 
-            overflow-y: auto; 
-        }
-        .dropdown:hover .dropdown-content, .dropdown:focus-within .dropdown-content { display: block; }
-        .dropdown-category { 
-            padding: 8px 16px; 
-            background: #f8f9fa; 
-            font-weight: 600; 
-            color: #495057; 
-            font-size: 12px; 
-            text-transform: uppercase; 
-            border-bottom: 1px solid #dee2e6; 
-        }
-        .dropdown-item { 
-            display: block; 
-            padding: 12px 16px; 
-            color: #2c3e50; 
-            text-decoration: none; 
-            font-size: 14px; 
-            transition: background-color 0.2s; 
-            border-bottom: 1px solid #f8f9fa; 
-        }
-        .dropdown-item:hover, .dropdown-item:focus { 
-            background: #0480fc; 
-            color: white; 
-            outline: none; 
-        }
-        .dropdown-item:last-child { border-bottom: none; }
-        .profile-link, .logout-link { margin-left: auto; }
-        .logout-link { 
-            background: #dc3545; 
-            border-radius: 12px; 
-            padding: 12px 20px !important; 
-        }
-        .logout-link:hover, .logout-link:focus { 
-            background: #c82333 !important; 
-            outline: 2px solid #dc3545; 
-            outline-offset: 2px; 
-        }
-        .profile-link:hover, .profile-link:focus { 
-            background: #28a745; 
-            border-radius: 8px; 
-            padding: 12px 12px; 
-            outline: 2px solid #28a745; 
-            outline-offset: 2px; 
-        }
-
-        /* Main Content & Form Specific Styles */
-        .main-content { 
-            background: rgba(255, 255, 255, 0.7); 
-            backdrop-filter: blur(8px); 
-            margin: 20px; 
-            border-radius: 15px; 
-            padding: 30px; 
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
-            padding-top: 180px; 
-            min-height: 100vh; 
-        }
-        
-        /* Green Strip for Title */
-        .green-title-strip {
-            background: linear-gradient(90deg, #28a745, #218838);
-            color: white;
-            padding: 15px 20px;
-            margin: -30px -30px 20px -30px;
-            border-radius: 15px 15px 0 0;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .page-title-content { 
-            font-size: 24px; 
-            font-weight: 700; 
-            color: white; 
-            margin-bottom: 5px; 
-            text-align: left; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-            flex-grow: 1;
-        }
-        .page-subtitle-date {
-            font-size: 18px; 
-            color: white; 
-            margin-bottom: 0; 
-            text-align: right; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .page-subtitle-date input[type="date"] {
-            padding: 5px 10px;
-            border-radius: 5px;
-            border: 1px solid rgba(255,255,255,0.5);
-            background: rgba(255,255,255,0.2);
-            color: white;
-            font-family: 'Mangal', sans-serif;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .page-subtitle-date input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-        }
-        .page-subtitle-date #rptButton {
-            background: #007bff;
-            border: 1px solid #0056b3;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-            font-family: 'Mangal', sans-serif;
-            margin-left: 10px;
-        }
-        .page-subtitle-date #rptButton:hover {
-            background: #0056b3;
-        }
-        .page-subtitle-date #displayedDate {
-            background: #FFD700;
-            color: #2c3e50;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-weight: 600;
-        }
-
-        .content-card { 
-            background: rgba(255, 255, 255, 0.85); 
-            backdrop-filter: blur(8px); 
-            border-radius: 15px; 
-            padding: 35px 25px; 
-            box-shadow: 0 6px 20px rgba(0,0,0,0.12); 
-            border: 1px solid rgba(255, 255, 255, 0.3); 
-        }
-        
-        /* Form Styling */
-        .form-section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #0056b3;
-            margin-top: 25px;
-            margin-bottom: 15px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid rgba(0, 86, 179, 0.2);
-        }
-        .form-group { margin-bottom: 20px; }
-        .form-group label { 
-            display: block; 
-            margin-bottom: 8px; 
-            color: #28a745; 
-            font-weight: 500; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-            font-size: 14px; 
-        }
-        .form-group input, .form-group textarea, .form-group select { 
-            width: 100%; 
-            padding: 12px; 
-            border: 2px solid rgba(0, 0, 0, 0.1); 
-            border-radius: 8px; 
-            font-size: 14px; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-            background: #E0F2D6; 
-            color: #2c3e50; 
-            transition: all 0.3s; 
-        }
-        .form-group input::placeholder, .form-group textarea::placeholder { 
-            color: rgba(44, 62, 80, 0.7); 
-        }
-        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { 
-            outline: none; 
-            border-color: #037af1; 
-            box-shadow: 0 0 0 3px rgba(3, 122, 241, 0.2); 
-            background: #C2E0B2; 
-        }
-
-        /* Enhanced form validation styles */
-        .form-group input.error, .form-group textarea.error, .form-group select.error {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.2) !important;
-            background: #ffeaea !important;
-        }
-        .form-group input.valid, .form-group textarea.valid, .form-group select.valid {
-            border-color: #28a745 !important;
-            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.2) !important;
-        }
-        .field-error {
-            color: #dc3545;
-            font-size: 12px;
-            margin-top: 4px;
-            display: block;
-        }
-
-        .profile-submit-btn { 
-            width: 100%; 
-            background: #037af1; 
-            color: white; 
-            padding: 12px; 
-            border: none; 
-            border-radius: 8px; 
-            font-size: 16px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: all 0.3s; 
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif; 
-            margin-top: 10px; 
-        }
-        .profile-submit-btn:hover { 
-            background: #0056b3; 
-            transform: translateY(-2px); 
-        }
-        .profile-submit-btn:disabled { 
-            opacity: 0.6; 
-            cursor: not-allowed; 
-            transform: none; 
-        }
-        .form-row { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-            gap: 20px; 
-        }
-        .input-group { display: flex; align-items: center; }
-        .input-group .input-group-text {
-            padding: 12px;
-            border: 2px solid rgba(0, 0, 0, 0.1);
-            border-right: none;
-            border-radius: 8px 0 0 8px;
-            background: rgba(255, 255, 255, 0.9);
-            color: #28a745;
-            font-size: 14px;
-        }
-        .input-group input {
-            border-left: none;
-            border-radius: 0 8px 8px 0;
-            background: #E0F2D6;
-        }
-        
-        /* Dynamic Input Section Styling */
-        .dynamic-input-entries-container {
-            max-height: 400px;
-            overflow-y: auto;
-            padding-right: 15px;
-            margin-bottom: 20px;
-        }
-        .dynamic-input-entry {
-            border: 1px dashed #28a745;
-            border-radius: 10px;
-            padding: 15px;
-            margin-bottom: 20px;
-            background: rgba(255, 255, 255, 0.7);
-            position: relative;
-        }
-        .dynamic-input-entry .remove-entry-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-        }
-        .dynamic-input-entry .remove-entry-btn:hover {
-            transform: scale(1.1);
-            background: #c82333;
-        }
-        .add-more-btn {
-            background: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: all 0.2s;
-        }
-        .add-more-btn:hover {
-            background: #0056b3;
-        }
-
-        /* Radio button specific styling */
-        .radio-group-label {
-            color: #28a745;
-            font-weight: 500;
-            font-family: 'Mangal', 'Noto Sans Devanagari', sans-serif;
-            font-size: 14px;
-            margin-bottom: 8px;
-            display: block;
-        }
-        .radio-option {
-            display: inline-flex;
-            align-items: center;
-            margin-right: 15px;
-            cursor: pointer;
-            color: #2c3e50;
-        }
-        .radio-option input[type="radio"] {
-            position: absolute;
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .radio-option span {
-            display: inline-block;
-            width: 18px;
-            height: 18px;
-            border: 2px solid #28a745;
-            border-radius: 50%;
-            margin-right: 8px;
-            position: relative;
-            background: #E0F2D6;
-        }
-        .radio-option input[type="radio"]:checked + span::after {
-            content: '';
-            position: absolute;
-            top: 4px;
-            left: 4px;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #28a745;
-        }
-        .radio-option:hover span {
-            background: #C2E0B2;
-        }
-
-        /* Animations & Media Queries */
-        @keyframes spin { 
-            0% { transform: rotate(0deg); } 
-            100% { transform: rotate(360deg); } 
-        }
-        
-        @media (max-width: 768px) {
-            .admin-toolbar { 
-                margin: 10px 10px 0 10px; 
-                flex-direction: column; 
-                gap: 10px; 
-            }
-            .header-container { 
-                flex-direction: column; 
-                gap: 15px; 
-                text-align: center; 
-            } 
-            .navbar { margin: 0 10px; }
-            .nav-menu { 
-                flex-wrap: wrap; 
-                justify-content: center; 
-            }
-            .main-content { 
-                margin: 10px; 
-                padding: 20px; 
-                padding-top: 180px; 
-            }
-            .form-row { grid-template-columns: 1fr; }
-            .green-title-strip { 
-                flex-direction: column; 
-                align-items: flex-start; 
-                padding: 15px;
-                margin: -30px -25px 20px -25px;
-            }
-            .page-title-content { 
-                text-align: center; 
-                width: 100%; 
-                margin-bottom: 10px; 
-            }
-            .page-subtitle-date { 
-                text-align: center; 
-                width: 100%; 
-                justify-content: center; 
-            }
-        }
-    </style>
 </head>
 <body>
     <div id="pageLoading" class="page-loading">
@@ -595,7 +17,6 @@
         <div class="loading-text">लोड हो रहा है...</div>
     </div>
 
-    <!-- Admin Toolbar -->
     <div id="adminToolbar" class="admin-toolbar">
         <h3><i class="fas fa-shield-alt"></i> एडमिन कंट्रोल पैनल</h3>
         <button class="admin-btn" id="addCardBtn"><i class="fas fa-plus"></i> नया कार्ड जोड़ें</button>
@@ -603,9 +24,10 @@
         <button class="admin-btn" id="toggleEditMode"><i class="fas fa-edit"></i> एडिट मोड</button>
         <button class="admin-btn" id="userManagementBtn"><i class="fas fa-users"></i> उपयोगकर्ता प्रबंधन</button>
         <button class="admin-btn" id="analyticsDashboardBtn"><i class="fas fa-chart-pie"></i> एनालिटिक्स</button>
+        <button class="admin-btn" id="createDynamicFormBtn"><i class="fas fa-file-excel"></i> डायनेमिक फॉर्म</button>
+        <button class="admin-btn" id="manageDynamicFormsBtn"><i class="fas fa-list-alt"></i> फॉर्म प्रबंधित करें</button>
     </div>
 
-    <!-- Header Strip -->
     <div class="header-strip">
         <div class="header-container">
             <div class="logo-section">
@@ -617,28 +39,25 @@
             </div>
             <div class="user-section">
                 <div class="user-info">
-                    <div class="user-display" id="user-display">Loading...</div>
+                    <div class="user-display" id="user-display">Loading...</div> <!-- Corrected id attribute -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="nav-container">
-            <ul class="nav-menu" id="navMenu">
+            <ul class="nav-menu">
                 <li class="nav-item">
-                    <a href="dashboard.html" class="nav-link">
+                    <a href="dashboard.html" class="nav-link active">
                         <i class="fas fa-home"></i> होम
                     </a>
                 </li>
                 <li class="nav-item dropdown">
-                    <a href="#" class="nav-link" id="sectionsDropdownToggle" role="button" aria-expanded="false">
+                    <a href="#" class="nav-link" id="sectionsDropdownToggle">
                         <i class="fas fa-th-large"></i> सेक्शन <i class="fas fa-chevron-down"></i>
                     </a>
-                    <div class="dropdown-content" id="dynamicDropdown">
-                        <!-- Dynamic items will be loaded here by JS -->
-                    </div>
+                    <div class="dropdown-content" id="dynamicDropdown"></div>
                 </li>
                 <li class="nav-item profile-link">
                     <a href="#" class="nav-link" id="profileLink">
@@ -654,1025 +73,503 @@
         </div>
     </nav>
 
-    <!-- Main Content Area -->
-    <main class="main-content" id="main-content">
-        <div class="content-card">
-            <div class="green-title-strip">
-                <h2 class="page-title-content">विकसित कृषि संकल्प अभियान द्वितीय चरण</h2>
-                <p class="page-subtitle-date">
-                    दैनिक प्रतिवेदन दिनांक: <span id="displayedDate"></span>
-                    <input type="date" id="reportDate" name="reportDate" required>
-                    <button type="button" id="rptButton"><i class="fas fa-print"></i> Rpt</button>
-                </p>
-            </div>
-
-            <form id="dailyReportForm">
-                <!-- Section 1: Basic Information -->
-                <h4 class="form-section-title">मूलभूत जानकारी</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="districtSelect">जिले का नाम <span style="color: red;">*</span></label>
-                        <select id="districtSelect" name="districtId" required data-label="जिले का नाम">
-                            <option value="">जिले का नाम चुनें</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="totalCamps">आयोजित शिविरों की कुल संख्या <span style="color: red;">*</span></label>
-                        <input type="number" id="totalCamps" name="totalCamps" min="0" value="0" required data-label="आयोजित शिविरों की कुल संख्या">
-                    </div>
-                </div>
-
-                <!-- Section 2: Attendance -->
-                <h4 class="form-section-title">उपस्थिति विवरण</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="maleFarmers">पुरुष किसान <span style="color: red;">*</span></label>
-                        <input type="number" id="maleFarmers" name="maleFarmers" min="0" value="0" required data-calculate="totalFarmers" data-label="पुरुष किसान">
-                    </div>
-                    <div class="form-group">
-                        <label for="femaleFarmers">महिला किसान <span style="color: red;">*</span></label>
-                        <input type="number" id="femaleFarmers" name="femaleFarmers" min="0" value="0" required data-calculate="totalFarmers" data-label="महिला किसान">
-                    </div>
-                    <div class="form-group">
-                        <label for="totalFarmers">कुल किसान</label>
-                        <input type="number" id="totalFarmers" name="totalFarmers" min="0" value="0" disabled>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="publicRepsCount">उपस्थित जनप्रतिनिधियों की संख्या <span style="color: red;">*</span></label>
-                    <input type="number" id="publicRepsCount" name="publicRepsCount" min="0" value="0" required data-label="उपस्थित जनप्रतिनिधियों की संख्या">
-                </div>
-
-                <div class="form-group" id="headedChairQuestionGroup" style="display:none;">
-                    <label class="radio-group-label">क्या विधायक, सांसद, मंत्री ने अध्यक्षता की? <span style="color: red;">*</span></label>
-                    <div style="display:flex; gap: 20px;">
-                        <label class="radio-option">
-                            <input type="radio" name="headedChair" value="yes" id="yesHeadedChair">
-                            <span></span> हाँ
-                        </label>
-                        <label class="radio-option">
-                            <input type="radio" name="headedChair" value="no" id="noHeadedChair">
-                            <span></span> नहीं
-                        </label>
-                    </div>
-                </div>
-                
-                <div class="form-group" id="publicRepsNamesGroup" style="display:none;">
-                    <label for="publicRepsNames">जनप्रतिनिधियों के नाम (प्रत्येक नाम नई पंक्ति में) <span style="color: red;">*</span></label>
-                    <textarea id="publicRepsNames" name="publicRepsNames" rows="4" placeholder="माननीय विधायक, माननीय सांसद, माननीय मंत्री (राज्य), माननीय मंत्री (केंद्र), माननीय मुख्यमंत्री" data-label="जनप्रतिनिधियों के नाम"></textarea>
-                </div>
-
-                <h4 class="form-section-title">उपस्थित अधिकारी</h4>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="distAdminCount">जिला प्रशासन <span style="color: red;">*</span></label>
-                        <input type="number" id="distAdminCount" name="distAdminCount" min="0" value="0" required data-calculate="totalOfficers" data-label="जिला प्रशासन">
-                    </div>
-                    <div class="form-group">
-                        <label for="deptOfficersCount">विभागीय <span style="color: red;">*</span></label>
-                        <input type="number" id="deptOfficersCount" name="deptOfficersCount" min="0" value="0" required data-calculate="totalOfficers" data-label="विभागीय">
-                    </div>
-                    <div class="form-group">
-                        <label for="alliedDeptCount">संबद्ध विभाग <span style="color: red;">*</span></label>
-                        <input type="number" id="alliedDeptCount" name="alliedDeptCount" min="0" value="0" required data-calculate="totalOfficers" data-label="संबद्ध विभाग">
-                    </div>
-                    <div class="form-group">
-                        <label for="kvkCount">केवीके <span style="color: red;">*</span></label>
-                        <input type="number" id="kvkCount" name="kvkCount" min="0" value="0" required data-calculate="totalOfficers" data-label="केवीके">
-                    </div>
-                    <div class="form-group">
-                        <label for="igkvCount">आईजीकेवी वैज्ञानिक और पेशेवर <span style="color: red;">*</span></label>
-                        <input type="number" id="igkvCount" name="igkvCount" min="0" value="0" required data-calculate="totalOfficers" data-label="आईजीकेवी वैज्ञानिक और पेशेवर">
-                    </div>
-                    <div class="form-group">
-                        <label for="totalOfficers">कुल अधिकारी</label>
-                        <input type="number" id="totalOfficers" name="totalOfficers" min="0" value="0" disabled>
-                    </div>
-                </div>
-
-                <h4 class="form-section-title">सामग्री वितरण</h4>
-                <div class="form-group">
-                    <label for="publicityMaterialCount">वितरित प्रचार सामग्री की संख्या <span style="color: red;">*</span></label>
-                    <input type="number" id="publicityMaterialCount" name="publicityMaterialCount" min="0" value="0" required data-label="वितरित प्रचार सामग्री की संख्या">
-                </div>
-
-                <!-- Section 3: Input Distribution -->
-                <h4 class="form-section-title">इनपुट, नकद सब्सिडी और उपकरण</h4>
-                <div class="form-group">
-                    <label for="cashSubsidyAmountTotal">नकद सब्सिडी राशि (भारतीय रुपये)</label>
-                    <div class="input-group">
-                        <span class="input-group-text">₹</span>
-                        <input type="number" id="cashSubsidyAmountTotal" name="cashSubsidyAmountTotal" min="0" step="0.01" value="0.00" disabled>
-                    </div>
-                </div>
-
-                <!-- Dynamic Input Entries Container -->
-                <div id="dynamicInputEntriesContainer" class="dynamic-input-entries-container">
-                    <!-- Dynamic input entry forms will be appended here -->
-                </div>
-                <button type="button" id="addMoreInputBtn" class="add-more-btn"><i class="fas fa-plus"></i> और इनपुट/उपकरण जोड़ें</button>
-
-                <button type="submit" class="profile-submit-btn" id="submitReportBtn" disabled>
-                    <i class="fas fa-paper-plane"></i> रिपोर्ट सबमिट करें
-                </button>
-            </form>
-        </div>
+    <main class="main-content">
+        <div class="dashboard-cards" id="dynamicDashboardCards"></div>
     </main>
 
-    <!-- Hidden Template for Dynamic Input Entries -->
-    <template id="dynamicInputTemplate">
-        <div class="dynamic-input-entry">
-            <button type="button" class="remove-entry-btn"><i class="fas fa-times"></i></button>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>योजना का नाम <span style="color: red;">*</span></label>
-                    <select class="scheme-select" required data-label="योजना का नाम">
-                        <option value="">योजना चुनें</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>इनपुट का प्रकार <span style="color: red;">*</span></label>
-                    <select class="input-type-select" required data-label="इनपुट का प्रकार">
-                        <option value="">प्रकार चुनें</option>
-                    </select>
-                </div>
+    <!-- Add Card Modal -->
+    <div id="addCardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नया कार्ड जोड़ें</h2>
+                <span class="close" id="closeAddCardModal">&times;</span>
             </div>
-
-            <!-- Conditional Fields for Seed -->
-            <div class="conditional-fields seed-fields" style="display:none;">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>फसल का नाम <span style="color: red;">*</span></label>
-                        <input type="text" class="crop-name" placeholder="गेहूं, धान, आदि" data-label="फसल का नाम">
+            <div class="modal-body">
+                <form id="addCardForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cardTitleHi">शीर्षक (हिंदी) *</label>
+                            <input type="text" id="cardTitleHi" name="cardTitleHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cardTitleEn">Title (English) *</label>
+                            <input type="text" id="cardTitleEn" name="cardTitleEn" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>किस्म <span style="color: red;">*</span></label>
-                        <input type="text" class="variety" placeholder="एचडी 2967, पूसा बासमती, आदि" data-label="किस्म">
+                        <label for="cardDescHi">विवरण (हिंदी)</label>
+                        <textarea id="cardDescHi" name="cardDescHi" rows="3"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>मात्रा (किलोग्राम) <span style="color: red;">*</span></label>
-                        <input type="number" class="quantity" min="0" step="0.01" value="0.00" data-label="मात्रा">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Conditional Fields for Chemical/Fertilizer -->
-            <div class="conditional-fields chemical-fields" style="display:none;">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>व्यापारिक नाम <span style="color: red;">*</span></label>
-                        <input type="text" class="trade-name" placeholder="व्यापारिक नाम दर्ज करें" data-label="व्यापारिक नाम">
+                        <label for="cardDescEn">Description (English)</label>
+                        <textarea id="cardDescEn" name="cardDescEn" rows="3"></textarea>
                     </div>
                     <div class="form-group">
-                        <label>मात्रा <span style="color: red;">*</span></label>
-                        <input type="number" class="quantity" min="0" step="0.01" value="0.00" data-label="मात्रा">
+                        <label for="cardUrl">URL *</label>
+                        <input type="url" id="cardUrl" name="cardUrl" required>
                     </div>
                     <div class="form-group">
-                        <label>इकाई <span style="color: red;">*</span></label>
-                        <select class="unit-select" data-label="इकाई">
-                            <option value="">इकाई चुनें</option>
+                        <label for="cardCategory">कैटेगरी</label>
+                        <select id="cardCategory" name="cardCategory">
+                            <option value="general">सामान्य</option>
+                            <option value="finance">वित्त</option>
+                            <option value="agriculture">कृषि</option>
+                            <option value="storage">भंडारण</option>
+                            <option value="reports">रिपोर्ट</option>
                         </select>
                     </div>
-                </div>
+                    <div class="form-group">
+                        <label for="displayOrder">प्रदर्शन क्रम</label>
+                        <input type="number" id="displayOrder" name="displayOrder" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="iconPicker"></div>
+                        <input type="hidden" id="selectedIcon" name="selectedIcon" value="fas fa-cube">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="addCardSubmitBtn">
+                        <i class="fas fa-plus"></i> कार्ड जोड़ें
+                    </button>
+                    <div id="addCardErrorMessage" class="error-message"></div>
+                    <div id="addCardSuccessMessage" class="success-message"></div>
+                </form>
             </div>
+        </div>
+    </div>
 
-            <!-- Conditional Fields for Farm Tool -->
-            <div class="conditional-fields farm-tool-fields" style="display:none;">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>उपकरण का नाम <span style="color: red;">*</span></label>
-                        <input type="text" class="equipment-name" placeholder="ट्रैक्टर, सीड ड्रिल, हल" data-label="उपकरण का नाम">
+    <!-- Edit Card Modal -->
+    <div id="editCardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>कार्ड संपादित करें</h2>
+                <span class="close" id="closeEditCardModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editCardForm">
+                    <input type="hidden" id="editCardId" name="editCardId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editCardTitleHi">शीर्षक (हिंदी) *</label>
+                            <input type="text" id="editCardTitleHi" name="editCardTitleHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editCardTitleEn">Title (English) *</label>
+                            <input type="text" id="editCardTitleEn" name="editCardTitleEn" required>
+                        </div>
                     </div>
                     <div class="form-group">
-                        <label>संख्या <span style="color: red;">*</span></label>
-                        <input type="number" class="quantity" min="0" value="0" data-label="संख्या">
+                        <label for="editCardDescHi">विवरण (हिंदी)</label>
+                        <textarea id="editCardDescHi" name="editCardDescHi" rows="3"></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="editCardDescEn">Description (English)</label>
+                        <textarea id="editCardDescEn" name="editCardDescEn" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCardUrl">URL *</label>
+                        <input type="url" id="editCardUrl" name="editCardUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCardCategory">कैटेगरी</label>
+                        <select id="editCardCategory" name="editCardCategory">
+                            <option value="general">सामान्य</option>
+                            <option value="finance">वित्त</option>
+                            <option value="agriculture">कृषि</option>
+                            <option value="storage">भंडारण</option>
+                            <option value="reports">रिपोर्ट</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editDisplayOrder">प्रदर्शन क्रम</label>
+                        <input type="number" id="editDisplayOrder" name="editDisplayOrder" value="1" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="editIconPicker"></div>
+                        <input type="hidden" id="editSelectedIcon" name="editSelectedIcon" value="fas fa-cube">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="editCardSubmitBtn">
+                        <i class="fas fa-save"></i> परिवर्तन सहेजें
+                    </button>
+                    <div id="editCardErrorMessage" class="error-message"></div>
+                    <div id="editCardSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Manager Modal -->
+    <div id="navManagerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नेवीगेशन प्रबंधन</h2>
+                <span class="close" id="closeNavManagerModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="nav-manager">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50;">नेवीगेशन आइटम</h3>
+                        <button class="admin-btn" id="addNavItemBtn" style="background: #28a745; border-color: #28a745;">
+                            <i class="fas fa-plus"></i> नया आइटम जोड़ें
+                        </button>
+                    </div>
+                    <div id="navItemsList"></div>
                 </div>
             </div>
-            
-            <div class="form-row">
-                <div class="form-group">
-                    <label>कुल राशि (भारतीय रुपये) <span style="color: red;">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text">₹</span>
-                        <input type="number" class="total-amount" min="0" step="0.01" value="0.00" data-label="कुल राशि">
+        </div>
+    </div>
+
+    <!-- Add Navigation Item Modal -->
+    <div id="addNavModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नेवीगेशन आइटम जोड़ें</h2>
+                <span class="close" id="closeAddNavModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addNavForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="navNameHi">नाम (हिंदी) *</label>
+                            <input type="text" id="navNameHi" name="navNameHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="navNameEn">Name (English) *</label>
+                            <input type="text" id="navNameEn" name="navNameEn" required>
+                        </div>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>सब्सिडी राशि (भारतीय रुपये) <span style="color: red;">*</span></label>
-                    <div class="input-group">
-                        <span class="input-group-text">₹</span>
-                        <input type="number" class="subsidy-amount" min="0" step="0.01" value="0.00" data-calculate="cashSubsidy" data-label="सब्सिडी राशि">
+                    <div class="form-group">
+                        <label for="navUrl">URL *</label>
+                        <input type="url" id="navUrl" name="navUrl" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="navCategory">कैटेगरी</label>
+                            <select id="navCategory" name="navCategory"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="navOrder">प्रदर्शन क्रम</label>
+                            <input type="number" id="navOrder" name="navOrder" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="navIconPicker"></div>
+                        <input type="hidden" id="selectedNavIcon" name="selectedNavIcon" value="fas fa-link">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="addNavSubmitBtn">
+                        <i class="fas fa-plus"></i> नेवीगेशन आइटम जोड़ें
+                    </button>
+                    <div id="addNavErrorMessage" class="error-message"></div>
+                    <div id="addNavSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Navigation Item Modal -->
+    <div id="editNavModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>नेवीगेशन आइटम संपादित करें</h2>
+                <span class="close" id="closeEditNavModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editNavForm">
+                    <input type="hidden" id="editNavId" name="editNavId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editNavNameHi">नाम (हिंदी) *</label>
+                            <input type="text" id="editNavNameHi" name="editNavNameHi" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="editNavNameEn">Name (English) *</label>
+                            <input type="text" id="editNavNameEn" name="editNavNameEn" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="editNavUrl">URL *</label>
+                        <input type="url" id="editNavUrl" name="editNavUrl" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editNavCategory">कैटेगरी</label>
+                            <select id="editNavCategory" name="editNavCategory"></select>
+                        </div>
+                        <div class="form-group">
+                            <label for="editNavOrder">प्रदर्शन क्रम</label>
+                            <input type="number" id="editNavOrder" name="editNavOrder" value="1" min="1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>आइकन चुनें</label>
+                        <div class="icon-picker" id="editNavIconPicker"></div>
+                        <input type="hidden" id="editSelectedNavIcon" name="editSelectedNavIcon" value="fas fa-link">
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="editNavSubmitBtn">
+                        <i class="fas fa-save"></i> परिवर्तन सहेजें
+                    </button>
+                    <div id="editNavErrorMessage" class="error-message"></div>
+                    <div id="editNavSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="userManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>उपयोगकर्ता प्रबंधन</h2>
+                <span class="close" id="closeUserManagementModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="user-list-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: #2c3e50;">पंजीकृत उपयोगकर्ता</h3>
+                    </div>
+                    <div id="userList">
+                        <!-- User list will be loaded here -->
                     </div>
                 </div>
             </div>
         </div>
-    </template>
+    </div>
 
-<script type="module">
-    // Import all secure modules
-    import { supabaseClient } from './js/config.js';
-    import { SecurityUtils } from './js/security.js';
-    import { authManager } from './js/auth.js';
-    import { secureDB } from './js/database.js';
-    import { performanceManager } from './js/performance.js';
-    import { errorHandler } from './js/error-handler.js';
-
-    // Application state
-    let allDistricts = [];
-    let allSchemes = [];
-    let allInputTypes = [];
-    let allTradeNames = [];
-    let allUnits = [];
-
-    // FIXED: Better authentication check without auto-redirect
-    async function checkAuthenticationStatus() {
-        try {
-            console.log('🔐 Verifying authentication status...');
-            
-            // Use the new verifyAuthentication method that doesn't auto-redirect
-            const isAuthenticated = await authManager.verifyAuthentication();
-            
-            if (!isAuthenticated) {
-                console.log('❌ User not authenticated');
-                
-                // Show user-friendly message
-                document.getElementById('pageLoading').style.display = 'none';
-                
-                // Create authentication required message
-                const authMessage = document.createElement('div');
-                authMessage.style.cssText = `
-                    position: fixed;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    background: white;
-                    padding: 40px;
-                    border-radius: 15px;
-                    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                    text-align: center;
-                    z-index: 10000;
-                    max-width: 400px;
-                    width: 90%;
-                `;
-                
-                authMessage.innerHTML = `
-                    <div style="margin-bottom: 20px;">
-                        <i class="fas fa-lock" style="font-size: 48px; color: #dc3545; margin-bottom: 15px;"></i>
-                        <h3 style="color: #333; margin-bottom: 10px;">प्रमाणीकरण आवश्यक</h3>
-                        <p style="color: #666; margin-bottom: 20px;">इस पेज को एक्सेस करने के लिए कृपया लॉगिन करें</p>
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>उपयोगकर्ता संपादित करें</h2>
+                <span class="close" id="closeEditUserModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId" name="editUserId">
+                    <div class="form-group">
+                        <label for="editUserFullName">पूरा नाम</label>
+                        <input type="text" id="editUserFullName" name="editUserFullName">
                     </div>
-                    <div style="display: flex; gap: 10px; justify-content: center;">
-                        <button id="loginBtn" style="
-                            background: #007bff; 
-                            color: white; 
-                            border: none; 
-                            padding: 12px 24px; 
-                            border-radius: 8px; 
-                            cursor: pointer;
-                            font-size: 14px;
-                        ">
-                            <i class="fas fa-sign-in-alt"></i> लॉगिन करें
+                    <div class="form-group">
+                        <label for="editUserUsername">उपयोगकर्ता नाम</label>
+                        <input type="text" id="editUserUsername" name="editUserUsername" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserEmail">ईमेल</label>
+                        <input type="email" id="editUserEmail" name="editUserEmail" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserRole">भूमिका</label>
+                        <select id="editUserRole" name="editUserRole">
+                            <option value="user">उपयोगकर्ता</option>
+                            <option value="admin">एडमिन</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editUserDistrict">जिला</label>
+                        <select id="editUserDistrict" name="editUserDistrict"></select>
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="editUserSubmitBtn">
+                        <i class="fas fa-save"></i> परिवर्तन सहेजें
+                    </button>
+                    <div id="editUserErrorMessage" class="error-message"></div>
+                    <div id="editUserSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- Update your dropdown in dashboard.html -->
+    <div class="dropdown-content" id="dynamicDropdown">
+        <a href="#" class="dropdown-item" data-page="store">
+            <i class="fas fa-store"></i> STORE
+        </a>
+        <!-- Add other navigation items here -->
+    </div>
+
+    <!-- Analytics Dashboard Modal -->
+    <div id="analyticsDashboardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>एनालिटिक्स डैशबोर्ड</h2>
+                <span class="close" id="closeAnalyticsDashboardModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="analytics-section">
+                    <h3>कुल सारांश</h3>
+                    <div class="analytics-summary">
+                        <div class="summary-card">
+                            <div class="value" id="totalUsersCount">0</div>
+                            <div class="label">कुल उपयोगकर्ता</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="value" id="activeUsersCount">0</div>
+                            <div class="label">सक्रिय उपयोगकर्ता</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="value" id="totalCardClicks">0</div>
+                            <div class="label">कुल कार्ड क्लिक</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-section">
+                    <h3>शीर्ष कार्ड (क्लिक के अनुसार)</h3>
+                    <div id="topCardsList">
+                        <table class="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>कार्ड</th>
+                                    <th>क्लिक</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topCardsTableBody">
+                                <!-- Top cards will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="analytics-section">
+                    <h3>हाल की एडमिन गतिविधियाँ</h3>
+                    <div id="adminActivityList">
+                        <table class="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>क्रिया</th>
+                                    <th>विवरण</th>
+                                    <th>समय</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminActivityTableBody">
+                                <!-- Admin activity will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Form Creator Modal -->
+    <div id="dynamicFormCreatorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>डायनेमिक फॉर्म डिज़ाइनर</h2>
+                <span class="close" id="closeDynamicFormCreatorModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="inputExcel">Excel फ़ाइल अपलोड करें *</label>
+                    <input id="inputExcel" type="file" accept=".xlsx,.xls" class="form-control" required/>
+                </div>
+
+                <div class="form-group">
+                    <label for="inputTableName">टेबल का नाम (वैकल्पिक)</label>
+                    <input id="inputTableName" class="form-control" placeholder="यदि खाली, फ़ाइल का नाम उपयोग होगा" />
+                </div>
+
+                <div class="form-group">
+                    <label for="formNavParentItem">नेवीगेशन सेक्शन चुनें *</label>
+                    <select id="formNavParentItem" name="formNavParentItem" class="form-select" required></select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="formParentDashboardCard">मैप करने के लिए कार्ड चुनें *</label>
+                    <select id="formParentDashboardCard" name="formParentDashboardCard" class="form-select" required></select>
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button id="btnProcessExcel" class="profile-submit-btn">Preview Designer</button>
+                </div>
+
+                <hr class="my-4">
+
+                <div id="designerPreviewArea" style="display:none;">
+                    <h5>फ़ील्ड डिज़ाइनर</h5>
+                    <p class="text-muted small">यहां आप प्रत्येक फ़ील्ड के लेबल, प्रकार और 'एल्गोरिथम' नियम परिभाषित कर सकते हैं।</p>
+                    <div id="designerFieldsContainer">
+                        <!-- Fields will be dynamically loaded here -->
+                    </div>
+                    <div class="d-flex gap-2 mt-4">
+                        <button id="btnCreateDynamicForm" class="profile-submit-btn" style="background-color: #28a745;">
+                            टेबल बनाएं & परिभाषा सहेजें
                         </button>
-                        <button id="goBackBtn" style="
-                            background: #6c757d; 
-                            color: white; 
-                            border: none; 
-                            padding: 12px 24px; 
-                            border-radius: 8px; 
-                            cursor: pointer;
-                            font-size: 14px;
-                        ">
-                            <i class="fas fa-arrow-left"></i> वापस जाएं
+                        <button id="btnCancelDynamicForm" class="profile-submit-btn" style="background-color: #6c757d;">
+                            रद्द करें
                         </button>
                     </div>
-                `;
-                
-                document.body.appendChild(authMessage);
-                
-                // Add event listeners
-                document.getElementById('loginBtn').addEventListener('click', () => {
-                    window.location.href = 'header.html';
-                });
-                
-                document.getElementById('goBackBtn').addEventListener('click', () => {
-                    if (document.referrer) {
-                        window.history.back();
-                    } else {
-                        window.location.href = 'dashboard.html';
-                    }
-                });
-                
-                return false;
-            }
-            
-            console.log('✅ User authenticated successfully');
-            return true;
-            
-        } catch (error) {
-            console.error('Authentication check failed:', error);
-            errorHandler.handleError(error, { context: 'authentication_check' });
-            return false;
-        }
-    }
+                </div>
+                <div id="dynamicFormMessages" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Form Selector Modal (New Modal) -->
+    <div id="dynamicFormSelectorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>फॉर्म चुनें</h2>
+                <span class="close" id="closeDynamicFormSelectorModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="dynamicFormSelectorDescription" class="text-muted small mb-3">इस सेक्शन से एक फॉर्म चुनें:</p>
+                <div id="dynamicFormList" class="list-group dynamic-form-selector-list">
+                    <!-- Dynamic forms associated with the clicked card will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Dynamic Forms Modal (New Modal) -->
+    <div id="manageDynamicFormsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>डायनेमिक फॉर्म प्रबंधित करें</h2>
+                <span class="close" id="closeManageDynamicFormsModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="manage-dynamic-forms-list list-group" id="dynamicFormsManagementList">
+                    <!-- List of dynamic forms for management -->
+                </div>
+                <div id="manageDynamicFormsMessages" class="error-message" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>प्रोफाइल सेटिंग्स</h2>
+                <span class="close" id="closeProfileModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <div class="form-group">
+                        <label for="currentPassword">वर्तमान पासवर्ड</label>
+                        <input type="password" id="currentPassword" name="currentPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">नया पासवर्ड</label>
+                        <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">पासवर्ड की पुष्टि करें</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                    <button type="submit" class="profile-submit-btn" id="profileBtn">
+                        <i class="fas fa-save"></i> पासवर्ड अपडेट करें
+                    </button>
+                    <div id="profileErrorMessage" class="error-message"></div>
+                    <div id="profileSuccessMessage" class="success-message"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- Link to external JavaScript file for dashboard -->
+    <script type="module" src="./js/dashboard.js"></script>
 
-    // Initialize application
-    document.addEventListener('DOMContentLoaded', async function() {
-        try {
-            console.log('🚀 Starting Viksit Krishi app initialization...');
-            
-            // Clear any redirect counters from previous sessions
-            sessionStorage.removeItem('redirectCount');
-            
-            // Check authentication first
-            const isAuthenticated = await checkAuthenticationStatus();
-            
-            if (!isAuthenticated) {
-                // Authentication message is already shown
-                return;
-            }
-
-            // User is authenticated, proceed with app initialization
-            console.log('🎉 Authentication successful, initializing application...');
-            
-            // Show loading
-            performanceManager.showLoading('main-content', 'Initializing application...');
-
-            // Initialize all components
-            await initializeApplication();
-
-            // Hide page loading
-            document.getElementById('pageLoading').style.display = 'none';
-            performanceManager.hideLoading('main-content');
-
-            errorHandler.showSuccess('Ready', 'Application loaded successfully');
-
-        } catch (error) {
-            console.error('Application initialization error:', error);
-            errorHandler.handleError(error, { context: 'application_initialization' });
-            document.getElementById('pageLoading').style.display = 'none';
-            performanceManager.hideLoading('main-content');
-        }
-    });
-
-    // Initialize all application components
-    async function initializeApplication() {
-        try {
-            // Setup performance optimizations
-            const form = document.getElementById('dailyReportForm');
-            if (form) {
-                performanceManager.setupSmartValidation(form);
-                performanceManager.setupAutoCalculation(form);
-            }
-
-            // Load initial data
-            await loadApplicationData();
-
-            // Setup event listeners
-            setupEventListeners();
-
-            // Setup form functionality
-            setupFormFunctionality();
-
-            // Setup auto-save
-            setupAutoSave();
-
-            console.log('✅ Application initialized successfully');
-            
-        } catch (error) {
-            console.error('Application initialization failed:', error);
-            throw error;
-        }
-    }
-
-    // Load all application data
-    async function loadApplicationData() {
-        try {
-            performanceManager.showLoading('main-content', 'Loading application data...');
-
-            // Load data in parallel for better performance
-            const loadData = async () => {
-                const [districts, schemes, inputTypes, tradeNames, units] = await Promise.all([
-                    secureDB.getDistricts(),
-                    secureDB.getSchemes(),
-                    secureDB.getInputTypes(),
-                    secureDB.getTradeNames(),
-                    secureDB.getUnits()
-                ]);
-                
-                return { districts, schemes, inputTypes, tradeNames, units };
-            };
-
-            const data = await errorHandler.withErrorHandling(loadData, {
-                operation: 'load application data',
-                retryFunction: loadApplicationData
-            });
-
-            // Store data globally
-            allDistricts = data.districts;
-            allSchemes = data.schemes;
-            allInputTypes = data.inputTypes;
-            allTradeNames = data.tradeNames;
-            allUnits = data.units;
-
-            // Populate UI
-            populateDistricts();
-            setupDateSelector();
-            addInitialDynamicInput();
-
-            console.log('✅ Application data loaded successfully');
-
-        } catch (error) {
-            errorHandler.handleNetworkError(error, 'load application data');
-            throw error;
-        } finally {
-            performanceManager.hideLoading('main-content');
-        }
-    }
-
-    // Populate districts dropdown
-    function populateDistricts() {
-        const districtSelect = document.getElementById('districtSelect');
-        if (!districtSelect) return;
-        
-        const fragment = document.createDocumentFragment();
-        
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'जिले का नाम चुनें';
-        fragment.appendChild(defaultOption);
-
-        allDistricts.forEach(district => {
-            const option = document.createElement('option');
-            option.value = district.id;
-            option.textContent = district.name;
-            fragment.appendChild(option);
-        });
-
-        districtSelect.appendChild(fragment);
-
-        // Pre-select user's district if available
-        const currentUser = authManager.getCurrentUser();
-        if (currentUser?.profile?.districts?.id) {
-            districtSelect.value = currentUser.profile.districts.id;
-        }
-    }
-
-    // Setup date selector
-    function setupDateSelector() {
-        const reportDateInput = document.getElementById('reportDate');
-        const displayedDateSpan = document.getElementById('displayedDate');
-        
-        if (!reportDateInput || !displayedDateSpan) return;
-
-        const today = new Date();
-        const yyyy = today.getFullYear();
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const todayISO = `${yyyy}-${mm}-${dd}`;
-
-        // Set default date to today and restrict future dates
-        reportDateInput.value = todayISO;
-        reportDateInput.setAttribute('max', todayISO);
-        reportDateInput.setAttribute('min', '2025-01-01');
-        
-        // Display date in DDMMYYYY format initially
-        displayedDateSpan.textContent = `${dd}${mm}${yyyy}`;
-
-        reportDateInput.addEventListener('change', function() {
-            const selectedDate = new Date(this.value);
-            const displayDd = String(selectedDate.getDate()).padStart(2, '0');
-            const displayMm = String(selectedDate.getMonth() + 1).padStart(2, '0');
-            const displayYyyy = selectedDate.getFullYear();
-            displayedDateSpan.textContent = `${displayDd}${displayMm}${displayYyyy}`;
-        });
-    }
-
-    // Setup all event listeners
-    function setupEventListeners() {
-        // Navigation dropdown
-        const sectionsToggle = document.getElementById('sectionsDropdownToggle');
-        if (sectionsToggle) {
-            sectionsToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                const dropdown = document.getElementById('dynamicDropdown');
-                if (dropdown) {
-                    dropdown.classList.toggle('show');
-                }
-            });
-        }
-
-        // Profile and logout links
-        document.getElementById('profileLink')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            errorHandler.showInfo('Profile', 'Profile settings will be implemented here');
-        });
-
-        document.getElementById('logoutLink')?.addEventListener('click', async (e) => {
-            e.preventDefault();
-            if (confirm('क्या आप वाकई लॉगआउट करना चाहते हैं?')) {
-                await authManager.logout();
-            }
-        });
-
-        // Admin buttons
-        if (authManager.getCurrentUser()?.profile?.role === 'admin') {
-            setupAdminButtons();
-        }
-
-        // Form submission
-        const form = document.getElementById('dailyReportForm');
-        if (form) {
-            form.addEventListener('submit', handleSecureFormSubmission);
-        }
-
-        // Add more input button
-        document.getElementById('addMoreInputBtn')?.addEventListener('click', addDynamicInputEntry);
-
-        // Report generation button
-        document.getElementById('rptButton')?.addEventListener('click', generateReport);
-
-        // Close dropdowns when clicking outside
-        window.addEventListener('click', function(e) {
-            if (!e.target.matches('#sectionsDropdownToggle')) {
-                const dropdown = document.getElementById('dynamicDropdown');
-                if (dropdown) {
-                    dropdown.classList.remove('show');
-                }
-            }
-        });
-    }
-
-    // Setup admin buttons
-    function setupAdminButtons() {
-        const adminToolbar = document.getElementById('adminToolbar');
-        if (adminToolbar) {
-            adminToolbar.classList.add('show');
-        }
-
-        // Admin button event listeners
-        document.getElementById('addCardBtn')?.addEventListener('click', () => {
-            errorHandler.showInfo('Admin', 'Add card functionality will be implemented');
-        });
-
-        document.getElementById('manageNavBtn')?.addEventListener('click', () => {
-            errorHandler.showInfo('Admin', 'Navigation management will be implemented');
-        });
-
-        document.getElementById('toggleEditMode')?.addEventListener('click', () => {
-            errorHandler.showInfo('Admin', 'Edit mode will be implemented');
-        });
-
-        document.getElementById('userManagementBtn')?.addEventListener('click', () => {
-            errorHandler.showInfo('Admin', 'User management will be implemented');
-        });
-
-        document.getElementById('analyticsDashboardBtn')?.addEventListener('click', () => {
-            errorHandler.showInfo('Admin', 'Analytics dashboard will be implemented');
-        });
-    }
-
-    // Setup form functionality
-    function setupFormFunctionality() {
-        // Conditional fields for public representatives
-        const publicRepsCountInput = document.getElementById('publicRepsCount');
-        const headedChairQuestionGroup = document.getElementById('headedChairQuestionGroup');
-        const publicRepsNamesGroup = document.getElementById('publicRepsNamesGroup');
-        const yesHeadedChairRadio = document.getElementById('yesHeadedChair');
-        const noHeadedChairRadio = document.getElementById('noHeadedChair');
-
-        if (publicRepsCountInput) {
-            publicRepsCountInput.addEventListener('input', function() {
-                const count = parseInt(this.value) || 0;
-                if (count > 0) {
-                    if (headedChairQuestionGroup) headedChairQuestionGroup.style.display = 'block';
-                } else {
-                    if (headedChairQuestionGroup) headedChairQuestionGroup.style.display = 'none';
-                    if (publicRepsNamesGroup) publicRepsNamesGroup.style.display = 'none';
-                    if (yesHeadedChairRadio) yesHeadedChairRadio.checked = false;
-                    if (noHeadedChairRadio) noHeadedChairRadio.checked = false;
-                }
-            });
-        }
-
-        if (yesHeadedChairRadio) {
-            yesHeadedChairRadio.addEventListener('change', function() {
-                if (this.checked && publicRepsNamesGroup) {
-                    publicRepsNamesGroup.style.display = 'block';
-                }
-            });
-        }
-
-        if (noHeadedChairRadio) {
-            noHeadedChairRadio.addEventListener('change', function() {
-                if (this.checked && publicRepsNamesGroup) {
-                    publicRepsNamesGroup.style.display = 'none';
-                }
-            });
-        }
-    }
-
-    // Add initial dynamic input entry
-    function addInitialDynamicInput() {
-        addDynamicInputEntry();
-    }
-
-    // Add dynamic input entry
-    function addDynamicInputEntry() {
-        const template = document.getElementById('dynamicInputTemplate');
-        const container = document.getElementById('dynamicInputEntriesContainer');
-        
-        if (!template || !container) return;
-        
-        const clone = template.content.cloneNode(true);
-        const entryDiv = clone.querySelector('.dynamic-input-entry');
-        
-        container.appendChild(clone);
-
-        // Populate dropdowns
-        populateSchemeSelect(entryDiv.querySelector('.scheme-select'));
-        populateInputTypeSelect(entryDiv.querySelector('.input-type-select'));
-
-        // Setup event listeners for this entry
-        setupDynamicInputEvents(entryDiv);
-    }
-
-    // Populate scheme select
-    function populateSchemeSelect(selectElement) {
-        if (!selectElement) return;
-        
-        const fragment = document.createDocumentFragment();
-        
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'योजना चुनें';
-        fragment.appendChild(defaultOption);
-
-        allSchemes.forEach(scheme => {
-            const option = document.createElement('option');
-            option.value = scheme.id;
-            option.textContent = scheme.scheme_name;
-            fragment.appendChild(option);
-        });
-
-        selectElement.appendChild(fragment);
-    }
-
-    // Populate input type select
-    function populateInputTypeSelect(selectElement) {
-        if (!selectElement) return;
-        
-        const fragment = document.createDocumentFragment();
-        
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'प्रकार चुनें';
-        fragment.appendChild(defaultOption);
-
-        allInputTypes.forEach(inputType => {
-            const option = document.createElement('option');
-            option.value = inputType.type_name_en;
-            option.textContent = inputType.type_name_hi;
-            fragment.appendChild(option);
-        });
-
-        selectElement.appendChild(fragment);
-    }
-
-    // Setup events for dynamic input entry
-    function setupDynamicInputEvents(entryDiv) {
-        if (!entryDiv) return;
-        
-        const inputTypeSelect = entryDiv.querySelector('.input-type-select');
-        const removeBtn = entryDiv.querySelector('.remove-entry-btn');
-
-        // Input type change event
-        if (inputTypeSelect) {
-            inputTypeSelect.addEventListener('change', function() {
-                updateConditionalFields(entryDiv, this.value);
-            });
-        }
-
-        // Remove entry event
-        if (removeBtn) {
-            removeBtn.addEventListener('click', function() {
-                entryDiv.remove();
-                calculateTotalSubsidy();
-            });
-        }
-
-        // Setup validation for all inputs in this entry
-        const inputs = entryDiv.querySelectorAll('input, select, textarea');
-        inputs.forEach(input => {
-            input.addEventListener('input', () => {
-                performanceManager.debounce(() => {
-                    validateField(input);
-                    if (input.classList.contains('subsidy-amount')) {
-                        calculateTotalSubsidy();
-                    }
-                }, 300, `validate_${input.className}_${Date.now()}`);
-            });
-
-            input.addEventListener('blur', () => {
-                validateField(input);
-            });
-        });
-    }
-
-    // Update conditional fields based on input type
-    function updateConditionalFields(entryDiv, inputType) {
-        if (!entryDiv) return;
-        
-        // Hide all conditional fields
-        entryDiv.querySelectorAll('.conditional-fields').forEach(fieldGroup => {
-            fieldGroup.style.display = 'none';
-            fieldGroup.querySelectorAll('input, select').forEach(input => {
-                input.removeAttribute('required');
-                input.value = '';
-            });
-        });
-
-        let targetFields = null;
-
-        if (inputType === 'Seed') {
-            targetFields = entryDiv.querySelector('.seed-fields');
-        } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
-            targetFields = entryDiv.querySelector('.chemical-fields');
-            // Populate unit select for chemicals
-            const unitSelect = entryDiv.querySelector('.unit-select');
-            if (unitSelect) {
-                populateUnitSelect(unitSelect, inputType);
-            }
-        } else if (inputType === 'Farm Tool or Equipment') {
-            targetFields = entryDiv.querySelector('.farm-tool-fields');
-        }
-
-        if (targetFields) {
-            targetFields.style.display = 'block';
-            targetFields.querySelectorAll('input, select').forEach(input => {
-                input.setAttribute('required', 'true');
-            });
-        }
-    }
-
-    // Populate unit select based on input type
-    function populateUnitSelect(unitSelectElement, inputType) {
-        if (!unitSelectElement) return;
-        
-        const fragment = document.createDocumentFragment();
-        
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'इकाई चुनें';
-        fragment.appendChild(defaultOption);
-
-        // Filter units based on input type
-        const inputTypeData = allInputTypes.find(type => type.type_name_en === inputType);
-        const allowedUnitTypes = inputTypeData?.unit_category_types || [];
-
-        const filteredUnits = allUnits.filter(unit => 
-            allowedUnitTypes.includes(unit.unit_type)
-        );
-
-        filteredUnits.forEach(unit => {
-            const option = document.createElement('option');
-            option.value = unit.id;
-            option.textContent = unit.unit_name_hi;
-            fragment.appendChild(option);
-        });
-
-        unitSelectElement.innerHTML = '';
-        unitSelectElement.appendChild(fragment);
-    }
-
-    // Validate individual field
-    function validateField(input) {
-        if (!input) return true;
-        
-        const value = input.value;
-        const fieldName = input.dataset.label || input.placeholder || input.name || 'Field';
-
-        // Remove previous styling
-        input.classList.remove('error', 'valid');
-
-        let isValid = true;
-
-        if (input.hasAttribute('required') && !value.trim()) {
-            isValid = false;
-        } else if (input.type === 'number') {
-            const num = Number(value);
-            if (isNaN(num) || num < 0) {
-                isValid = false;
-            }
-        } else if (input.type === 'email') {
-            if (value && !SecurityUtils.validateField(value, 'email', fieldName).length === 0) {
-                isValid = false;
-            }
-        }
-
-        // Apply styling
-        input.classList.add(isValid ? 'valid' : 'error');
-
-        return isValid;
-    }
-
-    // Calculate total subsidy amount
-    function calculateTotalSubsidy() {
-        let total = 0;
-        document.querySelectorAll('.subsidy-amount').forEach(input => {
-            total += parseFloat(input.value) || 0;
-        });
-        
-        const totalElement = document.getElementById('cashSubsidyAmountTotal');
-        if (totalElement) {
-            totalElement.value = total.toFixed(2);
-        }
-    }
-
-    // Collect form data securely
-    function collectSecureFormData() {
-        const rawData = {
-            district_id: document.getElementById('districtSelect')?.value || '',
-            report_date: document.getElementById('reportDate')?.value || '',
-            total_camps_organized: parseInt(document.getElementById('totalCamps')?.value) || 0,
-            total_farmers_participated: parseInt(document.getElementById('totalFarmers')?.value) || 0,
-            male_farmers: parseInt(document.getElementById('maleFarmers')?.value) || 0,
-            female_farmers: parseInt(document.getElementById('femaleFarmers')?.value) || 0,
-            public_reps_count: parseInt(document.getElementById('publicRepsCount')?.value) || 0,
-            headed_chair_by_rep: document.querySelector('input[name="headedChair"]:checked')?.value === 'yes',
-            public_reps_names: document.getElementById('publicRepsNames')?.value.trim() || '',
-            officers_dist_admin: parseInt(document.getElementById('distAdminCount')?.value) || 0,
-            officers_departmental: parseInt(document.getElementById('deptOfficersCount')?.value) || 0,
-            officers_allied_dept: parseInt(document.getElementById('alliedDeptCount')?.value) || 0,
-            officers_kvk: parseInt(document.getElementById('kvkCount')?.value) || 0,
-            officers_igkv_scient_prof: parseInt(document.getElementById('igkvCount')?.value) || 0,
-            total_officers_present: parseInt(document.getElementById('totalOfficers')?.value) || 0,
-            publicity_material_distributed: parseInt(document.getElementById('publicityMaterialCount')?.value) || 0,
-            cash_subsidy_amount: parseFloat(document.getElementById('cashSubsidyAmountTotal')?.value) || 0,
-            dynamic_inputs: []
-        };
-
-        // Collect dynamic inputs
-        document.querySelectorAll('.dynamic-input-entry').forEach(entry => {
-            const inputType = entry.querySelector('.input-type-select')?.value;
-            const schemeId = entry.querySelector('.scheme-select')?.value;
-            
-            if (!inputType || !schemeId) return;
-
-            const dynamicInput = {
-                scheme_id: schemeId,
-                input_type: inputType,
-                total_amount: parseFloat(entry.querySelector('.total-amount')?.value) || 0,
-                subsidy_amount: parseFloat(entry.querySelector('.subsidy-amount')?.value) || 0,
-                input_details: {}
-            };
-
-            // Collect type-specific details
-            if (inputType === 'Seed') {
-                dynamicInput.input_details = {
-                    crop_name: entry.querySelector('.crop-name')?.value.trim() || '',
-                    variety: entry.querySelector('.variety')?.value.trim() || '',
-                    quantity: parseFloat(entry.querySelector('.quantity')?.value) || 0
-                };
-            } else if (['Insecticide/Pesticide', 'Fertilizer', 'Biofertilizer'].includes(inputType)) {
-                const unitSelect = entry.querySelector('.unit-select');
-                dynamicInput.input_details = {
-                    trade_name: entry.querySelector('.trade-name')?.value.trim() || '',
-                    quantity: parseFloat(entry.querySelector('.quantity')?.value) || 0,
-                    unit_id: unitSelect?.value || '',
-                    unit_name: unitSelect?.options[unitSelect.selectedIndex]?.textContent || ''
-                };
-            } else if (inputType === 'Farm Tool or Equipment') {
-                dynamicInput.input_details = {
-                    equipment_name: entry.querySelector('.equipment-name')?.value.trim() || '',
-                    quantity: parseInt(entry.querySelector('.quantity')?.value) || 0
-                };
-            }
-
-            rawData.dynamic_inputs.push(dynamicInput);
-        });
-
-        return rawData;
-    }
-
-    // Handle secure form submission
-    async function handleSecureFormSubmission(event) {
-        event.preventDefault();
-        
-        try {
-            // Validate form first
-            const validation = errorHandler.validateForm(event.target);
-            if (!validation.isValid) {
-                return; // Error toast already shown by validateForm
-            }
-
-            // Show loading states
-            const submitBtn = document.getElementById('submitReportBtn');
-            if (submitBtn) {
-                const originalText = submitBtn.innerHTML;
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> सबमिट हो रहा है...';
-            }
-
-            performanceManager.showLoading('dailyReportForm', 'रिपोर्ट सबमिट की जा रही है...');
-
-            // Collect and sanitize form data
-            const formData = collectSecureFormData();
-            console.log('📝 Submitting form data:', formData);
-
-            // Submit with error handling wrapper
-            const result = await errorHandler.withErrorHandling(
-                async () => await secureDB.submitReport(formData),
-                { 
-                    operation: 'submit report',
-                    retryFunction: () => handleSecureFormSubmission(event)
-                }
-            );
-
-            // Success notification
-            errorHandler.showSuccess('सफल!', 'रिपोर्ट सफलतापूर्वक सबमिट की गई');
-            
-            // Reset form
-            event.target.reset();
-            
-            // Clear dynamic inputs and add fresh one
-            const container = document.getElementById('dynamicInputEntriesContainer');
-            if (container) {
-                container.innerHTML = '';
-                addInitialDynamicInput();
-            }
-            
-            // Reset date to today
-            setupDateSelector();
-            
-            // Clear auto-saved data
-            localStorage.removeItem('autosave_dailyReportForm');
-
-            console.log('✅ Report submitted successfully:', result);
-
-        } catch (error) {
-            console.error('❌ Form submission failed:', error.message);
-            
-        } finally {
-            // Reset button state
-            const submitBtn = document.getElementById('submitReportBtn');
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> रिपोर्ट सबमिट करें';
-            }
-            
-            performanceManager.hideLoading('dailyReportForm');
-        }
-    }
-
-    // Generate and print report
-    async function generateReport() {
-        try {
-            const reportDate = document.getElementById('reportDate')?.value;
-            if (!reportDate) {
-                errorHandler.showWarning('तारीख आवश्यक', 'कृपया रिपोर्ट के लिए दिनांक चुनें');
-                return;
-            }
-
-            performanceManager.showLoading('main-content', 'रिपोर्ट तैयार की जा रही है...');
-
-            // For now, show a simple message
-            errorHandler.showInfo('रिपोर्ट', 'रिपोर्ट जेनरेशन फीचर जल्द ही उपलब्ध होगा');
-
-        } catch (error) {
-            errorHandler.handleNetworkError(error, 'generate report');
-        } finally {
-            performanceManager.hideLoading('main-content');
-        }
-    }
-
-    // Auto-save functionality (simplified for now)
-    function setupAutoSave() {
-        console.log('📝 Auto-save functionality initialized');
-        // Auto-save implementation will be added later
-    }
-
-    // Window cleanup
-    window.addEventListener('beforeunload', () => {
-        performanceManager.cleanup();
-    });
-
-    // Global error handling for the application
-    window.addEventListener('error', (event) => {
-        errorHandler.handleError({
-            type: 'JavaScript Error',
-            message: event.message,
-            filename: event.filename,
-            line: event.lineno,
-            column: event.colno,
-            stack: event.error?.stack
-        }, { context: 'global_error_handler' });
-    });
-
-    console.log('🚀 Viksit Krishi Sankalp Abhiyan script loaded');
-</script>
 </body>
 </html>
-
-
