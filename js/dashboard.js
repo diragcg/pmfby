@@ -287,10 +287,11 @@ function createCardElement(card) {
 
 async function loadNavigationItems() {
     try {
+        // FIXED: Correct orderBy syntax for multiple columns
         const navItems = await secureDB.secureSelect('navigation_items', {
             select: '*, navigation_categories(name_hi, name_en)',
             filters: { is_active: true },
-            orderBy: 'parent_id, display_order' // Order by parent_id to group children
+            orderBy: [{ column: 'parent_id', ascending: true }, { column: 'display_order', ascending: true }] // Corrected!
         });
 
         const dropdownContainer = document.getElementById('dynamicDropdown');
@@ -367,9 +368,9 @@ function setupRealtimeSubscriptions() {
                 loadUserList();
                 errorHandler.showToast('info', 'उपयोगकर्ता सूची अपडेट', 'उपयोगकर्ता सूची अपडेट हो गई');
             }
-            // If current user's role or district changes, reload user data
+            // If current user's role or district changes, reload authManager state
             if (payload.new.id === currentUser?.id) {
-                authManager.loadSessionFromStorage(); // Reload authManager state from sessionStorage
+                authManager.loadSessionFromStorage(); 
             }
         })
         .subscribe();
@@ -422,9 +423,9 @@ function setupCardInteractions() {
         // Drag and drop for admin edit mode
         if (isAdmin) {
             const card = link.querySelector('.dashboard-card');
-            if (!card) return; // Add null check
+            if (!card) return; 
             
-            card.setAttribute('draggable', 'true'); // Make cards draggable in edit mode
+            card.setAttribute('draggable', 'true'); 
             
             card.addEventListener('dragstart', function(e) {
                 if (editMode) {
@@ -476,30 +477,24 @@ async function reorderCards(draggedId, targetId) {
 
         if (!draggedCard || !targetCard) return;
 
-        // Perform the reordering logic to get the new order of all cards
         const newCardsOrder = [...cards];
         const draggedIndex = newCardsOrder.findIndex(c => c.id === parseInt(draggedId));
         const targetIndex = newCardsOrder.findIndex(c => c.id === parseInt(targetId));
 
-        // Remove the dragged card from its original position
         const [removed] = newCardsOrder.splice(draggedIndex, 1);
-        // Insert it into the new position
         newCardsOrder.splice(targetIndex, 0, removed);
 
-        // Prepare the updates array with new display_order for ALL affected cards
         const updates = newCardsOrder.map((card, index) => ({
             id: card.id,
-            display_order: index + 1, // Assign new sequential order
-            updated_at: new Date().toISOString() // Add updated timestamp
+            display_order: index + 1, 
+            updated_at: new Date().toISOString() 
         }));
 
-        // Use secureDB.secureUpsert to update multiple records in one go
-        await secureDB.secureUpsert('dashboard_cards', updates, 'id'); // 'id' is the conflict column
+        await secureDB.secureUpsert('dashboard_cards', updates, 'id'); 
 
         logAdminAction('CARD_ORDER_UPDATED', `Reordered card (ID: ${draggedId}) with (ID: ${targetId})`);
         errorHandler.showToast('success', 'कार्ड क्रम बदल दिया गया', 'कार्ड का क्रम सफलतापूर्वक बदल दिया गया');
 
-        // Reload dashboard cards to reflect the new order visually
         loadDashboardCards(); 
 
     } catch (error) {
@@ -509,14 +504,25 @@ async function reorderCards(draggedId, targetId) {
 }
 
 function setupEventListeners() {
+    // FIXED: Added null checks for all getElementById before adding event listeners
+    // This prevents errors if an element is missing from the HTML.
+
+    const addCardBtn = document.getElementById('addCardBtn');
+    const manageNavBtn = document.getElementById('manageNavBtn');
+    const toggleEditModeBtn = document.getElementById('toggleEditMode');
+    const userManagementBtn = document.getElementById('userManagementBtn');
+    const analyticsDashboardBtn = document.getElementById('analyticsDashboardBtn');
+    const createDynamicFormBtn = document.getElementById('createDynamicFormBtn');
+    const manageDynamicFormsBtn = document.getElementById('manageDynamicFormsBtn');
+
     if (isAdmin) {
-        document.getElementById('addCardBtn')?.addEventListener('click', openAddCardModal);
-        document.getElementById('manageNavBtn')?.addEventListener('click', openNavManagerModal);
-        document.getElementById('toggleEditMode')?.addEventListener('click', toggleEditMode);
-        document.getElementById('userManagementBtn')?.addEventListener('click', openUserManagementModal);
-        document.getElementById('analyticsDashboardBtn')?.addEventListener('click', openAnalyticsDashboardModal);
-        document.getElementById('createDynamicFormBtn')?.addEventListener('click', openDynamicFormCreatorModal);
-        document.getElementById('manageDynamicFormsBtn')?.addEventListener('click', openManageDynamicFormsModal); // New button
+        if (addCardBtn) addCardBtn.addEventListener('click', openAddCardModal);
+        if (manageNavBtn) manageNavBtn.addEventListener('click', openNavManagerModal);
+        if (toggleEditModeBtn) toggleEditModeBtn.addEventListener('click', toggleEditMode);
+        if (userManagementBtn) userManagementBtn.addEventListener('click', openUserManagementModal);
+        if (analyticsDashboardBtn) analyticsDashboardBtn.addEventListener('click', openAnalyticsDashboardModal);
+        if (createDynamicFormBtn) createDynamicFormBtn.addEventListener('click', openDynamicFormCreatorModal);
+        if (manageDynamicFormsBtn) manageDynamicFormsBtn.addEventListener('click', openManageDynamicFormsModal);
     }
 
     document.getElementById('closeAddCardModal')?.addEventListener('click', closeAddCardModal);
@@ -529,7 +535,7 @@ function setupEventListeners() {
     document.getElementById('closeAnalyticsDashboardModal')?.addEventListener('click', closeAnalyticsDashboardModal);
     document.getElementById('closeDynamicFormCreatorModal')?.addEventListener('click', closeDynamicFormCreatorModal);
     document.getElementById('closeDynamicFormSelectorModal')?.addEventListener('click', closeDynamicFormSelectorModal);
-    document.getElementById('closeManageDynamicFormsModal')?.addEventListener('click', closeManageDynamicFormsModal); // New close button
+    document.getElementById('closeManageDynamicFormsModal')?.addEventListener('click', closeManageDynamicFormsModal);
     document.getElementById('closeProfileModal')?.addEventListener('click', closeProfileModal);
 
     document.getElementById('addCardForm')?.addEventListener('submit', handleAddCard);
@@ -539,11 +545,34 @@ function setupEventListeners() {
     document.getElementById('editUserForm')?.addEventListener('submit', handleEditUser);
 
     document.getElementById('profileLink')?.addEventListener('click', (e) => { e.preventDefault(); openProfileModal(); });
-    document.getElementById('logoutLink')?.addEventListener('click', (e) => { e.preventDefault(); if (confirm('लॉगआउट करें?')) authManager.logout(); }); // Use authManager logout
+    document.getElementById('logoutLink')?.addEventListener('click', (e) => { e.preventDefault(); if (confirm('लॉगआउट करें?')) authManager.logout(); });
+
+    // FIXED: Added event listener for dropdown toggle
+    const sectionsDropdownToggle = document.getElementById('sectionsDropdownToggle');
+    if (sectionsDropdownToggle) {
+        sectionsDropdownToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const dropdownContent = document.getElementById('dynamicDropdown');
+            if (dropdownContent) {
+                dropdownContent.classList.toggle('show'); // Toggle 'show' class
+            }
+        });
+    }
+
+    // Close dropdown if clicked outside
+    window.addEventListener('click', function(e) {
+        if (!e.target.matches('#sectionsDropdownToggle') && !e.target.closest('.dropdown-content')) {
+            const dropdownContent = document.getElementById('dynamicDropdown');
+            if (dropdownContent && dropdownContent.classList.contains('show')) {
+                dropdownContent.classList.remove('show');
+            }
+        }
+    });
+
 
     setupProfileFormHandlers();
-    setupIconPickers(); // For static card modals
-    setupNavIconPickers(); // For static nav item modals
+    setupIconPickers(); 
+    setupNavIconPickers(); 
 
     // Dynamic Form Creator events
     document.getElementById('btnProcessExcel')?.addEventListener('click', processExcelForDynamicForm);
@@ -565,7 +594,7 @@ function setupEventListeners() {
     });
 }
 
-function setupIconPickers() { // For static card modals
+function setupIconPickers() { 
     const pickers = ['iconPicker', 'editIconPicker'];
     pickers.forEach(pickerId => {
         const picker = document.getElementById(pickerId);
@@ -588,13 +617,13 @@ function setupIconPickers() { // For static card modals
                 const currentIcon = selectedIconInput.value;
                 const matchingOption = Array.from(picker.children).find(opt => opt.querySelector('i')?.className === currentIcon);
                 if (matchingOption) matchingOption.classList.add('selected');
-                else picker.children[0].classList.add('selected'); // Default to first if none match
+                else picker.children[0].classList.add('selected'); 
             }
         }
     });
 }
 
-function setupNavIconPickers() { // For static nav item modals
+function setupNavIconPickers() { 
     const pickers = ['navIconPicker', 'editNavIconPicker'];
     pickers.forEach(pickerId => {
         const picker = document.getElementById(pickerId);
@@ -617,7 +646,7 @@ function setupNavIconPickers() { // For static nav item modals
                 const currentIcon = selectedNavIconInput.value;
                 const matchingOption = Array.from(picker.children).find(opt => opt.querySelector('i')?.className === currentIcon);
                 if (matchingOption) matchingOption.classList.add('selected');
-                else picker.children[0].classList.add('selected'); // Default to first if none match
+                else picker.children[0].classList.add('selected'); 
             }
         }
     });
@@ -1160,7 +1189,7 @@ async function processExcelForDynamicForm() {
     }
     if (!formNavParentItem?.value) {
         if (dynamicFormMessages) {
-            dynamicFormMessages.textContent = 'कृपया नेवीगेशन सेक्शन चुनें';
+            dynamicFormMessages.textContent = ' कृपया नेवीगेशन सेक्शन चुनें';
             dynamicFormMessages.style.display = 'block';
             dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
         }
@@ -1392,7 +1421,7 @@ async function createDynamicTableAndSaveDef() {
     }
     if (!formNavParentItem?.value) {
         if (dynamicFormMessages) {
-            dynamicFormMessages.textContent = 'कृपया नेवीगेशन सेक्शन चुनें';
+            dynamicFormMessages.textContent = ' कृपया नेवीगेशन सेक्शन चुनें';
             dynamicFormMessages.style.display = 'block';
             dynamicFormMessages.style.backgroundColor = 'rgba(220, 53, 69, 0.2)';
         }
@@ -1818,7 +1847,7 @@ async function handleAddCard(e) {
 
     } catch (error) {
         console.error('Error adding card:', error);
-        showAddCardError('कार्ड जोड़ने में त्रुटि: ' + error.message);
+        showAddCardError('카드 जोड़ने में त्रुटि: ' + error.message);
         errorHandler.showToast('error', 'कार्ड जोड़ने में त्रुटि', error.message);
     } finally {
         if (submitBtn) {
@@ -1893,37 +1922,49 @@ async function handleEditCard(e) {
 
 window.editCard = async function(cardId) {
     try {
-        const { data: card, error } = await supabaseClient
-            .from('dashboard_cards')
-            .select('*')
-            .eq('id', cardId)
-            .single();
+        const card = await secureDB.secureSelect('dashboard_cards', {
+            select: '*',
+            filters: { id: cardId },
+            limit: 1
+        });
+        if (!card || card.length === 0) throw new Error('Card not found');
+        const cardData = card[0];
 
-        if (error) throw error;
+        const editCardId = document.getElementById('editCardId');
+        const editCardTitleHi = document.getElementById('editCardTitleHi');
+        const editCardTitleEn = document.getElementById('editCardTitleEn');
+        const editCardDescHi = document.getElementById('editCardDescHi');
+        const editCardDescEn = document.getElementById('editCardDescEn');
+        const editCardUrl = document.getElementById('editCardUrl');
+        const editSelectedIcon = document.getElementById('editSelectedIcon');
+        const editCardCategory = document.getElementById('editCardCategory');
+        const editDisplayOrder = document.getElementById('editDisplayOrder');
 
-        document.getElementById('editCardId').value = card.id;
-        document.getElementById('editCardTitleHi').value = card.title_hi;
-        document.getElementById('editCardTitleEn').value = card.title_en;
-        document.getElementById('editCardDescHi').value = card.description_hi || '';
-        document.getElementById('editCardDescEn').value = card.description_en || '';
-        document.getElementById('editCardUrl').value = card.target_url;
-        document.getElementById('editSelectedIcon').value = card.icon_class;
-        document.getElementById('editCardCategory').value = card.category;
-        document.getElementById('editDisplayOrder').value = card.display_order;
+        if (editCardId) editCardId.value = cardData.id;
+        if (editCardTitleHi) editCardTitleHi.value = cardData.title_hi;
+        if (editCardTitleEn) editCardTitleEn.value = cardData.title_en;
+        if (editCardDescHi) editCardDescHi.value = cardData.description_hi || '';
+        if (editCardDescEn) editCardDescEn.value = cardData.description_en || '';
+        if (editCardUrl) editCardUrl.value = cardData.target_url;
+        if (editSelectedIcon) editSelectedIcon.value = cardData.icon_class;
+        if (editCardCategory) editCardCategory.value = cardData.category;
+        if (editDisplayOrder) editDisplayOrder.value = cardData.display_order;
 
         const editIconPicker = document.getElementById('editIconPicker');
-        editIconPicker.querySelectorAll('.icon-option').forEach(opt => {
-            opt.classList.remove('selected');
-            if (opt.querySelector('i')?.className === card.icon_class) {
-                opt.classList.add('selected');
-            }
-        });
+        if (editIconPicker) {
+            editIconPicker.querySelectorAll('.icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.querySelector('i')?.className === cardData.icon_class) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
 
         openEditCardModal();
 
     } catch (error) {
         console.error('Error loading card for edit:', error);
-        showToast('कार्ड लोड करने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'कार्ड लोड करने में त्रुटि', error.message);
     }
 }
 
@@ -1933,20 +1974,16 @@ window.deleteCard = async function(cardId) {
     }
 
     try {
-        const { error } = await supabaseClient
-            .from('dashboard_cards')
-            .update({ is_active: false })
-            .eq('id', cardId);
-
-        if (error) throw error;
+        await secureDB.secureUpdate('dashboard_cards', cardId, { is_active: false, updated_at: new Date().toISOString() });
 
         logAdminAction('CARD_DELETED', `Deleted card (ID: ${cardId})`, cardId);
 
-        showToast('कार्ड हटा दिया गया', 'success');
+        errorHandler.showToast('success', 'कार्ड हटा दिया गया', 'कार्ड सफलतापूर्वक हटा दिया गया');
+        loadDashboardCards();
 
     } catch (error) {
         console.error('Error deleting card:', error);
-        showToast('कार्ड हटाने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'कार्ड हटाने में त्रुटि', error.message);
     }
 }
 
@@ -1957,12 +1994,10 @@ async function populateNavCategories(selectId) {
 
     selectElement.innerHTML = '<option value="">कैटेगरी चुनें</option>';
     try {
-        const { data: categories, error } = await supabaseClient
-            .from('navigation_categories')
-            .select('id, name_hi')
-            .order('display_order', { ascending: true });
-
-        if (error) throw error;
+        const categories = await secureDB.secureSelect('navigation_categories', {
+            select: 'id, name_hi',
+            orderBy: 'display_order'
+        });
 
         categories.forEach(category => {
             const option = document.createElement('option');
@@ -1972,20 +2007,20 @@ async function populateNavCategories(selectId) {
         });
     } catch (error) {
         console.error('Error populating nav categories:', error);
-        showToast('नेवीगेशन कैटेगरी लोड करने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'नेवीगेशन कैटेगरी लोड करने में त्रुटि', error.message);
     }
 }
 
 async function loadNavItemsForManager() {
     try {
-        const { data: navItems, error } = await supabaseClient
-            .from('navigation_items')
-            .select('*, navigation_categories(name_hi, name_en)')
-            .order('display_order', { ascending: true });
-
-        if (error) throw error;
+        const navItems = await secureDB.secureSelect('navigation_items', {
+            select: '*, navigation_categories(name_hi, name_en)',
+            filters: { is_active: true },
+            orderBy: [{ column: 'parent_id', ascending: true }, { column: 'display_order', ascending: true }] // Corrected here
+        });
 
         const navItemsList = document.getElementById('navItemsList');
+        if (!navItemsList) return;
         navItemsList.innerHTML = '';
 
         navItems.forEach(item => {
@@ -2013,16 +2048,18 @@ async function loadNavItemsForManager() {
         });
 
         setupNavItemDragAndDrop();
-        document.getElementById('addNavItemBtn').onclick = openAddNavModal;
+        const addNavItemBtn = document.getElementById('addNavItemBtn');
+        if (addNavItemBtn) addNavItemBtn.onclick = openAddNavModal;
 
     } catch (error) {
         console.error('Error loading navigation items for manager:', error);
-        showToast('नेवीगेशन आइटम लोड करने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'नेवीगेशन आइटम लोड करने में त्रुटि', error.message);
     }
 }
 
 function setupNavItemDragAndDrop() {
     const navItemsList = document.getElementById('navItemsList');
+    if (!navItemsList) return;
     let draggedItem = null;
 
     navItemsList.querySelectorAll('.nav-item-row').forEach(item => {
@@ -2062,7 +2099,7 @@ function setupNavItemDragAndDrop() {
             this.style.borderBottom = '';
             this.style.borderTop = '';
 
-            if (this !== draggedItem) {
+            if (this !== draggedItem && draggedItem) {
                 const draggedItemId = e.dataTransfer.getData('text/plain');
                 const targetItemId = this.dataset.navItemId;
 
@@ -2086,46 +2123,45 @@ function setupNavItemDragAndDrop() {
 
 async function updateNavItemOrder() {
     const navItemsList = document.getElementById('navItemsList');
+    if (!navItemsList) return;
     const items = Array.from(navItemsList.children);
     
     const updates = items.map((item, index) => ({
-        id: item.dataset.navItemId,
-        display_order: index + 1
+        id: parseInt(item.dataset.navItemId || '0'), 
+        display_order: index + 1, 
+        updated_at: new Date().toISOString() 
     }));
 
     try {
-        const { error } = await supabaseClient
-            .from('navigation_items')
-            .upsert(updates, { onConflict: 'id' });
+        await secureDB.secureUpsert('navigation_items', updates, 'id'); 
 
-        if (error) throw error;
         logAdminAction('NAV_ORDER_UPDATED', 'Navigation item order updated');
-        showToast('नेवीगेशन क्रम अपडेट किया गया', 'success');
+        errorHandler.showToast('success', 'नेवीगेशन क्रम अपडेट किया गया', 'नेवीगेशन का क्रम सफलतापूर्वक अपडेट किया गया');
     } catch (error) {
         console.error('Error updating nav item order:', error);
-        showToast('नेवीगेशन क्रम अपडेट करने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'नेवीगेशन क्रम अपडेट करने में त्रुटि', error.message);
     }
 }
 
 async function handleAddNavItem(e) {
     e.preventDefault();
     const submitBtn = document.getElementById('addNavSubmitBtn');
-    const formData = new FormData(e.target);
-
-    const nameHi = formData.get('navNameHi');
-    const nameEn = formData.get('navNameEn');
-    const url = formData.get('navUrl');
-    const categoryId = parseInt(formData.get('navCategory'));
-    const displayOrder = parseInt(formData.get('navOrder'));
-    const iconClass = formData.get('selectedNavIcon');
+    const nameHi = document.getElementById('navNameHi')?.value;
+    const nameEn = document.getElementById('navNameEn')?.value;
+    const url = document.getElementById('navUrl')?.value;
+    const categoryId = parseInt(document.getElementById('navCategory')?.value || '0');
+    const displayOrder = parseInt(document.getElementById('navOrder')?.value || '1');
+    const iconClass = document.getElementById('selectedNavIcon')?.value;
 
     if (!nameHi || !nameEn || !url || !categoryId || !displayOrder || !iconClass) {
         showAddNavError('कृपया सभी आवश्यक फील्ड भरें');
         return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> जोड़ा जा रहा है...';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> जोड़ा जा रहा है...';
+    }
 
     try {
         const navItemData = {
@@ -2139,84 +2175,93 @@ async function handleAddNavItem(e) {
             is_active: true
         };
 
-        const { data, error } = await supabaseClient
-            .from('navigation_items')
-            .insert([navItemData])
-            .select('id');
+        const data = await secureDB.secureInsert('navigation_items', navItemData);
 
-        if (error) throw error;
-
-        logAdminAction('NAV_ITEM_ADDED', `Added new navigation item: ${nameHi}`, data[0].id);
+        logAdminAction('NAV_ITEM_ADDED', `Added new navigation item: ${nameHi}`, data.id);
 
         showAddNavSuccess('नेवीगेशन आइटम सफलतापूर्वक जोड़ा गया!');
-        showToast('नेवीगेशन आइटम जोड़ा गया', 'success');
+        errorHandler.showToast('success', 'नेवीगेशन आइटम जोड़ा गया', 'नेवीगेशन आइटम सफलतापूर्वक जोड़ा गया');
         
         setTimeout(() => { closeAddNavModal(); loadNavItemsForManager(); }, 2000);
 
     } catch (error) {
         console.error('Error adding nav item:', error);
         showAddNavError('नेवीगेशन आइटम जोड़ने में त्रुटि: ' + error.message);
-        showToast('नेवीगेशन आइटम जोड़ने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'नेवीगेशन आइटम जोड़ने में त्रुटि', error.message);
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-plus"></i> नेवीगेशन आइटम जोड़ें';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-plus"></i> नेवीगेशन आइटम जोड़ें';
+        }
     }
 }
 
 window.editNavItem = async function(navItemId) {
     try {
-        const { data: item, error } = await supabaseClient
-            .from('navigation_items')
-            .select('*')
-            .eq('id', navItemId)
-            .single();
-
-        if (error) throw error;
-
-        document.getElementById('editNavId').value = item.id;
-        document.getElementById('editNavNameHi').value = item.name_hi;
-        document.getElementById('editNavNameEn').value = item.name_en;
-        document.getElementById('editNavUrl').value = item.url;
-        document.getElementById('editNavCategory').value = item.category_id;
-        document.getElementById('editNavOrder').value = item.display_order;
-        document.getElementById('editSelectedNavIcon').value = item.icon_class;
-
-        const editNavIconPicker = document.getElementById('editNavIconPicker');
-        editNavIconPicker.querySelectorAll('.icon-option').forEach(opt => {
-            opt.classList.remove('selected');
-            if (opt.querySelector('i').className === item.icon_class) {
-                opt.classList.add('selected');
-            }
+        const item = await secureDB.secureSelect('navigation_items', {
+            select: '*',
+            filters: { id: navItemId },
+            limit: 1
         });
+        if (!item || item.length === 0) throw new Error('Navigation item not found');
+        const itemData = item[0];
+
+        const editNavId = document.getElementById('editNavId');
+        const editNavNameHi = document.getElementById('editNavNameHi');
+        const editNavNameEn = document.getElementById('editNavNameEn');
+        const editNavUrl = document.getElementById('editNavUrl');
+        const editNavCategory = document.getElementById('editNavCategory');
+        const editNavOrder = document.getElementById('editNavOrder');
+        const editSelectedNavIcon = document.getElementById('editSelectedNavIcon');
+        const editNavIconPicker = document.getElementById('editNavIconPicker');
+
+
+        if (editNavId) editNavId.value = itemData.id;
+        if (editNavNameHi) editNavNameHi.value = itemData.name_hi;
+        if (editNavNameEn) editNavNameEn.value = itemData.name_en;
+        if (editNavUrl) editNavUrl.value = itemData.url;
+        if (editNavCategory) editNavCategory.value = itemData.category_id;
+        if (editNavOrder) editNavOrder.value = itemData.display_order;
+        if (editSelectedNavIcon) editSelectedNavIcon.value = itemData.icon_class;
+
+        if (editNavIconPicker) {
+            editNavIconPicker.querySelectorAll('.icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.querySelector('i')?.className === itemData.icon_class) {
+                    opt.classList.add('selected');
+                }
+            });
+        }
 
         openEditNavModal();
 
     } catch (error) {
         console.error('Error loading nav item for edit:', error);
-        showToast('नेवीगेशन आइटम लोड करने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'नेवीगेशन आइटम लोड करने में त्रुटि', error.message);
     }
 }
 
 async function handleEditNavItem(e) {
     e.preventDefault();
     const submitBtn = document.getElementById('editNavSubmitBtn');
-    const formData = new FormData(e.target);
-    const navItemId = formData.get('editNavId');
+    const navItemId = document.getElementById('editNavId')?.value;
 
-    const nameHi = formData.get('editNavNameHi');
-    const nameEn = formData.get('editNavNameEn');
-    const url = formData.get('editNavUrl');
-    const categoryId = parseInt(formData.get('editNavCategory'));
-    const displayOrder = parseInt(formData.get('editNavOrder'));
-    const iconClass = formData.get('editSelectedNavIcon');
+    const nameHi = document.getElementById('editNavNameHi')?.value;
+    const nameEn = document.getElementById('editNavNameEn')?.value;
+    const url = document.getElementById('editNavUrl')?.value;
+    const categoryId = parseInt(document.getElementById('editNavCategory')?.value || '0');
+    const displayOrder = parseInt(document.getElementById('editNavOrder')?.value || '1');
+    const iconClass = document.getElementById('editSelectedNavIcon')?.value;
 
-    if (!nameHi || !nameEn || !url || !categoryId || !displayOrder || !iconClass) {
+    if (!navItemId || !nameHi || !nameEn || !url || !categoryId || !displayOrder || !iconClass) {
         showEditNavError('कृपया सभी आवश्यक फील्ड भरें');
         return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> सहेजा जा रहा है...';
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> सहेजा जा रहा है...';
+    }
 
     try {
         const updateData = {
@@ -2229,12 +2274,7 @@ async function handleEditNavItem(e) {
             updated_at: new Date().toISOString()
         };
 
-        const { error } = await supabaseClient
-            .from('navigation_items')
-            .update(updateData)
-            .eq('id', navItemId);
-
-        if (error) throw error;
+        await secureDB.secureUpdate('navigation_items', navItemId, updateData);
 
         logAdminAction('NAV_ITEM_UPDATED', `Updated navigation item: ${nameHi} (ID: ${navItemId})`, navItemId);
 
@@ -2248,8 +2288,10 @@ async function handleEditNavItem(e) {
         showEditNavError('नेवीगेशन आइटम अपडेट करने में त्रुटि: ' + error.message);
         errorHandler.showToast('error', 'नेवीगेशन आइटम अपडेट करने में त्रुटि', error.message);
     } finally {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="fas fa-save"></i> परिवर्तन सहेजें';
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> परिवर्तन सहेजें';
+        }
     }
 }
 
@@ -2259,134 +2301,177 @@ window.deleteNavItem = async function(navItemId) {
     }
 
     try {
-        const { error } = await supabaseClient
-            .from('navigation_items')
-            .update({ is_active: false })
-            .eq('id', navItemId);
-
-        if (error) throw error;
+        await secureDB.secureUpdate('navigation_items', navItemId, { is_active: false, updated_at: new Date().toISOString() });
 
         logAdminAction('NAV_ITEM_DELETED', `Deleted navigation item (ID: ${navItemId})`, navItemId);
 
-        showToast('नेवीगेशन आइटम हटा दिया गया', 'success');
+        errorHandler.showToast('success', 'नेवीगेशन आइटम हटा दिया गया', 'नेवीगेशन आइटम सफलतापूर्वक हटा दिया गया');
         loadNavItemsForManager();
 
     } catch (error) {
         console.error('Error deleting nav item:', error);
-        showToast('नेवीगेशन आइटम हटाने में त्रुटि', 'error');
+        errorHandler.showToast('error', 'नेवीगेशन आइटम हटाने में त्रुटि', error.message);
     }
 }
 
 // Message display functions
 function hideAddCardMessages() {
-    document.getElementById('addCardErrorMessage').style.display = 'none';
-    document.getElementById('addCardSuccessMessage').style.display = 'none';
+    const errorMessage = document.getElementById('addCardErrorMessage');
+    const successMessage = document.getElementById('addCardSuccessMessage');
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (successMessage) successMessage.style.display = 'none';
 }
 
 function showAddCardError(message) {
     hideAddCardMessages();
-    document.getElementById('addCardErrorMessage').textContent = message;
-    document.getElementById('addCardErrorMessage').style.display = 'block';
+    const errorMessage = document.getElementById('addCardErrorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
 }
 
 function showAddCardSuccess(message) {
     hideAddCardMessages();
-    document.getElementById('addCardSuccessMessage').textContent = message;
-    document.getElementById('addCardSuccessMessage').style.display = 'block';
+    const successMessage = document.getElementById('addCardSuccessMessage');
+    if (successMessage) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+    }
 }
 
 function hideEditCardMessages() {
-    document.getElementById('editCardErrorMessage').style.display = 'none';
-    document.getElementById('editCardSuccessMessage').style.display = 'none';
+    const errorMessage = document.getElementById('editCardErrorMessage');
+    const successMessage = document.getElementById('editCardSuccessMessage');
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (successMessage) successMessage.style.display = 'none';
 }
 
 function showEditCardError(message) {
     hideEditCardMessages();
-    document.getElementById('editCardErrorMessage').textContent = message;
-    document.getElementById('editCardErrorMessage').style.display = 'block';
+    const errorMessage = document.getElementById('editCardErrorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
 }
 
 function showEditCardSuccess(message) {
     hideEditCardMessages();
-    document.getElementById('editCardSuccessMessage').textContent = message;
-    document.getElementById('editCardSuccessMessage').style.display = 'block';
+    const successMessage = document.getElementById('editCardSuccessMessage');
+    if (successMessage) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+    }
 }
 
 function hideAddNavMessages() {
-    document.getElementById('addNavErrorMessage').style.display = 'none';
-    document.getElementById('addNavSuccessMessage').style.display = 'none';
+    const errorMessage = document.getElementById('addNavErrorMessage');
+    const successMessage = document.getElementById('addNavSuccessMessage');
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (successMessage) successMessage.style.display = 'none';
 }
 
 function showAddNavError(message) {
     hideAddNavMessages();
-    document.getElementById('addNavErrorMessage').textContent = message;
-    document.getElementById('addNavErrorMessage').style.display = 'block';
+    const errorMessage = document.getElementById('addNavErrorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
 }
 
 function showAddNavSuccess(message) {
     hideAddNavMessages();
-    document.getElementById('addNavSuccessMessage').textContent = message;
-    document.getElementById('addNavSuccessMessage').style.display = 'block';
+    const successMessage = document.getElementById('addNavSuccessMessage');
+    if (successMessage) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+    }
 }
 
 function hideEditNavMessages() {
-    document.getElementById('editNavErrorMessage').style.display = 'none';
-    document.getElementById('editNavSuccessMessage').style.display = 'none';
+    const errorMessage = document.getElementById('editNavErrorMessage');
+    const successMessage = document.getElementById('editNavSuccessMessage');
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (successMessage) successMessage.style.display = 'none';
 }
 
 function showEditNavError(message) {
     hideEditNavMessages();
-    document.getElementById('editNavErrorMessage').textContent = message;
-    document.getElementById('editNavErrorMessage').style.display = 'block';
+    const errorMessage = document.getElementById('editNavErrorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
 }
 
 function showEditNavSuccess(message) {
     hideEditNavMessages();
-    document.getElementById('editNavSuccessMessage').textContent = message;
-    document.getElementById('editNavSuccessMessage').style.display = 'block';
+    const successMessage = document.getElementById('editNavSuccessMessage');
+    if (successMessage) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+    }
 }
 
 function hideUserMessages() {
-    document.getElementById('editUserErrorMessage').style.display = 'none';
-    document.getElementById('editUserSuccessMessage').style.display = 'none';
+    const errorMessage = document.getElementById('editUserErrorMessage');
+    const successMessage = document.getElementById('editUserSuccessMessage');
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (successMessage) successMessage.style.display = 'none';
 }
 
 function showEditUserError(message) {
     hideUserMessages();
-    document.getElementById('editUserErrorMessage').textContent = message;
-    document.getElementById('editUserErrorMessage').style.display = 'block';
+    const errorMessage = document.getElementById('editUserErrorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
 }
 
 function showEditUserSuccess(message) {
     hideUserMessages();
-    document.getElementById('editUserSuccessMessage').textContent = message;
-    document.getElementById('editUserSuccessMessage').style.display = 'block';
+    const successMessage = document.getElementById('editUserSuccessMessage');
+    if (successMessage) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+    }
 }
 
 function hideProfileMessages() {
-    document.getElementById('profileErrorMessage').style.display = 'none';
-    document.getElementById('profileSuccessMessage').style.display = 'none';
+    const errorMessage = document.getElementById('profileErrorMessage');
+    const successMessage = document.getElementById('profileSuccessMessage');
+    if (errorMessage) errorMessage.style.display = 'none';
+    if (successMessage) successMessage.style.display = 'none';
 }
 
 function showProfileError(message) {
     hideProfileMessages();
-    document.getElementById('profileErrorMessage').textContent = message;
-    document.getElementById('profileErrorMessage').style.display = 'block';
+    const errorMessage = document.getElementById('profileErrorMessage');
+    if (errorMessage) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
 }
 
 function showProfileSuccess(message) {
     hideProfileMessages();
-    document.getElementById('profileSuccessMessage').textContent = message;
-    document.getElementById('profileSuccessMessage').style.display = 'block';
+    const successMessage = document.getElementById('profileSuccessMessage');
+    if (successMessage) {
+        successMessage.textContent = message;
+        successMessage.style.display = 'block';
+    }
 }
 
 function setupProfileFormHandlers() {
-    document.getElementById('profileForm').addEventListener('submit', async function(e) {
+    document.getElementById('profileForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
         const profileBtn = document.getElementById('profileBtn');
-        const currentPassword = document.getElementById('currentPassword').value;
-        const newPassword = document.getElementById('newPassword').value;
-        const confirmPassword = document.getElementById('confirmPassword').value;
+        const currentPassword = document.getElementById('currentPassword')?.value;
+        const newPassword = document.getElementById('newPassword')?.value;
+        const confirmPassword = document.getElementById('confirmPassword')?.value;
 
         hideProfileMessages();
 
@@ -2405,47 +2490,49 @@ function setupProfileFormHandlers() {
             return;
         }
 
-        profileBtn.disabled = true;
-        profileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> अपडेट हो रहा है...';
+        if (profileBtn) {
+            profileBtn.disabled = true;
+            profileBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> अपडेट हो रहा है...';
+        }
 
         try {
-            const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
+            const userId = authManager.getCurrentUser()?.id; // Use authManager.getCurrentUser()
+            if (!userId) throw new Error('User not logged in for profile update');
+
             const hashedCurrentPassword = await hashPassword(currentPassword);
 
-            const { data: user, error: verifyError } = await supabaseClient
-                .from('test_users')
-                .select('password_hash')
-                .eq('id', userId)
-                .single();
+            const user = await secureDB.secureSelect('test_users', {
+                select: 'password_hash',
+                filters: { id: userId },
+                limit: 1
+            });
 
-            if (verifyError || !user || user.password_hash !== hashedCurrentPassword) {
+            if (!user || user.length === 0 || user[0].password_hash !== hashedCurrentPassword) {
                 throw new Error('वर्तमान पासवर्ड गलत है');
             }
 
             const hashedNewPassword = await hashPassword(newPassword);
 
-            const { error: updateError } = await supabaseClient
-                .from('test_users')
-                .update({ password_hash: hashedNewPassword, updated_at: new Date().toISOString() })
-                .eq('id', userId);
-
-            if (updateError) throw new Error('पासवर्ड अपडेट करने में त्रुटि');
+            await secureDB.secureUpdate('test_users', userId, { password_hash: hashedNewPassword, updated_at: new Date().toISOString() });
 
             showProfileSuccess('पासवर्ड सफलतापूर्वक अपडेट हो गया!');
-            showToast('पासवर्ड अपडेट हो गया', 'success');
+            errorHandler.showToast('success', 'पासवर्ड अपडेट', 'पासवर्ड सफलतापूर्वक अपडेट हो गया');
             
             setTimeout(() => {
-                document.getElementById('profileForm').reset();
+                const profileForm = document.getElementById('profileForm');
+                if (profileForm) profileForm.reset();
                 hideProfileMessages();
                 closeProfileModal();
             }, 2000);
 
         } catch (error) {
             showProfileError(error.message || 'पासवर्ड अपडेट करने में त्रुटि हुई');
-            showToast('पासवर्ड अपडेट में त्रुटि', 'error');
+            errorHandler.showToast('error', 'पासवर्ड अपडेट में त्रुटि', error.message);
         } finally {
-            profileBtn.disabled = false;
-            profileBtn.innerHTML = '<i class="fas fa-save"></i> पासवर्ड अपडेट करें';
+            if (profileBtn) {
+                profileBtn.disabled = false;
+                profileBtn.innerHTML = '<i class="fas fa-save"></i> पासवर्ड अपडेट करें';
+            }
         }
     });
 }
@@ -2460,32 +2547,23 @@ async function hashPassword(password) {
 
 window.logout = async function() {
     try {
-        const userId = sessionStorage.getItem('userId') || localStorage.getItem('userId');
-        showToast('लॉगआउट हो रहा है...', 'info');
-        
-        if (userId) {
-            await supabaseClient
-                .from('test_users')
-                .update({ is_online: false, last_activity: new Date().toISOString() })
-                .eq('id', userId);
-        }
-
-        sessionStorage.removeItem('userId');
-        localStorage.removeItem('userId');
-        showToast('सफलतापूर्वक लॉगआउट हो गए', 'success');
-        setTimeout(() => { window.location.href = 'header.html'; }, 1000);
+        // No longer relying on Supabase.auth.signOut(), just client-side clear
+        await authManager.logout(); // authManager handles clearing sessionStorage and redirect
         
     } catch (error) {
-        showToast('लॉगआउट में त्रुटि', 'error');
+        console.error('Error during logout:', error);
+        errorHandler.showToast('error', 'लॉगआउट में त्रुटि', error.message);
+        // Fallback redirect even if error
         setTimeout(() => { window.location.href = 'header.html'; }, 2000);
     }
 }
 
+// Expose functions to window scope for onclick attributes in HTML
 window.editCard = editCard;
 window.deleteCard = deleteCard;
 window.editNavItem = editNavItem;
 window.deleteNavItem = deleteNavItem;
 window.editUser = editUser;
 window.toggleUserActiveStatus = toggleUserActiveStatus;
-window.viewDynamicFormDefinition = viewDynamicFormDefinition; // Make globally available
-window.deleteDynamicForm = deleteDynamicForm; // Make globally available
+window.viewDynamicFormDefinition = viewDynamicFormDefinition; 
+window.deleteDynamicForm = deleteDynamicForm; 
