@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         // Show initial loading
         performanceManager.showLoading('pageLoading', 'Checking authentication...');
 
-        // Authentication check (using the re-introduced verifyAuthentication)
+        // Authentication check (using authManager.verifyAuthentication)
         const isAuthenticated = await authManager.verifyAuthentication();
 
         if (!isAuthenticated) {
@@ -1813,7 +1813,7 @@ async function handleAddCard(e) {
     const selectedIcon = document.getElementById('selectedIcon')?.value;
     
     if (!titleHi || !titleEn || !url || !selectedIcon) {
-        showAddCardError('कृपया सभी आवश्यक फील्ड भरें');
+        showAddCardError(' कृपया सभी आवश्यक फील्ड भरें');
         return;
     }
 
@@ -1847,7 +1847,7 @@ async function handleAddCard(e) {
 
     } catch (error) {
         console.error('Error adding card:', error);
-        showAddCardError('카드 जोड़ने में त्रुटि: ' + error.message);
+        showAddCardError('कार्ड जोड़ने में त्रुटि: ' + error.message);
         errorHandler.showToast('error', 'कार्ड जोड़ने में त्रुटि', error.message);
     } finally {
         if (submitBtn) {
@@ -1894,12 +1894,7 @@ async function handleEditCard(e) {
             updated_at: new Date().toISOString()
         };
 
-        const { error } = await supabaseClient
-            .from('dashboard_cards')
-            .update(updateData)
-            .eq('id', cardId);
-
-        if (error) throw error;
+        await secureDB.secureUpdate('dashboard_cards', cardId, updateData);
 
         logAdminAction('CARD_UPDATED', `Updated card: ${titleHi} (ID: ${cardId})`, cardId);
 
@@ -2035,7 +2030,7 @@ async function loadNavItemsForManager() {
                     <div class="nav-item-title"><i class="fas ${item.icon_class}"></i> ${item.name_hi}</div>
                     <div class="nav-item-url">${item.url} (${item.navigation_categories ? item.navigation_categories.name_hi : 'कोई कैटेगरी नहीं'})</div>
                 </div>
-                <div class="nav-item-actions">
+                <div class="action-buttons">
                     <button class="admin-card-btn edit-card-btn" onclick="editNavItem(${item.id})" title="संपादित करें">
                         <i class="fas fa-edit"></i>
                     </button>
@@ -2136,7 +2131,7 @@ async function updateNavItemOrder() {
         await secureDB.secureUpsert('navigation_items', updates, 'id'); 
 
         logAdminAction('NAV_ORDER_UPDATED', 'Navigation item order updated');
-        errorHandler.showToast('success', 'नेवीगेशन क्रम अपडेट किया गया', 'नेवीगेशन का क्रम सफलतापूर्वक अपडेट किया गया');
+        errorHandler.showToast('success', 'नेवीगेशन क्रम अपडेट किया गया', 'नेवीगेशन का क्रम सफलतापूर्वक बदल दिया गया');
     } catch (error) {
         console.error('Error updating nav item order:', error);
         errorHandler.showToast('error', 'नेवीगेशन क्रम अपडेट करने में त्रुटि', error.message);
@@ -2469,9 +2464,9 @@ function setupProfileFormHandlers() {
     document.getElementById('profileForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
         const profileBtn = document.getElementById('profileBtn');
-        const currentPassword = document.getElementById('currentPassword')?.value;
-        const newPassword = document.getElementById('newPassword')?.value;
-        const confirmPassword = document.getElementById('confirmPassword')?.value;
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
 
         hideProfileMessages();
 
