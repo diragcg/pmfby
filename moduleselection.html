@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>मॉड्यूल Selection - संचालनालय कृषि छत्तीसगढ़</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
+    <!-- Link to external CSS file for dashboard theme -->
+    <link rel="stylesheet" href="./css/module-selection-dashboard.css">
+</head>
+
+<body>
+    <div id="pageLoading" class="page-loading">
+        <div class="spinner"></div>
+        <div class="loading-text">लोड हो रहा है...</div>
+    </div>
+
+    <!-- Admin Toolbar (only visible for admin users) -->
+    <div id="adminToolbar" class="admin-toolbar">
+        <h3><i class="fas fa-shield-alt"></i> मॉड्यूल एडमिन कंट्रोल</h3>
+        <button class="admin-btn" id="addModuleBtn"><i class="fas fa-plus"></i> नया मॉड्यूल जोड़ें</button>
+        <button class="admin-btn" id="manageModulesBtn"><i class="fas fa-cogs"></i> मॉड्यूल प्रबंधन</button>
+        <button class="admin-btn" id="userManagementBtn"><i class="fas fa-users"></i> उपयोगकर्ता प्रबंधन</button>
+        <button class="admin-btn" id="analyticsDashboardBtn"><i class="fas fa-chart-pie"></i> एनालिटिक्स</button>
+    </div>
+
+    <!-- Header Strip -->
+    <div class="header-strip">
+        <div class="header-container">
+            <div class="logo-section">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार" class="cg-logo">
+                <div class="logo-text">
+                    <h1>संचालनालय कृषि छत्तीसगढ़</h1>
+                    <p>Directorate of Agriculture, Chhattisgarh</p>
+                </div>
+            </div>
+            <div class="user-section">
+                <div class="user-info">
+                    <div class="user-display" id="user-display">Loading...</div>
+                </div>
+                
+                <!-- Active Users Counter -->
+                <span class="active-users-nav" id="activeUsersNavItem" title="सक्रिय उपयोगकर्ता देखें">
+                    <i class="fas fa-users text-success me-1"></i>
+                    <span class="hindi">सक्रिय: </span>
+                    <span id="activeUsersCount" class="badge bg-success">0</span>
+                </span>
+                
+                <button id="btnLogout" class="logout-btn">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    लॉगआउट
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Loading State -->
+        <div id="loadingState" class="loading-container" style="display: none;">
+            <div class="spinner"></div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" style="display: none;">
+            <div class="content-grid">
+                <!-- Module Selection -->
+                <div class="module-card">
+                    <div class="card-header">
+                        <h5 class="hindi">Module Selection System (MSS)</h5>
+                        <p id="welcomeMessage" class="hindi">नमस्ते!</p>
+                    </div>
+                    <div class="card-body">
+                        <div id="alertBox" class="alert alert-danger" style="display: none;"></div>
+                        
+                        <p class="module-description hindi">
+                            कृपया पहला Module चुनें जिसे आप एक्सेस करना चाहते हैं:
+                        </p>
+                        
+                        <form id="moduleSelectionForm">
+                            <div id="moduleOptions" class="module-options">
+                                <!-- Dynamic modules will be loaded here -->
+                            </div>
+                            
+                            <div class="submit-container">
+                                <button type="submit" class="submit-btn" disabled>
+                                    <i class="fas fa-arrow-right me-2"></i>
+                                    <span class="hindi">Submit</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Admin Panel -->
+                <div id="adminPanel" class="admin-panel" style="display: none;">
+                    <div class="admin-header">
+                        <h3 class="hindi">मॉड्यूल प्रबंधन</h3>
+                        <p class="hindi mb-0">नए मॉड्यूल जोड़ें या प्रबंधित करें</p>
+                    </div>
+                    <div class="admin-body">
+                        <div id="adminAlertBox" class="alert alert-info" style="display: none;"></div>
+                        
+                        <form id="adminModuleForm">
+                            <div class="form-group">
+                                <label for="moduleName" class="form-label hindi">मॉड्यूल का नाम</label>
+                                <input type="text" class="form-input" id="moduleName" required 
+                                       placeholder="उदाहरण: KCC रिपोर्ट">
+                            </div>
+                            <div class="form-group">
+                                <label for="filePath" class="form-label hindi">फ़ाइल पथ</label>
+                                <input type="text" class="form-input" id="filePath" required 
+                                       placeholder="उदाहरण: dashboard.html">
+                            </div>
+                            <button type="submit" class="admin-btn">
+                                <i class="fas fa-plus me-2"></i>
+                                <span class="hindi">मॉड्यूल जोड़ें</span>
+                            </button>
+                        </form>
+
+                        <div class="module-list">
+                            <h4 class="hindi">मौजूदा मॉड्यूल</h4>
+                            <div id="adminModuleList">
+                                <!-- Dynamic admin modules will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Active Users Detail Modal -->
+    <div class="modal" id="activeUsersModal" tabindex="-1" aria-labelledby="activeUsersModalLabel" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title hindi" id="activeUsersModalLabel">सक्रिय उपयोगकर्ता विवरण</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="hindi mb-0">कुल सक्रिय उपयोगकर्ता: <span id="totalActiveUsers" class="text-success fw-bold">0</span></h6>
+                    <button class="admin-btn" onclick="refreshActiveUsers()">
+                        <i class="fas fa-sync-alt me-1"></i> <span class="hindi">रिफ्रेश</span>
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="analytics-table">
+                        <thead>
+                            <tr>
+                                <th class="hindi">नाम</th>
+                                <th class="hindi">जिला</th>
+                                <th class="hindi">भूमिका</th>
+                                <th class="hindi">अंतिम गतिविधि</th>
+                                <th class="hindi">स्थिति</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activeUsersTable">
+                            <tr>
+                                <td colspan="5" class="text-center text-muted hindi">लोड हो रहा है...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="admin-btn hindi" data-bs-dismiss="modal">बंद करें</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Management Modal -->
+    <div id="userManagementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>उपयोगकर्ता प्रबंधन</h2>
+                <span class="btn-close" id="closeUserManagementModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="user-list-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: white;">पंजीकृत उपयोगकर्ता</h3>
+                    </div>
+                    <div id="userList">
+                        <!-- User list will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Analytics Dashboard Modal -->
+    <div id="analyticsDashboardModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>एनालिटिक्स डैशबोर्ड</h2>
+                <span class="btn-close" id="closeAnalyticsDashboardModal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="analytics-section">
+                    <h3>कुल सारांश</h3>
+                    <div class="analytics-summary">
+                        <div class="summary-card">
+                            <div class="value" id="totalUsersCount">0</div>
+                            <div class="label">कुल उपयोगकर्ता</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="value" id="activeUsersCountAnalytics">0</div>
+                            <div class="label">सक्रिय उपयोगकर्ता</div>
+                        </div>
+                        <div class="summary-card">
+                            <div class="value" id="totalModuleClicks">0</div>
+                            <div class="label">कुल मॉड्यूल क्लिक</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="analytics-section">
+                    <h3>शीर्ष मॉड्यूल (क्लिक के अनुसार)</h3>
+                    <div id="topModulesList">
+                        <table class="analytics-table">
+                            <thead>
+                                <tr>
+                                    <th>मॉड्यूल</th>
+                                    <th>क्लिक</th>
+                                </tr>
+                            </thead>
+                            <tbody id="topModulesTableBody">
+                                <!-- Top modules will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="container">
+            <p class="mb-0 hindi">&copy; 2025 संचालनालय कृषि छत्तीसगढ़. सर्वाधिकार सुरक्षित.</p>
+        </div>
+    </footer>
+
+    <script type="module" src="./js/module-selection-dashboard.js"></script>
+</body>
+</html>
