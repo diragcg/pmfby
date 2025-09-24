@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>e-HRMS Portal - संचालनालय कृषि छत्तीसगढ़</title>
+    <title>e-HRMS Mod - संचालनालय कृषि छत्तीसगढ़</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Mukta:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -683,6 +683,47 @@
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Office Master specific styles */
+        .office-hierarchy {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--admin-accent);
+        }
+
+        .office-type-card {
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .office-type-card:hover {
+            border-color: var(--admin-accent);
+            background: var(--light-green);
+            transform: translateY(-2px);
+        }
+
+        .office-type-card.selected {
+            border-color: var(--admin-accent);
+            background: var(--light-green);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .hierarchy-step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .hierarchy-step i {
+            color: var(--admin-accent);
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
@@ -692,12 +733,12 @@
                 <div class="container-fluid">
                     <a class="navbar-brand" href="#">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/8/87/Coat_of_arms_of_Chhattisgarh.svg" alt="छत्तीसगढ़ सरकार">
-                        <span class="hindi">e-HRMS Portal - संचालनालय कृषि छत्तीसगढ़</span>
+                        <span class="hindi">e-HRMS Module - संचालनालय कृषि छत्तीसगढ़</span>
                     </a>
                     <div class="navbar-nav ms-auto d-flex align-items-center">
                         <span class="user-info hindi" id="userInfo">
                             <i class="fas fa-user me-2"></i>
-                            <span id="userName">लोड हो रहा है...</span>
+                            <span id="userName">Loading ...</span>
                         </span>
                         <a href="#" class="logout-btn hindi" id="logoutBtn">
                             <i class="fas fa-sign-out-alt me-1"></i> लॉग आउट
@@ -712,26 +753,226 @@
         <!-- Enhanced Navigation Tabs -->
         <ul class="nav nav-tabs fade-in" id="mainTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active hindi" id="p1-tab" data-bs-toggle="tab" data-bs-target="#p1-panel" type="button" role="tab">
-                    <i class="fas fa-user-tie me-2"></i>प्रारूप-01 (नोडल अधिकारी)
+                <button class="nav-link active hindi" id="office-master-tab" data-bs-toggle="tab" data-bs-target="#office-master-panel" type="button" role="tab">
+                    <i class="fas fa-building me-2"></i>Office Master
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link hindi" id="p1-tab" data-bs-toggle="tab" data-bs-target="#p1-panel" type="button" role="tab">
+                    <i class="fas fa-user-tie me-2"></i>प्रारूप-01 (Nodal Officer)
                 </button>
             </li>
             <li class="nav-item" role="presentation">
                 <button class="nav-link hindi" id="p2-tab" data-bs-toggle="tab" data-bs-target="#p2-panel" type="button" role="tab">
-                    <i class="fas fa-users me-2"></i>प्रारूप-02 (कर्मचारी विवरण)
+                    <i class="fas fa-users me-2"></i>प्रारूप-02 (Employee Details)
                 </button>
             </li>
             <li class="nav-item" role="presentation" id="admin-tab-item" style="display: none;">
                 <button class="nav-link hindi" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-panel" type="button" role="tab">
-                    <i class="fas fa-tachometer-alt me-2"></i>एडमिन डैशबोर्ड
+                    <i class="fas fa-tachometer-alt me-2"></i>ADMD
                 </button>
             </li>
         </ul>
 
         <!-- Tab Content -->
         <div class="tab-content" id="mainTabContent">
+            <!-- Office Master Panel -->
+            <div class="tab-pane fade show active" id="office-master-panel" role="tabpanel">
+                <div class="card fade-in">
+                    <div class="card-header">
+                        <h4 class="mb-0 hindi">
+                            <i class="fas fa-building me-2"></i>
+                            Office Master Reg
+                        </h4>
+                        <p class="mb-0 mt-2 opacity-75">पहले कार्यालय को रजिस्टर करें</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-info hindi">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>महत्वपूर्ण:</strong> नोडल अधिकारी नामांकन से पहले अपने कार्यालय का मास्टर रजिस्ट्रेशन आवश्यक है
+                        </div>
+
+                        <!-- Alert Container -->
+                        <div id="office-alerts"></div>
+
+                        <!-- Check if office already registered -->
+                        <div id="existingOfficeInfo" class="alert alert-success" style="display: none;">
+                            <h5 class="hindi"><i class="fas fa-check-circle me-2"></i>आपका कार्यालय पहले से रजिस्टर्ड है</h5>
+                            <div id="officeDetails"></div>
+                            <button class="btn btn-warning btn-sm mt-2 hindi" id="editOfficeBtn">
+                                <i class="fas fa-edit me-1"></i>Edit
+                            </button>
+                        </div>
+
+                        <!-- Office Registration Form -->
+                        <form id="officeMasterForm">
+                            <!-- Office Type Selection -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <label class="form-label hindi fw-bold">
+                                        <i class="fas fa-sitemap me-2"></i>Name/Level Of Office
+                                    </label>
+                                    <div class="row">
+                                        <div class="col-md-6 col-lg-3 mb-3">
+                                            <div class="office-type-card" data-office-type="JDA">
+                                                <div class="text-center">
+                                                    <i class="fas fa-building fa-2x text-primary mb-2"></i>
+                                                    <h6 class="hindi">JDA</h6>
+                                                    <small class="text-muted hindi">Divisional JDA</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3 mb-3">
+                                            <div class="office-type-card" data-office-type="DDA">
+                                                <div class="text-center">
+                                                    <i class="fas fa-building-columns fa-2x text-success mb-2"></i>
+                                                    <h6 class="hindi">DDA</h6>
+                                                    <small class="text-muted hindi">DDA</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3 mb-3">
+                                            <div class="office-type-card" data-office-type="Sub Divisional">
+                                                <div class="text-center">
+                                                    <i class="fas fa-building-user fa-2x text-warning mb-2"></i>
+                                                    <h6 class="hindi">Sub Divisional</h6>
+                                                    <small class="text-muted hindi">SDAO</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 col-lg-3 mb-3">
+                                            <div class="office-type-card" data-office-type="SADO">
+                                                <div class="text-center">
+                                                    <i class="fas fa-home fa-2x text-info mb-2"></i>
+                                                    <h6 class="hindi">SADO</h6>
+                                                    <small class="text-muted hindi">SADO</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" id="selectedOfficeType" name="office_type" required>
+                                </div>
+                            </div>
+
+                            <!-- Hierarchy Selection -->
+                            <div id="hierarchySection" style="display: none;">
+                                <div class="office-hierarchy">
+                                    <h5 class="hindi mb-3">
+                                        <i class="fas fa-map-marked-alt me-2"></i>Hierarchy
+                                    </h5>
+                                    <div id="hierarchySteps"></div>
+                                </div>
+
+                                <!-- Division Selection (for JDA) -->
+                                <div class="row mb-4" id="divisionRow" style="display: none;">
+                                    <div class="col-md-6">
+                                        <label for="divisionSelect" class="form-label hindi">
+                                            <i class="fas fa-map me-2"></i>Select Div
+                                        </label>
+                                        <select class="form-select" id="divisionSelect" name="division_id">
+                                            <option value="">-- Select Div --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- District Selection -->
+                                <div class="row mb-4" id="districtRow" style="display: none;">
+                                    <div class="col-md-6">
+                                        <label for="districtSelect" class="form-label hindi">
+                                            <i class="fas fa-map-marker-alt me-2"></i>Select District
+                                        </label>
+                                        <select class="form-select" id="districtSelect" name="district_id">
+                                            <option value="">-- Select District --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Block Selection (for Sub Divisional and SADO) -->
+                                <div class="row mb-4" id="blockRow" style="display: none;">
+                                    <div class="col-md-6">
+                                        <label for="blockSelect" class="form-label hindi">
+                                            <i class="fas fa-map-pin me-2"></i>SDAO
+                                        </label>
+                                        <select class="form-select" id="blockSelect" name="block_id">
+                                            <option value="">-- Select SDAO --</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Generated Office Name -->
+                                <div class="row mb-4" id="officeNameRow" style="display: none;">
+                                    <div class="col-12">
+                                        <label for="generatedOfficeName" class="form-label hindi">
+                                            <i class="fas fa-building me-2"></i>कार्यालय का नाम (Auto Gen)
+                                        </label>
+                                        <input type="text" class="form-control auto-filled" id="generatedOfficeName" name="office_name" readonly>
+                                        <div class="form-text hindi">Auto Gen on the Basis of Master</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Office Details -->
+                            <div id="officeDetailsSection" style="display: none;">
+                                <h5 class="hindi mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>कार्यालय विवरण
+                                </h5>
+                                
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label for="totalEmployees" class="form-label hindi">
+                                            <i class="fas fa-users me-2"></i>Total Emp
+                                        </label>
+                                        <input type="number" class="form-control" id="totalEmployees" name="total_employees" min="1" max="1000" required>
+                                        <div class="form-text hindi">Total Employee in the Office</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="totalEofficeUsers" class="form-label hindi">
+                                            <i class="fas fa-laptop me-2"></i>Total Emp having e-Office UID
+                                        </label>
+                                        <input type="number" class="form-control" id="totalEofficeUsers" name="total_eoffice_users" min="0" max="1000" required>
+                                        <div class="form-text hindi">No of e office UID </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mb-4">
+                                    <div class="col-md-6">
+                                        <label for="officePhone" class="form-label hindi">
+                                            <i class="fas fa-phone me-2"></i>Office Concerned Mobile Number
+                                        </label>
+                                        <input type="tel" class="form-control" id="officePhone" name="office_phone" pattern="[0-9]{10,12}">
+                                        <div class="form-text hindi">Contact</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="officeEmail" class="form-label hindi">
+                                            <i class="fas fa-envelope me-2"></i>Email
+                                        </label>
+                                        <input type="email" class="form-control" id="officeEmail" name="office_email" placeholder="office@cgeauth.nic.in">
+                                        <div class="form-text hindi">EMAIL ID</div>
+                                    </div>
+                                </div>
+
+                                <div class="text-center">
+                                    <button type="submit" class="btn btn-primary btn-lg hindi" id="officeMasterSubmitBtn">
+                                        <i class="fas fa-save me-2"></i>Register Office
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Submit Overlay for Animation -->
+                        <div class="submit-overlay" id="officeSubmitOverlay" style="display: none;">
+                            <div class="submit-spinner" id="officeSpinner"></div>
+                            <div class="success-checkmark" id="officeSuccess" style="display: none;">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h5 class="hindi" id="officeOverlayText">Saving Master...</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- P-1 Form Panel -->
-            <div class="tab-pane fade show active" id="p1-panel" role="tabpanel">
+            <div class="tab-pane fade" id="p1-panel" role="tabpanel">
                 <div class="card fade-in">
                     <div class="card-header">
                         <h4 class="mb-0 hindi">
@@ -743,6 +984,12 @@
                         <div class="alert alert-info hindi">
                             <i class="fas fa-info-circle me-2"></i>
                             <strong>सूचना:</strong> e-HRMS के क्रियान्वयन हेतु स्थापना प्रभारी को नोडल अधिकारी नामांकित करने बाबत्
+                        </div>
+
+                        <!-- Office Selection Alert -->
+                        <div id="officeSelectionAlert" class="alert alert-warning hindi" style="display: none;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>चेतावनी:</strong> पहले कार्यालय मास्टर में अपना कार्यालय रजिस्टर करें
                         </div>
 
                         <!-- Alert Container -->
@@ -758,12 +1005,25 @@
                                 </div>
                             </div>
 
-                            <!-- Name of Office (Nodal Officer) -->
+                            <!-- Registered Office Selection -->
                             <div class="row mb-4">
                                 <div class="col-12">
-                                    <label for="officeNameNodal" class="form-label hindi"><i class="fas fa-building-user me-2"></i>Name of the Office (Nodal Officer)</label>
-                                    <input type="text" class="form-control" id="officeNameNodal" placeholder="नोडल अधिकारी के कार्यालय का नाम दर्ज करें" required>
+                                    <label for="registeredOfficeSelect" class="form-label hindi">
+                                        <i class="fas fa-building-user me-2"></i>रजिस्टर्ड कार्यालय चुनें
+                                    </label>
+                                    <select class="form-select" id="registeredOfficeSelect" required>
+                                        <option value="">-- रजिस्टर्ड कार्यालय चुनें --</option>
+                                    </select>
+                                    <div class="form-text hindi">यहाँ केवल आपके रजिस्टर्ड कार्यालय दिखेंगे</div>
                                 </div>
+                            </div>
+
+                            <!-- Auto-filled Office Details -->
+                            <div id="selectedOfficeDetails" class="office-hierarchy" style="display: none;">
+                                <h6 class="hindi mb-2">
+                                    <i class="fas fa-info-circle me-2"></i>चयनित कार्यालय विवरण
+                                </h6>
+                                <div id="officeDetailsDisplay"></div>
                             </div>
 
                             <!-- Nodal Officer Nomination Text -->
@@ -771,7 +1031,7 @@
                                 <div class="col-12">
                                     <div class="p-4 bg-light rounded-3">
                                         <p class="hindi mb-3 fw-bold">
-                                            <i class="fas fa-clipboard-list me-2"></i><strong>विषयांतर्गत:</strong> <span id="officeNameInText">कार्यालय</span> अंतर्गत कर्मचारियों को e-HRMS पोर्टल में ऑनबोर्डिंग किये जाने हेतु
+                                            <i class="fas fa-clipboard-list me-2"></i><strong>विषयांतर्गत:</strong> <span id="officeNameInText">चयनित कार्यालय</span> अंतर्गत कर्मचारियों को e-HRMS पोर्टल में ऑनबोर्डिंग किये जाने हेतु
                                         </p>
                                         <div class="row">
                                             <div class="col-md-6">
@@ -813,8 +1073,8 @@
                             <div class="row mb-4">
                                 <div class="col-md-6">
                                     <label for="p1Office" class="form-label hindi"><i class="fas fa-building me-2"></i>Name of office</label>
-                                    <input type="text" class="form-control" id="p1Office" placeholder="Office of the ..." required>
-                                    <div class="form-text hindi">"Office of the" से शुरू करें</div>
+                                    <input type="text" class="form-control" id="p1Office" readonly>
+                                    <div class="form-text hindi">रजिस्टर्ड कार्यालय से स्वतः भरा गया</div>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label hindi"><i class="fas fa-map-marker-alt me-2"></i>Current Place of Posting</label>
@@ -883,6 +1143,19 @@
                             <strong>महत्वपूर्ण:</strong> एक्सेल शीट में ई-मेल के माध्यम से भी अनिवार्यतः भेजें
                         </div>
 
+                        <!-- Office Selection for P2 -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="p2OfficeSelect" class="form-label hindi">
+                                    <i class="fas fa-building me-2"></i>कार्यालय चुनें
+                                </label>
+                                <select class="form-select" id="p2OfficeSelect" required>
+                                    <option value="">-- कार्यालय चुनें --</option>
+                                </select>
+                                <div class="form-text hindi">जिस कार्यालय के कर्मचारी अपलोड करना है</div>
+                            </div>
+                        </div>
+
                         <!-- Alert Container -->
                         <div id="p2-alerts"></div>
 
@@ -907,13 +1180,16 @@
                                         <h5 class="hindi">अपलोड निर्देश</h5>
                                         <div class="text-start">
                                             <p class="hindi text-muted mb-2">
-                                                <i class="fas fa-arrow-right me-2"></i>1. टेम्प्लेट डाउनलोड करें
+                                                <i class="fas fa-arrow-right me-2"></i>1. कार्यालय चुनें
                                             </p>
                                             <p class="hindi text-muted mb-2">
-                                                <i class="fas fa-arrow-right me-2"></i>2. कर्मचारी विवरण भरें
+                                                <i class="fas fa-arrow-right me-2"></i>2. टेम्प्लेट डाउनलोड करें
+                                            </p>
+                                            <p class="hindi text-muted mb-2">
+                                                <i class="fas fa-arrow-right me-2"></i>3. कर्मचारी विवरण भरें
                                             </p>
                                             <p class="hindi text-muted mb-0">
-                                                <i class="fas fa-arrow-right me-2"></i>3. नीचे फाइल अपलोड करें
+                                                <i class="fas fa-arrow-right me-2"></i>4. फाइल अपलोड करें
                                             </p>
                                         </div>
                                     </div>
@@ -922,7 +1198,7 @@
                         </div>
 
                         <!-- Enhanced Upload Area -->
-                        <div class="upload-area" id="uploadArea">
+                        <div class="upload-area" id="uploadArea" style="display: none;">
                             <i class="fas fa-cloud-upload-alt fa-5x text-success mb-4"></i>
                             <h4 class="hindi mb-3">Excel फाइल यहाँ ड्रैग करें या क्लिक करके चुनें</h4>
                             <p class="hindi text-muted mb-0">केवल .xlsx और .xls फाइलें स्वीकार्य हैं</p>
@@ -995,6 +1271,15 @@
                     <div class="stats-grid">
                         <div class="stats-card green">
                             <div class="stats-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <span class="stats-number" id="totalOfficesMaster">
+                                <div class="loading-spinner-sm"></div>
+                            </span>
+                            <span class="stats-label hindi">रजिस्टर्ड कार्यालय</span>
+                        </div>
+                        <div class="stats-card blue">
+                            <div class="stats-icon">
                                 <i class="fas fa-user-tie"></i>
                             </div>
                             <span class="stats-number" id="totalNodalOfficers">
@@ -1002,7 +1287,7 @@
                             </span>
                             <span class="stats-label hindi">कुल नोडल अधिकारी</span>
                         </div>
-                        <div class="stats-card blue">
+                        <div class="stats-card orange">
                             <div class="stats-icon">
                                 <i class="fas fa-users"></i>
                             </div>
@@ -1010,15 +1295,6 @@
                                 <div class="loading-spinner-sm"></div>
                             </span>
                             <span class="stats-label hindi">कुल कर्मचारी</span>
-                        </div>
-                        <div class="stats-card orange">
-                            <div class="stats-icon">
-                                <i class="fas fa-building"></i>
-                            </div>
-                            <span class="stats-number" id="totalOffices">
-                                <div class="loading-spinner-sm"></div>
-                            </span>
-                            <span class="stats-label hindi">कुल कार्यालय</span>
                         </div>
                         <div class="stats-card purple">
                             <div class="stats-icon">
@@ -1037,7 +1313,12 @@
                             <!-- Data Management Tabs -->
                             <ul class="nav nav-tabs" id="adminTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active hindi" id="nodal-data-tab" data-bs-toggle="tab" data-bs-target="#nodal-data" type="button" role="tab">
+                                    <button class="nav-link active hindi" id="office-master-data-tab" data-bs-toggle="tab" data-bs-target="#office-master-data" type="button" role="tab">
+                                        <i class="fas fa-building me-2"></i>कार्यालय मास्टर डेटा
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link hindi" id="nodal-data-tab" data-bs-toggle="tab" data-bs-target="#nodal-data" type="button" role="tab">
                                         <i class="fas fa-user-tie me-2"></i>नोडल अधिकारी डेटा
                                     </button>
                                 </li>
@@ -1049,8 +1330,64 @@
                             </ul>
 
                             <div class="tab-content" id="adminTabContent">
+                                <!-- Office Master Data -->
+                                <div class="tab-pane fade show active" id="office-master-data" role="tabpanel">
+                                    <div class="data-table-container mt-4">
+                                        <div class="table-header">
+                                            <div>
+                                                <h5 class="hindi mb-0">
+                                                    <i class="fas fa-building me-2"></i>रजिस्टर्ड कार्यालय विवरण
+                                                </h5>
+                                                <small class="opacity-75">सभी रजिस्टर्ड कार्यालयों की सूची</small>
+                                            </div>
+                                            <div class="export-buttons">
+                                                <button class="btn btn-success btn-sm hindi" id="exportOfficeMasterXLSX">
+                                                    <i class="fas fa-file-excel me-1"></i>XLSX Export
+                                                </button>
+                                                <button class="btn btn-danger btn-sm hindi" id="exportOfficeMasterPDF">
+                                                    <i class="fas fa-file-pdf me-1"></i>PDF Export
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-hover mb-0" id="officeMasterTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Sr.</th>
+                                                        <th>Office Type</th>
+                                                        <th>Office Name</th>
+                                                        <th>Division</th>
+                                                        <th>District</th>
+                                                        <th>Block</th>
+                                                        <th>Total Employees</th>
+                                                        <th>e-Office Users</th>
+                                                        <th>Phone</th>
+                                                        <th>Email</th>
+                                                        <th>Registered Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="officeMasterTableBody">
+                                                    <tr>
+                                                        <td colspan="11" class="text-center py-5">
+                                                            <div class="loading-state">
+                                                                <div class="loading-spinner-sm"></div>
+                                                                <span class="hindi">डेटा लोड हो रहा है...</span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="p-3">
+                                            <nav aria-label="Office master pagination">
+                                                <ul class="pagination justify-content-center mb-0" id="officeMasterPagination"></ul>
+                                            </nav>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Enhanced Nodal Officers Data -->
-                                <div class="tab-pane fade show active" id="nodal-data" role="tabpanel">
+                                <div class="tab-pane fade" id="nodal-data" role="tabpanel">
                                     <div class="data-table-container mt-4">
                                         <div class="table-header">
                                             <div>
@@ -1181,11 +1518,17 @@
         const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
         let currentUser = null;
+        let registeredOffices = [];
+        let divisions = [];
+        let districts = [];
+        let blocks = [];
         let nodalOfficersData = [];
         let employeesData = [];
+        let officeMasterData = [];
         const itemsPerPage = 10;
         let currentNodalPage = 1;
         let currentEmployeePage = 1;
+        let currentOfficeMasterPage = 1;
 
         // Update current date time
         function updateDateTime() {
@@ -1315,6 +1658,486 @@
             document.querySelector('.form-submitting')?.classList.remove('form-submitting');
         }
 
+        // Load master data (divisions, districts, blocks)
+        async function loadMasterData() {
+            try {
+                // Load divisions
+                const { data: divisionsData, error: divError } = await supabaseClient
+                    .from('divisions')
+                    .select('*')
+                    .order('name');
+                
+                if (divError) throw divError;
+                divisions = divisionsData || [];
+                
+                // Load districts
+                const { data: districtsData, error: distError } = await supabaseClient
+                    .from('districts')
+                    .select('*')
+                    .order('name');
+                
+                if (distError) throw distError;
+                districts = districtsData || [];
+                
+                // Load blocks
+                const { data: blocksData, error: blockError } = await supabaseClient
+                    .from('blocks')
+                    .select('*, districts(name)')
+                    .order('name');
+                
+                if (blockError) throw blockError;
+                blocks = blocksData || [];
+                
+                // Populate dropdowns
+                populateDropdowns();
+                
+            } catch (error) {
+                console.error('Error loading master data:', error);
+                showAlert('मास्टर डेटा लोड करने में त्रुटि हुई', 'danger', 'office-alerts');
+            }
+        }
+
+        // Populate dropdowns
+        function populateDropdowns() {
+            // Populate divisions dropdown
+            const divisionSelect = document.getElementById('divisionSelect');
+            divisionSelect.innerHTML = '<option value="">-- मंडल चुनें --</option>';
+            divisions.forEach(division => {
+                const option = document.createElement('option');
+                option.value = division.id;
+                option.textContent = division.name;
+                divisionSelect.appendChild(option);
+            });
+            
+            // Populate districts dropdown
+            const districtSelect = document.getElementById('districtSelect');
+            districtSelect.innerHTML = '<option value="">-- जिला चुनें --</option>';
+            districts.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district.id;
+                option.textContent = district.name;
+                districtSelect.appendChild(option);
+            });
+        }
+
+        // Office type selection handlers
+        document.querySelectorAll('.office-type-card').forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove selected class from all cards
+                document.querySelectorAll('.office-type-card').forEach(c => c.classList.remove('selected'));
+                
+                // Add selected class to clicked card
+                this.classList.add('selected');
+                
+                // Set hidden input value
+                const officeType = this.dataset.officeType;
+                document.getElementById('selectedOfficeType').value = officeType;
+                
+                // Show hierarchy section and configure based on office type
+                showHierarchySection(officeType);
+            });
+        });
+
+        // Show hierarchy section based on office type
+        function showHierarchySection(officeType) {
+            const hierarchySection = document.getElementById('hierarchySection');
+            const hierarchySteps = document.getElementById('hierarchySteps');
+            const divisionRow = document.getElementById('divisionRow');
+            const districtRow = document.getElementById('districtRow');
+            const blockRow = document.getElementById('blockRow');
+            
+            hierarchySection.style.display = 'block';
+            
+            // Reset all rows
+            divisionRow.style.display = 'none';
+            districtRow.style.display = 'none';
+            blockRow.style.display = 'none';
+            
+            // Clear hierarchy steps
+            hierarchySteps.innerHTML = '';
+            
+            // Configure based on office type
+            switch(officeType) {
+                case 'JDA':
+                    hierarchySteps.innerHTML = `
+                        <div class="hierarchy-step">
+                            <i class="fas fa-arrow-right"></i>
+                            <span class="hindi">मंडल स्तर पर कार्यालय</span>
+                        </div>
+                    `;
+                    divisionRow.style.display = 'block';
+                    document.getElementById('divisionSelect').required = true;
+                    break;
+                    
+                case 'DDA':
+                    hierarchySteps.innerHTML = `
+                        <div class="hierarchy-step">
+                            <i class="fas fa-arrow-right"></i>
+                            <span class="hindi">जिला स्तर पर कार्यालय</span>
+                        </div>
+                    `;
+                    districtRow.style.display = 'block';
+                    document.getElementById('districtSelect').required = true;
+                    break;
+                    
+                case 'Sub Divisional':
+                    hierarchySteps.innerHTML = `
+                        <div class="hierarchy-step">
+                            <i class="fas fa-arrow-right"></i>
+                            <span class="hindi">जिला चुनें → ब्लॉक/उप मंडल चुनें</span>
+                        </div>
+                    `;
+                    districtRow.style.display = 'block';
+                    blockRow.style.display = 'block';
+                    document.getElementById('districtSelect').required = true;
+                    document.getElementById('blockSelect').required = true;
+                    break;
+                    
+                case 'SADO':
+                    hierarchySteps.innerHTML = `
+                        <div class="hierarchy-step">
+                            <i class="fas fa-arrow-right"></i>
+                            <span class="hindi">जिला चुनें → ब्लॉक चुनें</span>
+                        </div>
+                    `;
+                    districtRow.style.display = 'block';
+                    blockRow.style.display = 'block';
+                    document.getElementById('districtSelect').required = true;
+                    document.getElementById('blockSelect').required = true;
+                    break;
+            }
+        }
+
+        // District selection change handler
+        document.getElementById('districtSelect').addEventListener('change', function() {
+            const districtId = this.value;
+            const blockSelect = document.getElementById('blockSelect');
+            
+            // Clear and populate blocks based on selected district
+            blockSelect.innerHTML = '<option value="">-- ब्लॉक चुनें --</option>';
+            
+            if (districtId) {
+                const districtBlocks = blocks.filter(block => block.district_id === districtId);
+                districtBlocks.forEach(block => {
+                    const option = document.createElement('option');
+                    option.value = block.id;
+                    option.textContent = block.name;
+                    blockSelect.appendChild(option);
+                });
+            }
+            
+            // Generate office name when district changes
+            generateOfficeName();
+        });
+
+        // Selection change handlers for office name generation
+        document.getElementById('divisionSelect').addEventListener('change', generateOfficeName);
+        document.getElementById('blockSelect').addEventListener('change', generateOfficeName);
+
+        // Generate office name based on selections
+        function generateOfficeName() {
+            const officeType = document.getElementById('selectedOfficeType').value;
+            const divisionId = document.getElementById('divisionSelect').value;
+            const districtId = document.getElementById('districtSelect').value;
+            const blockId = document.getElementById('blockSelect').value;
+            
+            let officeName = '';
+            
+            switch(officeType) {
+                case 'JDA':
+                    if (divisionId) {
+                        const division = divisions.find(d => d.id === divisionId);
+                        officeName = `Joint Director Agriculture, ${division.name}`;
+                    }
+                    break;
+                    
+                case 'DDA':
+                    if (districtId) {
+                        const district = districts.find(d => d.id === districtId);
+                        officeName = `Deputy Director Agriculture, ${district.name}`;
+                    }
+                    break;
+                    
+                case 'Sub Divisional':
+                    if (blockId) {
+                        const block = blocks.find(b => b.id === blockId);
+                        officeName = `Sub Divisional Agriculture Office, ${block.name}`;
+                    }
+                    break;
+                    
+                case 'SADO':
+                    if (blockId) {
+                        const block = blocks.find(b => b.id === blockId);
+                        officeName = `SADO Office, ${block.name}`;
+                    }
+                    break;
+            }
+            
+            if (officeName) {
+                document.getElementById('generatedOfficeName').value = officeName;
+                document.getElementById('officeNameRow').style.display = 'block';
+                document.getElementById('officeDetailsSection').style.display = 'block';
+            } else {
+                document.getElementById('officeNameRow').style.display = 'none';
+                document.getElementById('officeDetailsSection').style.display = 'none';
+            }
+        }
+
+        // Office master form submission
+        document.getElementById('officeMasterForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show submit animation
+            showSubmitAnimation('officeMasterForm', 'officeSubmitOverlay', 'officeSpinner', 'officeSuccess', 'officeOverlayText', 'कार्यालय रजिस्टर हो रहा है...');
+            
+            try {
+                const formData = {
+                    office_type: document.getElementById('selectedOfficeType').value,
+                    office_name: document.getElementById('generatedOfficeName').value,
+                    division_id: document.getElementById('divisionSelect').value || null,
+                    district_id: document.getElementById('districtSelect').value || null,
+                    block_id: document.getElementById('blockSelect').value || null,
+                    total_employees: parseInt(document.getElementById('totalEmployees').value),
+                    total_eoffice_users: parseInt(document.getElementById('totalEofficeUsers').value),
+                    office_phone: document.getElementById('officePhone').value || null,
+                    office_email: document.getElementById('officeEmail').value || null,
+                    registered_by: currentUser.id,
+                    created_at: new Date().toISOString()
+                };
+                
+                // Validate required fields based on office type
+                if (formData.office_type === 'JDA' && !formData.division_id) {
+                    throw new Error('JDA के लिए मंडल चयन आवश्यक है');
+                }
+                
+                if (['DDA', 'Sub Divisional', 'SADO'].includes(formData.office_type) && !formData.district_id) {
+                    throw new Error('जिला चयन आवश्यक है');
+                }
+                
+                if (['Sub Divisional', 'SADO'].includes(formData.office_type) && !formData.block_id) {
+                    throw new Error('ब्लॉक चयन आवश्यक है');
+                }
+                
+                // Check if office already exists
+                const { data: existingOffice, error: checkError } = await supabaseClient
+                    .from('office_master')
+                    .select('id')
+                    .eq('office_name', formData.office_name)
+                    .eq('registered_by', currentUser.id);
+                
+                if (checkError) throw checkError;
+                
+                if (existingOffice && existingOffice.length > 0) {
+                    throw new Error('यह कार्यालय पहले से रजिस्टर्ड है');
+                }
+                
+                // Simulate processing time
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Insert office master data
+                const { data, error } = await supabaseClient
+                    .from('office_master')
+                    .insert([formData])
+                    .select();
+                
+                if (error) throw error;
+                
+                // Show success animation
+                showSuccessAnimation('officeSubmitOverlay', 'officeSpinner', 'officeSuccess', 'officeOverlayText', 'कार्यालय सफलतापूर्वक रजिस्टर्ड!');
+                
+                // Show success alert
+                setTimeout(() => {
+                    showAlert('कार्यालय सफलतापूर्वक रजिस्टर किया गया!', 'success', 'office-alerts');
+                }, 2500);
+                
+                // Reset form and reload registered offices
+                setTimeout(() => {
+                    this.reset();
+                    document.querySelectorAll('.office-type-card').forEach(c => c.classList.remove('selected'));
+                    document.getElementById('hierarchySection').style.display = 'none';
+                    document.getElementById('officeDetailsSection').style.display = 'none';
+                    loadRegisteredOffices();
+                    checkExistingOfficeRegistration();
+                }, 3000);
+                
+            } catch (error) {
+                console.error('Error submitting office master form:', error);
+                hideSubmitAnimation('officeSubmitOverlay');
+                showAlert(error.message || 'कार्यालय रजिस्टर करने में त्रुटि हुई', 'danger', 'office-alerts');
+            }
+        });
+
+        // Load registered offices for current user
+        async function loadRegisteredOffices() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('office_master')
+                    .select(`
+                        *,
+                        divisions(name),
+                        districts(name),
+                        blocks(name)
+                    `)
+                    .eq('registered_by', currentUser.id)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                registeredOffices = data || [];
+                populateOfficeSelectors();
+                
+            } catch (error) {
+                console.error('Error loading registered offices:', error);
+                showAlert('रजिस्टर्ड कार्यालय लोड करने में त्रुटि हुई', 'danger', 'office-alerts');
+            }
+        }
+
+        // Populate office selectors in P1 and P2 forms
+        function populateOfficeSelectors() {
+            // P1 office selector
+            const p1OfficeSelect = document.getElementById('registeredOfficeSelect');
+            p1OfficeSelect.innerHTML = '<option value="">-- रजिस्टर्ड कार्यालय चुनें --</option>';
+            
+            // P2 office selector
+            const p2OfficeSelect = document.getElementById('p2OfficeSelect');
+            p2OfficeSelect.innerHTML = '<option value="">-- कार्यालय चुनें --</option>';
+            
+            registeredOffices.forEach(office => {
+                const option1 = document.createElement('option');
+                option1.value = office.id;
+                option1.textContent = office.office_name;
+                p1OfficeSelect.appendChild(option1);
+                
+                const option2 = document.createElement('option');
+                option2.value = office.id;
+                option2.textContent = office.office_name;
+                p2OfficeSelect.appendChild(option2);
+            });
+        }
+
+        // Check if user has existing office registration
+        async function checkExistingOfficeRegistration() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('office_master')
+                    .select(`
+                        *,
+                        divisions(name),
+                        districts(name),
+                        blocks(name)
+                    `)
+                    .eq('registered_by', currentUser.id)
+                    .eq('is_active', true);
+                
+                if (error) throw error;
+                
+                if (data && data.length > 0) {
+                    // Show existing office info
+                    displayExistingOfficeInfo(data);
+                } else {
+                    // Hide existing office info
+                    document.getElementById('existingOfficeInfo').style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Error checking existing office registration:', error);
+            }
+        }
+
+        // Display existing office information
+        function displayExistingOfficeInfo(offices) {
+            const existingOfficeInfo = document.getElementById('existingOfficeInfo');
+            const officeDetails = document.getElementById('officeDetails');
+            
+            let detailsHtml = '';
+            offices.forEach((office, index) => {
+                detailsHtml += `
+                    <div class="mb-3 p-3 bg-light rounded">
+                        <h6 class="hindi text-success">${index + 1}. ${office.office_name}</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small class="text-muted hindi">प्रकार: \${office.office_type}</small><br>
+                                <small class="text-muted hindi">कुल कर्मचारी: \${office.total_employees}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted hindi">e-Office Users: \${office.total_eoffice_users}</small><br>
+                                <small class="text-muted hindi">रजिस्टर्ड: \${new Date(office.created_at).toLocaleDateString('hi-IN')}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            officeDetails.innerHTML = detailsHtml;
+            existingOfficeInfo.style.display = 'block';
+        }
+
+        // P1 office selection handler
+        document.getElementById('registeredOfficeSelect').addEventListener('change', function() {
+            const selectedOfficeId = this.value;
+            
+            if (selectedOfficeId) {
+                const selectedOffice = registeredOffices.find(office => office.id === selectedOfficeId);
+                if (selectedOffice) {
+                    // Auto-fill office details
+                    document.getElementById('p1Office').value = selectedOffice.office_name;
+                    document.getElementById('officeNameInText').textContent = selectedOffice.office_name;
+                    
+                    // Show office details
+                    displaySelectedOfficeDetails(selectedOffice);
+                    
+                    // Hide office selection alert
+                    document.getElementById('officeSelectionAlert').style.display = 'none';
+                }
+            } else {
+                // Clear office details
+                document.getElementById('p1Office').value = '';
+                document.getElementById('officeNameInText').textContent = 'चयनित कार्यालय';
+                document.getElementById('selectedOfficeDetails').style.display = 'none';
+                document.getElementById('officeSelectionAlert').style.display = 'block';
+            }
+        });
+
+        // Display selected office details
+        function displaySelectedOfficeDetails(office) {
+            const detailsDiv = document.getElementById('officeDetailsDisplay');
+            const hierarchy = [];
+            
+            if (office.divisions) hierarchy.push(`मंडल: ${office.divisions.name}`);
+            if (office.districts) hierarchy.push(`जिला: ${office.districts.name}`);
+            if (office.blocks) hierarchy.push(`ब्लॉक: \${office.blocks.name}`);
+            
+            detailsDiv.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong class="hindi">कार्यालय प्रकार:</strong> \${office.office_type}<br>
+                        <strong class="hindi">पदानुक्रम:</strong> \${hierarchy.join(' → ')}
+                    </div>
+                    <div class="col-md-6">
+                        <strong class="hindi">कुल कर्मचारी:</strong> \${office.total_employees}<br>
+                        <strong class="hindi">e-Office Users:</strong> \${office.total_eoffice_users}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('selectedOfficeDetails').style.display = 'block';
+        }
+
+        // P2 office selection handler
+        document.getElementById('p2OfficeSelect').addEventListener('change', function() {
+            const selectedOfficeId = this.value;
+            
+            if (selectedOfficeId) {
+                // Show upload area
+                document.getElementById('uploadArea').style.display = 'block';
+            } else {
+                // Hide upload area
+                document.getElementById('uploadArea').style.display = 'none';
+                document.getElementById('filePreview').style.display = 'none';
+            }
+        });
+
         // Auto-fill name from nodal officer field to name field
         document.getElementById('nodalOfficerName').addEventListener('input', function() {
             const nameField = document.getElementById('p1Name');
@@ -1323,16 +2146,6 @@
                 nameField.classList.add('auto-filled');
             } else {
                 nameField.classList.remove('auto-filled');
-            }
-        });
-
-        // Auto-update office name in subject text
-        document.getElementById('officeNameNodal').addEventListener('input', function() {
-            const subjectText = document.getElementById('officeNameInText');
-            if (this.value) {
-                subjectText.textContent = this.value;
-            } else {
-                subjectText.textContent = 'कार्यालय';
             }
         });
 
@@ -1366,7 +2179,7 @@
 
         // Mobile number validation
         function validateMobile(mobile) {
-            const mobileRegex = /^[6-9][0-9]{9}\$/;
+            const mobileRegex = /^[6-9][0-9]{9}$/;
             return mobileRegex.test(mobile);
         }
 
@@ -1397,49 +2210,38 @@
             }
         }
 
-        // Check for existing nodal officer in office
-        async function checkExistingNodalOfficer(officeName, excludeId = null) {
-            try {
-                let query = supabaseClient
-                    .from('nodal_officers')
-                    .select('id')
-                    .eq('office_name', officeName);
-                
-                if (excludeId) {
-                    query = query.neq('id', excludeId);
-                }
-                
-                const { data, error } = await query;
-                
-                if (error) throw error;
-                return data && data.length > 0;
-            } catch (error) {
-                console.error('Error checking existing nodal officer:', error);
-                return false;
-            }
-        }
-
-        // Enhanced P-1 Form submission with professional animations
+        // Enhanced P-1 Form submission with office master integration
         document.getElementById('p1Form').addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Check if office is selected
+            const selectedOfficeId = document.getElementById('registeredOfficeSelect').value;
+            if (!selectedOfficeId) {
+                showAlert('पहले रजिस्टर्ड कार्यालय चुनें', 'warning', 'p1-alerts');
+                document.getElementById('officeSelectionAlert').style.display = 'block';
+                return;
+            }
             
             // Show submit animation
             showSubmitAnimation('p1Form', 'p1SubmitOverlay', 'p1Spinner', 'p1Success', 'p1OverlayText', 'डेटा सुरक्षित हो रहा है...');
             
             try {
+                const selectedOffice = registeredOffices.find(office => office.id === selectedOfficeId);
+                
                 const formData = {
                     name: document.getElementById('p1Name').value.trim(),
                     father_name: document.getElementById('p1FatherName').value.trim(),
                     dob: document.getElementById('p1DOB').value,
                     designation: document.getElementById('p1Designation').value.trim(),
                     office_name: document.getElementById('p1Office').value.trim(),
-                    office_name_nodal: document.getElementById('officeNameNodal').value.trim(),
+                    office_name_nodal: selectedOffice.office_name,
                     current_posting: document.getElementById('p1Posting').value.trim(),
                     is_same_address: document.getElementById('sameAddress').checked,
                     email: document.getElementById('p1Email').value.trim().toLowerCase(),
                     mobile: document.getElementById('p1Mobile').value.trim(),
                     user_id: currentUser.id,
                     district_id: currentUser.districtId,
+                    office_master_id: selectedOfficeId,
                     created_at: new Date().toISOString()
                 };
                 
@@ -1459,13 +2261,19 @@
                     throw new Error('यह मोबाइल नंबर पहले से रजिस्टर्ड है');
                 }
                 
-                // Check for existing nodal officer in office
-                const existingOfficer = await checkExistingNodalOfficer(formData.office_name);
-                if (existingOfficer) {
+                // Check for existing nodal officer in this office
+                const { data: existingOfficer, error: checkError } = await supabaseClient
+                    .from('nodal_officers')
+                    .select('id')
+                    .eq('office_master_id', selectedOfficeId);
+                
+                if (checkError) throw checkError;
+                
+                if (existingOfficer && existingOfficer.length > 0) {
                     throw new Error('इस कार्यालय के लिए पहले से नोडल अधिकारी नामांकित है');
                 }
                 
-                // Simulate processing time for better UX
+                // Simulate processing time
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 
                 // Insert data
@@ -1489,7 +2297,8 @@
                     this.reset();
                     document.getElementById('p1Name').classList.remove('auto-filled');
                     document.getElementById('p1Posting').classList.remove('auto-filled');
-                    document.getElementById('officeNameInText').textContent = 'कार्यालय';
+                    document.getElementById('selectedOfficeDetails').style.display = 'none';
+                    document.getElementById('officeNameInText').textContent = 'चयनित कार्यालय';
                     
                     // Remove validation classes
                     this.querySelectorAll('.form-control').forEach(input => {
@@ -1657,10 +2466,16 @@
             window.pendingUploadData = data;
         }
 
-        // Enhanced upload data to database with animations
+        // Enhanced upload data to database with office master integration
         document.getElementById('uploadData').addEventListener('click', async function() {
             if (!window.pendingUploadData || window.pendingUploadData.length < 2) {
                 showAlert('अपलोड करने के लिए कोई डेटा नहीं मिला', 'danger', 'p2-alerts');
+                return;
+            }
+            
+            const selectedOfficeId = document.getElementById('p2OfficeSelect').value;
+            if (!selectedOfficeId) {
+                showAlert('पहले कार्यालय चुनें', 'warning', 'p2-alerts');
                 return;
             }
             
@@ -1676,6 +2491,7 @@
                 const data = window.pendingUploadData;
                 const headers = data[0];
                 const rows = data.slice(1);
+                const selectedOffice = registeredOffices.find(office => office.id === selectedOfficeId);
                 
                 // Convert rows to objects
                 const employees = [];
@@ -1688,12 +2504,13 @@
                         father_name: row[1]?.toString().trim() || '',
                         dob: row[2]?.toString().trim() || '',
                         designation: row[3]?.toString().trim() || '',
-                        office_name: row[4]?.toString().trim() || '',
+                        office_name: row[4]?.toString().trim() || selectedOffice.office_name,
                         current_posting: row[5]?.toString().trim() || '',
                         email: row[6]?.toString().trim().toLowerCase() || '',
                         mobile: row[7]?.toString().trim() || '',
                         user_id: currentUser.id,
                         district_id: currentUser.districtId,
+                        office_master_id: selectedOfficeId,
                         upload_date: new Date().toISOString()
                     };
                     
@@ -1773,9 +2590,17 @@
             window.pendingUploadData = null;
         });
 
-        // Load admin statistics with enhanced loading states
+        // Load admin statistics with office master data
         async function loadAdminStats() {
             try {
+                // Total office master records
+                const { count: officeMasterCount, error: officeError } = await supabaseClient
+                    .from('office_master')
+                    .select('id', { count: 'exact' })
+                    .eq('is_active', true);
+                
+                if (officeError) throw officeError;
+                
                 // Total nodal officers
                 const { count: nodalCount, error: nodalError } = await supabaseClient
                     .from('nodal_officers')
@@ -1790,35 +2615,36 @@
                 
                 if (empError) throw empError;
                 
-                // Total offices (unique)
-                const { data: offices, error: officeError } = await supabaseClient
-                    .from('nodal_officers')
-                    .select('office_name');
-                
-                if (officeError) throw officeError;
-                
-                const uniqueOffices = new Set(offices?.map(o => o.office_name) || []);
-                
-                // Today's submissions
+                // Today's submissions (office master + nodal officers)
                 const today = new Date().toISOString().split('T')[0];
-                const { count: todayCount, error: todayError } = await supabaseClient
+                const { count: todayOfficeCount, error: todayOfficeError } = await supabaseClient
+                    .from('office_master')
+                    .select('id', { count: 'exact' })
+                    .gte('created_at', today + 'T00:00:00.000Z')
+                    .lt('created_at', today + 'T23:59:59.999Z');
+                
+                if (todayOfficeError) throw todayOfficeError;
+                
+                const { count: todayNodalCount, error: todayNodalError } = await supabaseClient
                     .from('nodal_officers')
                     .select('id', { count: 'exact' })
                     .gte('created_at', today + 'T00:00:00.000Z')
                     .lt('created_at', today + 'T23:59:59.999Z');
                 
-                if (todayError) throw todayError;
+                if (todayNodalError) throw todayNodalError;
+                
+                const totalTodaySubmissions = (todayOfficeCount || 0) + (todayNodalCount || 0);
                 
                 // Animate numbers counting up
+                animateNumber('totalOfficesMaster', officeMasterCount || 0);
                 animateNumber('totalNodalOfficers', nodalCount || 0);
                 animateNumber('totalEmployees', employeeCount || 0);
-                animateNumber('totalOffices', uniqueOffices.size);
-                animateNumber('todaySubmissions', todayCount || 0);
+                animateNumber('todaySubmissions', totalTodaySubmissions);
                 
             } catch (error) {
                 console.error('Error loading admin stats:', error);
                 // Show error state
-                ['totalNodalOfficers', 'totalEmployees', 'totalOffices', 'todaySubmissions'].forEach(id => {
+                ['totalOfficesMaster', 'totalNodalOfficers', 'totalEmployees', 'todaySubmissions'].forEach(id => {
                     document.getElementById(id).innerHTML = '<i class="fas fa-exclamation-triangle text-danger"></i>';
                 });
             }
@@ -1845,7 +2671,72 @@
             updateNumber();
         }
 
-        // Load nodal officers data with all columns
+        // Load office master data for admin
+        async function loadOfficeMasterData(page = 1) {
+            try {
+                const offset = (page - 1) * itemsPerPage;
+                
+                const { data, error, count } = await supabaseClient
+                    .from('office_master')
+                    .select(`
+                        *,
+                        divisions(name),
+                        districts(name),
+                        blocks(name),
+                        test_users(full_name)
+                    `, { count: 'exact' })
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false })
+                    .range(offset, offset + itemsPerPage - 1);
+                
+                if (error) throw error;
+                
+                officeMasterData = data || [];
+                displayOfficeMasterTable(officeMasterData);
+                createPagination('officeMasterPagination', count, page, (newPage) => {
+                    currentOfficeMasterPage = newPage;
+                    loadOfficeMasterData(newPage);
+                });
+                
+            } catch (error) {
+                console.error('Error loading office master data:', error);
+                document.getElementById('officeMasterTableBody').innerHTML = 
+                    '<tr><td colspan="11" class="text-center text-danger hindi py-5">डेटा लोड करने में त्रुटि हुई</td></tr>';
+            }
+        }
+
+        // Display office master table
+        function displayOfficeMasterTable(data) {
+            const tbody = document.getElementById('officeMasterTableBody');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="11" class="text-center hindi py-5">कोई डेटा नहीं मिला</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.map((office, index) => {
+                const serialNumber = (currentOfficeMasterPage - 1) * itemsPerPage + index + 1;
+                const createdDateFormatted = new Date(office.created_at).toLocaleDateString('en-GB');
+                
+                return `
+                    <tr class="fade-in">
+                        <td><span class="badge bg-primary">\${serialNumber}</span></td>
+                        <td><span class="badge bg-info">\${office.office_type}</span></td>
+                        <td><strong>\${office.office_name}</strong></td>
+                        <td>\${office.divisions ? office.divisions.name : '<span class="text-muted">N/A</span>'}</td>
+                        <td>\${office.districts ? office.districts.name : '<span class="text-muted">N/A</span>'}</td>
+                        <td>\${office.blocks ? office.blocks.name : '<span class="text-muted">N/A</span>'}</td>
+                        <td><span class="badge bg-success">\${office.total_employees}</span></td>
+                        <td><span class="badge bg-warning text-dark">\${office.total_eoffice_users}</span></td>
+                        <td>\${office.office_phone ? `<a href="tel:${office.office_phone}" class="text-decoration-none">${office.office_phone}</a>` : '<span class="text-muted">N/A</span>'}</td>
+                        <td>\${office.office_email ? `<a href="mailto:${office.office_email}" class="text-decoration-none">${office.office_email}</a>` : '<span class="text-muted">N/A</span>'}</td>
+                        <td><span class="badge bg-secondary">\${createdDateFormatted}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Load nodal officers data with office master integration
         async function loadNodalOfficersData(page = 1) {
             try {
                 const offset = (page - 1) * itemsPerPage;
@@ -1854,7 +2745,8 @@
                     .from('nodal_officers')
                     .select(`
                         *,
-                        districts(name)
+                        districts(name),
+                        office_master(office_name, office_type)
                     `, { count: 'exact' })
                     .order('created_at', { ascending: false })
                     .range(offset, offset + itemsPerPage - 1);
@@ -1875,7 +2767,7 @@
             }
         }
 
-        // Display nodal officers table - FIXED VERSION
+        // Display nodal officers table with office master data
         function displayNodalOfficersTable(data) {
             const tbody = document.getElementById('nodalTableBody');
             
@@ -1885,33 +2777,29 @@
             }
             
             tbody.innerHTML = data.map((officer, index) => {
-                // Calculate serial number
                 const serialNumber = (currentNodalPage - 1) * itemsPerPage + index + 1;
-                
-                // Format dates safely
                 const dobFormatted = new Date(officer.dob).toLocaleDateString('en-GB');
                 const createdDateFormatted = new Date(officer.created_at).toLocaleDateString('en-GB');
                 
                 return `
                     <tr class="fade-in">
-                        <td><span class="badge bg-primary">${serialNumber}</span></td>
-                        <td><strong>${officer.name || 'N/A'}</strong></td>
-                        <td>${officer.father_name || 'N/A'}</td>
-                        <td>${dobFormatted}</td>
-                        <td><span class="badge bg-info">${officer.designation || 'N/A'}</span></td>
-                        <td>${officer.office_name || 'N/A'}</td>
-                        <td>${officer.office_name_nodal || 'N/A'}</td>
-                        <td>${officer.current_posting || 'N/A'}</td>
-                        <td><a href="mailto:${officer.email}" class="text-decoration-none">${officer.email || 'N/A'}</a></td>
-                        <td><a href="tel:${officer.mobile}" class="text-decoration-none">${officer.mobile || 'N/A'}</a></td>
-                        <td><span class="badge bg-success">${createdDateFormatted}</span></td>
+                        <td><span class="badge bg-primary">\${serialNumber}</span></td>
+                        <td><strong>\${officer.name}</strong></td>
+                        <td>\${officer.father_name}</td>
+                        <td>\${dobFormatted}</td>
+                        <td><span class="badge bg-info">\${officer.designation}</span></td>
+                        <td>\${officer.office_name}</td>
+                        <td>\${officer.office_name_nodal || '<span class="text-muted">N/A</span>'}</td>
+                        <td>\${officer.current_posting}</td>
+                        <td><a href="mailto:${officer.email}" class="text-decoration-none">${officer.email}</a></td>
+                        <td><a href="tel:${officer.mobile}" class="text-decoration-none">${officer.mobile}</a></td>
+                        <td><span class="badge bg-success">\${createdDateFormatted}</span></td>
                     </tr>
                 `;
             }).join('');
         }
 
-
-        // Load employees data
+        // Load employees data with office master integration
         async function loadEmployeesData(page = 1) {
             try {
                 const offset = (page - 1) * itemsPerPage;
@@ -1920,7 +2808,8 @@
                     .from('employees')
                     .select(`
                         *,
-                        districts(name)
+                        districts(name),
+                        office_master(office_name, office_type)
                     `, { count: 'exact' })
                     .order('upload_date', { ascending: false })
                     .range(offset, offset + itemsPerPage - 1);
@@ -1941,7 +2830,7 @@
             }
         }
 
-       // Display employees table - FIXED VERSION
+        // Display employees table
         function displayEmployeesTable(data) {
             const tbody = document.getElementById('employeeTableBody');
             
@@ -1951,25 +2840,22 @@
             }
             
             tbody.innerHTML = data.map((employee, index) => {
-                // Calculate serial number
                 const serialNumber = (currentEmployeePage - 1) * itemsPerPage + index + 1;
-                
-                // Format date safely
                 const dobFormatted = employee.dob ? new Date(employee.dob).toLocaleDateString('en-GB') : 'N/A';
                 const uploadDateFormatted = new Date(employee.upload_date).toLocaleDateString('en-GB');
                 
                 return `
                     <tr class="fade-in">
-                        <td><span class="badge bg-primary">${serialNumber}</span></td>
-                        <td><strong>${employee.name || 'N/A'}</strong></td>
-                        <td>${employee.father_name || 'N/A'}</td>
-                        <td>${dobFormatted}</td>
-                        <td><span class="badge bg-info">${employee.designation || 'N/A'}</span></td>
-                        <td>${employee.office_name || 'N/A'}</td>
-                        <td>${employee.current_posting || 'N/A'}</td>
-                        <td><a href="mailto:${employee.email}" class="text-decoration-none">${employee.email || 'N/A'}</a></td>
-                        <td><a href="tel:${employee.mobile}" class="text-decoration-none">${employee.mobile || 'N/A'}</a></td>
-                        <td><span class="badge bg-success">${uploadDateFormatted}</span></td>
+                        <td><span class="badge bg-primary">\${serialNumber}</span></td>
+                        <td><strong>\${employee.name}</strong></td>
+                        <td>\${employee.father_name}</td>
+                        <td>\${dobFormatted}</td>
+                        <td><span class="badge bg-info">\${employee.designation}</span></td>
+                        <td>\${employee.office_name}</td>
+                        <td>\${employee.current_posting}</td>
+                        <td><a href="mailto:${employee.email}" class="text-decoration-none">${employee.email}</a></td>
+                        <td><a href="tel:${employee.mobile}" class="text-decoration-none">${employee.mobile}</a></td>
+                        <td><span class="badge bg-success">\${uploadDateFormatted}</span></td>
                     </tr>
                 `;
             }).join('');
@@ -2093,7 +2979,103 @@
             doc.save(filename);
         }
 
-        // Export event handlers with English headers
+        // Export event handlers for office master
+        document.getElementById('exportOfficeMasterXLSX').addEventListener('click', async function() {
+            try {
+                this.innerHTML = '<div class="loading-spinner-sm"></div> Exporting...';
+                this.disabled = true;
+                
+                const { data, error } = await supabaseClient
+                    .from('office_master')
+                    .select(`
+                        *,
+                        divisions(name),
+                        districts(name),
+                        blocks(name)
+                    `)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                const headers = [
+                    'Sr.', 'Office Type', 'Office Name', 'Division', 'District', 'Block',
+                    'Total Employees', 'e-Office Users', 'Phone', 'Email', 'Registered Date'
+                ];
+                
+                const exportData = data.map((office, index) => ({
+                    'sr_': index + 1,
+                    'office_type': office.office_type,
+                    'office_name': office.office_name,
+                    'division': office.divisions ? office.divisions.name : 'N/A',
+                    'district': office.districts ? office.districts.name : 'N/A',
+                    'block': office.blocks ? office.blocks.name : 'N/A',
+                    'total_employees': office.total_employees,
+                    'e_office_users': office.total_eoffice_users,
+                    'phone': office.office_phone || 'N/A',
+                    'email': office.office_email || 'N/A',
+                    'registered_date': new Date(office.created_at).toLocaleDateString('en-GB')
+                }));
+                
+                exportToXLSX(exportData, 'Office_Master_Data.xlsx', headers);
+                showAlert('कार्यालय मास्टर डेटा XLSX में एक्सपोर्ट हो गया!', 'success', 'office-alerts');
+                
+            } catch (error) {
+                console.error('Error exporting office master data to XLSX:', error);
+                showAlert('एक्सपोर्ट करने में त्रुटि हुई', 'danger', 'office-alerts');
+            } finally {
+                this.innerHTML = '<i class="fas fa-file-excel me-1"></i>XLSX Export';
+                this.disabled = false;
+            }
+        });
+
+        document.getElementById('exportOfficeMasterPDF').addEventListener('click', async function() {
+            try {
+                this.innerHTML = '<div class="loading-spinner-sm"></div> Exporting...';
+                this.disabled = true;
+                
+                const { data, error } = await supabaseClient
+                    .from('office_master')
+                    .select(`
+                        *,
+                        divisions(name),
+                        districts(name),
+                        blocks(name)
+                    `)
+                    .eq('is_active', true)
+                    .order('created_at', { ascending: false });
+                
+                if (error) throw error;
+                
+                const headers = ['Sr.', 'Type', 'Office Name', 'Division', 'District', 'Block', 'Employees', 'e-Users', 'Phone', 'Email', 'Date'];
+                
+                const exportData = data.map((office, index) => ({
+                    'sr_': index + 1,
+                    'type': office.office_type,
+                    'office_name': office.office_name,
+                    'division': office.divisions ? office.divisions.name : 'N/A',
+                    'district': office.districts ? office.districts.name : 'N/A',
+                    'block': office.blocks ? office.blocks.name : 'N/A',
+                    'employees': office.total_employees,
+                    'e_users': office.total_eoffice_users,
+                    'phone': office.office_phone || 'N/A',
+                    'email': office.office_email || 'N/A',
+                    'date': new Date(office.created_at).toLocaleDateString('en-GB')
+                }));
+                
+                exportToPDF(exportData, 'Office_Master_Data.pdf', 'Office Master Details', headers);
+                showAlert('कार्यालय मास्टर डेटा PDF में एक्सपोर्ट हो गया!', 'success', 'office-alerts');
+                
+            } catch (error) {
+                console.error('Error exporting office master data to PDF:', error);
+                showAlert('एक्सपोर्ट करने में त्रुटि हुई', 'danger', 'office-alerts');
+            } finally {
+                this.innerHTML = '<i class="fas fa-file-pdf me-1"></i>PDF Export';
+                this.disabled = false;
+            }
+        });
+
+        // Export event handlers for nodal officers (updated with office master integration)
         document.getElementById('exportNodalXLSX').addEventListener('click', async function() {
             try {
                 this.innerHTML = '<div class="loading-spinner-sm"></div> Exporting...';
@@ -2101,7 +3083,10 @@
                 
                 const { data, error } = await supabaseClient
                     .from('nodal_officers')
-                    .select('*')
+                    .select(`
+                        *,
+                        office_master(office_name, office_type)
+                    `)
                     .order('created_at', { ascending: false });
                 
                 if (error) throw error;
@@ -2264,6 +3249,18 @@
         document.getElementById('admin-tab').addEventListener('shown.bs.tab', function() {
             if (currentUser.role === 'admin') {
                 loadAdminStats();
+                loadOfficeMasterData();
+            }
+        });
+
+        document.getElementById('office-master-data-tab').addEventListener('shown.bs.tab', function() {
+            if (currentUser.role === 'admin') {
+                loadOfficeMasterData();
+            }
+        });
+
+        document.getElementById('nodal-data-tab').addEventListener('shown.bs.tab', function() {
+            if (currentUser.role === 'admin') {
                 loadNodalOfficersData();
             }
         });
@@ -2360,17 +3357,32 @@
             updateDateTime();
             setInterval(updateDateTime, 60000); // Update every minute
             
+            // Load master data (divisions, districts, blocks)
+            loadMasterData();
+            
+            // Load registered offices for current user
+            loadRegisteredOffices();
+            
+            // Check existing office registration
+            checkExistingOfficeRegistration();
+            
             // Load initial data for admin
             if (currentUser.role === 'admin') {
                 loadAdminStats();
-                loadNodalOfficersData();
+                loadOfficeMasterData();
             }
             
-            console.log('e-HRMS Portal initialized successfully');
+            console.log('e-HRMS Portal with Office Master initialized successfully');
         });
 
         // Enhanced keyboard shortcuts
         document.addEventListener('keydown', function(e) {
+            // Ctrl + Alt + 0 for Office Master tab
+            if (e.ctrlKey && e.altKey && e.key === '0') {
+                e.preventDefault();
+                document.getElementById('office-master-tab').click();
+            }
+            
             // Ctrl + Alt + 1 for P-1 tab
             if (e.ctrlKey && e.altKey && e.key === '1') {
                 e.preventDefault();
@@ -2389,11 +3401,13 @@
                 document.getElementById('admin-tab').click();
             }
             
-            // Ctrl + S to save P-1 form
+            // Ctrl + S to save forms
             if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
                 const activeTab = document.querySelector('.tab-pane.active');
-                if (activeTab && activeTab.id === 'p1-panel') {
+                if (activeTab && activeTab.id === 'office-master-panel') {
+                    document.getElementById('officeMasterForm').dispatchEvent(new Event('submit'));
+                } else if (activeTab && activeTab.id === 'p1-panel') {
                     document.getElementById('p1Form').dispatchEvent(new Event('submit'));
                 }
             }
@@ -2404,7 +3418,9 @@
                 const activeTab = document.querySelector('.tab-pane.active');
                 if (activeTab && activeTab.id === 'admin-panel') {
                     const activeDataTab = document.querySelector('#adminTabContent .tab-pane.active');
-                    if (activeDataTab && activeDataTab.id === 'nodal-data') {
+                    if (activeDataTab && activeDataTab.id === 'office-master-data') {
+                        document.getElementById('exportOfficeMasterXLSX').click();
+                    } else if (activeDataTab && activeDataTab.id === 'nodal-data') {
                         document.getElementById('exportNodalXLSX').click();
                     } else if (activeDataTab && activeDataTab.id === 'employee-data') {
                         document.getElementById('exportEmployeeXLSX').click();
@@ -2416,9 +3432,10 @@
         // Add enhanced console welcome message
         console.log(`
         ╔══════════════════════════════════════════════════════════════╗
-        ║                  🚀 e-HRMS Portal v2.0                      ║
+        ║                  🚀 e-HRMS Portal v3.0                      ║
         ║            संचालनालय कृषि छत्तीसगढ़                          ║
         ║                                                              ║
+        ║  🏢 Office Master Registration System                       ║
         ║  📋 Enhanced Format P-1: Nodal Officer Nomination           ║
         ║  👥 Enhanced Format P-2: Employee Bulk Upload               ║
         ║  🎨 Professional Admin Dashboard                            ║
@@ -2426,20 +3443,25 @@
         ║  🔒 Role-based Access Control                               ║
         ║  📱 Real-time Mobile & Email Validation                    ║
         ║  📧 @cgeauth.nic.in Email Domain Validation                ║
-        ║  🏢 Smart Office Name Auto-fill Logic                      ║
-        ║  📍 Radio Button Address Auto-fill                         ║
+        ║  🏗️ Hierarchical Office Structure (JDA/DDA/Sub/SADO)      ║
+        ║  📊 Office-wise Data Management                             ║
         ║  📤 Professional English Headers in Exports                ║
         ║  🎯 Enhanced Loading States & Animations                   ║
-        ║  📊 Animated Statistics with Number Counting               ║
+        ║  📈 Animated Statistics with Number Counting               ║
         ║  🔄 Real-time Progress Bars                                ║
         ║                                                              ║
         ║  ⌨️  Enhanced Keyboard Shortcuts:                           ║
-        ║  Ctrl+Alt+1: P-1 Form | Ctrl+Alt+2: P-2 Form              ║
-        ║  Ctrl+Alt+A: Admin Dashboard | Ctrl+S: Save Form           ║
-        ║  Ctrl+E: Quick Export (Admin) | ESC: Close Modals          ║
+        ║  Ctrl+Alt+0: Office Master | Ctrl+Alt+1: P-1 Form         ║
+        ║  Ctrl+Alt+2: P-2 Form | Ctrl+Alt+A: Admin Dashboard       ║
+        ║  Ctrl+S: Save Form | Ctrl+E: Quick Export (Admin)          ║
         ║                                                              ║
-        ║  🎨 Features: Professional UI, Smooth Animations,          ║
-        ║     Enhanced UX, Real-time Validation, Smart Auto-fill     ║
+        ║  🏢 Office Hierarchy:                                       ║
+        ║  JDA → Division Level | DDA → District Level               ║
+        ║  Sub Divisional → Block Level | SADO → Block Level         ║
+        ║                                                              ║
+        ║  🎨 Features: Hierarchical Office Management,              ║
+        ║     Professional UI, Smooth Animations, Enhanced UX,       ║
+        ║     Real-time Validation, Smart Auto-fill, Office Master   ║
         ╚══════════════════════════════════════════════════════════════╝
         `);
 
@@ -2447,25 +3469,41 @@
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
             window.eHRMSHelpers = {
                 getCurrentUser: () => currentUser,
+                getRegisteredOffices: () => registeredOffices,
                 getNodalOfficersData: () => nodalOfficersData,
                 getEmployeesData: () => employeesData,
+                getOfficeMasterData: () => officeMasterData,
                 loadAdminStats: loadAdminStats,
+                loadMasterData: loadMasterData,
                 exportAllData: () => {
-                    document.getElementById('exportNodalXLSX').click();
-                    setTimeout(() => document.getElementById('exportEmployeeXLSX').click(), 1000);
+                    document.getElementById('exportOfficeMasterXLSX').click();
+                    setTimeout(() => document.getElementById('exportNodalXLSX').click(), 1000);
+                    setTimeout(() => document.getElementById('exportEmployeeXLSX').click(), 2000);
                 },
                 clearAllAlerts: () => {
                     document.querySelectorAll('.alert').forEach(alert => alert.remove());
                 },
                 testAnimations: () => {
-                    showSubmitAnimation('p1Form', 'p1SubmitOverlay', 'p1Spinner', 'p1Success', 'p1OverlayText', 'Testing...');
+                    showSubmitAnimation('officeMasterForm', 'officeSubmitOverlay', 'officeSpinner', 'officeSuccess', 'officeOverlayText', 'Testing...');
                     setTimeout(() => {
-                        showSuccessAnimation('p1SubmitOverlay', 'p1Spinner', 'p1Success', 'p1OverlayText', 'Test Complete!');
+                        showSuccessAnimation('officeSubmitOverlay', 'officeSpinner', 'officeSuccess', 'officeOverlayText', 'Test Complete!');
                     }, 2000);
+                },
+                resetOfficeForm: () => {
+                    document.getElementById('officeMasterForm').reset();
+                    document.querySelectorAll('.office-type-card').forEach(c => c.classList.remove('selected'));
+                    document.getElementById('hierarchySection').style.display = 'none';
+                    document.getElementById('officeDetailsSection').style.display = 'none';
                 }
             };
             
             console.log('🛠️ Development helpers available in window.eHRMSHelpers');
+            console.log('Available commands:');
+            console.log('- eHRMSHelpers.getCurrentUser()');
+            console.log('- eHRMSHelpers.getRegisteredOffices()');
+            console.log('- eHRMSHelpers.exportAllData()');
+            console.log('- eHRMSHelpers.testAnimations()');
+            console.log('- eHRMSHelpers.resetOfficeForm()');
         }
 
     </script>
@@ -2473,4 +3511,8 @@
 </html>
 
 
+                        
 
+
+
+                
