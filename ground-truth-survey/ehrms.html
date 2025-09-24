@@ -1875,7 +1875,7 @@
             }
         }
 
-        // Display nodal officers table with all columns
+        // Display nodal officers table - FIXED VERSION
         function displayNodalOfficersTable(data) {
             const tbody = document.getElementById('nodalTableBody');
             
@@ -1884,22 +1884,32 @@
                 return;
             }
             
-            tbody.innerHTML = data.map((officer, index) => `
-                <tr class="fade-in">
-                    <td><span class="badge bg-primary">\${(currentNodalPage - 1) * itemsPerPage + index + 1}</span></td>
-                    <td><strong>\${officer.name}</strong></td>
-                    <td>\${officer.father_name}</td>
-                    <td>\${new Date(officer.dob).toLocaleDateString('en-GB')}</td>
-                    <td><span class="badge bg-info">\${officer.designation}</span></td>
-                    <td>\${officer.office_name}</td>
-                    <td>\${officer.office_name_nodal || '<span class="text-muted">N/A</span>'}</td>
-                    <td>\${officer.current_posting}</td>
-                    <td><a href="mailto:${officer.email}" class="text-decoration-none">${officer.email}</a></td>
-                    <td><a href="tel:${officer.mobile}" class="text-decoration-none">${officer.mobile}</a></td>
-                    <td><span class="badge bg-success">\${new Date(officer.created_at).toLocaleDateString('en-GB')}</span></td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = data.map((officer, index) => {
+                // Calculate serial number
+                const serialNumber = (currentNodalPage - 1) * itemsPerPage + index + 1;
+                
+                // Format dates safely
+                const dobFormatted = new Date(officer.dob).toLocaleDateString('en-GB');
+                const createdDateFormatted = new Date(officer.created_at).toLocaleDateString('en-GB');
+                
+                return `
+                    <tr class="fade-in">
+                        <td><span class="badge bg-primary">${serialNumber}</span></td>
+                        <td><strong>${officer.name || 'N/A'}</strong></td>
+                        <td>${officer.father_name || 'N/A'}</td>
+                        <td>${dobFormatted}</td>
+                        <td><span class="badge bg-info">${officer.designation || 'N/A'}</span></td>
+                        <td>${officer.office_name || 'N/A'}</td>
+                        <td>${officer.office_name_nodal || 'N/A'}</td>
+                        <td>${officer.current_posting || 'N/A'}</td>
+                        <td><a href="mailto:${officer.email}" class="text-decoration-none">${officer.email || 'N/A'}</a></td>
+                        <td><a href="tel:${officer.mobile}" class="text-decoration-none">${officer.mobile || 'N/A'}</a></td>
+                        <td><span class="badge bg-success">${createdDateFormatted}</span></td>
+                    </tr>
+                `;
+            }).join('');
         }
+
 
         // Load employees data
         async function loadEmployeesData(page = 1) {
@@ -1931,7 +1941,7 @@
             }
         }
 
-        // Display employees table
+       // Display employees table - FIXED VERSION
         function displayEmployeesTable(data) {
             const tbody = document.getElementById('employeeTableBody');
             
@@ -1940,20 +1950,29 @@
                 return;
             }
             
-            tbody.innerHTML = data.map((employee, index) => `
-                <tr class="fade-in">
-                    <td><span class="badge bg-primary">\${(currentEmployeePage - 1) * itemsPerPage + index + 1}</span></td>
-                    <td><strong>\${employee.name}</strong></td>
-                    <td>\${employee.father_name}</td>
-                    <td>\${employee.dob ? new Date(employee.dob).toLocaleDateString('en-GB') : '<span class="text-muted">N/A</span>'}</td>
-                    <td><span class="badge bg-info">\${employee.designation}</span></td>
-                    <td>\${employee.office_name}</td>
-                    <td>\${employee.current_posting}</td>
-                    <td><a href="mailto:${employee.email}" class="text-decoration-none">${employee.email}</a></td>
-                    <td><a href="tel:${employee.mobile}" class="text-decoration-none">${employee.mobile}</a></td>
-                    <td><span class="badge bg-success">\${new Date(employee.upload_date).toLocaleDateString('en-GB')}</span></td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = data.map((employee, index) => {
+                // Calculate serial number
+                const serialNumber = (currentEmployeePage - 1) * itemsPerPage + index + 1;
+                
+                // Format date safely
+                const dobFormatted = employee.dob ? new Date(employee.dob).toLocaleDateString('en-GB') : 'N/A';
+                const uploadDateFormatted = new Date(employee.upload_date).toLocaleDateString('en-GB');
+                
+                return `
+                    <tr class="fade-in">
+                        <td><span class="badge bg-primary">${serialNumber}</span></td>
+                        <td><strong>${employee.name || 'N/A'}</strong></td>
+                        <td>${employee.father_name || 'N/A'}</td>
+                        <td>${dobFormatted}</td>
+                        <td><span class="badge bg-info">${employee.designation || 'N/A'}</span></td>
+                        <td>${employee.office_name || 'N/A'}</td>
+                        <td>${employee.current_posting || 'N/A'}</td>
+                        <td><a href="mailto:${employee.email}" class="text-decoration-none">${employee.email || 'N/A'}</a></td>
+                        <td><a href="tel:${employee.mobile}" class="text-decoration-none">${employee.mobile || 'N/A'}</a></td>
+                        <td><span class="badge bg-success">${uploadDateFormatted}</span></td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         // Create enhanced pagination
